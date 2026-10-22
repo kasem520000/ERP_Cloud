@@ -1,0 +1,40 @@
+[
+  {
+    "name": "cashier-approve",
+    "url": "/inventory/requests/01a16065-b7f5-751b-ac0b-effe335f6f37/approve",
+    "status": 403,
+    "body": {
+      "type": "about:blank",
+      "title": "Forbidden",
+      "status": 403,
+      "code": "FORBIDDEN",
+      "detail": "permission inventory.request.approve required",
+      "traceId": "01a16069-1e2b-75dc-b58c-535b21bbbd73",
+      "errors": [
+        {
+          "field": "permission",
+          "message": "inventory.request.approve"
+        }
+      ]
+    }
+  },
+  {
+    "name": "cashier-post",
+    "url": "/inventory/vouchers/01a16064-49c0-7489-beca-f1fa46768d9b/post",
+    "status": 403,
+    "body": {
+      "type": "about:blank",
+      "title": "Forbidden",
+      "status": 403,
+      "code": "FORBIDDEN",
+      "detail": "permission inventory.adjust required",
+      "traceId": "01a16069-1e42-710d-98d4-fa6874d36c29",
+      "errors": [
+        {
+          "field": "permission",
+          "message": "inventory.adjust"
+        }
+      ]
+    }
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "type": "confirm",
+    "message": "ترحيل السند SIN-000002؟ سيُحرَّك المخزون ويُنشأ القيد.",
+    "answer": null
+  },
+  {
+    "type": "prompt",
+    "message": "سبب إلغاء السند SIN-000002:",
+    "answer": "R11-CANCEL-BOX"
+  }
+]

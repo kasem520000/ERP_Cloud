@@ -1,0 +1,17 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/journal-entries/01a160ed-a42c-70a6-b6bb-9663820afad4/reverse",
+  "request": {
+    "branchId": "01a16060-97b1-7489-8203-fee57ee4e4b4",
+    "fiscalPeriodId": "01a16060-9819-7123-9fd4-48bc97934239",
+    "date": "2026-10-22",
+    "reason": "R15 عكس قيد مؤرخ في فترة مغلقة قُبل خطأً - تنظيف معتمد"
+  },
+  "body": {
+    "data": {
+      "id": "01a160ef-3f3e-7408-aa87-68cdf5d049e5",
+      "reversalOf": "01a160ed-a42c-70a6-b6bb-9663820afad4"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "id": "R10-SMOKE-023",
+  "route": "/settings/custom-fields",
+  "scope": "UI read-only smoke, not business approval",
+  "at": "2026-10-21T21:48:04.537Z",
+  "url": "http://127.0.0.1:3001/settings/custom-fields",
+  "state": "rendered",
+  "api": [
+    {
+      "at": "2026-10-21T21:48:10.198Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:48:10.201Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/custom-fields?entity=item&include_inactive=true",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:48:10.245Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:48:10.245Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/custom-fields?entity=item&include_inactive=true",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:48:10.254Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:48:10.266Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:48:10.267Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:48:10.340Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    }
+  ],
+  "jsErrors": []
+}

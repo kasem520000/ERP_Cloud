@@ -1,0 +1,910 @@
+{
+  "passed": 96,
+  "failed": 17,
+  "checks": [
+    {
+      "name": "DB3 draft no financial effect stock_balances",
+      "actual": "sha256:1061bdb7db81054abc7b1924bc2a167dcdecccfad18d8cff0b67c3dfaf4c5cc9",
+      "expected": "sha256:1061bdb7db81054abc7b1924bc2a167dcdecccfad18d8cff0b67c3dfaf4c5cc9",
+      "passed": true,
+      "evidence": "DB2/3",
+      "defect": null
+    },
+    {
+      "name": "DB3 draft no financial effect inventory_transactions",
+      "actual": "sha256:9968982b648382f40cb8428667ddfbb8800de3c7d8deee06fc2e59e60a2ccc41",
+      "expected": "sha256:9968982b648382f40cb8428667ddfbb8800de3c7d8deee06fc2e59e60a2ccc41",
+      "passed": true,
+      "evidence": "DB2/3",
+      "defect": null
+    },
+    {
+      "name": "DB3 draft no financial effect journals",
+      "actual": "sha256:e24088e3851de10c6b8fc89fa4e083817c205c426b32cc65adb8ad1fdf8b03ef",
+      "expected": "sha256:e24088e3851de10c6b8fc89fa4e083817c205c426b32cc65adb8ad1fdf8b03ef",
+      "passed": true,
+      "evidence": "DB2/3",
+      "defect": null
+    },
+    {
+      "name": "DB3 draft no financial effect balances",
+      "actual": "sha256:35c4e3650d5ff0d8c5493877b8c10546a5ac9c4f16eab24fc490cf9d0cfe598b",
+      "expected": "sha256:35c4e3650d5ff0d8c5493877b8c10546a5ac9c4f16eab24fc490cf9d0cfe598b",
+      "passed": true,
+      "evidence": "DB2/3",
+      "defect": null
+    },
+    {
+      "name": "DB3 draft no financial effect cash_location_balances",
+      "actual": "sha256:3d994b5b329425126f9c5876f6f481bdc5f8e399996fb020bf508e2407433a22",
+      "expected": "sha256:3d994b5b329425126f9c5876f6f481bdc5f8e399996fb020bf508e2407433a22",
+      "passed": true,
+      "evidence": "DB2/3",
+      "defect": null
+    },
+    {
+      "name": "DB5 draft no financial effect stock_balances",
+      "actual": "sha256:6ab57626546ef9944ead6b528971f1aad44cb19d55947ed5b7dd090749edafcd",
+      "expected": "sha256:6ab57626546ef9944ead6b528971f1aad44cb19d55947ed5b7dd090749edafcd",
+      "passed": true,
+      "evidence": "DB4/5",
+      "defect": null
+    },
+    {
+      "name": "DB5 draft no financial effect inventory_transactions",
+      "actual": "sha256:6cb8f8127077edae5c52df83169d684d8f3352d3b866e8b2af1b481ea934a3f8",
+      "expected": "sha256:6cb8f8127077edae5c52df83169d684d8f3352d3b866e8b2af1b481ea934a3f8",
+      "passed": true,
+      "evidence": "DB4/5",
+      "defect": null
+    },
+    {
+      "name": "DB5 draft no financial effect journals",
+      "actual": "sha256:a4a055895c6efc74d28557fb3f3c1cd98e7b5f4eb3d187a4c93dd8427913ffc2",
+      "expected": "sha256:a4a055895c6efc74d28557fb3f3c1cd98e7b5f4eb3d187a4c93dd8427913ffc2",
+      "passed": true,
+      "evidence": "DB4/5",
+      "defect": null
+    },
+    {
+      "name": "DB5 draft no financial effect balances",
+      "actual": "sha256:1cf2a26d456026025787a6320511e0141ef95882110eafaab249f867fe6b508a",
+      "expected": "sha256:1cf2a26d456026025787a6320511e0141ef95882110eafaab249f867fe6b508a",
+      "passed": true,
+      "evidence": "DB4/5",
+      "defect": null
+    },
+    {
+      "name": "DB5 draft no financial effect cash_location_balances",
+      "actual": "sha256:3d994b5b329425126f9c5876f6f481bdc5f8e399996fb020bf508e2407433a22",
+      "expected": "sha256:3d994b5b329425126f9c5876f6f481bdc5f8e399996fb020bf508e2407433a22",
+      "passed": true,
+      "evidence": "DB4/5",
+      "defect": null
+    },
+    {
+      "name": "DB8 draft no financial effect stock_balances",
+      "actual": "sha256:091c765289bb2041666cece939643083de53a70ed31ced89a5e655d2ecbd02e8",
+      "expected": "sha256:091c765289bb2041666cece939643083de53a70ed31ced89a5e655d2ecbd02e8",
+      "passed": true,
+      "evidence": "DB7/8",
+      "defect": null
+    },
+    {
+      "name": "DB8 draft no financial effect inventory_transactions",
+      "actual": "sha256:0904505419840145b1cefed640cee6530d61f1593db59c207ad0c4df12efe689",
+      "expected": "sha256:0904505419840145b1cefed640cee6530d61f1593db59c207ad0c4df12efe689",
+      "passed": true,
+      "evidence": "DB7/8",
+      "defect": null
+    },
+    {
+      "name": "DB8 draft no financial effect journals",
+      "actual": "sha256:9a7d28ba107c2b227b9426e158ba94db2394490c8327de3b5f2050e3134ab7cc",
+      "expected": "sha256:9a7d28ba107c2b227b9426e158ba94db2394490c8327de3b5f2050e3134ab7cc",
+      "passed": true,
+      "evidence": "DB7/8",
+      "defect": null
+    },
+    {
+      "name": "DB8 draft no financial effect balances",
+      "actual": "sha256:c44a3b99a5e936f841b276b2fd0ad5a8c3562e47dca06a23b39f48616649fc6f",
+      "expected": "sha256:c44a3b99a5e936f841b276b2fd0ad5a8c3562e47dca06a23b39f48616649fc6f",
+      "passed": true,
+      "evidence": "DB7/8",
+      "defect": null
+    },
+    {
+      "name": "DB8 draft no financial effect cash_location_balances",
+      "actual": "sha256:3d994b5b329425126f9c5876f6f481bdc5f8e399996fb020bf508e2407433a22",
+      "expected": "sha256:3d994b5b329425126f9c5876f6f481bdc5f8e399996fb020bf508e2407433a22",
+      "passed": true,
+      "evidence": "DB7/8",
+      "defect": null
+    },
+    {
+      "name": "DB11 draft no financial effect stock_balances",
+      "actual": "sha256:091c765289bb2041666cece939643083de53a70ed31ced89a5e655d2ecbd02e8",
+      "expected": "sha256:091c765289bb2041666cece939643083de53a70ed31ced89a5e655d2ecbd02e8",
+      "passed": true,
+      "evidence": "DB10/11",
+      "defect": null
+    },
+    {
+      "name": "DB11 draft no financial effect inventory_transactions",
+      "actual": "sha256:0904505419840145b1cefed640cee6530d61f1593db59c207ad0c4df12efe689",
+      "expected": "sha256:0904505419840145b1cefed640cee6530d61f1593db59c207ad0c4df12efe689",
+      "passed": true,
+      "evidence": "DB10/11",
+      "defect": null
+    },
+    {
+      "name": "DB11 draft no financial effect journals",
+      "actual": "sha256:89ed6ce4219e1b5ec436697f65802b01243071cab4b46f84deb1725550c5d6d5",
+      "expected": "sha256:89ed6ce4219e1b5ec436697f65802b01243071cab4b46f84deb1725550c5d6d5",
+      "passed": true,
+      "evidence": "DB10/11",
+      "defect": null
+    },
+    {
+      "name": "DB11 draft no financial effect balances",
+      "actual": "sha256:0da068f9ab21bbc9dca31bd63fa699533bad29d2f9a16abaa40bf31d8fff4549",
+      "expected": "sha256:0da068f9ab21bbc9dca31bd63fa699533bad29d2f9a16abaa40bf31d8fff4549",
+      "passed": true,
+      "evidence": "DB10/11",
+      "defect": null
+    },
+    {
+      "name": "DB11 draft no financial effect cash_location_balances",
+      "actual": "sha256:487e5b5cef9412fffcd4de10e989b2f07c9e22a7889fd7a7c83619bb6ba970cf",
+      "expected": "sha256:487e5b5cef9412fffcd4de10e989b2f07c9e22a7889fd7a7c83619bb6ba970cf",
+      "passed": true,
+      "evidence": "DB10/11",
+      "defect": null
+    },
+    {
+      "name": "DB14 draft no financial effect stock_balances",
+      "actual": "sha256:091c765289bb2041666cece939643083de53a70ed31ced89a5e655d2ecbd02e8",
+      "expected": "sha256:091c765289bb2041666cece939643083de53a70ed31ced89a5e655d2ecbd02e8",
+      "passed": true,
+      "evidence": "DB13/14",
+      "defect": null
+    },
+    {
+      "name": "DB14 draft no financial effect inventory_transactions",
+      "actual": "sha256:0904505419840145b1cefed640cee6530d61f1593db59c207ad0c4df12efe689",
+      "expected": "sha256:0904505419840145b1cefed640cee6530d61f1593db59c207ad0c4df12efe689",
+      "passed": true,
+      "evidence": "DB13/14",
+      "defect": null
+    },
+    {
+      "name": "DB14 draft no financial effect journals",
+      "actual": "sha256:5eb798a25d64e3717a4a1c478bcaf9274cecfe50ea258f2e55c0374d8f01c052",
+      "expected": "sha256:5eb798a25d64e3717a4a1c478bcaf9274cecfe50ea258f2e55c0374d8f01c052",
+      "passed": true,
+      "evidence": "DB13/14",
+      "defect": null
+    },
+    {
+      "name": "DB14 draft no financial effect balances",
+      "actual": "sha256:a7b21637271fad0331dc23a6b387756dacabf0b5b86b4a7641dce67430860e59",
+      "expected": "sha256:a7b21637271fad0331dc23a6b387756dacabf0b5b86b4a7641dce67430860e59",
+      "passed": true,
+      "evidence": "DB13/14",
+      "defect": null
+    },
+    {
+      "name": "DB14 draft no financial effect cash_location_balances",
+      "actual": "sha256:7428d11cbd39b5cc9f82590faece047c2242f2026db74e67c1a1eee2efcb88dd",
+      "expected": "sha256:7428d11cbd39b5cc9f82590faece047c2242f2026db74e67c1a1eee2efcb88dd",
+      "passed": true,
+      "evidence": "DB13/14",
+      "defect": null
+    },
+    {
+      "name": "DB4 R12 quantity",
+      "actual": "10.0000",
+      "expected": "10",
+      "passed": true,
+      "evidence": "DB4",
+      "defect": null
+    },
+    {
+      "name": "DB4 R12 value",
+      "actual": "120.0000",
+      "expected": "120",
+      "passed": true,
+      "evidence": "DB4",
+      "defect": null
+    },
+    {
+      "name": "DB4 AP",
+      "actual": "-138.0000",
+      "expected": "-138",
+      "passed": true,
+      "evidence": "DB4",
+      "defect": null
+    },
+    {
+      "name": "DB4 VAT net",
+      "actual": "12.0000",
+      "expected": "12",
+      "passed": true,
+      "evidence": "DB4",
+      "defect": null
+    },
+    {
+      "name": "DB6 R12 quantity",
+      "actual": "8.0000",
+      "expected": "8",
+      "passed": true,
+      "evidence": "DB6",
+      "defect": null
+    },
+    {
+      "name": "DB6 R12 value",
+      "actual": "96.0000",
+      "expected": "96",
+      "passed": true,
+      "evidence": "DB6",
+      "defect": null
+    },
+    {
+      "name": "DB6 AP",
+      "actual": "-110.4000",
+      "expected": "-110.4",
+      "passed": true,
+      "evidence": "DB6",
+      "defect": null
+    },
+    {
+      "name": "DB6 VAT net",
+      "actual": "8.4000",
+      "expected": "8.4",
+      "passed": true,
+      "evidence": "DB6",
+      "defect": null
+    },
+    {
+      "name": "Sale paid total",
+      "actual": "46.0000",
+      "expected": "46",
+      "passed": true,
+      "evidence": "DB007",
+      "defect": null
+    },
+    {
+      "name": "Sale paid status",
+      "actual": "paid",
+      "expected": "paid",
+      "passed": true,
+      "evidence": "DB007",
+      "defect": null
+    },
+    {
+      "name": "Collection cash GL delta",
+      "actual": "0.0000",
+      "expected": "46",
+      "passed": false,
+      "evidence": "DB006/007",
+      "defect": "ACC-006"
+    },
+    {
+      "name": "Collection AR GL delta",
+      "actual": "0.0000",
+      "expected": "-46",
+      "passed": false,
+      "evidence": "DB006/007",
+      "defect": "ACC-006"
+    },
+    {
+      "name": "Collection cash subledger delta",
+      "actual": "0.0000",
+      "expected": "46",
+      "passed": false,
+      "evidence": "DB006/007",
+      "defect": "ACC-006"
+    },
+    {
+      "name": "Supplier payment GL delta 1211001",
+      "actual": "-50.0000",
+      "expected": "-50",
+      "passed": true,
+      "evidence": "DB008/009",
+      "defect": null
+    },
+    {
+      "name": "Supplier payment GL delta 22111001",
+      "actual": "50.0000",
+      "expected": "50",
+      "passed": true,
+      "evidence": "DB008/009",
+      "defect": null
+    },
+    {
+      "name": "Supplier payment subledger delta",
+      "actual": "-50.0000",
+      "expected": "-50",
+      "passed": true,
+      "evidence": "DB008/009",
+      "defect": null
+    },
+    {
+      "name": "Purchase tracking avoids duplicate journals",
+      "actual": "sha256:89ed6ce4219e1b5ec436697f65802b01243071cab4b46f84deb1725550c5d6d5",
+      "expected": "sha256:89ed6ce4219e1b5ec436697f65802b01243071cab4b46f84deb1725550c5d6d5",
+      "passed": true,
+      "evidence": "DB009/010",
+      "defect": null
+    },
+    {
+      "name": "Purchase tracking avoids duplicate stock_balances",
+      "actual": "sha256:091c765289bb2041666cece939643083de53a70ed31ced89a5e655d2ecbd02e8",
+      "expected": "sha256:091c765289bb2041666cece939643083de53a70ed31ced89a5e655d2ecbd02e8",
+      "passed": true,
+      "evidence": "DB009/010",
+      "defect": null
+    },
+    {
+      "name": "Purchase tracking avoids duplicate inventory_transactions",
+      "actual": "sha256:0904505419840145b1cefed640cee6530d61f1593db59c207ad0c4df12efe689",
+      "expected": "sha256:0904505419840145b1cefed640cee6530d61f1593db59c207ad0c4df12efe689",
+      "passed": true,
+      "evidence": "DB009/010",
+      "defect": null
+    },
+    {
+      "name": "Purchase tracking avoids duplicate cash_location_balances",
+      "actual": "sha256:487e5b5cef9412fffcd4de10e989b2f07c9e22a7889fd7a7c83619bb6ba970cf",
+      "expected": "sha256:487e5b5cef9412fffcd4de10e989b2f07c9e22a7889fd7a7c83619bb6ba970cf",
+      "passed": true,
+      "evidence": "DB009/010",
+      "defect": null
+    },
+    {
+      "name": "Purchase paid tracking",
+      "actual": "50.0000",
+      "expected": "50",
+      "passed": true,
+      "evidence": "DB010",
+      "defect": null
+    },
+    {
+      "name": "DB12 cash subledger delta",
+      "actual": "-7.0000",
+      "expected": "-7",
+      "passed": true,
+      "evidence": "DB11/12",
+      "defect": null
+    },
+    {
+      "name": "DB12 cash GL delta",
+      "actual": "-7.0000",
+      "expected": "-7",
+      "passed": true,
+      "evidence": "DB11/12",
+      "defect": null
+    },
+    {
+      "name": "DB12 counteraccount delta",
+      "actual": "7.0000",
+      "expected": "7",
+      "passed": true,
+      "evidence": "DB11/12",
+      "defect": null
+    },
+    {
+      "name": "DB13 cash subledger delta",
+      "actual": "7.0000",
+      "expected": "7",
+      "passed": true,
+      "evidence": "DB12/13",
+      "defect": null
+    },
+    {
+      "name": "DB13 cash GL delta",
+      "actual": "0.0000",
+      "expected": "7",
+      "passed": false,
+      "evidence": "DB12/13",
+      "defect": "ACC-009"
+    },
+    {
+      "name": "DB13 counteraccount delta",
+      "actual": "0.0000",
+      "expected": "-7",
+      "passed": false,
+      "evidence": "DB12/13",
+      "defect": "ACC-009"
+    },
+    {
+      "name": "DB15 cash subledger delta",
+      "actual": "5.0000",
+      "expected": "5",
+      "passed": true,
+      "evidence": "DB14/15",
+      "defect": null
+    },
+    {
+      "name": "DB15 cash GL delta",
+      "actual": "5.0000",
+      "expected": "5",
+      "passed": true,
+      "evidence": "DB14/15",
+      "defect": null
+    },
+    {
+      "name": "DB15 counteraccount delta",
+      "actual": "-5.0000",
+      "expected": "-5",
+      "passed": true,
+      "evidence": "DB14/15",
+      "defect": null
+    },
+    {
+      "name": "DB16 cash subledger delta",
+      "actual": "-5.0000",
+      "expected": "-5",
+      "passed": true,
+      "evidence": "DB15/16",
+      "defect": null
+    },
+    {
+      "name": "DB16 cash GL delta",
+      "actual": "0.0000",
+      "expected": "-5",
+      "passed": false,
+      "evidence": "DB15/16",
+      "defect": "ACC-009"
+    },
+    {
+      "name": "DB16 counteraccount delta",
+      "actual": "0.0000",
+      "expected": "5",
+      "passed": false,
+      "evidence": "DB15/16",
+      "defect": "ACC-009"
+    },
+    {
+      "name": "All reports no write vouchers",
+      "actual": "sha256:a2c116906e772a391c779c67f10742b82adb33882ece957ad895eb12d3bd2c95",
+      "expected": "sha256:a2c116906e772a391c779c67f10742b82adb33882ece957ad895eb12d3bd2c95",
+      "passed": true,
+      "evidence": "DB017/018",
+      "defect": null
+    },
+    {
+      "name": "All reports no write sales_invoices",
+      "actual": "sha256:58becc6034da0ffcf5f5611fc51d56eb1225b28ed6270b9fb8c0e6439d508c28",
+      "expected": "sha256:58becc6034da0ffcf5f5611fc51d56eb1225b28ed6270b9fb8c0e6439d508c28",
+      "passed": true,
+      "evidence": "DB017/018",
+      "defect": null
+    },
+    {
+      "name": "All reports no write purchase_invoices",
+      "actual": "sha256:050ae2437063d1bcebfae4632a82d752cf4b1c701a8bd6bcc3d2ea6868016fcf",
+      "expected": "sha256:050ae2437063d1bcebfae4632a82d752cf4b1c701a8bd6bcc3d2ea6868016fcf",
+      "passed": true,
+      "evidence": "DB017/018",
+      "defect": null
+    },
+    {
+      "name": "All reports no write stock_balances",
+      "actual": "sha256:091c765289bb2041666cece939643083de53a70ed31ced89a5e655d2ecbd02e8",
+      "expected": "sha256:091c765289bb2041666cece939643083de53a70ed31ced89a5e655d2ecbd02e8",
+      "passed": true,
+      "evidence": "DB017/018",
+      "defect": null
+    },
+    {
+      "name": "All reports no write journals",
+      "actual": "sha256:44f4b3b62a1d48741a0bbcdd55e3d620de9f87e908508da2c93aac5d75012768",
+      "expected": "sha256:44f4b3b62a1d48741a0bbcdd55e3d620de9f87e908508da2c93aac5d75012768",
+      "passed": true,
+      "evidence": "DB017/018",
+      "defect": null
+    },
+    {
+      "name": "All reports no write cash_location_balances",
+      "actual": "sha256:2ba0be4557249c7abb17f47e6ca9aa992836361ea1f17742f4de34e4beae1c7b",
+      "expected": "sha256:2ba0be4557249c7abb17f47e6ca9aa992836361ea1f17742f4de34e4beae1c7b",
+      "passed": true,
+      "evidence": "DB017/018",
+      "defect": null
+    },
+    {
+      "name": "Read-only closing vouchers",
+      "actual": "sha256:a2c116906e772a391c779c67f10742b82adb33882ece957ad895eb12d3bd2c95",
+      "expected": "sha256:a2c116906e772a391c779c67f10742b82adb33882ece957ad895eb12d3bd2c95",
+      "passed": true,
+      "evidence": "DB016/017",
+      "defect": null
+    },
+    {
+      "name": "Read-only closing sales_invoices",
+      "actual": "sha256:58becc6034da0ffcf5f5611fc51d56eb1225b28ed6270b9fb8c0e6439d508c28",
+      "expected": "sha256:58becc6034da0ffcf5f5611fc51d56eb1225b28ed6270b9fb8c0e6439d508c28",
+      "passed": true,
+      "evidence": "DB016/017",
+      "defect": null
+    },
+    {
+      "name": "Read-only closing purchase_invoices",
+      "actual": "sha256:050ae2437063d1bcebfae4632a82d752cf4b1c701a8bd6bcc3d2ea6868016fcf",
+      "expected": "sha256:050ae2437063d1bcebfae4632a82d752cf4b1c701a8bd6bcc3d2ea6868016fcf",
+      "passed": true,
+      "evidence": "DB016/017",
+      "defect": null
+    },
+    {
+      "name": "Read-only closing stock_balances",
+      "actual": "sha256:091c765289bb2041666cece939643083de53a70ed31ced89a5e655d2ecbd02e8",
+      "expected": "sha256:091c765289bb2041666cece939643083de53a70ed31ced89a5e655d2ecbd02e8",
+      "passed": true,
+      "evidence": "DB016/017",
+      "defect": null
+    },
+    {
+      "name": "Read-only closing journals",
+      "actual": "sha256:44f4b3b62a1d48741a0bbcdd55e3d620de9f87e908508da2c93aac5d75012768",
+      "expected": "sha256:44f4b3b62a1d48741a0bbcdd55e3d620de9f87e908508da2c93aac5d75012768",
+      "passed": true,
+      "evidence": "DB016/017",
+      "defect": null
+    },
+    {
+      "name": "Read-only closing cash_location_balances",
+      "actual": "sha256:2ba0be4557249c7abb17f47e6ca9aa992836361ea1f17742f4de34e4beae1c7b",
+      "expected": "sha256:2ba0be4557249c7abb17f47e6ca9aa992836361ea1f17742f4de34e4beae1c7b",
+      "passed": true,
+      "evidence": "DB016/017",
+      "defect": null
+    },
+    {
+      "name": "JE-000001 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "JE-000002 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "JE-000003 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "JE-000004 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "JE-000005 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "JE-000006 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "JE-000007 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "JE-000008 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "JE-000009 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "JE-000010 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "JE-000011 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "JE-000012 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "JE-000013 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "JE-000014 balanced",
+      "actual": "0.0000",
+      "expected": "0",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "Closing GL 1270001",
+      "actual": "176.0000",
+      "expected": "176",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "Closing GL 22111001",
+      "actual": "-60.4000",
+      "expected": "-60.4",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "Closing GL 2222001",
+      "actual": "8.4000",
+      "expected": "8.4",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "Closing GL 1221001",
+      "actual": "180000.0000",
+      "expected": "180000",
+      "passed": true,
+      "evidence": "DB017",
+      "defect": null
+    },
+    {
+      "name": "Final cash business expectation",
+      "actual": "49948.0000",
+      "expected": "49996",
+      "passed": false,
+      "evidence": "DB017",
+      "defect": "ACC-006/009"
+    },
+    {
+      "name": "Final AR business expectation",
+      "actual": "41.0000",
+      "expected": "0",
+      "passed": false,
+      "evidence": "DB017",
+      "defect": "ACC-006/009"
+    },
+    {
+      "name": "Expense after void",
+      "actual": "7.0000",
+      "expected": "0",
+      "passed": false,
+      "evidence": "DB017",
+      "defect": "ACC-009"
+    },
+    {
+      "name": "Stock vs GL",
+      "actual": "196.0000",
+      "expected": "176.0000",
+      "passed": false,
+      "evidence": "DB017",
+      "defect": "ACC-016 inherited"
+    },
+    {
+      "name": "Cash subledger business delta",
+      "actual": "-50.0000",
+      "expected": "-4",
+      "passed": false,
+      "evidence": "DB001B/017",
+      "defect": "ACC-006"
+    },
+    {
+      "name": "Cash GL delta matches subledger delta",
+      "actual": "-52.0000",
+      "expected": "-50.0000",
+      "passed": false,
+      "evidence": "DB001B/017",
+      "defect": "ACC-009"
+    },
+    {
+      "name": "TB vs DB 1160001",
+      "actual": "20000.0000",
+      "expected": "20000.0000",
+      "passed": true,
+      "evidence": "REPORT-TB/DB017",
+      "defect": null
+    },
+    {
+      "name": "TB vs DB 1211001",
+      "actual": "49948.0000",
+      "expected": "49948.0000",
+      "passed": true,
+      "evidence": "REPORT-TB/DB017",
+      "defect": null
+    },
+    {
+      "name": "TB vs DB 1221001",
+      "actual": "180000.0000",
+      "expected": "180000.0000",
+      "passed": true,
+      "evidence": "REPORT-TB/DB017",
+      "defect": null
+    },
+    {
+      "name": "TB vs DB 12310001",
+      "actual": "41.0000",
+      "expected": "41.0000",
+      "passed": true,
+      "evidence": "REPORT-TB/DB017",
+      "defect": null
+    },
+    {
+      "name": "TB vs DB 1270001",
+      "actual": "176.0000",
+      "expected": "176.0000",
+      "passed": true,
+      "evidence": "REPORT-TB/DB017",
+      "defect": null
+    },
+    {
+      "name": "TB vs DB 1270003",
+      "actual": "0.0000",
+      "expected": "0.0000",
+      "passed": true,
+      "evidence": "REPORT-TB/DB017",
+      "defect": null
+    },
+    {
+      "name": "TB vs DB 2110001",
+      "actual": "-250000.0000",
+      "expected": "-250000.0000",
+      "passed": true,
+      "evidence": "REPORT-TB/DB017",
+      "defect": null
+    },
+    {
+      "name": "TB vs DB 22111001",
+      "actual": "-60.4000",
+      "expected": "-60.4000",
+      "passed": true,
+      "evidence": "REPORT-TB/DB017",
+      "defect": null
+    },
+    {
+      "name": "TB vs DB 2222001",
+      "actual": "8.4000",
+      "expected": "8.4000",
+      "passed": true,
+      "evidence": "REPORT-TB/DB017",
+      "defect": null
+    },
+    {
+      "name": "TB vs DB 3110002",
+      "actual": "7.0000",
+      "expected": "7.0000",
+      "passed": true,
+      "evidence": "REPORT-TB/DB017",
+      "defect": null
+    },
+    {
+      "name": "TB vs DB 3121004",
+      "actual": "-100.0000",
+      "expected": "-100.0000",
+      "passed": true,
+      "evidence": "REPORT-TB/DB017",
+      "defect": null
+    },
+    {
+      "name": "TB vs DB 3200004",
+      "actual": "20.0000",
+      "expected": "20.0000",
+      "passed": true,
+      "evidence": "REPORT-TB/DB017",
+      "defect": null
+    },
+    {
+      "name": "TB vs DB 4100001",
+      "actual": "-40.0000",
+      "expected": "-40.0000",
+      "passed": true,
+      "evidence": "REPORT-TB/DB017",
+      "defect": null
+    },
+    {
+      "name": "Cash ledger closing",
+      "actual": "49948.0000",
+      "expected": "49948.0000",
+      "passed": true,
+      "evidence": "REPORT-LEDGER/DB017",
+      "defect": null
+    },
+    {
+      "name": "Cash movements closing",
+      "actual": "49948.0000",
+      "expected": "49948.0000",
+      "passed": true,
+      "evidence": "REPORT-CASH/DB017",
+      "defect": null
+    },
+    {
+      "name": "Income vs GL",
+      "actual": "309.0000",
+      "expected": "113",
+      "passed": false,
+      "evidence": "REPORT-INCOME/DB017",
+      "defect": "ACC-002"
+    },
+    {
+      "name": "CUSTOMER net report vs GL",
+      "actual": "-5.0000",
+      "expected": "41.0000",
+      "passed": false,
+      "evidence": "REPORT-CUSTOMER/DB017",
+      "defect": "ACC-004"
+    },
+    {
+      "name": "SUPPLIER net report vs GL",
+      "actual": "50.0000",
+      "expected": "-60.4000",
+      "passed": false,
+      "evidence": "REPORT-SUPPLIER/DB017",
+      "defect": "ACC-004"
+    },
+    {
+      "name": "Supplier allocation shown once",
+      "actual": "0.0000",
+      "expected": "50",
+      "passed": false,
+      "evidence": "REPORT-SUPPLIER/DB017",
+      "defect": "ACC-017"
+    }
+  ]
+}

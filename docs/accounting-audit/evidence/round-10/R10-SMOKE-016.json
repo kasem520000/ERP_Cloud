@@ -1,0 +1,71 @@
+{
+  "id": "R10-SMOKE-016",
+  "route": "/inventory/lots",
+  "scope": "UI read-only smoke, not business approval",
+  "at": "2026-10-21T21:46:20.582Z",
+  "url": "http://127.0.0.1:3001/inventory/lots",
+  "state": "rendered",
+  "api": [
+    {
+      "at": "2026-10-21T21:46:28.074Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:46:28.326Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/lots",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:46:28.330Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:46:28.375Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:46:28.426Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:46:28.429Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/lots",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:46:28.429Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:46:28.462Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:46:28.492Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:46:28.508Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    }
+  ],
+  "jsErrors": []
+}

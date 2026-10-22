@@ -1,0 +1,26 @@
+{
+  "path": "/cash-transfers/01a16117-ddef-77a0-91e0-abb5980d6a6a/receive",
+  "request": {},
+  "elapsedMs": 61,
+  "results": [
+    {
+      "status": 201,
+      "body": {
+        "id": "01a16117-ddef-77a0-91e0-abb5980d6a6a",
+        "status": "received",
+        "receivedJournalEntryId": "01a16119-629b-700b-af66-845ac09ea7d7"
+      }
+    },
+    {
+      "status": 500,
+      "body": {
+        "type": "about:blank",
+        "title": "Internal error",
+        "status": 500,
+        "code": "INTERNAL",
+        "detail": "An unexpected error occurred",
+        "traceId": "01a16119-627a-7638-b61c-dc4b70ef5af1"
+      }
+    }
+  ]
+}

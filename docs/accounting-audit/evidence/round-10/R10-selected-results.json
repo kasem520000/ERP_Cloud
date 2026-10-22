@@ -1,0 +1,3502 @@
+[
+  {
+    "id": "R10-SMOKE-001",
+    "route": "/inventory/items",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:42:59.257Z",
+    "url": "http://127.0.0.1:3001/inventory/items",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:42:59.545Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:42:59.546Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/dashboards",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:42:59.546Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/sales/invoices",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:42:59.641Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:42:59.674Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/parties?kind=customer",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:42:59.703Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:00.060Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:00.064Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:00.152Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:00.154Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:00.233Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/sales/invoices",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:00.244Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/dashboards",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:00.431Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:00.432Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/parties?kind=customer",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:00.766Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:00.768Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:01.013Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:01.016Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:01.888Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/dashboards/01a16062-e75e-71ae-a61c-28719952e70e/data",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:16.889Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:16.920Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/tax-groups",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:16.930Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:16.934Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/units",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:16.949Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/categories",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:17.012Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:17.114Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:17.131Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:17.139Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:17.158Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/categories",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:17.197Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:17.201Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/units",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:17.226Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/tax-groups",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:17.237Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:17.257Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:17.259Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-002",
+    "route": "/inventory/item-units",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:43:19.875Z",
+    "url": "http://127.0.0.1:3001/inventory/item-units",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:43:24.177Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:24.178Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:24.180Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:24.198Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/units",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:24.206Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:24.237Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:24.249Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:24.264Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/units",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:24.276Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:24.306Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-003-R1",
+    "route": "/inventory/vouchers",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:44:42.398Z",
+    "url": "http://127.0.0.1:3001/inventory/vouchers",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:44:42.422Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/sales/invoices",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:42.507Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/dashboards",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:42.520Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:43.055Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:43.056Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/parties?kind=customer",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:43.484Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:43.498Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:43.710Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:44.093Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:44.259Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/dashboards",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:44.312Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/sales/invoices",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:44.380Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:44.446Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/parties?kind=customer",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:44.512Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:44.546Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:44.731Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:44.731Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:44.966Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/dashboards/01a16062-e75e-71ae-a61c-28719952e70e/data",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.520Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.599Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.640Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.650Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/accounts",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.666Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.702Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/lots",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.723Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/serials",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.783Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/vouchers?kind=stock_in",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.811Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.831Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.852Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.858Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.882Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.925Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:04.965Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/accounts",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:05.098Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/lots",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:05.111Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/vouchers?kind=stock_in",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:05.114Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/serials",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:05.132Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:05.167Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-004",
+    "route": "/inventory/requests",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:43:30.596Z",
+    "url": "http://127.0.0.1:3001/inventory/requests",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:43:41.939Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:42.096Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/requests",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:42.135Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:42.157Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:42.181Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:42.198Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:42.264Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:42.287Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/requests",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:42.321Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:42.353Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:42.374Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:42.382Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:42.400Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:42.468Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-005",
+    "route": "/inventory/transfers",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:43:44.385Z",
+    "url": "http://127.0.0.1:3001/inventory/transfers",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:43:49.308Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.314Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/transfers",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.385Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.417Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.431Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/lots",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.440Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.489Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.530Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.600Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/transfers",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.648Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.665Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.773Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.778Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/lots",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.788Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.793Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:49.794Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-006",
+    "route": "/inventory/deliveries",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:43:52.842Z",
+    "url": "http://127.0.0.1:3001/inventory/deliveries",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:43:57.446Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/deliveries",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:57.446Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:57.447Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/deliveries/outstanding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:57.447Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:57.448Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:57.448Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:57.448Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/deliveries",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:57.449Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:57.449Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/deliveries/outstanding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:57.449Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:57.450Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:57.450Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:57.450Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:43:57.450Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-007",
+    "route": "/inventory/overview",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:44:00.979Z",
+    "url": "http://127.0.0.1:3001/inventory/overview",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:44:04.365Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.417Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.434Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.444Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.467Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry?days=30",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.482Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/levels",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.534Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/in-transit",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.581Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/vouchers",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.611Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.624Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.633Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.682Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.713Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.806Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/levels",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.807Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.854Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry?days=30",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.860Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/in-transit",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.914Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/vouchers",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.937Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:04.938Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-008",
+    "route": "/inventory/levels",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:44:07.923Z",
+    "url": "http://127.0.0.1:3001/inventory/levels",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:44:12.323Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:12.323Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/levels",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:12.325Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:12.325Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:12.325Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:12.326Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:12.328Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:12.331Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:12.332Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/levels",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:12.332Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:12.332Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:44:12.333Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-009",
+    "route": "/inventory/movements",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:45:14.732Z",
+    "url": "http://127.0.0.1:3001/inventory/movements",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:45:35.165Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:35.240Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:35.430Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:35.453Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:35.465Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/movements",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:35.467Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:35.563Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:35.594Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:35.632Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:35.701Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:35.718Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:35.756Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:35.757Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/movements",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:35.757Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-010",
+    "route": "/inventory/item-card",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:45:38.092Z",
+    "url": "http://127.0.0.1:3001/inventory/item-card",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:45:43.316Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:43.324Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:43.337Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:43.354Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:43.368Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:43.385Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:43.422Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:43.437Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:43.514Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:43.516Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-011",
+    "route": "/inventory/in-transit",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:45:46.139Z",
+    "url": "http://127.0.0.1:3001/inventory/in-transit",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:45:49.426Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:49.427Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/in-transit",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:49.428Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:49.429Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:49.430Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:49.431Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:49.433Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:49.434Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/in-transit",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:49.435Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:49.436Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:49.441Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:49.444Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-012",
+    "route": "/inventory/bins",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:45:52.172Z",
+    "url": "http://127.0.0.1:3001/inventory/bins",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:45:56.566Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:56.567Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:56.579Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/bins",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:56.619Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:56.621Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:56.644Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:56.667Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:56.696Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:56.713Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/bins",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:56.750Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:56.768Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:45:56.776Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-013",
+    "route": "/inventory/bin-balances",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:45:59.882Z",
+    "url": "http://127.0.0.1:3001/inventory/bin-balances",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:46:03.223Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:03.320Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:03.320Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:03.376Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/bin-balances",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:03.396Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/bins",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:03.427Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:03.455Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/bin-balances",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:03.466Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/bins",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:03.488Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:03.495Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:03.520Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:03.525Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-014",
+    "route": "/inventory/below-minimum",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:46:06.898Z",
+    "url": "http://127.0.0.1:3001/inventory/below-minimum",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:46:11.976Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:11.977Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:11.978Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:11.981Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:11.981Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:11.982Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:11.983Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:11.983Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:11.983Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:11.984Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:11.984Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:11.984Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:12.070Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum?warehouse_id=01a16060-97b3-71eb-b311-413e52017a85",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-015",
+    "route": "/inventory/expiry",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:46:14.539Z",
+    "url": "http://127.0.0.1:3001/inventory/expiry",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:46:17.749Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry?days=30",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:17.808Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:17.814Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:17.820Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry?days=30",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:17.834Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:17.868Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:17.895Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:17.896Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-016",
+    "route": "/inventory/lots",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:46:20.582Z",
+    "url": "http://127.0.0.1:3001/inventory/lots",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:46:28.074Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:28.326Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/lots",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:28.330Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:28.375Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:28.426Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:28.429Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/lots",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:28.429Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:28.462Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:28.492Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:28.508Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-017",
+    "route": "/inventory/serials",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:46:57.186Z",
+    "url": "http://127.0.0.1:3001/inventory/serials",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:46:57.274Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/sales/invoices",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:57.282Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/dashboards",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:57.346Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:57.488Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:57.516Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/parties?kind=customer",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:57.962Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:57.964Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:58.024Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:58.188Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:58.190Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/dashboards",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:58.840Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/sales/invoices",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:58.841Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:58.971Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/parties?kind=customer",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:59.005Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:59.073Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:59.246Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:59.249Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:46:59.250Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/dashboards/01a16062-e75e-71ae-a61c-28719952e70e/data",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:22.463Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:22.505Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:22.511Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/serials",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:22.542Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:22.570Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:22.627Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:22.656Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:22.668Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:22.692Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:22.693Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/serials",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:22.747Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:22.804Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-018",
+    "route": "/inventory/production",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:47:26.871Z",
+    "url": "http://127.0.0.1:3001/inventory/production",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:47:30.987Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:30.989Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:30.990Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:30.991Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/production-orders",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:30.992Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:30.993Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:30.995Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:30.996Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:30.997Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:30.997Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/production-orders",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:30.998Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:30.998Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-019",
+    "route": "/inventory/warehouses",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:47:34.463Z",
+    "url": "http://127.0.0.1:3001/inventory/warehouses",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:47:40.561Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:40.610Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:40.642Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:40.692Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:40.774Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:40.800Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/warehouses",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:40.866Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:40.870Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:40.872Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:40.919Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-020",
+    "route": "/inventory/barcodes",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:47:43.472Z",
+    "url": "http://127.0.0.1:3001/inventory/barcodes",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:47:46.773Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:46.805Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:46.812Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:46.824Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:46.829Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:46.859Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:46.875Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:46.910Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-021",
+    "route": "/settings/ai",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:47:49.364Z",
+    "url": "http://127.0.0.1:3001/settings/ai",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:47:52.716Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:52.783Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:52.829Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:52.834Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/ai/settings",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:52.858Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/ai/settings",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:52.877Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:52.890Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:47:52.931Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-022",
+    "route": "/settings/backup",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:47:55.540Z",
+    "url": "http://127.0.0.1:3001/settings/backup",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:48:01.964Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:01.965Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/backups",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:01.966Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:01.966Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/backups",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:01.966Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:01.984Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:02.012Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:02.045Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-023",
+    "route": "/settings/custom-fields",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:48:04.537Z",
+    "url": "http://127.0.0.1:3001/settings/custom-fields",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:48:10.198Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:10.201Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/custom-fields?entity=item&include_inactive=true",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:10.245Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:10.245Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/custom-fields?entity=item&include_inactive=true",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:10.254Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:10.266Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:10.267Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:10.340Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-024-R1",
+    "route": "/settings/data-rotation",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:48:58.825Z",
+    "url": "http://127.0.0.1:3001/settings/data-rotation",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:48:58.953Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:58.955Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:59.043Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/parties?kind=customer",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:59.107Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:59.140Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:59.184Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:59.229Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:59.264Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/dashboards",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:59.328Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:59.362Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/sales/invoices",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:59.376Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/parties?kind=customer",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:59.879Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:48:59.880Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:00.089Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:00.360Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:00.608Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/dashboards/01a16062-e75e-71ae-a61c-28719952e70e/data",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:20.318Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:20.365Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:20.449Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:20.455Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/maintenance-runs?kind=data_rotation",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:20.476Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:20.505Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:20.507Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/maintenance-runs?kind=data_rotation",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:20.550Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-025",
+    "route": "/settings/ecommerce",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:49:22.844Z",
+    "url": "http://127.0.0.1:3001/settings/ecommerce",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:49:28.467Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:28.478Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:28.516Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/ecommerce/stores",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:28.532Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:28.550Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/ecommerce/providers",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:28.599Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:28.614Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/ecommerce/providers",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:28.632Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:28.650Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/ecommerce/stores",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:28.689Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:28.716Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:28.826Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-026",
+    "route": "/settings/email",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:49:32.378Z",
+    "url": "http://127.0.0.1:3001/settings/email",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:49:39.769Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:39.771Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/email/templates?locale=ar",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:39.773Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:39.858Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/email/templates?locale=ar",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:39.881Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:39.910Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:39.954Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:39.955Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-027",
+    "route": "/settings/marketplace",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:49:42.860Z",
+    "url": "http://127.0.0.1:3001/settings/marketplace",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:49:46.943Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:47.002Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:47.076Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:47.082Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:47.082Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:47.093Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:47.096Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:47.106Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-028",
+    "route": "/settings/new-file",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:49:49.647Z",
+    "url": "http://127.0.0.1:3001/settings/new-file",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:49:53.203Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:53.203Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:53.208Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/company-files",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:53.208Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:53.208Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:53.209Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/company-files",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:53.210Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:53.211Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-029",
+    "route": "/settings/restore",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:49:55.661Z",
+    "url": "http://127.0.0.1:3001/settings/restore",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:49:59.492Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:59.515Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/backups",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:59.520Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:59.542Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/restores",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:59.579Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:59.604Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:59.605Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/backups",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:59.617Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/restores",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:59.670Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:49:59.698Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-030",
+    "route": "/settings/sync",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:50:02.788Z",
+    "url": "http://127.0.0.1:3001/settings/sync",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:50:07.470Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:07.471Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/compat/sync/overview",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:07.474Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/compat/sync/overview",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:07.474Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:07.474Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:07.474Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:07.475Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:07.475Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-031",
+    "route": "/settings/sync/manage",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:50:09.395Z",
+    "url": "http://127.0.0.1:3001/settings/sync/manage",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:50:12.665Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:12.699Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/compat/sync/overview",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:12.710Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:12.732Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/compat/sync/overview",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:12.757Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:12.777Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:12.786Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:12.811Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-032",
+    "route": "/settings/sync/zatca",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:50:14.722Z",
+    "url": "http://127.0.0.1:3001/settings/sync/zatca",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:50:33.065Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:33.141Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:33.155Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:33.221Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:33.221Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/einvoice/submissions",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:33.222Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/einvoice/submissions",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:33.223Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:50:33.223Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-033",
+    "route": "/settings/white-label",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:50:59.876Z",
+    "url": "http://127.0.0.1:3001/settings/white-label",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:51:00.081Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/parties?kind=customer",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:00.108Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:00.159Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:00.275Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:00.292Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:00.342Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:00.363Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/dashboards",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:00.403Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/sales/invoices",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:00.432Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/branches",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:00.487Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/parties?kind=customer",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:01.022Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:01.022Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/inventory/expiry",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:01.351Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:01.351Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:01.754Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/dashboards/01a16062-e75e-71ae-a61c-28719952e70e/data",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:20.328Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:20.356Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/domains",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:20.384Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/domains",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:20.398Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:20.418Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:20.447Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:20.454Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:20.475Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:20.486Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:20.528Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-034",
+    "route": "/settings/zatca",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:51:23.243Z",
+    "url": "http://127.0.0.1:3001/settings/zatca",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:51:29.212Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:29.232Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/einvoice/settings",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:29.380Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/einvoice/settings",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:29.381Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:29.385Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:29.390Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:29.391Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:29.392Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-035",
+    "route": "/settings/zatca/sent",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:51:33.173Z",
+    "url": "http://127.0.0.1:3001/settings/zatca/sent",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:51:36.898Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:36.949Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/einvoice/filings?pageNo=1&pageSize=20",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:37.029Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:37.037Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/einvoice/filings?pageNo=1&pageSize=20",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:37.132Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:37.143Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:37.159Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:37.196Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:37.196Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/einvoice/chain",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:37.198Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/einvoice/chain",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-036",
+    "route": "/settings/zatca/status",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:51:41.781Z",
+    "url": "http://127.0.0.1:3001/settings/zatca/status",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:51:45.687Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:45.834Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/reports/einvoice-sync-status",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:45.855Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:45.955Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:45.956Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:45.957Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:45.958Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-037",
+    "route": "/reports/builder",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:51:49.299Z",
+    "url": "http://127.0.0.1:3001/reports/builder",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:51:53.372Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:53.428Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:53.433Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/custom-reports/fields?base_entity=sales_invoice",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:53.467Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/custom-reports/fields?base_entity=sales_invoice",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:53.500Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:53.502Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:53.503Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:53.541Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-038",
+    "route": "/reports/custom",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:51:56.035Z",
+    "url": "http://127.0.0.1:3001/reports/custom",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:51:59.898Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:59.907Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:59.916Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/custom-reports",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:59.986Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/custom-reports",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:51:59.998Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:00.061Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:00.073Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:00.116Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-039",
+    "route": "/approvals/inbox",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:52:02.075Z",
+    "url": "http://127.0.0.1:3001/approvals/inbox",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:52:06.073Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/approvals/inbox?status=pending",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:06.074Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:06.075Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/approvals/inbox?status=pending",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:06.077Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:06.078Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:06.079Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:06.080Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:06.081Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  },
+  {
+    "id": "R10-SMOKE-040",
+    "route": "/approvals/history",
+    "scope": "UI read-only smoke, not business approval",
+    "at": "2026-10-21T21:52:08.328Z",
+    "url": "http://127.0.0.1:3001/approvals/history",
+    "state": "rendered",
+    "api": [
+      {
+        "at": "2026-10-21T21:52:12.219Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:12.297Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/approvals/history?status=approved%2Crejected",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:12.333Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:12.358Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/approvals/history?status=approved%2Crejected",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:12.366Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:12.377Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:12.412Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+        "status": 200
+      },
+      {
+        "at": "2026-10-21T21:52:12.413Z",
+        "method": "GET",
+        "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+        "status": 200
+      }
+    ],
+    "jsErrors": []
+  }
+]

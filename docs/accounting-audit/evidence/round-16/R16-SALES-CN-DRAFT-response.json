@@ -1,0 +1,28 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/sales/invoices/01a16080-3fc6-7258-b4a8-978e7153dff7/adjustment-notes",
+  "request": {
+    "branchId": "01a16060-97b1-7489-8203-fee57ee4e4b4",
+    "kind": "credit",
+    "reason": "R16-SCN إشعار دائن اختبار محلي فقط",
+    "amount": "10"
+  },
+  "body": {
+    "id": "01a1610a-91c8-71ed-9f15-34dc4c7a9e19",
+    "tenantId": "01a16060-9644-71ff-bf54-37def6aa8986",
+    "invoiceId": "01a16080-3fc6-7258-b4a8-978e7153dff7",
+    "branchId": "01a16060-97b1-7489-8203-fee57ee4e4b4",
+    "kind": "credit",
+    "status": "draft",
+    "number": null,
+    "reason": "R16-SCN إشعار دائن اختبار محلي فقط",
+    "amount": "10.0000",
+    "postedAt": null,
+    "createdAt": "2026-10-22T00:37:25.063Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/vouchers/01a160ad-6548-746b-a16a-62931fab434d/cheque",
+  "request": {
+    "action": "bounce"
+  },
+  "body": {
+    "id": "01a160ad-6548-746b-a16a-62931fab434d",
+    "chequeState": "bounced"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "status": 409,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/purchase-invoices/01a1608f-b510-728e-a4e9-2251cfced3d4/void",
+  "request": {
+    "reason": "R13 اختبار منع إلغاء شراء مدفوع جزئيا - متوقع رفض بلا أثر"
+  },
+  "body": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "PURCHASE_VOID_HAS_PAYMENTS",
+    "detail": "Unallocate the payments before voiding",
+    "traceId": "01a160af-a32b-74fc-b988-4ba7ee200a97"
+  }
+}

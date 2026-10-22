@@ -1,0 +1,239 @@
+{
+  "id": "R10-SMOKE-003-R1",
+  "route": "/inventory/vouchers",
+  "scope": "UI read-only smoke, not business approval",
+  "at": "2026-10-21T21:44:42.398Z",
+  "url": "http://127.0.0.1:3001/inventory/vouchers",
+  "state": "rendered",
+  "api": [
+    {
+      "at": "2026-10-21T21:44:42.422Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/sales/invoices",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:42.507Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/dashboards",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:42.520Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/branches",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:43.055Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:43.056Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/parties?kind=customer",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:43.484Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/expiry",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:43.498Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:43.710Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:44.093Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:44.259Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/dashboards",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:44.312Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/sales/invoices",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:44.380Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/branches",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:44.446Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/parties?kind=customer",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:44.512Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:44.546Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/expiry",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:44.731Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:44.731Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:44.966Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/dashboards/01a16062-e75e-71ae-a61c-28719952e70e/data",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.520Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.599Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/branches",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.640Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.650Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/accounts",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.666Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.702Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/lots",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.723Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/serials",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.783Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/vouchers?kind=stock_in",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.811Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.831Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.852Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.858Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/branches",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.882Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.925Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:04.965Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/accounts",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:05.098Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/lots",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:05.111Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/vouchers?kind=stock_in",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:05.114Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/serials",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:05.132Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:05.167Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    }
+  ],
+  "jsErrors": []
+}

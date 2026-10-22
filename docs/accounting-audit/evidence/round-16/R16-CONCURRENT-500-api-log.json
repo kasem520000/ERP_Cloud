@@ -1,0 +1,50 @@
+{
+ "01a16115-12c3-741f-a91c-74735e2b1469": {
+  "url": "/api/v1/sales/invoices/01a16114-1807-7749-ad41-4bfeabd18ab4/post",
+  "msg": "Unhandled exception",
+  "type": "Object",
+  "message": "Failed query: insert into \"inventory_transactions\" (\"id\", \"tenant_id\", \"item_id\", \"warehouse_id\", \"occurred_at\", \"doc_type\", \"doc_id\", \"line_id\", \"direction\", \"qty\", \"base_qty\", \"unit_id\", \"factor\", \"unit_cost\", \"total_cost\", \"costing\", \"lot_id\", \"serial_id\", \"metadata\", \"created_at\", \"created_by\") values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, default, $12, $13, $14, $15, default, default,",
+  "code": null,
+  "constraint": null,
+  "detail": null,
+  "table": null,
+  "stack": [
+   "Error: Failed query: insert into \"inventory_transactions\" (\"id\", \"tenant_id\", \"item_id\", \"warehouse_id\", \"occurred_at\", \"doc_type\", \"doc_id\", \"line_id\", \"direction\", \"qty\", \"base_qty\", \"unit_id\", \"factor\", \"unit_cost\", \"total_cost\", \"costing\", \"lot_id\", \"serial_id\", \"metadata\", \"created_at\", \"created_by\") values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, default, $12, $13, $14, $15, default, default, default, default, default)",
+   "params: 01a16115-1315-744a-b912-77caa600b468,01a16060-9644-71ff-bf54-37def6aa8986,01a1608e-17a9-7514-82f6-247f5a6761b0,01a16060-97b3-71eb-b311-413e52017a85,2026-10-22T00:48:53.525Z,sales_invoice,01a16114-1807-7749-ad41-4bfeabd18ab4,01a16114-1812-728a-bb1e-92ffb7d4a92e,out,1.0000,1.0000,1.000000,13.4694,13.4694,outAtAvg",
+   "    at NodePgPreparedQuery.queryWithCache (file:///home/user/ERP_Cloud/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.23.1_pg@8.23.0/node_modules/drizzle-orm/pg-core/session.js:41:15)",
+   "    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)"
+  ]
+ },
+ "01a16117-01de-7013-99c9-00839c5254e3": {
+  "url": "/api/v1/purchase-invoices/01a16116-0e2f-70ab-aeb2-e7a5fbd4df6d/post",
+  "msg": "Unhandled exception",
+  "type": "Object",
+  "message": "Failed query: insert into \"inventory_transactions\" (\"id\", \"tenant_id\", \"item_id\", \"warehouse_id\", \"occurred_at\", \"doc_type\", \"doc_id\", \"line_id\", \"direction\", \"qty\", \"base_qty\", \"unit_id\", \"factor\", \"unit_cost\", \"total_cost\", \"costing\", \"lot_id\", \"serial_id\", \"metadata\", \"created_at\", \"created_by\") values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, default, $12, $13, $14, $15, default, default,",
+  "code": null,
+  "constraint": null,
+  "detail": null,
+  "table": null,
+  "stack": [
+   "Error: Failed query: insert into \"inventory_transactions\" (\"id\", \"tenant_id\", \"item_id\", \"warehouse_id\", \"occurred_at\", \"doc_type\", \"doc_id\", \"line_id\", \"direction\", \"qty\", \"base_qty\", \"unit_id\", \"factor\", \"unit_cost\", \"total_cost\", \"costing\", \"lot_id\", \"serial_id\", \"metadata\", \"created_at\", \"created_by\") values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, default, $12, $13, $14, $15, default, default, default, default, default)",
+   "params: 01a16117-02d7-754f-bc0d-fb8f9364a5ea,01a16060-9644-71ff-bf54-37def6aa8986,01a1608e-17a9-7514-82f6-247f5a6761b0,01a16060-97b3-71eb-b311-413e52017a85,2026-10-22T00:51:00.439Z,purchase_invoice,01a16116-0e2f-70ab-aeb2-e7a5fbd4df6d,01a16116-0e32-70fc-aaf4-b3ec9d11dbee,in,1.0000,1.0000,1.000000,18.0000,18.0000,inWithCost",
+   "    at NodePgPreparedQuery.queryWithCache (file:///home/user/ERP_Cloud/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.23.1_pg@8.23.0/node_modules/drizzle-orm/pg-core/session.js:41:15)",
+   "    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)"
+  ]
+ },
+ "01a16119-627a-7638-b61c-dc4b70ef5af1": {
+  "url": "/api/v1/cash-transfers/01a16117-ddef-77a0-91e0-abb5980d6a6a/receive",
+  "msg": "Unhandled exception",
+  "type": "Object",
+  "message": "Failed query: insert into \"journal_entries\" (\"id\", \"tenant_id\", \"branch_id\", \"fiscal_period_id\", \"date\", \"number\", \"entry_time\", \"is_vat\", \"kind\", \"status\", \"description\", \"source_type\", \"source_id\", \"reversal_of\", \"idempotency_key\", \"posted_at\", \"posted_by\", \"created_at\", \"created_by\", \"updated_at\", \"updated_by\", \"version\", \"legacy_source\", \"legacy_id\") values ($1, $2, $3, $4, $5, $6, $7, $8, $9,",
+  "code": null,
+  "constraint": null,
+  "detail": null,
+  "table": null,
+  "stack": [
+   "Error: Failed query: insert into \"journal_entries\" (\"id\", \"tenant_id\", \"branch_id\", \"fiscal_period_id\", \"date\", \"number\", \"entry_time\", \"is_vat\", \"kind\", \"status\", \"description\", \"source_type\", \"source_id\", \"reversal_of\", \"idempotency_key\", \"posted_at\", \"posted_by\", \"created_at\", \"created_by\", \"updated_at\", \"updated_by\", \"version\", \"legacy_source\", \"legacy_id\") values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, default, $14, $15, default, default, default, default, default, default, default, default)",
+   "params: 01a16119-62a2-7159-ad75-969bc68b8656,01a16060-9644-71ff-bf54-37def6aa8986,01a16060-97b1-7489-8203-fee57ee4e4b4,01a16060-9819-7123-9fd4-48bc97934239,2026-10-22,JE-000044,,false,manual,posted,استلام مناقلة CT-000002,cash_transfer,01a16117-ddef-77a0-91e0-abb5980d6a6a,cash-transfer:01a16117-ddef-77a0-91e0-abb5980d6a6a:received,2026-10-22T00:53:36.036Z",
+   "    at NodePgPreparedQuery.queryWithCache (file:///home/user/ERP_Cloud/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.23.1_pg@8.23.0/node_modules/drizzle-orm/pg-core/session.js:41:15)",
+   "    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)"
+  ]
+ }
+}

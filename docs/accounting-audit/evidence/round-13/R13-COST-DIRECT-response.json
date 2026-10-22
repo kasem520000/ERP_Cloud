@@ -1,0 +1,26 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/purchase-invoices/01a160a9-1193-76d7-aa99-ee8f9eef363c/costs",
+  "request": {
+    "costName": "R13-DIRECT مصروف اختبار فقط",
+    "amount": "3",
+    "allocationTarget": "expense",
+    "accountId": "01a16060-97ea-71c5-95e1-a2d152584034"
+  },
+  "body": {
+    "id": "01a160a9-af09-75c9-9ad2-9e4f4d5a6a66",
+    "tenantId": "01a16060-9644-71ff-bf54-37def6aa8986",
+    "invoiceId": "01a160a9-1193-76d7-aa99-ee8f9eef363c",
+    "costName": "R13-DIRECT مصروف اختبار فقط",
+    "amount": "3.0000",
+    "allocationTarget": "expense",
+    "costCenterId": null,
+    "accountId": "01a16060-97ea-71c5-95e1-a2d152584034",
+    "createdAt": "2026-10-21T22:51:35.560Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1
+  }
+}

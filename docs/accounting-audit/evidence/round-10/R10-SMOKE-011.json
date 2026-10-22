@@ -1,0 +1,83 @@
+{
+  "id": "R10-SMOKE-011",
+  "route": "/inventory/in-transit",
+  "scope": "UI read-only smoke, not business approval",
+  "at": "2026-10-21T21:45:46.139Z",
+  "url": "http://127.0.0.1:3001/inventory/in-transit",
+  "state": "rendered",
+  "api": [
+    {
+      "at": "2026-10-21T21:45:49.426Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:49.427Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/in-transit",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:49.428Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:49.429Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:49.430Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:49.431Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:49.433Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:49.434Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/in-transit",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:49.435Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:49.436Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:49.441Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:45:49.444Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    }
+  ],
+  "jsErrors": []
+}

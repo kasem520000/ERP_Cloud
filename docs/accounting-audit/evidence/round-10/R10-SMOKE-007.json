@@ -1,0 +1,131 @@
+{
+  "id": "R10-SMOKE-007",
+  "route": "/inventory/overview",
+  "scope": "UI read-only smoke, not business approval",
+  "at": "2026-10-21T21:44:00.979Z",
+  "url": "http://127.0.0.1:3001/inventory/overview",
+  "state": "rendered",
+  "api": [
+    {
+      "at": "2026-10-21T21:44:04.365Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.417Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.434Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.444Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.467Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/expiry?days=30",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.482Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/levels",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.534Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/in-transit",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.581Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/vouchers",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.611Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.624Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.633Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.682Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.713Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.806Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/levels",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.807Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/below-minimum",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.854Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/expiry?days=30",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.860Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/in-transit",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.914Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/vouchers",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.937Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:04.938Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    }
+  ],
+  "jsErrors": []
+}

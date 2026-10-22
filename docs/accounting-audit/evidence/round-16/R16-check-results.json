@@ -1,0 +1,738 @@
+[
+ {
+  "name": "Baseline 1211001",
+  "actual": "49952.0000",
+  "expected": "49952",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 1221001",
+  "actual": "180009.0000",
+  "expected": "180009",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 12310001",
+  "actual": "24.0000",
+  "expected": "24",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 22111001",
+  "actual": "0.0000",
+  "expected": "0",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 2222001",
+  "actual": "0.0000",
+  "expected": "0",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 1270001",
+  "actual": "133.8775",
+  "expected": "133.8775",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 3200004",
+  "actual": "14.1225",
+  "expected": "14.1225",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 4100001",
+  "actual": "-100.0000",
+  "expected": "-100",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 4100002",
+  "actual": "40.0000",
+  "expected": "40",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 3110002",
+  "actual": "15.0000",
+  "expected": "15",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 3110004",
+  "actual": "0",
+  "expected": "0",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 1211002",
+  "actual": "0",
+  "expected": "0",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline subledger cash/bank",
+  "actual": "(Decimal('-69.0000'), Decimal('9.0000'))",
+  "expected": "(Decimal('-69'), Decimal('9'))",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline R12 item 4/53.8775 avg 13.4694",
+  "actual": "((Decimal('4.0000'), Decimal('53.8775')), Decimal('13.4694'))",
+  "expected": "((Decimal('4'), Decimal('53.8775')), Decimal('13.4694'))",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 37 journals, no notes, no shifts",
+  "actual": "(37, 0, 0, 0)",
+  "expected": "(37, 0, 0, 0)",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "SCN draft stored (credit, 10, SI-000001)",
+  "actual": "('credit', Decimal('10.0000'), '01a16080-3fc6-7258-b4a8-978e7153dff7', 'draft')",
+  "expected": "('credit', Decimal('10'), '01a16080-3fc6-7258-b4a8-978e7153dff7', 'draft')",
+  "ok": true,
+  "evidence": "DB002",
+  "defect": null
+ },
+ {
+  "name": "SCN draft no GL",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB001/002",
+  "defect": null
+ },
+ {
+  "name": "SCN posted + numbered SCN-000001",
+  "actual": "('posted', 'SCN-000001', 201)",
+  "expected": "('posted', 'SCN-000001', 201)",
+  "ok": true,
+  "evidence": "DB003/response",
+  "defect": null
+ },
+ {
+  "name": "SCN post creates a journal (UI promises a reversing entry)",
+  "actual": "0",
+  "expected": "1",
+  "ok": false,
+  "evidence": "DB002/003",
+  "defect": "ACC-027"
+ },
+ {
+  "name": "SCN post reduces AR by 10 (24 -> 14)",
+  "actual": "24.0000",
+  "expected": "14",
+  "ok": false,
+  "evidence": "DB003",
+  "defect": "ACC-027"
+ },
+ {
+  "name": "SCN post reduces output VAT by 1.3043",
+  "actual": "0.0000",
+  "expected": "-1.3043",
+  "ok": false,
+  "evidence": "DB003",
+  "defect": "ACC-027"
+ },
+ {
+  "name": "SCN post reduces revenue (4100001/4100002) by 8.6957",
+  "actual": "0.0000",
+  "expected": "8.6957",
+  "ok": false,
+  "evidence": "DB003",
+  "defect": "ACC-027"
+ },
+ {
+  "name": "SI-000001 totals untouched by note (document stays 46/paid)",
+  "actual": "(Decimal('46.0000'), Decimal('46.0000'), 'paid')",
+  "expected": "(Decimal('46'), Decimal('46'), 'paid')",
+  "ok": true,
+  "evidence": "DB003",
+  "defect": null
+ },
+ {
+  "name": "PDN draft stored (debit, 5, PI-000001)",
+  "actual": "('debit', Decimal('5.0000'), '01a1608f-b510-728e-a4e9-2251cfced3d4', 'draft')",
+  "expected": "('debit', Decimal('5'), '01a1608f-b510-728e-a4e9-2251cfced3d4', 'draft')",
+  "ok": true,
+  "evidence": "DB004",
+  "defect": null
+ },
+ {
+  "name": "PDN draft no GL",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB003/004",
+  "defect": null
+ },
+ {
+  "name": "PDN posted + numbered",
+  "actual": "('posted', 'PDN-000001', 201)",
+  "expected": "('posted', 'PDN-000001', 201)",
+  "ok": true,
+  "evidence": "DB005/response",
+  "defect": null
+ },
+ {
+  "name": "PDN post creates a journal",
+  "actual": "0",
+  "expected": "1",
+  "ok": false,
+  "evidence": "DB004/005",
+  "defect": "ACC-027"
+ },
+ {
+  "name": "PDN post increases AP by 5 (0 -> -5)",
+  "actual": "0.0000",
+  "expected": "-5",
+  "ok": false,
+  "evidence": "DB005",
+  "defect": "ACC-027"
+ },
+ {
+  "name": "PDN post adds input VAT 0.6522",
+  "actual": "0.0000",
+  "expected": "0.6522",
+  "ok": false,
+  "evidence": "DB005",
+  "defect": "ACC-027"
+ },
+ {
+  "name": "Shift opened (open, MAIN, no number/journal)",
+  "actual": "('open', '01a16060-97b1-7489-8203-fee57ee4e4b4', None, None, 201)",
+  "expected": "('open', '01a16060-97b1-7489-8203-fee57ee4e4b4', None, None, 201)",
+  "ok": true,
+  "evidence": "DB006",
+  "defect": null
+ },
+ {
+  "name": "Shift open no GL",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB005/006",
+  "defect": null
+ },
+ {
+  "name": "RV draft no GL",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB006/007",
+  "defect": null
+ },
+ {
+  "name": "RV-000004 posted cash receipt 5 customer",
+  "actual": "('RV-000004', 'posted', 'receipt', 'customer', 'cash', Decimal('5.0000'), '01a16060-97ba-7689-b935-5cb85f63044e', '01a16060-97b5-756d-8e62-8e61e310410c')",
+  "expected": "('RV-000004', 'posted', 'receipt', 'customer', 'cash', Decimal('5'), '01a16060-97ba-7689-b935-5cb85f63044e', '01a16060-97b5-756d-8e62-8e61e310410c')",
+  "ok": true,
+  "evidence": "DB008",
+  "defect": null
+ },
+ {
+  "name": "RV journal Dr 1211001 5 / Cr 12310001 5",
+  "actual": "[('1211001', Decimal('5.0000'), Decimal('0.0000')), ('12310001', Decimal('0.0000'), Decimal('5.0000'))]",
+  "expected": "[('1211001', Decimal('5'), Decimal('0')), ('12310001', Decimal('0'), Decimal('5'))]",
+  "ok": true,
+  "evidence": "DB008",
+  "defect": null
+ },
+ {
+  "name": "RV AR line carries party CUST-GEN",
+  "actual": "[('12310001', '01a16060-97ba-7689-b935-5cb85f63044e', Decimal('0.0000'), Decimal('5.0000'))]",
+  "expected": "[('12310001', '01a16060-97ba-7689-b935-5cb85f63044e', Decimal('0'), Decimal('5'))]",
+  "ok": true,
+  "evidence": "DB008",
+  "defect": null
+ },
+ {
+  "name": "RV GL cash 49957 / AR 19",
+  "actual": "(Decimal('49957.0000'), Decimal('19.0000'))",
+  "expected": "(Decimal('49957'), Decimal('19'))",
+  "ok": true,
+  "evidence": "DB008",
+  "defect": null
+ },
+ {
+  "name": "RV subledger cash -69 -> -64",
+  "actual": "-64.0000",
+  "expected": "-64",
+  "ok": true,
+  "evidence": "DB008",
+  "defect": null
+ },
+ {
+  "name": "RV not allocated to any invoice (open credit)",
+  "actual": "1",
+  "expected": "1",
+  "ok": true,
+  "evidence": "DB008",
+  "defect": null
+ },
+ {
+  "name": "Shift closed CS-000001 expected 5 counted 3 diff -2",
+  "actual": "('closed', 'CS-000001', Decimal('5.0000'), Decimal('3.0000'), Decimal('-2.0000'), None)",
+  "expected": "('closed', 'CS-000001', Decimal('5'), Decimal('3'), Decimal('-2'), None)",
+  "ok": true,
+  "evidence": "DB009",
+  "defect": null
+ },
+ {
+  "name": "Shift summary: vouchersCash 5 / sales cash 0",
+  "actual": "(Decimal('5.0000'), Decimal('0.0000'))",
+  "expected": "(Decimal('5'), Decimal('0'))",
+  "ok": true,
+  "evidence": "DB009",
+  "defect": null
+ },
+ {
+  "name": "Shift close no GL",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB008/009",
+  "defect": null
+ },
+ {
+  "name": "Shift posted with journal link",
+  "actual": "('closed', True, 201)",
+  "expected": "('closed', True, 201)",
+  "ok": true,
+  "evidence": "DB010",
+  "defect": null
+ },
+ {
+  "name": "Shift journal Dr 1211002 3 + Dr 3110004 2 / Cr 1211001 5",
+  "actual": "[('1211001', Decimal('0.0000'), Decimal('5.0000')), ('1211002', Decimal('3.0000'), Decimal('0.0000')), ('3110004', Decimal('2.0000'), Decimal('0.0000'))]",
+  "expected": "[('1211001', Decimal('0'), Decimal('5')), ('1211002', Decimal('3'), Decimal('0')), ('3110004', Decimal('2'), Decimal('0'))]",
+  "ok": true,
+  "evidence": "DB010",
+  "defect": null
+ },
+ {
+  "name": "Shift GL cash back to 49952, custody 3, difference 2",
+  "actual": "(Decimal('49952.0000'), Decimal('3.0000'), Decimal('2.0000'))",
+  "expected": "(Decimal('49952'), Decimal('3'), Decimal('2'))",
+  "ok": true,
+  "evidence": "DB010",
+  "defect": null
+ },
+ {
+  "name": "Shift post moves the till subledger too (-64 -> -69)",
+  "actual": "-64.0000",
+  "expected": "-69",
+  "ok": false,
+  "evidence": "DB010",
+  "defect": "ACC-028"
+ },
+ {
+  "name": "Shift post: GL cash delta equals subledger delta",
+  "actual": "-5.0000",
+  "expected": "0.0000",
+  "ok": false,
+  "evidence": "DB009/010",
+  "defect": "ACC-028"
+ },
+ {
+  "name": "PV-000005 void accepted",
+  "actual": "('voided', 201)",
+  "expected": "('voided', 201)",
+  "ok": true,
+  "evidence": "DB011",
+  "defect": null
+ },
+ {
+  "name": "Void reverses both JE-000036/037 (cash +8)",
+  "actual": "0.0000",
+  "expected": "8",
+  "ok": false,
+  "evidence": "DB010/011",
+  "defect": "ACC-029 (ACC-009/ACC-025)"
+ },
+ {
+  "name": "Void restores hospitality 3110002 (15 -> 7)",
+  "actual": "15.0000",
+  "expected": "7",
+  "ok": false,
+  "evidence": "DB011",
+  "defect": "ACC-029 (ACC-009/ACC-025)"
+ },
+ {
+  "name": "Void subledger +4 only (one bump for two journals)",
+  "actual": "4.0000",
+  "expected": "4",
+  "ok": true,
+  "evidence": "DB010/011",
+  "defect": null
+ },
+ {
+  "name": "JE-000036/037 remain posted after void",
+  "actual": "['posted', 'posted']",
+  "expected": "['posted', 'posted']",
+  "ok": true,
+  "evidence": "DB011",
+  "defect": "ACC-009"
+ },
+ {
+  "name": "SALE3 draft no GL/stock",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB011/012",
+  "defect": null
+ },
+ {
+  "name": "SALE3 concurrent: exactly one 201",
+  "actual": "1",
+  "expected": "1",
+  "ok": true,
+  "evidence": "response",
+  "defect": null
+ },
+ {
+  "name": "SALE3 concurrent: loser gets 409 (not 500)",
+  "actual": "[201, 500]",
+  "expected": "[201, 409]",
+  "ok": false,
+  "evidence": "response",
+  "defect": "ACC-030"
+ },
+ {
+  "name": "SALE3 posted once SI-000003 credit 23",
+  "actual": "('SI-000003', 'posted', Decimal('23.0000'), 'unpaid')",
+  "expected": "('SI-000003', 'posted', Decimal('23'), 'unpaid')",
+  "ok": true,
+  "evidence": "DB013",
+  "defect": null
+ },
+ {
+  "name": "SALE3 single journal",
+  "actual": "1",
+  "expected": "1",
+  "ok": true,
+  "evidence": "DB012/013",
+  "defect": null
+ },
+ {
+  "name": "SALE3 journal lines",
+  "actual": "[('12310001', Decimal('23.0000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('13.4694')), ('2222001', Decimal('0.0000'), Decimal('3.0000')), ('3200004', Decimal('13.4694'), Decimal('0.0000')), ('4100001', Decimal('0.0000'), Decimal('20.0000'))]",
+  "expected": "[('12310001', Decimal('23'), Decimal('0')), ('1270001', Decimal('0'), Decimal('13.4694')), ('2222001', Decimal('0'), Decimal('3')), ('3200004', Decimal('13.4694'), Decimal('0')), ('4100001', Decimal('0'), Decimal('20'))]",
+  "ok": true,
+  "evidence": "DB013",
+  "defect": null
+ },
+ {
+  "name": "SALE3 one stock movement, item 3 / 40.4081",
+  "actual": "(1, (Decimal('3.0000'), Decimal('40.4081')))",
+  "expected": "(1, (Decimal('3'), Decimal('40.4081')))",
+  "ok": true,
+  "evidence": "DB013",
+  "defect": null
+ },
+ {
+  "name": "SALE3 AR 19 -> 42",
+  "actual": "42.0000",
+  "expected": "42",
+  "ok": true,
+  "evidence": "DB013",
+  "defect": null
+ },
+ {
+  "name": "PURCHASE4 draft no GL/stock",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB013/014",
+  "defect": null
+ },
+ {
+  "name": "PURCHASE4 concurrent: exactly one 201",
+  "actual": "1",
+  "expected": "1",
+  "ok": true,
+  "evidence": "response",
+  "defect": null
+ },
+ {
+  "name": "PURCHASE4 concurrent: loser gets 409 (not 500)",
+  "actual": "[201, 500]",
+  "expected": "[201, 409]",
+  "ok": false,
+  "evidence": "response",
+  "defect": "ACC-030"
+ },
+ {
+  "name": "PURCHASE4 posted once PI-000004 credit 20.70",
+  "actual": "('PI-000004', 'posted', Decimal('20.7000'), 'unpaid')",
+  "expected": "('PI-000004', 'posted', Decimal('20.7'), 'unpaid')",
+  "ok": true,
+  "evidence": "DB015",
+  "defect": null
+ },
+ {
+  "name": "PURCHASE4 single journal",
+  "actual": "1",
+  "expected": "1",
+  "ok": true,
+  "evidence": "DB014/015",
+  "defect": null
+ },
+ {
+  "name": "PURCHASE4 journal lines",
+  "actual": "[('1270001', Decimal('18.0000'), Decimal('0.0000')), ('22111001', Decimal('0.0000'), Decimal('20.7000')), ('2222001', Decimal('2.7000'), Decimal('0.0000'))]",
+  "expected": "[('1270001', Decimal('18'), Decimal('0')), ('22111001', Decimal('0'), Decimal('20.7')), ('2222001', Decimal('2.7'), Decimal('0'))]",
+  "ok": true,
+  "evidence": "DB015",
+  "defect": null
+ },
+ {
+  "name": "PURCHASE4 one stock movement, item 4 / 58.4081 avg 14.6020",
+  "actual": "(1, (Decimal('4.0000'), Decimal('58.4081')), Decimal('14.6020'))",
+  "expected": "(1, (Decimal('4'), Decimal('58.4081')), Decimal('14.6020'))",
+  "ok": true,
+  "evidence": "DB015",
+  "defect": null
+ },
+ {
+  "name": "PURCHASE4 AP 0 -> -20.70 once",
+  "actual": "-20.7000",
+  "expected": "-20.7",
+  "ok": true,
+  "evidence": "DB015",
+  "defect": null
+ },
+ {
+  "name": "Transfer draft no GL",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB015/016",
+  "defect": null
+ },
+ {
+  "name": "Transfer send Dr 1211003 6 / Cr 1211001 6, subledger cash -6",
+  "actual": "(Decimal('6.0000'), Decimal('-6.0000'), Decimal('-6.0000'))",
+  "expected": "(Decimal('6'), Decimal('-6'), Decimal('-6'))",
+  "ok": true,
+  "evidence": "DB016/017",
+  "defect": null
+ },
+ {
+  "name": "Transfer receive concurrent: exactly one 201",
+  "actual": "1",
+  "expected": "1",
+  "ok": true,
+  "evidence": "response",
+  "defect": null
+ },
+ {
+  "name": "Transfer receive concurrent: loser gets 409 (not 500)",
+  "actual": "[201, 500]",
+  "expected": "[201, 409]",
+  "ok": false,
+  "evidence": "response",
+  "defect": "ACC-030"
+ },
+ {
+  "name": "CT-000002 received once",
+  "actual": "('CT-000002', 'received', Decimal('6.0000'))",
+  "expected": "('CT-000002', 'received', Decimal('6'))",
+  "ok": true,
+  "evidence": "DB018",
+  "defect": null
+ },
+ {
+  "name": "Transfer receive single journal, transit back to 0, bank +6 once",
+  "actual": "(1, Decimal('0.0000'), Decimal('6.0000'), Decimal('6.0000'))",
+  "expected": "(1, Decimal('0'), Decimal('6'), Decimal('6'))",
+  "ok": true,
+  "evidence": "DB017/018",
+  "defect": null
+ },
+ {
+  "name": "Capital/furniture untouched",
+  "actual": "(Decimal('-250000.0000'), Decimal('20000.0000'))",
+  "expected": "(Decimal('-250000'), Decimal('20000'))",
+  "ok": true,
+  "evidence": "DB018",
+  "defect": null
+ },
+ {
+  "name": "12 periods still open",
+  "actual": "['open', 'open', 'open', 'open', 'open', 'open', 'open', 'open', 'open', 'open', 'open', 'open']",
+  "expected": "['open', 'open', 'open', 'open', 'open', 'open', 'open', 'open', 'open', 'open', 'open', 'open']",
+  "ok": true,
+  "evidence": "DB018",
+  "defect": null
+ },
+ {
+  "name": "Journals balanced (sum debit = sum credit)",
+  "actual": "0.0000",
+  "expected": "0",
+  "ok": true,
+  "evidence": "DB018",
+  "defect": null
+ },
+ {
+  "name": "Closing GL cash 49946 / subledger -66 (gap 5 from shift post, 8 from PV-000005 void, legacy)",
+  "actual": "(Decimal('49946.0000'), Decimal('-66.0000'))",
+  "expected": "(Decimal('49946'), Decimal('-66'))",
+  "ok": true,
+  "evidence": "DB018",
+  "defect": null
+ },
+ {
+  "name": "Closing bank 180015 / subledger 15",
+  "actual": "(Decimal('180015.0000'), Decimal('15.0000'))",
+  "expected": "(Decimal('180015'), Decimal('15'))",
+  "ok": true,
+  "evidence": "DB018",
+  "defect": null
+ },
+ {
+  "name": "Closing AR 42 / AP -20.70 / VAT -0.30",
+  "actual": "(Decimal('42.0000'), Decimal('-20.7000'), Decimal('-0.3000'))",
+  "expected": "(Decimal('42'), Decimal('-20.7'), Decimal('-0.3'))",
+  "ok": true,
+  "evidence": "DB018",
+  "defect": null
+ },
+ {
+  "name": "Closing inventory GL 138.4081 vs actual 158.4081 (legacy gap 20)",
+  "actual": "(Decimal('138.4081'), Decimal('158.4081'))",
+  "expected": "(Decimal('138.4081'), Decimal('158.4081'))",
+  "ok": true,
+  "evidence": "DB018",
+  "defect": "ACC-016"
+ },
+ {
+  "name": "Last journal JE-000043 (losing transactions rolled their numbers back)",
+  "actual": "JE-000043",
+  "expected": "JE-000043",
+  "ok": true,
+  "evidence": "DB018",
+  "defect": null
+ },
+ {
+  "name": "VAT return rows (sales 120/18, returns -40/-6, purchases 174/-26.10, purchase returns -96/14.40)",
+  "actual": "{'مبيعات خاضعة': (Decimal('120.0000'), Decimal('18.0000')), 'مردود مبيعات': (Decimal('-40.0000'), Decimal('-6.0000')), 'مشتريات خاضعة': (Decimal('174.0000'), Decimal('-26.1000')), 'مردود مشتريات': (Decimal('-96.0000'), Decimal('14.4000'))}",
+  "expected": "{'مبيعات خاضعة': (Decimal('120'), Decimal('18')), 'مردود مبيعات': (Decimal('-40'), Decimal('-6')), 'مشتريات خاضعة': (Decimal('174'), Decimal('-26.1')), 'مردود مشتريات': (Decimal('-96'), Decimal('14.4'))}",
+  "ok": true,
+  "evidence": "REPORT-VAT-RETURN",
+  "defect": null
+ },
+ {
+  "name": "VAT return net 0.30 equals GL 2222001 credit 0.30",
+  "actual": "0.3000",
+  "expected": "0.3000",
+  "ok": true,
+  "evidence": "REPORT-VAT-RETURN",
+  "defect": null
+ },
+ {
+  "name": "VAT return ignores posted notes SCN-000001/PDN-000001 (no bucket)",
+  "actual": "False",
+  "expected": "False",
+  "ok": true,
+  "evidence": "REPORT-VAT-RETURN",
+  "defect": "ACC-027"
+ },
+ {
+  "name": "AR aging total equals GL AR 42",
+  "actual": "23.0000",
+  "expected": "42",
+  "ok": false,
+  "evidence": "REPORT-AR-AGING",
+  "defect": "ACC-006/ACC-011/ACC-027"
+ },
+ {
+  "name": "AP aging total equals GL AP 20.70",
+  "actual": "150.1000",
+  "expected": "20.7",
+  "ok": false,
+  "evidence": "REPORT-AP-AGING",
+  "defect": "ACC-004/ACC-022/ACC-027"
+ },
+ {
+  "name": "Customer balances report: CUST-GEN = GL AR party net (29 debit) or GL AR 42 debit, not 63 credit",
+  "actual": "(Decimal('208.47'), Decimal('271.47'), Decimal('63.00'), 'دائن')",
+  "expected": "(Decimal('69'), Decimal('40'), Decimal('29'), 'مدين')",
+  "ok": false,
+  "evidence": "REPORT-CUSTOMER-BALANCES",
+  "defect": "ACC-004"
+ },
+ {
+  "name": "Customer balances report lists customers only (no SUPP-GEN)",
+  "actual": "True",
+  "expected": "False",
+  "ok": false,
+  "evidence": "REPORT-CUSTOMER-BALANCES",
+  "defect": "UI-011"
+ },
+ {
+  "name": "Supplier balances report: SUPP-GEN = GL AP party net (237.4/258.1 = -20.7), not 495.5/426.5",
+  "actual": "(Decimal('495.5000'), Decimal('426.5000'), Decimal('-69.0000'))",
+  "expected": "(Decimal('237.4'), Decimal('258.1'), Decimal('-20.7'))",
+  "ok": false,
+  "evidence": "REPORT-SUPPLIER-BALANCES",
+  "defect": "ACC-004"
+ },
+ {
+  "name": "Notes reports list SCN-000001 / PDN-000001 as posted",
+  "actual": "(['SCN-000001'], ['PDN-000001'])",
+  "expected": "(['SCN-000001'], ['PDN-000001'])",
+  "ok": true,
+  "evidence": "REPORT-SALES/PURCHASE-NOTES",
+  "defect": null
+ },
+ {
+  "name": "Cashier shift report shows CS-000001 5/3/-2",
+  "actual": "[(Decimal('5.0000'), Decimal('3.0000'), Decimal('-2.0000'))]",
+  "expected": "[(Decimal('5'), Decimal('3'), Decimal('-2'))]",
+  "ok": true,
+  "evidence": "REPORT-CASHIER-SHIFT",
+  "defect": null
+ },
+ {
+  "name": "Balance sheet cash/AR/AP/custody from GL",
+  "actual": "(Decimal('49946.0000'), Decimal('42.0000'), Decimal('20.7000'), Decimal('3.0000'))",
+  "expected": "(Decimal('49946'), Decimal('42'), Decimal('20.7'), Decimal('3'))",
+  "ok": true,
+  "evidence": "REPORT-BALANCE-SHEET",
+  "defect": null
+ }
+]

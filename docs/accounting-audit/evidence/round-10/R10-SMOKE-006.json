@@ -1,0 +1,95 @@
+{
+  "id": "R10-SMOKE-006",
+  "route": "/inventory/deliveries",
+  "scope": "UI read-only smoke, not business approval",
+  "at": "2026-10-21T21:43:52.842Z",
+  "url": "http://127.0.0.1:3001/inventory/deliveries",
+  "state": "rendered",
+  "api": [
+    {
+      "at": "2026-10-21T21:43:57.446Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/deliveries",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:57.446Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:57.447Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/deliveries/outstanding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:57.447Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:57.448Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:57.448Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:57.448Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/deliveries",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:57.449Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:57.449Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/deliveries/outstanding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:57.449Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:57.450Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:57.450Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:57.450Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:57.450Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    }
+  ],
+  "jsErrors": []
+}

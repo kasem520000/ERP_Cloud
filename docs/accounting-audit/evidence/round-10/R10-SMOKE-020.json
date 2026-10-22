@@ -1,0 +1,59 @@
+{
+  "id": "R10-SMOKE-020",
+  "route": "/inventory/barcodes",
+  "scope": "UI read-only smoke, not business approval",
+  "at": "2026-10-21T21:47:43.472Z",
+  "url": "http://127.0.0.1:3001/inventory/barcodes",
+  "state": "rendered",
+  "api": [
+    {
+      "at": "2026-10-21T21:47:46.773Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:47:46.805Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:47:46.812Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:47:46.824Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:47:46.829Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:47:46.859Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:47:46.875Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:47:46.910Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    }
+  ],
+  "jsErrors": []
+}

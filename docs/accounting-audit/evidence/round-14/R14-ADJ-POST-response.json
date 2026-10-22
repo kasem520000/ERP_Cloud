@@ -1,0 +1,47 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/inventory/adjustments/01a160ca-a377-74e6-8921-a9f9c57902ec/post",
+  "request": {
+    "approved": true
+  },
+  "body": {
+    "id": "01a160ca-a377-74e6-8921-a9f9c57902ec",
+    "tenantId": "01a16060-9644-71ff-bf54-37def6aa8986",
+    "warehouseId": "01a16060-97b3-71eb-b311-413e52017a85",
+    "branchId": "01a16060-97b1-7489-8203-fee57ee4e4b4",
+    "number": "ADJ-000001",
+    "status": "posted",
+    "reason": "R14 جرد اختبار معزول - عجز قطعة واحدة",
+    "approvedAt": "2026-10-21T23:28:12.442Z",
+    "approvedBy": "01a16060-9647-76b9-a3da-053048f3acf5",
+    "journalEntryId": "01a160cb-3495-75e9-b629-7cd3aa96e6d3",
+    "createdAt": "2026-10-21T23:27:35.288Z",
+    "createdBy": "01a16060-9647-76b9-a3da-053048f3acf5",
+    "updatedAt": "2026-10-21T23:28:12.442Z",
+    "updatedBy": null,
+    "version": 1,
+    "legacySource": null,
+    "legacyId": null,
+    "lines": [
+      {
+        "adjustmentId": "01a160ca-a377-74e6-8921-a9f9c57902ec",
+        "lineNo": 1,
+        "tenantId": "01a16060-9644-71ff-bf54-37def6aa8986",
+        "itemId": "01a1608e-17a9-7514-82f6-247f5a6761b0",
+        "expectedQty": "6.0000",
+        "countedQty": "5.0000",
+        "unitId": null,
+        "unitCost": "12.0000",
+        "varianceQty": "-1.0000",
+        "varianceValue": "12.0000",
+        "lotId": null,
+        "batchNo": null,
+        "productionDate": null,
+        "expiryDate": null,
+        "serialNos": [],
+        "note": null
+      }
+    ]
+  }
+}

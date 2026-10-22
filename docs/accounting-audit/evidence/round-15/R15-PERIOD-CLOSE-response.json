@@ -1,0 +1,12 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/fiscal-periods/01a16060-9818-71e8-82e6-737155e5df13/close",
+  "request": {},
+  "body": {
+    "data": {
+      "id": "01a16060-9818-71e8-82e6-737155e5df13",
+      "status": "closed"
+    }
+  }
+}

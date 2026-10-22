@@ -1,0 +1,71 @@
+{
+  "id": "R10-SMOKE-002",
+  "route": "/inventory/item-units",
+  "scope": "UI read-only smoke, not business approval",
+  "at": "2026-10-21T21:43:19.875Z",
+  "url": "http://127.0.0.1:3001/inventory/item-units",
+  "state": "rendered",
+  "api": [
+    {
+      "at": "2026-10-21T21:43:24.177Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:24.178Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:24.180Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:24.198Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/units",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:24.206Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:24.237Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:24.249Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:24.264Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/units",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:24.276Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:43:24.306Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    }
+  ],
+  "jsErrors": []
+}

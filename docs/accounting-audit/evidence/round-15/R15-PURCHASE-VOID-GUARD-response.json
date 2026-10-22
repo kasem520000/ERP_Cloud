@@ -1,0 +1,28 @@
+{
+  "status": 409,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/purchase-invoices/01a160e2-956d-74bb-a051-57079339dda7/void",
+  "request": {
+    "reason": "R15 اختبار حرس إلغاء فاتورة عليها مردود مرحّل مرتبط - اختبار معزول"
+  },
+  "body": {
+    "type": "about:blank",
+    "title": "Purchase has posted returns",
+    "status": 409,
+    "code": "PURCHASE_VOID_HAS_RETURNS",
+    "detail": "Void the returns that reference this purchase first",
+    "traceId": "01a160e8-7956-735d-ac03-9a4d947d6935",
+    "errors": [
+      {
+        "references": [
+          {
+            "id": "01a160e7-e1db-72a3-b18a-dbb7d55411c7",
+            "number": "PR-000003",
+            "kind": "purchase_return"
+          }
+        ],
+        "count": 1
+      }
+    ]
+  }
+}

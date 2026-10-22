@@ -1,0 +1,13 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/cash-transfers/01a160c8-7335-7701-9e01-963b374ef6c6/send",
+  "request": {},
+  "body": {
+    "id": "01a160c8-7335-7701-9e01-963b374ef6c6",
+    "status": "sent",
+    "number": "CT-000001",
+    "sentJournalEntryId": "01a160c8-b5c2-708d-a87b-d575d095802d",
+    "cashInTransitAccountId": "01a16060-97fc-71fc-b7a2-c4d6d4e09a75"
+  }
+}

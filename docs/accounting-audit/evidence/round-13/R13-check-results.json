@@ -1,0 +1,894 @@
+{
+ "passed": 102,
+ "failed": 9,
+ "results": [
+  {
+   "name": "Baseline 1270001",
+   "actual": "176.0000",
+   "expected": "176",
+   "ok": true,
+   "evidence": "DB001",
+   "defect": null
+  },
+  {
+   "name": "Baseline 1211001",
+   "actual": "49948.0000",
+   "expected": "49948",
+   "ok": true,
+   "evidence": "DB001",
+   "defect": null
+  },
+  {
+   "name": "Baseline 1221001",
+   "actual": "180000.0000",
+   "expected": "180000",
+   "ok": true,
+   "evidence": "DB001",
+   "defect": null
+  },
+  {
+   "name": "Baseline 12310001",
+   "actual": "41.0000",
+   "expected": "41",
+   "ok": true,
+   "evidence": "DB001",
+   "defect": null
+  },
+  {
+   "name": "Baseline 22111001",
+   "actual": "-60.4000",
+   "expected": "-60.4",
+   "ok": true,
+   "evidence": "DB001",
+   "defect": null
+  },
+  {
+   "name": "Baseline 2222001",
+   "actual": "8.4000",
+   "expected": "8.4",
+   "ok": true,
+   "evidence": "DB001",
+   "defect": null
+  },
+  {
+   "name": "Baseline 3110002",
+   "actual": "7.0000",
+   "expected": "7",
+   "ok": true,
+   "evidence": "DB001",
+   "defect": null
+  },
+  {
+   "name": "Baseline stock actual",
+   "actual": "196.0000",
+   "expected": "196",
+   "ok": true,
+   "evidence": "DB001",
+   "defect": null
+  },
+  {
+   "name": "Item R13-LANDED-A",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "DB002",
+   "defect": null
+  },
+  {
+   "name": "Item no GL R13-LANDED-A",
+   "actual": "['20000.0000', '49948.0000', '180000.0000', '41.0000', '176.0000', '0.0000', '-250000.0000', '-60.4000', '8.4000', '7.0000', '-100.0000', '20.0000', '-40.0000']",
+   "expected": "['20000.0000', '49948.0000', '180000.0000', '41.0000', '176.0000', '0.0000', '-250000.0000', '-60.4000', '8.4000', '7.0000', '-100.0000', '20.0000', '-40.0000']",
+   "ok": true,
+   "evidence": "DB002",
+   "defect": null
+  },
+  {
+   "name": "Item R13-LANDED-B",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "DB003",
+   "defect": null
+  },
+  {
+   "name": "Item no GL R13-LANDED-B",
+   "actual": "['20000.0000', '49948.0000', '180000.0000', '41.0000', '176.0000', '0.0000', '-250000.0000', '-60.4000', '8.4000', '7.0000', '-100.0000', '20.0000', '-40.0000']",
+   "expected": "['20000.0000', '49948.0000', '180000.0000', '41.0000', '176.0000', '0.0000', '-250000.0000', '-60.4000', '8.4000', '7.0000', '-100.0000', '20.0000', '-40.0000']",
+   "ok": true,
+   "evidence": "DB003",
+   "defect": null
+  },
+  {
+   "name": "Draft status",
+   "actual": "draft",
+   "expected": "draft",
+   "ok": true,
+   "evidence": "DB004",
+   "defect": null
+  },
+  {
+   "name": "Draft total",
+   "actual": "46.0000",
+   "expected": "46",
+   "ok": true,
+   "evidence": "DB004",
+   "defect": null
+  },
+  {
+   "name": "Draft tax",
+   "actual": "6.0000",
+   "expected": "6",
+   "ok": true,
+   "evidence": "DB004",
+   "defect": null
+  },
+  {
+   "name": "Draft landed method",
+   "actual": "value",
+   "expected": "value",
+   "ok": true,
+   "evidence": "DB004",
+   "defect": null
+  },
+  {
+   "name": "Draft no journal",
+   "actual": "35",
+   "expected": "35",
+   "ok": true,
+   "evidence": "DB004",
+   "defect": null
+  },
+  {
+   "name": "Draft no stock",
+   "actual": "196.0000",
+   "expected": "196",
+   "ok": true,
+   "evidence": "DB004",
+   "defect": null
+  },
+  {
+   "name": "Costs recorded",
+   "actual": "[('expense', '3.0000'), ('inventory', '9.0000')]",
+   "expected": "[('expense', '3.0000'), ('inventory', '9.0000')]",
+   "ok": true,
+   "evidence": "DB005/006",
+   "defect": null
+  },
+  {
+   "name": "Costs no journal",
+   "actual": "35",
+   "expected": "35",
+   "ok": true,
+   "evidence": "DB006",
+   "defect": null
+  },
+  {
+   "name": "Costs no stock",
+   "actual": "196.0000",
+   "expected": "196",
+   "ok": true,
+   "evidence": "DB006",
+   "defect": null
+  },
+  {
+   "name": "UI-007 header additional cost before post (expected shown 12)",
+   "actual": "0.0000",
+   "expected": "12",
+   "ok": false,
+   "evidence": "DB006/POST-before.png",
+   "defect": "UI-007"
+  },
+  {
+   "name": "Posted status",
+   "actual": "posted",
+   "expected": "posted",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Posted number",
+   "actual": "PI-000002",
+   "expected": "PI-000002",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Posted total 58",
+   "actual": "58.0000",
+   "expected": "58",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Posted additional cost 12",
+   "actual": "12.0000",
+   "expected": "12",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Landed allocation per line 4.5",
+   "actual": "[Decimal('4.5000'), Decimal('4.5000')]",
+   "expected": "[Decimal('4.5'), Decimal('4.5')]",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Unit cost at post",
+   "actual": "[Decimal('12.2500'), Decimal('24.5000')]",
+   "expected": "[Decimal('12.25'), Decimal('24.5')]",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "R13 stock value 49",
+   "actual": "49.0000",
+   "expected": "49",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "R13 stock qty 3",
+   "actual": "3.0000",
+   "expected": "3",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Post GL 1270001",
+   "actual": "225.0000",
+   "expected": "225",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Post GL 22111001",
+   "actual": "-118.4000",
+   "expected": "-118.4",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Post GL 2222001",
+   "actual": "14.4000",
+   "expected": "14.4",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Post GL 3110002",
+   "actual": "10.0000",
+   "expected": "10",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Post GL 1211001",
+   "actual": "49948.0000",
+   "expected": "49948",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Post GL 1221001",
+   "actual": "180000.0000",
+   "expected": "180000",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Post stock vs GL inherits 20 gap",
+   "actual": "20.0000",
+   "expected": "20",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": "ACC-016"
+  },
+  {
+   "name": "Post journal balanced",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Post journal total 58",
+   "actual": "58.0000",
+   "expected": "58",
+   "ok": true,
+   "evidence": "DB007",
+   "defect": null
+  },
+  {
+   "name": "Void status",
+   "actual": "voided",
+   "expected": "voided",
+   "ok": true,
+   "evidence": "DB008",
+   "defect": null
+  },
+  {
+   "name": "Void R13 stock zero",
+   "actual": "0.0000",
+   "expected": "0",
+   "ok": true,
+   "evidence": "DB008",
+   "defect": null
+  },
+  {
+   "name": "Void R13 qty zero",
+   "actual": "0.0000",
+   "expected": "0",
+   "ok": true,
+   "evidence": "DB008",
+   "defect": null
+  },
+  {
+   "name": "Void GL back 1270001",
+   "actual": "176.0000",
+   "expected": "176",
+   "ok": true,
+   "evidence": "DB008",
+   "defect": null
+  },
+  {
+   "name": "Void GL back 22111001",
+   "actual": "-60.4000",
+   "expected": "-60.4",
+   "ok": true,
+   "evidence": "DB008",
+   "defect": null
+  },
+  {
+   "name": "Void GL back 2222001",
+   "actual": "8.4000",
+   "expected": "8.4",
+   "ok": true,
+   "evidence": "DB008",
+   "defect": null
+  },
+  {
+   "name": "Void GL back 3110002",
+   "actual": "7.0000",
+   "expected": "7",
+   "ok": true,
+   "evidence": "DB008",
+   "defect": null
+  },
+  {
+   "name": "Void reversal exists linked",
+   "actual": "1",
+   "expected": "1",
+   "ok": true,
+   "evidence": "DB008",
+   "defect": null
+  },
+  {
+   "name": "Original journal kept posted",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "DB008",
+   "defect": null
+  },
+  {
+   "name": "Void movements mirrored",
+   "actual": "4",
+   "expected": "4",
+   "ok": true,
+   "evidence": "DB008",
+   "defect": null
+  },
+  {
+   "name": "Cheque draft status",
+   "actual": "draft",
+   "expected": "draft",
+   "ok": true,
+   "evidence": "DB009",
+   "defect": null
+  },
+  {
+   "name": "Cheque draft no GL",
+   "actual": "180000.0000",
+   "expected": "180000",
+   "ok": true,
+   "evidence": "DB009",
+   "defect": null
+  },
+  {
+   "name": "Cheque draft AR",
+   "actual": "41.0000",
+   "expected": "41",
+   "ok": true,
+   "evidence": "DB009",
+   "defect": null
+  },
+  {
+   "name": "Pending cheque state",
+   "actual": "pending",
+   "expected": "pending",
+   "ok": true,
+   "evidence": "DB010",
+   "defect": null
+  },
+  {
+   "name": "ACC-010 pending: bank GL should stay 180000",
+   "actual": "180017.0000",
+   "expected": "180000",
+   "ok": false,
+   "evidence": "DB010",
+   "defect": "ACC-010"
+  },
+  {
+   "name": "ACC-010 pending: cheques-in-hand should be 17",
+   "actual": "0",
+   "expected": "17",
+   "ok": false,
+   "evidence": "DB010",
+   "defect": "ACC-010"
+  },
+  {
+   "name": "Pending AR reduced 17",
+   "actual": "24.0000",
+   "expected": "24",
+   "ok": true,
+   "evidence": "DB010",
+   "defect": null
+  },
+  {
+   "name": "Pending bank subledger 0",
+   "actual": "0.0000",
+   "expected": "0",
+   "ok": true,
+   "evidence": "DB010",
+   "defect": null
+  },
+  {
+   "name": "Cleared state",
+   "actual": "cleared",
+   "expected": "cleared",
+   "ok": true,
+   "evidence": "DB011",
+   "defect": null
+  },
+  {
+   "name": "Cleared bank GL 180017",
+   "actual": "180017.0000",
+   "expected": "180017",
+   "ok": true,
+   "evidence": "DB011",
+   "defect": null
+  },
+  {
+   "name": "Cleared bank subledger 17",
+   "actual": "17.0000",
+   "expected": "17",
+   "ok": true,
+   "evidence": "DB011",
+   "defect": null
+  },
+  {
+   "name": "Clear journal self-cancelling on bank (fallback)",
+   "actual": "[('1221001', '0.0000', '17.0000'), ('1221001', '17.0000', '0.0000')]",
+   "expected": "[('1221001', '0.0000', '17.0000'), ('1221001', '17.0000', '0.0000')]",
+   "ok": true,
+   "evidence": "DB011",
+   "defect": "ACC-010"
+  },
+  {
+   "name": "Cleared AR unchanged 24",
+   "actual": "24.0000",
+   "expected": "24",
+   "ok": true,
+   "evidence": "DB011",
+   "defect": null
+  },
+  {
+   "name": "Bounce draft no GL",
+   "actual": "180017.0000",
+   "expected": "180017",
+   "ok": true,
+   "evidence": "DB012",
+   "defect": null
+  },
+  {
+   "name": "Bounce pending AR 11",
+   "actual": "11.0000",
+   "expected": "11",
+   "ok": true,
+   "evidence": "DB013",
+   "defect": null
+  },
+  {
+   "name": "ACC-010 bounce pending bank should stay 180017",
+   "actual": "180030.0000",
+   "expected": "180017",
+   "ok": false,
+   "evidence": "DB013",
+   "defect": "ACC-010"
+  },
+  {
+   "name": "Bounced state",
+   "actual": "bounced",
+   "expected": "bounced",
+   "ok": true,
+   "evidence": "DB014",
+   "defect": null
+  },
+  {
+   "name": "Bounced AR back 24",
+   "actual": "24.0000",
+   "expected": "24",
+   "ok": true,
+   "evidence": "DB014",
+   "defect": null
+  },
+  {
+   "name": "Bounced bank GL 180017",
+   "actual": "180017.0000",
+   "expected": "180017",
+   "ok": true,
+   "evidence": "DB014",
+   "defect": null
+  },
+  {
+   "name": "Bounced bank subledger still 17",
+   "actual": "17.0000",
+   "expected": "17",
+   "ok": true,
+   "evidence": "DB014",
+   "defect": null
+  },
+  {
+   "name": "ACC-011 bounce AR line carries party",
+   "actual": "[None]",
+   "expected": "['01a16060-97ba-7689-b935-5cb85f63044e']",
+   "ok": false,
+   "evidence": "DB015",
+   "defect": "ACC-011"
+  },
+  {
+   "name": "Bounce journal balanced 13",
+   "actual": "13.0000",
+   "expected": "13",
+   "ok": true,
+   "evidence": "DB015",
+   "defect": null
+  },
+  {
+   "name": "Guard HTTP 409",
+   "actual": "409",
+   "expected": "409",
+   "ok": true,
+   "evidence": "VOID-BLOCK-response",
+   "defect": null
+  },
+  {
+   "name": "Guard code",
+   "actual": "PURCHASE_VOID_HAS_PAYMENTS",
+   "expected": "PURCHASE_VOID_HAS_PAYMENTS",
+   "ok": true,
+   "evidence": "VOID-BLOCK-response",
+   "defect": null
+  },
+  {
+   "name": "Guard invoice still posted",
+   "actual": "posted",
+   "expected": "posted",
+   "ok": true,
+   "evidence": "DB016",
+   "defect": null
+  },
+  {
+   "name": "Guard paid kept 50",
+   "actual": "50.0000",
+   "expected": "50",
+   "ok": true,
+   "evidence": "DB016",
+   "defect": null
+  },
+  {
+   "name": "Guard no GL change",
+   "actual": "['20000.0000', '49948.0000', '180017.0000', '24.0000', '176.0000', '0.0000', '-250000.0000', '-60.4000', '8.4000', '7.0000', '-100.0000', '20.0000', '-40.0000']",
+   "expected": "['20000.0000', '49948.0000', '180017.0000', '24.0000', '176.0000', '0.0000', '-250000.0000', '-60.4000', '8.4000', '7.0000', '-100.0000', '20.0000', '-40.0000']",
+   "ok": true,
+   "evidence": "DB015/016",
+   "defect": null
+  },
+  {
+   "name": "Guard no journal",
+   "actual": "51",
+   "expected": "51",
+   "ok": true,
+   "evidence": "DB015/016",
+   "defect": null
+  },
+  {
+   "name": "Guard allocations kept",
+   "actual": "1",
+   "expected": "1",
+   "ok": true,
+   "evidence": "DB015/016",
+   "defect": null
+  },
+  {
+   "name": "Final cash GL unchanged by R13",
+   "actual": "49948.0000",
+   "expected": "49948",
+   "ok": true,
+   "evidence": "DB016",
+   "defect": null
+  },
+  {
+   "name": "Final AR business (41-17 cheque)",
+   "actual": "24.0000",
+   "expected": "24",
+   "ok": true,
+   "evidence": "DB016",
+   "defect": null
+  },
+  {
+   "name": "Final bank GL 180017",
+   "actual": "180017.0000",
+   "expected": "180017",
+   "ok": true,
+   "evidence": "DB016",
+   "defect": null
+  },
+  {
+   "name": "Final bank GL delta equals subledger delta",
+   "actual": "17.0000",
+   "expected": "17",
+   "ok": true,
+   "evidence": "DB001/016",
+   "defect": null
+  },
+  {
+   "name": "Final expense unchanged 7",
+   "actual": "7.0000",
+   "expected": "7",
+   "ok": true,
+   "evidence": "DB016",
+   "defect": "ACC-009"
+  },
+  {
+   "name": "Final stock vs GL gap inherited 20",
+   "actual": "20.0000",
+   "expected": "20",
+   "ok": true,
+   "evidence": "DB016",
+   "defect": "ACC-016"
+  },
+  {
+   "name": "All journals balanced",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "DB016",
+   "defect": null
+  },
+  {
+   "name": "TB vs DB 1211001",
+   "actual": "49948.0000",
+   "expected": "49948.0000",
+   "ok": true,
+   "evidence": "REPORT-TRIAL-BALANCE/DB016",
+   "defect": null
+  },
+  {
+   "name": "TB vs DB 1221001",
+   "actual": "180017.0000",
+   "expected": "180017.0000",
+   "ok": true,
+   "evidence": "REPORT-TRIAL-BALANCE/DB016",
+   "defect": null
+  },
+  {
+   "name": "TB vs DB 12310001",
+   "actual": "24.0000",
+   "expected": "24.0000",
+   "ok": true,
+   "evidence": "REPORT-TRIAL-BALANCE/DB016",
+   "defect": null
+  },
+  {
+   "name": "TB vs DB 1270001",
+   "actual": "176.0000",
+   "expected": "176.0000",
+   "ok": true,
+   "evidence": "REPORT-TRIAL-BALANCE/DB016",
+   "defect": null
+  },
+  {
+   "name": "TB vs DB 22111001",
+   "actual": "-60.4000",
+   "expected": "-60.4000",
+   "ok": true,
+   "evidence": "REPORT-TRIAL-BALANCE/DB016",
+   "defect": null
+  },
+  {
+   "name": "TB vs DB 2222001",
+   "actual": "8.4000",
+   "expected": "8.4000",
+   "ok": true,
+   "evidence": "REPORT-TRIAL-BALANCE/DB016",
+   "defect": null
+  },
+  {
+   "name": "TB vs DB 3110002",
+   "actual": "7.0000",
+   "expected": "7.0000",
+   "ok": true,
+   "evidence": "REPORT-TRIAL-BALANCE/DB016",
+   "defect": null
+  },
+  {
+   "name": "TB balanced flag",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "REPORT-TRIAL-BALANCE",
+   "defect": null
+  },
+  {
+   "name": "Bank ledger closing",
+   "actual": "180017.0000",
+   "expected": "180017",
+   "ok": true,
+   "evidence": "REPORT-BANK-LEDGER",
+   "defect": null
+  },
+  {
+   "name": "Bank ledger rows 5",
+   "actual": "5",
+   "expected": "5",
+   "ok": true,
+   "evidence": "REPORT-BANK-LEDGER",
+   "defect": null
+  },
+  {
+   "name": "Bank movements total",
+   "actual": "180017.0000",
+   "expected": "180017",
+   "ok": true,
+   "evidence": "REPORT-BANK-MOVEMENTS",
+   "defect": null
+  },
+  {
+   "name": "Bank movements pending cheque shown as income before clear (ACC-010)",
+   "actual": "[('JE-000019', '13.0000')]",
+   "expected": "[]",
+   "ok": false,
+   "evidence": "REPORT-BANK-MOVEMENTS",
+   "defect": "ACC-010"
+  },
+  {
+   "name": "Levels R13 items zero",
+   "actual": "0.0000",
+   "expected": "0",
+   "ok": true,
+   "evidence": "REPORT-LEVELS",
+   "defect": null
+  },
+  {
+   "name": "Levels total 196",
+   "actual": "196.0000",
+   "expected": "196",
+   "ok": true,
+   "evidence": "REPORT-LEVELS",
+   "defect": null
+  },
+  {
+   "name": "CUSTOMER net report vs GL (ACC-004)",
+   "actual": "-35.0000",
+   "expected": "24",
+   "ok": false,
+   "evidence": "REPORT-CUSTOMER",
+   "defect": "ACC-004"
+  },
+  {
+   "name": "CUSTOMER bounce 13 visible as debit (ACC-011)",
+   "actual": "False",
+   "expected": "True",
+   "ok": false,
+   "evidence": "REPORT-CUSTOMER",
+   "defect": "ACC-011"
+  },
+  {
+   "name": "Cheques report states",
+   "actual": "[('RV-000002', 'cleared'), ('RV-000003', 'bounced')]",
+   "expected": "[('RV-000002', 'cleared'), ('RV-000003', 'bounced')]",
+   "ok": true,
+   "evidence": "REPORT-CHEQUES",
+   "defect": null
+  },
+  {
+   "name": "Void UI status",
+   "actual": "voided",
+   "expected": "voided",
+   "ok": true,
+   "evidence": "REPORT-PURCHASE-VOID",
+   "defect": null
+  },
+  {
+   "name": "Income vs GL (ACC-002)",
+   "actual": "309.0000",
+   "expected": "113",
+   "ok": false,
+   "evidence": "REPORT-INCOME",
+   "defect": "ACC-002"
+  },
+  {
+   "name": "Reports no write vouchers",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "DB016/017",
+   "defect": null
+  },
+  {
+   "name": "Reports no write purchase_invoices",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "DB016/017",
+   "defect": null
+  },
+  {
+   "name": "Reports no write stock_balances",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "DB016/017",
+   "defect": null
+  },
+  {
+   "name": "Reports no write journals",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "DB016/017",
+   "defect": null
+  },
+  {
+   "name": "Reports no write cash_location_balances",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "DB016/017",
+   "defect": null
+  },
+  {
+   "name": "Reports no write payment_allocations",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "DB016/017",
+   "defect": null
+  },
+  {
+   "name": "Reports no write balances",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "DB016/017",
+   "defect": null
+  }
+ ]
+}

@@ -1,0 +1,4 @@
+All PNG chunk CRC streams valid: 79
+JSON files parsed, no auth secret keys: 103
+Selected40route image/text/JSON artifacts exist.
+13review records exist; original unaccepted approval has no review marker.

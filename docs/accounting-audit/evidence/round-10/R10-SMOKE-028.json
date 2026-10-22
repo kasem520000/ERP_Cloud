@@ -1,0 +1,59 @@
+{
+  "id": "R10-SMOKE-028",
+  "route": "/settings/new-file",
+  "scope": "UI read-only smoke, not business approval",
+  "at": "2026-10-21T21:49:49.647Z",
+  "url": "http://127.0.0.1:3001/settings/new-file",
+  "state": "rendered",
+  "api": [
+    {
+      "at": "2026-10-21T21:49:53.203Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:49:53.203Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:49:53.208Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/company-files",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:49:53.208Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:49:53.208Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:49:53.209Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/company-files",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:49:53.210Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:49:53.211Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    }
+  ],
+  "jsErrors": []
+}

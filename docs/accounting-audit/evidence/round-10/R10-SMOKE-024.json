@@ -1,0 +1,10 @@
+{
+  "id": "R10-SMOKE-024",
+  "route": "/settings/data-rotation",
+  "scope": "UI read-only smoke, not business approval",
+  "at": "2026-10-21T21:48:13.022Z",
+  "state": "execution-error",
+  "error": "locator.innerText: Timeout 15000ms exceeded.\nCall log:\n  - waiting for locator('main')\n",
+  "api": [],
+  "jsErrors": []
+}

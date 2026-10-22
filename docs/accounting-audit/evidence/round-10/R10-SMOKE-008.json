@@ -1,0 +1,83 @@
+{
+  "id": "R10-SMOKE-008",
+  "route": "/inventory/levels",
+  "scope": "UI read-only smoke, not business approval",
+  "at": "2026-10-21T21:44:07.923Z",
+  "url": "http://127.0.0.1:3001/inventory/levels",
+  "state": "rendered",
+  "api": [
+    {
+      "at": "2026-10-21T21:44:12.323Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:12.323Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/levels",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:12.325Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:12.325Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:12.325Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:12.326Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:12.328Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:12.331Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/warehouses",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:12.332Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/inventory/levels",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:12.332Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/organization/catalog/items",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:12.332Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:44:12.333Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    }
+  ],
+  "jsErrors": []
+}

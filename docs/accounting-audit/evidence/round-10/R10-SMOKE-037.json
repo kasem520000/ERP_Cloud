@@ -1,0 +1,59 @@
+{
+  "id": "R10-SMOKE-037",
+  "route": "/reports/builder",
+  "scope": "UI read-only smoke, not business approval",
+  "at": "2026-10-21T21:51:49.299Z",
+  "url": "http://127.0.0.1:3001/reports/builder",
+  "state": "rendered",
+  "api": [
+    {
+      "at": "2026-10-21T21:51:53.372Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:51:53.428Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:51:53.433Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/custom-reports/fields?base_entity=sales_invoice",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:51:53.467Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/custom-reports/fields?base_entity=sales_invoice",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:51:53.500Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:51:53.502Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:51:53.503Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    },
+    {
+      "at": "2026-10-21T21:51:53.541Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200
+    }
+  ],
+  "jsErrors": []
+}

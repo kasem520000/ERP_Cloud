@@ -1,0 +1,12 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/vouchers/01a160ac-2ef7-76e5-9387-bba3d624c865/cheque",
+  "request": {
+    "action": "clear"
+  },
+  "body": {
+    "id": "01a160ac-2ef7-76e5-9387-bba3d624c865",
+    "chequeState": "cleared"
+  }
+}

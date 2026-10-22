@@ -1,0 +1,54 @@
+[
+  {
+    "name": "post-again",
+    "url": "/inventory/vouchers/01a16064-49c0-7489-beca-f1fa46768d9b/post",
+    "status": 409,
+    "body": {
+      "type": "about:blank",
+      "title": "Request failed",
+      "status": 409,
+      "code": "INVENTORY_VOUCHER_INVALID_STATUS",
+      "detail": "Only draft vouchers can be posted",
+      "traceId": "01a16068-e3d7-7519-b75f-c021c3f64bb4"
+    }
+  },
+  {
+    "name": "void-again",
+    "url": "/inventory/vouchers/01a16064-cf12-77be-b49d-9639006d67ff/void",
+    "status": 409,
+    "body": {
+      "type": "about:blank",
+      "title": "Request failed",
+      "status": 409,
+      "code": "INVENTORY_VOUCHER_INVALID_STATUS",
+      "detail": "Only posted vouchers can be voided",
+      "traceId": "01a16068-e3fd-75a9-9483-f45391c0eeab"
+    }
+  },
+  {
+    "name": "fulfil-again",
+    "url": "/inventory/requests/01a16065-b7f5-751b-ac0b-effe335f6f37/fulfil",
+    "status": 409,
+    "body": {
+      "type": "about:blank",
+      "title": "Request failed",
+      "status": 409,
+      "code": "GOODS_REQUEST_INVALID_STATUS",
+      "detail": "Only an approved request can be fulfilled",
+      "traceId": "01a16068-e41f-71ef-a084-f5735fb12cde"
+    }
+  },
+  {
+    "name": "approve-fulfilled",
+    "url": "/inventory/requests/01a16065-b7f5-751b-ac0b-effe335f6f37/approve",
+    "status": 409,
+    "body": {
+      "type": "about:blank",
+      "title": "Request failed",
+      "status": 409,
+      "code": "GOODS_REQUEST_INVALID_STATUS",
+      "detail": "Only a submitted request can be approved",
+      "traceId": "01a16068-e450-773a-846f-2794fe4e413c"
+    }
+  }
+]

@@ -1,0 +1,88 @@
+PASS | baseline one opening journal | expected=1 | actual=1
+PASS | baseline stock empty | expected=0 rows SHA256 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945 | actual=0 rows SHA256 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
+PASS | BOX factor persisted | expected=2 | actual=2.000000
+PASS | stock-in draft unchanged journals | expected=4 rows SHA256 91168a306c7a9d20296580506a46c2b2b17e357d9640379cb2514055d45aab8f | actual=4 rows SHA256 91168a306c7a9d20296580506a46c2b2b17e357d9640379cb2514055d45aab8f
+PASS | stock-in draft unchanged inventory_transactions | expected=0 rows SHA256 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945 | actual=0 rows SHA256 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
+PASS | stock-in draft unchanged stock_balances | expected=0 rows SHA256 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945 | actual=0 rows SHA256 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
+PASS | stock-out draft unchanged journals | expected=6 rows SHA256 866eddd8244dd37054608ee57c626c15b8666bd76886a5050b91b011d88a1411 | actual=6 rows SHA256 866eddd8244dd37054608ee57c626c15b8666bd76886a5050b91b011d88a1411
+PASS | stock-out draft unchanged inventory_transactions | expected=1 rows SHA256 985491920b2024cc9b46c983940dcb888f6d9a6c2e06c9f95c6e7b49a619062b | actual=1 rows SHA256 985491920b2024cc9b46c983940dcb888f6d9a6c2e06c9f95c6e7b49a619062b
+PASS | stock-out draft unchanged stock_balances | expected=1 rows SHA256 e3afba6913a385afaf6f19e855a93abf229d7b6a0187a0e67cd85afc0f5ab8d7 | actual=1 rows SHA256 e3afba6913a385afaf6f19e855a93abf229d7b6a0187a0e67cd85afc0f5ab8d7
+PASS | request draft unchanged journals | expected=10 rows SHA256 950334f57179e08592c6183c6ce6ce6a2e1cf09c13ab98f4480374b87fe65c74 | actual=10 rows SHA256 950334f57179e08592c6183c6ce6ce6a2e1cf09c13ab98f4480374b87fe65c74
+PASS | request draft unchanged inventory_transactions | expected=3 rows SHA256 ac00b35e0ef46f05765a82dc2c2a1e4273e7659a778b85c1d838caf0271cdee0 | actual=3 rows SHA256 ac00b35e0ef46f05765a82dc2c2a1e4273e7659a778b85c1d838caf0271cdee0
+PASS | request draft unchanged stock_balances | expected=1 rows SHA256 496c94ebb58a57cb229a9ebb0ad77e39b6297d8b739a92b69aa161a1cd65b576 | actual=1 rows SHA256 496c94ebb58a57cb229a9ebb0ad77e39b6297d8b739a92b69aa161a1cd65b576
+PASS | request submit unchanged journals | expected=10 rows SHA256 950334f57179e08592c6183c6ce6ce6a2e1cf09c13ab98f4480374b87fe65c74 | actual=10 rows SHA256 950334f57179e08592c6183c6ce6ce6a2e1cf09c13ab98f4480374b87fe65c74
+PASS | request submit unchanged inventory_transactions | expected=3 rows SHA256 ac00b35e0ef46f05765a82dc2c2a1e4273e7659a778b85c1d838caf0271cdee0 | actual=3 rows SHA256 ac00b35e0ef46f05765a82dc2c2a1e4273e7659a778b85c1d838caf0271cdee0
+PASS | request submit unchanged stock_balances | expected=1 rows SHA256 496c94ebb58a57cb229a9ebb0ad77e39b6297d8b739a92b69aa161a1cd65b576 | actual=1 rows SHA256 496c94ebb58a57cb229a9ebb0ad77e39b6297d8b739a92b69aa161a1cd65b576
+PASS | request approval unchanged journals | expected=10 rows SHA256 950334f57179e08592c6183c6ce6ce6a2e1cf09c13ab98f4480374b87fe65c74 | actual=10 rows SHA256 950334f57179e08592c6183c6ce6ce6a2e1cf09c13ab98f4480374b87fe65c74
+PASS | request approval unchanged inventory_transactions | expected=3 rows SHA256 ac00b35e0ef46f05765a82dc2c2a1e4273e7659a778b85c1d838caf0271cdee0 | actual=3 rows SHA256 ac00b35e0ef46f05765a82dc2c2a1e4273e7659a778b85c1d838caf0271cdee0
+PASS | request approval unchanged stock_balances | expected=1 rows SHA256 496c94ebb58a57cb229a9ebb0ad77e39b6297d8b739a92b69aa161a1cd65b576 | actual=1 rows SHA256 496c94ebb58a57cb229a9ebb0ad77e39b6297d8b739a92b69aa161a1cd65b576
+PASS | request fulfil draft transfer unchanged journals | expected=10 rows SHA256 950334f57179e08592c6183c6ce6ce6a2e1cf09c13ab98f4480374b87fe65c74 | actual=10 rows SHA256 950334f57179e08592c6183c6ce6ce6a2e1cf09c13ab98f4480374b87fe65c74
+PASS | request fulfil draft transfer unchanged inventory_transactions | expected=3 rows SHA256 ac00b35e0ef46f05765a82dc2c2a1e4273e7659a778b85c1d838caf0271cdee0 | actual=3 rows SHA256 ac00b35e0ef46f05765a82dc2c2a1e4273e7659a778b85c1d838caf0271cdee0
+PASS | request fulfil draft transfer unchanged stock_balances | expected=1 rows SHA256 496c94ebb58a57cb229a9ebb0ad77e39b6297d8b739a92b69aa161a1cd65b576 | actual=1 rows SHA256 496c94ebb58a57cb229a9ebb0ad77e39b6297d8b739a92b69aa161a1cd65b576
+PASS | 5 BOX received as 10 PCS | expected=10 | actual=10.0000
+PASS | stock-in value100 | expected=100 | actual=100.0000
+PASS | stock-in GL100 | expected=100 | actual=100.0000
+PASS | stock-in counter credit100 | expected=-100 | actual=-100.0000
+PASS | out quantity leaves8 | expected=8 | actual=8.0000
+PASS | out value leaves80 | expected=80 | actual=80.0000
+PASS | out GL80 | expected=80 | actual=80.0000
+FAIL | UI005 posted issue detail line cost | expected=20 | actual=0.0000
+FAIL | UI005 posted issue detail unit cost | expected=10 | actual=None
+PASS | void restores10 PCS | expected=10 | actual=10.0000
+PASS | void restores100 value | expected=100 | actual=100.0000
+PASS | void GL100 | expected=100 | actual=100.0000
+PASS | voided issue status | expected=voided | actual=voided
+PASS | one reversal linked to original issue | expected=1 | actual=1
+PASS | request originally3 | expected=3 | actual=3.0000
+PASS | request approved2 | expected=2 | actual=2.0000
+PASS | request fulfilled | expected=fulfilled | actual=fulfilled
+PASS | request links transfer | expected=01a16067-3ab2-7469-a963-e705b9a53fd7 | actual=01a16067-3ab2-7469-a963-e705b9a53fd7
+PASS | generated transfer draft | expected=draft | actual=draft
+PASS | generated transfer qty2 | expected=2 | actual=2.0000
+PASS | sent remaining qty8 | expected=8 | actual=8.0000
+PASS | sent stock80 | expected=80 | actual=80.0000
+PASS | sent transit20 | expected=20 | actual=20.0000
+PASS | received total10 | expected=10 | actual=10.0000
+PASS | received stock100 | expected=100 | actual=100.0000
+PASS | received GL100 | expected=100 | actual=100.0000
+PASS | received transit cleared | expected=0 | actual=0.0000
+PASS | final transfer received | expected=received | actual=received
+PASS | final MAIN8/VAN2 | expected={'MAIN': Decimal('8'), 'VAN-1': Decimal('2')} | actual={'MAIN': Decimal('8.0000'), 'VAN-1': Decimal('2.0000')}
+PASS | six journals incl opening | expected=6 | actual=6
+PASS | all journals balanced | expected=0 rows SHA256 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945 | actual=0 rows SHA256 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
+PASS | four API replay statuses409 | expected=4 rows SHA256 c6921c2566a396e975395affb236b13dad1e95a74e5727d49cba0e408efef3a1 | actual=4 rows SHA256 c6921c2566a396e975395affb236b13dad1e95a74e5727d49cba0e408efef3a1
+PASS | cashier approval/post denied403 | expected=2 rows SHA256 cdbabc44ee1b65e94f1a19f4c9ed4858eebd69b75e32d32586328d5588fcca31 | actual=2 rows SHA256 cdbabc44ee1b65e94f1a19f4c9ed4858eebd69b75e32d32586328d5588fcca31
+PASS | replay unchanged journals | expected=14 rows SHA256 d3209a3979ada2a9496cb4f5de80a8e8826d53370986da277079ad171a6a7dee | actual=14 rows SHA256 d3209a3979ada2a9496cb4f5de80a8e8826d53370986da277079ad171a6a7dee
+PASS | replay unchanged inventory_transactions | expected=5 rows SHA256 0bdf02b71f6dc4fd14e2de8297e5bfb65a31b7b3f2a466c81fec4460eac62d2a | actual=5 rows SHA256 0bdf02b71f6dc4fd14e2de8297e5bfb65a31b7b3f2a466c81fec4460eac62d2a
+PASS | replay unchanged stock_balances | expected=2 rows SHA256 40459059b3dc3b1b0a657de7de8cd11df48af0875dff2be03e4188eb8c135803 | actual=2 rows SHA256 40459059b3dc3b1b0a657de7de8cd11df48af0875dff2be03e4188eb8c135803
+PASS | replay unchanged stock_transfers | expected=1 rows SHA256 a555f19ca65eacfe4441c9c2959439332442867175b4091a3dda2d7fb946fb6d | actual=1 rows SHA256 a555f19ca65eacfe4441c9c2959439332442867175b4091a3dda2d7fb946fb6d
+PASS | replay unchanged goods_requests | expected=1 rows SHA256 f90027b19c2d76a9a32866a38c42407e62f55904cc2a4ff6b0b8b72f70b7b222 | actual=1 rows SHA256 f90027b19c2d76a9a32866a38c42407e62f55904cc2a4ff6b0b8b72f70b7b222
+PASS | restricted actor unchanged journals | expected=14 rows SHA256 d3209a3979ada2a9496cb4f5de80a8e8826d53370986da277079ad171a6a7dee | actual=14 rows SHA256 d3209a3979ada2a9496cb4f5de80a8e8826d53370986da277079ad171a6a7dee
+PASS | restricted actor unchanged inventory_transactions | expected=5 rows SHA256 0bdf02b71f6dc4fd14e2de8297e5bfb65a31b7b3f2a466c81fec4460eac62d2a | actual=5 rows SHA256 0bdf02b71f6dc4fd14e2de8297e5bfb65a31b7b3f2a466c81fec4460eac62d2a
+PASS | restricted actor unchanged stock_balances | expected=2 rows SHA256 40459059b3dc3b1b0a657de7de8cd11df48af0875dff2be03e4188eb8c135803 | actual=2 rows SHA256 40459059b3dc3b1b0a657de7de8cd11df48af0875dff2be03e4188eb8c135803
+PASS | restricted actor unchanged stock_transfers | expected=1 rows SHA256 a555f19ca65eacfe4441c9c2959439332442867175b4091a3dda2d7fb946fb6d | actual=1 rows SHA256 a555f19ca65eacfe4441c9c2959439332442867175b4091a3dda2d7fb946fb6d
+PASS | restricted actor unchanged goods_requests | expected=1 rows SHA256 f90027b19c2d76a9a32866a38c42407e62f55904cc2a4ff6b0b8b72f70b7b222 | actual=1 rows SHA256 f90027b19c2d76a9a32866a38c42407e62f55904cc2a4ff6b0b8b72f70b7b222
+PASS | reports sweep unchanged journals | expected=14 rows SHA256 d3209a3979ada2a9496cb4f5de80a8e8826d53370986da277079ad171a6a7dee | actual=14 rows SHA256 d3209a3979ada2a9496cb4f5de80a8e8826d53370986da277079ad171a6a7dee
+PASS | reports sweep unchanged inventory_transactions | expected=5 rows SHA256 0bdf02b71f6dc4fd14e2de8297e5bfb65a31b7b3f2a466c81fec4460eac62d2a | actual=5 rows SHA256 0bdf02b71f6dc4fd14e2de8297e5bfb65a31b7b3f2a466c81fec4460eac62d2a
+PASS | reports sweep unchanged stock_balances | expected=2 rows SHA256 40459059b3dc3b1b0a657de7de8cd11df48af0875dff2be03e4188eb8c135803 | actual=2 rows SHA256 40459059b3dc3b1b0a657de7de8cd11df48af0875dff2be03e4188eb8c135803
+PASS | reports sweep unchanged stock_transfers | expected=1 rows SHA256 a555f19ca65eacfe4441c9c2959439332442867175b4091a3dda2d7fb946fb6d | actual=1 rows SHA256 a555f19ca65eacfe4441c9c2959439332442867175b4091a3dda2d7fb946fb6d
+PASS | reports sweep unchanged goods_requests | expected=1 rows SHA256 f90027b19c2d76a9a32866a38c42407e62f55904cc2a4ff6b0b8b72f70b7b222 | actual=1 rows SHA256 f90027b19c2d76a9a32866a38c42407e62f55904cc2a4ff6b0b8b72f70b7b222
+PASS | cash unchanged | expected=50000 | actual=50000.0000
+PASS | bank unchanged | expected=180000 | actual=180000.0000
+PASS | counter closing credit100 | expected=-100 | actual=-100.0000
+PASS | card closing10 | expected=10 | actual=10.0000
+PASS | card closing100 | expected=100 | actual=100.0000
+PASS | card five movements | expected=5 | actual=5
+PASS | intransit report empty | expected=0 rows SHA256 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945 | actual=0 rows SHA256 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945
+PASS | GL closing100 | expected=100 | actual=100.0000
+PASS | TB debit | expected=250180 | actual=250180.0000
+PASS | TB credit | expected=250180 | actual=250180.0000
+PASS | TB closingDebit | expected=250100 | actual=250100.0000
+PASS | TB closingCredit | expected=250100 | actual=250100.0000
+PASS | 40 distinct smoke routes | expected=40 | actual=40
+PASS | 40 render without observed errors | expected=True | actual=True
+PASS | 13 reviewed pre-click stages | expected=13 | actual=13
+PASS | unaccepted draft approval never clicked | expected=False | actual=False
+PASS | review timestamp after form capture | expected=True | actual=True
+
+84 passed; 2 failed. Expected failures are UI005 detail line cost/unit cost, not two independent defects. Partial audit only.

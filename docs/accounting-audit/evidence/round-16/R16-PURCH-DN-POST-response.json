@@ -1,0 +1,23 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/purchases/adjustment-notes/01a1610b-bb1a-735e-8515-f339edc09899/post",
+  "request": {},
+  "body": {
+    "id": "01a1610b-bb1a-735e-8515-f339edc09899",
+    "tenantId": "01a16060-9644-71ff-bf54-37def6aa8986",
+    "invoiceId": "01a1608f-b510-728e-a4e9-2251cfced3d4",
+    "branchId": "01a16060-97b1-7489-8203-fee57ee4e4b4",
+    "kind": "debit",
+    "status": "posted",
+    "number": "PDN-000001",
+    "reason": "R16-PDN إشعار مدين اختبار محلي فقط",
+    "amount": "5.0000",
+    "postedAt": "2026-10-22T00:39:20.634Z",
+    "createdAt": "2026-10-22T00:38:41.178Z",
+    "createdBy": "01a16060-9647-76b9-a3da-053048f3acf5",
+    "updatedAt": "2026-10-22T00:39:20.634Z",
+    "updatedBy": "01a16060-9647-76b9-a3da-053048f3acf5",
+    "version": 1
+  }
+}

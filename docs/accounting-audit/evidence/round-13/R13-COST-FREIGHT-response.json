@@ -1,0 +1,25 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/purchase-invoices/01a160a9-1193-76d7-aa99-ee8f9eef363c/costs",
+  "request": {
+    "costName": "R13-FREIGHT مصروف اختبار فقط",
+    "amount": "9",
+    "allocationTarget": "inventory"
+  },
+  "body": {
+    "id": "01a160a9-6c27-73db-bdb2-bcf327050026",
+    "tenantId": "01a16060-9644-71ff-bf54-37def6aa8986",
+    "invoiceId": "01a160a9-1193-76d7-aa99-ee8f9eef363c",
+    "costName": "R13-FREIGHT مصروف اختبار فقط",
+    "amount": "9.0000",
+    "allocationTarget": "inventory",
+    "costCenterId": null,
+    "accountId": null,
+    "createdAt": "2026-10-21T22:51:18.439Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1
+  }
+}
