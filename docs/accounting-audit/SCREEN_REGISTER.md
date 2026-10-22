@@ -594,3 +594,17 @@
 | `/inventory/vouchers?kind=stock_out` (إخراج فوق الرصيد) | NEG-STOCK-DRAFT، POST-BLOCKED، POST-OVERRIDE | 422 ثم 201 بالعلم (ACC-115)؛ تقييم المسودة بسعر الشراء وعنوان «بضاعة أول المدة» (UI-042) |
 | `/settings/custom-reports` | CUSTOM-REPORT، CUSTOM-REPORTS-SCREEN | ✓ إنشاء/تشغيل؛ float وprofit 0 (ACC-117/118) |
 | `/accounting/vat-return`، `/inventory/valuation`، `/accounting/trial-balance`، `/accounting/journals`، `/accounting/levels`، `/accounting/audit-log`، `/accounting/balance-sheet` (قراءة) | VAT-RETURN، INVENTORY-VALUATION، TB، JOURNALS، LEVELS، AUDIT، BALANCE-SHEET | ACC-119/120، UI-040/041 |
+
+## الشاشات المنفَّذة في R26 (مستأجر R24؛ الأدلة `evidence/round-26/`)
+| الشاشة | المراحل | النتيجة |
+|---|---|---|
+| `/sales/returns` (نموذج المرتجع من فاتورة مرجعية) ثم `/sales/invoices/[id]` (ترحيل نقدي) | SR-ROUND-DRAFT، SR-ROUND-POST | ✓ مسودة/ترحيل؛ 1.1845 (ACC-108)؛ unpaid (ACC-019) |
+| `/sales/salesmen` (بطاقة مندوب) | SALESMAN-CREATE | ✓ |
+| `/sales/invoices/new` (آجلة بمندوب؛ مستودعات الفرع فقط؛ «حفظ كمسودة فقط») ثم `/sales/invoices/[id]` (ترحيل آجل + دفعة 1.00) | SI-SALESMAN-DRAFT/POST/PAY | ✓؛ الدفعة بلا قيد (ACC-031) |
+| `/sales/salesman-commissions` (قراءة) | COMMISSIONS-SCREEN | التلميح «المُحصَّلة فقط» مخالف للسلوك (ACC-122) |
+| `/purchases/invoices/[id]` (دفعة 3.55) | PAY-ROUNDED | partial (ACC-123) |
+| `/inventory/transfers` (مسودة WH2→MAIN، إرسال؛ مسودة MAIN→WH2، إرسال، إلغاء بـprompt سبب) | TR-PARTIAL-DRAFT/SEND، TR-CANCEL-DRAFT/SEND/CANCEL | ✓؛ الإلغاء سليم |
+| `/inventory/in-transit` (قراءة) | IN-TRANSIT-SCREEN | 0.00 بعد الإقفال/الإلغاء ✓ |
+| `/treasury/transfers` (قراءة بعد الدورة) | CT-SCREEN | 3 تحويلات؛ voided خارج الدلاء |
+| `/sales/invoices`، `/purchases/invoices` (قراءة البطاقات) | SALES-LIST-SCREEN، PURCHASES-LIST-SCREEN | ACC-126 / ACC-026 |
+| `/accounting/income-statement`، `/inventory/levels` (قراءة) | INCOME-STATEMENT-SCREEN، LEVELS-SCREEN | ACC-120؛ 18.15 ✓ |

@@ -448,3 +448,16 @@ R17-manifest.json يفهرس 258 ملفاً (لا يشمل نفسه)، نحو 24
 | J: إعدادات ميتة | SETTINGS-DEAD (9 كتابات مع `restore-*`) | ACC-107 | DB-023 |
 | K: تقارير وشاشات | REPORTS (26 تقريراً في `R25-REPORTS-response.json`)، VAT-RETURN/INVENTORY-VALUATION/TB/JOURNALS/LEVELS/CT-LIST/AUDIT/CUSTOM-REPORTS/PRICE-LISTS/BALANCE-SHEET (صور) | ACC-119/120، UI-040/041 | DB-024 |
 | تحقق | `R25-check-results.json` (64/36 من 100)، `R25-journal-branches.json` (فرع كل قيد من DB)، `R25-http-events.jsonl` (456) | — | — |
+
+## الجولة 26 — `evidence/round-26/` (154 ملفاً؛ تفصيل المراحل في ROUND_26_RESULTS.md §1)
+| الكتلة | المراحل والأدلة | النتيجة | لقطات DB |
+|---|---|---|---|
+| خط الأساس | `R26-DB-000-BASELINE` (= R25 DB-024؛ يضم `branch_id` للرؤوس و`salesmen`) | — | DB-000 |
+| A: مردود مقرَّب وحرّاس المردود | SR-ROUND-DRAFT/POST (SR-000001؛ `-before.png` قبل الحفظ وقبل الترحيل)، SR-TRUST (API: qty-exceed 422، of-return 422، overprice 201 → SR-000002) | ACC-108/018/019؛ **ACC-121** | DB-001…003 |
+| B: مندوب وعمولات | SALESMAN-CREATE، SI-SALESMAN-DRAFT/POST/PAY (SI-000007، دفعة 1.00)، COMMISSIONS (`commissions-salesman`) | **ACC-122**؛ ACC-116/031 | DB-004…008 |
+| C: سداد بأربع منازل | PAY-ROUNDED (3.55 من الشاشة)، PAY-RESIDUAL (0.01 → 422؛ 0.0035 → paid؛ ap-aging) | **ACC-123**؛ ACC-032 | DB-009/010 |
+| D: مردود شراء | PR-TRUST (qty-exceed draft + post 422؛ overprice → PR-000001) | ACC-022؛ **ACC-124** | DB-011 |
+| E: مناقلات | TR-PARTIAL-DRAFT/SEND (TR-000002)، TR-PARTIAL-RECEIVE (receive 1، close shortage، close again 409، tb-in-transit)، TR-CANCEL-DRAFT/SEND/CANCEL (TR-000003؛ `R26-dialogs.json`) | ACC-113؛ الإلغاء سليم | DB-012…017 |
+| F: تحويل نقدي | CT-CANCEL (draft cancel، CT-000002 send/cancel/receive، cancel received، أرصدة الفرعي) | **ACC-127**؛ ACC-112 | DB-018 |
+| G: قوائم وتقارير | STATEMENTS (23 طلباً في `R26-STATEMENTS-response.json`)، SALES-LIST/PURCHASES-LIST/IN-TRANSIT/CT/INCOME-STATEMENT/COMMISSIONS/LEVELS (صور + نصوص) | **ACC-125/126**؛ ACC-004/042/118/119/120 | DB-019 |
+| تحقق | `R26-check-results.json` (49/33 من 82)، `R26-http-events.jsonl` (425) | — | — |
