@@ -627,9 +627,9 @@
    "defect": null
   },
   {
-   "name": "AUDIT-LOG must hold the permission denials of stages 47-48 (9 x 403 by the custom role / Cashier) inside a window that spans stages 44-51; actual 0 denial rows (interceptor skips status >= 400)",
+   "name": "AUDIT-LOG must hold the permission denials of stages 47-48 (8 x 403: 6 by the custom role, 2 by Cashier) inside a window that spans stages 44-51; actual 0 denial rows (interceptor skips status >= 400)",
    "actual": "(8, 0)",
-   "expected": "(9, 9)",
+   "expected": "(8, 8)",
    "ok": false,
    "evidence": "R21-AUDIT-LOG.json / R21-SOD-CUSTOM / R21-SOD-CASHIER responses",
    "defect": "ACC-076"

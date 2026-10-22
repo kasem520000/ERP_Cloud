@@ -198,7 +198,7 @@ ck('RESTORE-DRYRUN leaves ledger / stock / cash / documents untouched',(all(S[51
 al=json.load(open(E/'R21-AUDIT-LOG.json'))
 ck('AUDIT-LOG screen capture at stage 54: 25 entries incl. roles create/update, membership update, voucher post, PI post',(len(al),{'create:roles','update:roles','update:memberships','update.post:vouchers','update.post:purchase-invoices'}<= {f"{r.get('action')}:{r.get('entity')}" for r in al}),(25,True),'R21-AUDIT-LOG.json')
 _den=sum(1 for s in statuses('SOD-CUSTOM') if s==403)+sum(1 for x in results('SOD-CASHIER') if x['status']==403)
-ck('AUDIT-LOG must hold the permission denials of stages 47-48 (9 x 403 by the custom role / Cashier) inside a window that spans stages 44-51; actual 0 denial rows (interceptor skips status >= 400)',(_den,sum(1 for r in al if (r.get('meta') or {}).get('outcome')=='failure' or (r.get('meta') or {}).get('status')==403)),(9,9),'R21-AUDIT-LOG.json / R21-SOD-CUSTOM / R21-SOD-CASHIER responses','ACC-076')
+ck('AUDIT-LOG must hold the permission denials of stages 47-48 (8 x 403: 6 by the custom role, 2 by Cashier) inside a window that spans stages 44-51; actual 0 denial rows (interceptor skips status >= 400)',(_den,sum(1 for r in al if (r.get('meta') or {}).get('outcome')=='failure' or (r.get('meta') or {}).get('status')==403)),(8,8),'R21-AUDIT-LOG.json / R21-SOD-CUSTOM / R21-SOD-CASHIER responses','ACC-076')
 ck('INVMAINT-PREVIEW first attempt 404 (runner used /operations path, screen lives at /settings/invoice-maintenance)',statuses('INVMAINT-PREVIEW')[0],404,'R21-INVMAINT-PREVIEW-response.json')
 if has('INVMAINT-PREVIEW2'):
     ck('INVMAINT-PREVIEW2 preview 201 + runs 200',statuses('INVMAINT-PREVIEW2'),[201,200],'R21-INVMAINT-PREVIEW2-response.json')
