@@ -2918,6 +2918,13 @@ export class InventoryService {
         throw new DomainError('INVENTORY_VOUCHER_INVALID_STATUS', 'Only draft vouchers can be posted', 409);
       if (!voucher.lines.length)
         throw new DomainError('INVENTORY_LINES_REQUIRED', 'At least one stock line is required', 422);
+
+      // ACC-097 & ACC-103: التحقق من قفل فترة المخزون فوراً قبل تحريك أي كميات أو أرقام تسلسلية
+      const resolvedFiscalPeriodId =
+        options.fiscalPeriodId ??
+        (await this.accounting.openPeriodForDateInTx(tx, tenantId, voucher.voucherDate));
+      await this.accounting.assertModuleUnlocked(tx, tenantId, resolvedFiscalPeriodId, 'inventory');
+
       const allowNegative = options.allowNegative === true && this.canOverrideNegative();
 
       const catalogue = await this.assertStockable(tx, tenantId, voucher.lines);
@@ -2994,10 +3001,7 @@ export class InventoryService {
 
       let journalEntryId: string | undefined;
       if (value.abs().gt(0)) {
-        const fiscalPeriodId =
-          options.fiscalPeriodId ??
-          (await this.accounting.openPeriodForDateInTx(tx, tenantId, voucher.voucherDate));
-        await this.accounting.assertModuleUnlocked(tx, tenantId, fiscalPeriodId, 'inventory');
+        const fiscalPeriodId = resolvedFiscalPeriodId;
         const entry = await this.accounting.postJournalInTx(tx, tenantId, {
           branchId: voucher.branchId,
           fiscalPeriodId,

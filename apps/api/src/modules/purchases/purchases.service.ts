@@ -510,6 +510,12 @@ export class PurchasesService {
       const byLine = new Map(allocation.lines.map((line) => [line.lineId, line]));
       const docType = locked.kind === 'purchase_return' ? 'purchase_return' : 'purchase_invoice';
       const isReturn = locked.kind === 'purchase_return';
+
+      const today = (posting as any).date?.trim() || new Date().toISOString().slice(0, 10);
+      const resolvedFiscalPeriodId = posting.fiscalPeriodId ?? (await this.accounting.openPeriodForDateInTx(tx, tenantId, today));
+      // ACC-053 & ACC-103: التحقق من قفل فترة المشتريات فوراً قبل تحريك أي كميات أو أرقام تسلسلية
+      await this.accounting.assertModuleUnlocked(tx, tenantId, resolvedFiscalPeriodId, 'purchases');
+
       // Services never touch the stock ledger — only `stock`-kind lines move.
       const itemRows = await tx
         .select({ id: items.id, kind: items.kind })
@@ -560,10 +566,6 @@ export class PurchasesService {
         const allocated = byLine.get(line.id);
         await tx.update(purchaseInvoiceLines).set({ allocatedCost: allocated?.allocatedCost ?? '0', landedTotal: allocated?.landedTotal ?? line.net, unitCostAtPost: allocated?.effectiveUnitCost ?? line.unitPrice, updatedAt: new Date() }).where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.id, line.id)));
       }
-      const today = new Date().toISOString().slice(0, 10);
-      const resolvedFiscalPeriodId = posting.fiscalPeriodId ?? (await this.accounting.openPeriodForDateInTx(tx, tenantId, today));
-      // ACC-053: التحقق من قفل فترة المشتريات
-      await this.accounting.assertModuleUnlocked(tx, tenantId, resolvedFiscalPeriodId, 'purchases');
       const numbered = await this.sequences.next({ tenantId, branchId: locked.branchId, docType }, tx, { prefix: isReturn ? 'PR-' : 'PI-', padding: 6 });
       const additionalCostTotal = costs.reduce((sum, cost) => sum.plus(cost.amount), new Decimal(0)).toFixed(4);
       const postedTotal = money(locked.total).plus(additionalCostTotal).toFixed(4);
@@ -614,7 +616,7 @@ export class PurchasesService {
       if (settled) {
         await tx.insert(paymentAllocations).values({ id: newId(), tenantId, partyId: locked.partyId, invoiceKind: locked.kind, invoiceId: id, amount: postedTotal });
       }
-      await tx.update(purchaseInvoices).set({ status: 'posted', number: numbered.display, additionalCostTotal, total: postedTotal, paidTotal: settled ? postedTotal : locked.paidTotal, paymentStatus: money(postedTotal).isZero() || settled ? 'paid' : 'unpaid', journalEntryId, postedAt: new Date() }).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, id), eq(purchaseInvoices.status, 'draft')));
+      await tx.update(purchaseInvoices).set({ status: 'posted', number: numbered.display, additionalCostTotal, total: postedTotal, paidTotal: settled ? postedTotal : locked.paidTotal, paymentStatus: money(postedTotal).isZero() || settled ? 'paid' : 'unpaid', journalEntryId, postedAt: (posting as any).date ? new Date((posting as any).date) : new Date() }).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, id), eq(purchaseInvoices.status, 'draft')));
     });
     return this.get(tenantId, id);
   }

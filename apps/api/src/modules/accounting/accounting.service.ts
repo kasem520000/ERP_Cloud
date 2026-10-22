@@ -15,6 +15,11 @@ import {
   journalEntryLines,
   newId,
   periodModuleLocks,
+  shiftCloses,
+  cashLocationBalances,
+  paymentAllocations,
+  purchaseInvoices,
+  salesInvoices,
   users,
   warehouses,
   withTenantTx,
@@ -946,10 +951,10 @@ export class AccountingService {
   async closePeriod(tenantId: string, periodId: string, actorId?: string) {
     await withTenantTx(this.database.db, tenantId, async (tx) => {
       const [period] = await tx.select().from(fiscalPeriods).where(and(eq(fiscalPeriods.id, periodId), eq(fiscalPeriods.tenantId, tenantId)));
-      if (!period) throw new Error('Fiscal period not found');
+      if (!period) throw new DomainError('FISCAL_PERIOD_NOT_FOUND', 'Fiscal period not found', 404);
       if (period.status === 'closed') return;
       const [draft] = await tx.select({ id: journalEntries.id }).from(journalEntries).where(and(eq(journalEntries.tenantId, tenantId), eq(journalEntries.fiscalPeriodId, periodId), eq(journalEntries.status, 'draft'))).limit(1);
-      if (draft) throw new Error('Fiscal period contains draft journals');
+      if (draft) throw new DomainError('FISCAL_PERIOD_HAS_DRAFT_JOURNALS', 'لا يمكن إغلاق الفترة لاحتوائها على قيود يومية مسودة', 409);
       /**
        * 🔒 إغلاق الفترة — `AccountingPeriodManager.ClosePeriod` sets
        * `IsClosed = 1, ClosedBy = @User, ClosedDate = @Date, IsActive = 0`: a closed period
@@ -1229,6 +1234,57 @@ export class AccountingService {
         description: line.description,
       })),
     );
+
+    // ACC-100: مزامنة المستند الأصلي عند عكس القيد من شاشة القيود (مثل إغلاق الوردية)
+    if (original.sourceType === 'shift_close' && original.sourceId) {
+      const [shift] = await tx
+        .select()
+        .from(shiftCloses)
+        .where(and(eq(shiftCloses.tenantId, tenantId), eq(shiftCloses.id, original.sourceId)));
+      if (shift) {
+        const expected = money(shift.expectedCash);
+        if (expected.abs().gt(0)) {
+          const cashLine = lines.find((l) => Number(l.credit) > 0);
+          if (cashLine) {
+            const [loc] = await tx
+              .select({ id: cashLocations.id, currencyCode: cashLocations.currencyCode })
+              .from(cashLocations)
+              .where(
+                and(
+                  eq(cashLocations.tenantId, tenantId),
+                  eq(cashLocations.accountId, cashLine.accountId),
+                  isNull(cashLocations.deletedAt),
+                ),
+              )
+              .limit(1);
+            if (loc) {
+              const reverseDelta = expected.gt(0) ? expected.toFixed(4) : (-expected.abs()).toFixed(4);
+              await tx
+                .insert(cashLocationBalances)
+                .values({
+                  tenantId,
+                  cashLocationId: loc.id,
+                  currencyCode: loc.currencyCode ?? 'SAR',
+                  balance: reverseDelta,
+                  updatedAt: new Date(),
+                })
+                .onConflictDoUpdate({
+                  target: [cashLocationBalances.cashLocationId, cashLocationBalances.currencyCode],
+                  set: { balance: sql`${cashLocationBalances.balance} + ${reverseDelta}`, updatedAt: new Date() },
+                });
+            }
+          }
+        }
+        await tx
+          .update(shiftCloses)
+          .set({
+            journalEntryId: null,
+            postedAt: null,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(shiftCloses.tenantId, tenantId), eq(shiftCloses.id, original.sourceId)));
+      }
+    }
 
     return { id: reversalId, number: allocated.display, reversalOf: entryId, reused: false };
   }

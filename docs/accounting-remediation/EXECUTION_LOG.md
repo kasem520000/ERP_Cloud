@@ -200,13 +200,36 @@
 
 ---
 
+### [Phase 11] - سلامة عكس إغلاق الوردية، وراثة ملفات الترحيل، تقارير أعمار الديون، حرس وحدات الفترات وصلاحيات الكاشير (ACC-100..104)
+
+- **الملفات المعدلة**:
+  - `apps/api/src/modules/accounting/accounting.service.ts`:
+    - `ACC-100`: مزامنة وثيقة إغلاق الوردية عند عكس قيدها اليومي من شاشة القيود عبر تصفير `journalEntryId` و `postedAt` واستعادة رصيد الصندوق الفرعي لتمكين إعادة ترحيلها دون تعارض.
+    - تصحيح أخطاء إغلاق الفترة المالية واستخدام `DomainError` بدلاً من استثناءات غير مصنفة ترجع 500.
+  - `apps/api/src/modules/organization/posting-profiles/posting-profiles.service.ts`:
+    - `ACC-101`: دمج ملفات الترحيل تصاعدياً لترث الفروع كافة الحسابات الافتراضية مع تطبيق استثناءات الفرع وتفادي أخطاء 422 `ACCOUNT_PROFILE_MISSING`.
+  - `apps/api/src/modules/reporting/report-catalog.ts`:
+    - `ACC-102`: احتساب أعمار الديون (`ar-aging`, `ap-aging`) بناءً على تاريخ القيد/الفاتورة المرجعي ودعم معلمات التصفية `to` و `from`.
+  - `apps/api/src/modules/inventory/inventory.service.ts`:
+    - `ACC-103`: تقديم فحص قفل فترة المخزون `assertModuleUnlocked` إلى بداية دالة ترحيل السندات المخزنية قبل أي تحريك للمخزون.
+  - `apps/api/src/modules/purchases/purchases.service.ts`:
+    - `ACC-103`: تقديم فحص قفل فترة المشتريات `assertModuleUnlocked` فوراً قبل تحريك أي كميات أو تسويات مخزنية.
+  - `apps/api/src/modules/sales/sales.service.ts`:
+    - استنتاج تاريخ الاستحقاق `validUntil` تلقائياً من طريقة دفع العميل (`dueDays`) عند الإنشاء، وتضمينه كـ `dueDate` في بيانات الطباعة `print-data`.
+  - `packages/config/src/seeds/roles.ts` & `packages/contracts/src/rbac.ts`:
+    - `ACC-104`: إضافة الصلاحيات التشغيلية الناقصة لدور الكاشير (`sales.invoice.post`, `pos.view`, `pos.operate`, `treasury.voucher.post`).
+- **الاختبارات**:
+  - إنشاء جناح اختبارات متكامل `test/remediation-phase11.spec.ts` (7 اختبارات) بنجاح 100%.
+
+---
+
 ## نتيجة التحقق الشاملة لكامل المشروع:
 ```bash
-vitest run test/remediation-phase1.spec.ts test/remediation-phase2.spec.ts test/remediation-phase3.spec.ts test/remediation-phase4.spec.ts test/remediation-phase5.spec.ts test/remediation-phase6.spec.ts test/remediation-phase7.spec.ts test/remediation-phase8.spec.ts test/remediation-phase9.spec.ts test/remediation-phase10.spec.ts
+vitest run test/remediation-phase1.spec.ts test/remediation-phase2.spec.ts test/remediation-phase3.spec.ts test/remediation-phase4.spec.ts test/remediation-phase5.spec.ts test/remediation-phase6.spec.ts test/remediation-phase7.spec.ts test/remediation-phase8.spec.ts test/remediation-phase9.spec.ts test/remediation-phase10.spec.ts test/remediation-phase11.spec.ts
 ```
-- **Test Files**: 10 passed (10)
-- **Tests**: 64 passed (64)
-- **Duration**: 37.05s
+- **Test Files**: 11 passed (11)
+- **Tests**: 71 passed (71)
+- **Duration**: 43.68s
 - **Zero Failures**.
 
 - **Contracts Tests**:
@@ -215,7 +238,7 @@ pnpm --filter "@erp/contracts" test
 ```
 - **Test Files**: 27 passed (27)
 - **Tests**: 245 passed (245)
-- **Duration**: 5.77s
+- **Duration**: 8.68s
 - **Zero Failures**.
 
 - **TypeScript Typecheck & Build**:

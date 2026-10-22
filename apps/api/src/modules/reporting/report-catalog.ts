@@ -3085,41 +3085,63 @@ const definitions: ReportDefinition[] = [
     titleAr: 'أعمار ديون العملاء',
     group: 'accounting',
     hintAr: 'المتبقي على كل فاتورة مبيعات مرحّلة موزّعاً على شرائح العمر.',
-    params: [BRANCH],
+    params: [BRANCH, PERIOD[0]!, PERIOD[1]!],
     columns: [text('party', 'العميل'), money('bucket_0_30', '0-30 يوم'), money('bucket_31_60', '31-60'), money('bucket_61_90', '61-90'), money('bucket_90_plus', 'أكثر من 90'), money('due', 'الإجمالي')],
     totals: ['bucket_0_30', 'bucket_31_60', 'bucket_61_90', 'bucket_90_plus', 'due'],
-    build: (tenantId, f) => sql`
+    build: (tenantId, f) => {
+      const asOf = f.to ? sql`${f.to}::date` : sql`current_date`;
+      return sql`
       SELECT ${partyName} AS party,
-             sum(CASE WHEN now() - si.posted_at <= interval '30 days' THEN si.total - si.paid_total ELSE 0 END)::text AS bucket_0_30,
-             sum(CASE WHEN now() - si.posted_at > interval '30 days' AND now() - si.posted_at <= interval '60 days' THEN si.total - si.paid_total ELSE 0 END)::text AS bucket_31_60,
-             sum(CASE WHEN now() - si.posted_at > interval '60 days' AND now() - si.posted_at <= interval '90 days' THEN si.total - si.paid_total ELSE 0 END)::text AS bucket_61_90,
-             sum(CASE WHEN now() - si.posted_at > interval '90 days' THEN si.total - si.paid_total ELSE 0 END)::text AS bucket_90_plus,
+             sum(CASE WHEN ${asOf} - coalesce(je.date::date, si.posted_at::date, si.created_at::date) <= 30 THEN si.total - si.paid_total ELSE 0 END)::text AS bucket_0_30,
+             sum(CASE WHEN ${asOf} - coalesce(je.date::date, si.posted_at::date, si.created_at::date) > 30 AND ${asOf} - coalesce(je.date::date, si.posted_at::date, si.created_at::date) <= 60 THEN si.total - si.paid_total ELSE 0 END)::text AS bucket_31_60,
+             sum(CASE WHEN ${asOf} - coalesce(je.date::date, si.posted_at::date, si.created_at::date) > 60 AND ${asOf} - coalesce(je.date::date, si.posted_at::date, si.created_at::date) <= 90 THEN si.total - si.paid_total ELSE 0 END)::text AS bucket_61_90,
+             sum(CASE WHEN ${asOf} - coalesce(je.date::date, si.posted_at::date, si.created_at::date) > 90 THEN si.total - si.paid_total ELSE 0 END)::text AS bucket_90_plus,
              sum(si.total - si.paid_total)::text AS due
       FROM sales_invoices si
       LEFT JOIN parties party ON party.id = si.party_id
+      LEFT JOIN (
+        SELECT source_id, max(date) AS date
+        FROM journal_entries
+        WHERE tenant_id = ${tenantId} AND source_type = 'sales_invoice' AND status = 'posted'
+        GROUP BY source_id
+      ) je ON je.source_id = si.id
       WHERE si.tenant_id = ${tenantId} AND si.kind = 'sale' AND si.status = 'posted'
         AND si.total > si.paid_total AND ${eqIf(sql`si.branch_id`, f.branchId)}
-      GROUP BY party.name ORDER BY sum(si.total - si.paid_total) DESC`,
+        ${f.to ? sql`AND coalesce(je.date::date, si.posted_at::date, si.created_at::date) <= ${f.to}::date` : sql``}
+        ${f.from ? sql`AND coalesce(je.date::date, si.posted_at::date, si.created_at::date) >= ${f.from}::date` : sql``}
+      GROUP BY party.name ORDER BY sum(si.total - si.paid_total) DESC`;
+    },
   },
   {
     key: 'ap-aging',
     titleAr: 'أعمار ديون الموردين',
     group: 'accounting',
-    params: [BRANCH],
+    params: [BRANCH, PERIOD[0]!, PERIOD[1]!],
     columns: [text('party', 'المورد'), money('bucket_0_30', '0-30 يوم'), money('bucket_31_60', '31-60'), money('bucket_61_90', '61-90'), money('bucket_90_plus', 'أكثر من 90'), money('due', 'الإجمالي')],
     totals: ['bucket_0_30', 'bucket_31_60', 'bucket_61_90', 'bucket_90_plus', 'due'],
-    build: (tenantId, f) => sql`
+    build: (tenantId, f) => {
+      const asOf = f.to ? sql`${f.to}::date` : sql`current_date`;
+      return sql`
       SELECT ${partyName} AS party,
-             sum(CASE WHEN now() - pi.posted_at <= interval '30 days' THEN pi.total - pi.paid_total ELSE 0 END)::text AS bucket_0_30,
-             sum(CASE WHEN now() - pi.posted_at > interval '30 days' AND now() - pi.posted_at <= interval '60 days' THEN pi.total - pi.paid_total ELSE 0 END)::text AS bucket_31_60,
-             sum(CASE WHEN now() - pi.posted_at > interval '60 days' AND now() - pi.posted_at <= interval '90 days' THEN pi.total - pi.paid_total ELSE 0 END)::text AS bucket_61_90,
-             sum(CASE WHEN now() - pi.posted_at > interval '90 days' THEN pi.total - pi.paid_total ELSE 0 END)::text AS bucket_90_plus,
+             sum(CASE WHEN ${asOf} - coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) <= 30 THEN pi.total - pi.paid_total ELSE 0 END)::text AS bucket_0_30,
+             sum(CASE WHEN ${asOf} - coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) > 30 AND ${asOf} - coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) <= 60 THEN pi.total - pi.paid_total ELSE 0 END)::text AS bucket_31_60,
+             sum(CASE WHEN ${asOf} - coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) > 60 AND ${asOf} - coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) <= 90 THEN pi.total - pi.paid_total ELSE 0 END)::text AS bucket_61_90,
+             sum(CASE WHEN ${asOf} - coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) > 90 THEN pi.total - pi.paid_total ELSE 0 END)::text AS bucket_90_plus,
              sum(pi.total - pi.paid_total)::text AS due
       FROM purchase_invoices pi
       LEFT JOIN parties party ON party.id = pi.party_id
+      LEFT JOIN (
+        SELECT source_id, max(date) AS date
+        FROM journal_entries
+        WHERE tenant_id = ${tenantId} AND source_type = 'purchase_invoice' AND status = 'posted'
+        GROUP BY source_id
+      ) je ON je.source_id = pi.id
       WHERE pi.tenant_id = ${tenantId} AND pi.kind = 'purchase' AND pi.status = 'posted'
         AND pi.total > pi.paid_total AND ${eqIf(sql`pi.branch_id`, f.branchId)}
-      GROUP BY party.name ORDER BY sum(pi.total - pi.paid_total) DESC`,
+        ${f.to ? sql`AND coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) <= ${f.to}::date` : sql``}
+        ${f.from ? sql`AND coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) >= ${f.from}::date` : sql``}
+      GROUP BY party.name ORDER BY sum(pi.total - pi.paid_total) DESC`;
+    },
   },
   {
     key: 'party-statement',

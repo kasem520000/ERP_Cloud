@@ -18,6 +18,7 @@ import {
   offers,
   parties,
   paymentAllocations,
+  paymentMethods,
   salesAdjustmentNotes,
   salesInvoiceLines,
   salesInvoices,
@@ -485,6 +486,25 @@ export class SalesService {
       }
     }
 
+    let validUntil = input.validUntil;
+    if (!validUntil && input.partyId) {
+      const [party] = await tx
+        .select({ paymentMethodId: parties.paymentMethodId })
+        .from(parties)
+        .where(and(eq(parties.tenantId, tenantId), eq(parties.id, input.partyId)));
+      if (party?.paymentMethodId) {
+        const [pm] = await tx
+          .select({ dueDays: paymentMethods.dueDays })
+          .from(paymentMethods)
+          .where(and(eq(paymentMethods.tenantId, tenantId), eq(paymentMethods.id, party.paymentMethodId)));
+        if (pm?.dueDays && pm.dueDays > 0) {
+          const d = new Date();
+          d.setDate(d.getDate() + pm.dueDays);
+          validUntil = d.toISOString().slice(0, 10);
+        }
+      }
+    }
+
     await tx
       .insert(salesInvoices)
       .values({
@@ -497,7 +517,7 @@ export class SalesService {
         salesmanId: input.salesmanId,
         costCenterId: input.costCenterId ?? null,
         kind: input.kind ?? 'sale',
-        validUntil: input.validUntil,
+        validUntil,
         currency: input.currency ?? 'SAR',
         priceIncludesVat: input.priceIncludesVat ?? false,
         cashCustomerName: input.cashCustomerName,
@@ -996,7 +1016,7 @@ export class SalesService {
       { prefix, padding: 6 },
     );
     const number = allocated.display;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = (posting as any).date?.trim() || new Date().toISOString().slice(0, 10);
     const needsJournal = Boolean(posting.journalLines?.length || money(locked.total).abs().gt(0));
     const resolvedFiscalPeriodId =
       posting.fiscalPeriodId ??
@@ -1344,7 +1364,7 @@ export class SalesService {
       .set({
         status: 'posted',
         number,
-        postedAt: new Date(),
+        postedAt: (posting as any).date ? new Date((posting as any).date) : new Date(),
         shiftId: resolvedShiftId,
         cashierId: resolvedCashierId,
         paidTotal: settled || isReturnSettled
@@ -2376,7 +2396,11 @@ export class SalesService {
   }
 
   async printData(tenantId: string, id: string) {
-    return this.get(tenantId, id);
+    const data = await this.get(tenantId, id);
+    return {
+      ...data,
+      dueDate: (data as any).validUntil ?? null,
+    };
   }
 
   /**

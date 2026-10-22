@@ -223,10 +223,33 @@ export class PostingProfilesService {
       );
     }
 
+    // ACC-101: دمج ملفات الترحيل تصاعدياً لترث الفروع الإعدادات الافتراضية مع تطبيق استثناءات الفرع
+    const order: Array<[string | null, string]> = [
+      [null, POSTING_PROFILE_WILDCARD],
+      [null, docType],
+      [branchId, POSTING_PROFILE_WILDCARD],
+      [branchId, docType],
+    ];
+
+    const mergedMapping: Record<string, unknown> = { version: 1 };
+    for (const [candBranch, candDocType] of order) {
+      const match = candidates.find(
+        (entry) => entry.branchId === candBranch && entry.docType === candDocType,
+      );
+      if (match) {
+        const parsed = parseMapping(match.mapping);
+        for (const [key, value] of Object.entries(parsed)) {
+          if (value !== undefined && value !== null) {
+            mergedMapping[key] = value;
+          }
+        }
+      }
+    }
+
     return {
       branchId,
       docType,
-      mapping: parseMapping(matched.mapping),
+      mapping: parseMapping(mergedMapping),
       matchedBranchId: matched.branchId,
       matchedDocType: matched.docType,
     };
