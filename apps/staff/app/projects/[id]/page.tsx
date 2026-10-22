@@ -22,8 +22,9 @@ type BoqTerm = {
   description: string;
   qty: string;
   unitValue: string;
-  totalValue: string;
-  billedValue: string;
+  totalValue?: string;
+  billedValue?: string;
+  previouslyBilled?: string;
 };
 type Project = {
   id: string;
@@ -41,9 +42,11 @@ type Bill = {
   number: string | null;
   billDate: string;
   status: string;
-  grossValue: string;
+  workValue?: string;
+  grossValue?: string;
   retentionValue: string;
-  netValue: string;
+  netDue?: string;
+  netValue?: string;
 };
 
 export default function ProjectDetailPage() {
@@ -253,27 +256,31 @@ export default function ProjectDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {doc.boq.map((entry) => (
-                  <tr key={entry.id}>
-                    <td dir="ltr">{entry.code}</td>
-                    <td>{entry.description}</td>
-                    <td className="num">{quantity(entry.qty)}</td>
-                    <td className="num">{money(entry.unitValue)}</td>
-                    <td className="num">{money(entry.totalValue)}</td>
-                    <td className="num">{money(entry.billedValue)}</td>
-                    <td>
-                      <input
-                        className="input"
-                        dir="ltr"
-                        inputMode="decimal"
-                        value={billPercents[entry.id] ?? ''}
-                        onChange={(event) =>
-                          setBillPercents((current) => ({ ...current, [entry.id]: event.target.value }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                ))}
+                {doc.boq.map((entry) => {
+                  const termTotal = entry.totalValue ?? (Number(entry.qty || 1) * Number(entry.unitValue || 0)).toFixed(2);
+                  const termBilled = entry.previouslyBilled ?? entry.billedValue ?? '0';
+                  return (
+                    <tr key={entry.id}>
+                      <td dir="ltr">{entry.code}</td>
+                      <td>{entry.description}</td>
+                      <td className="num">{quantity(entry.qty)}</td>
+                      <td className="num">{money(entry.unitValue)}</td>
+                      <td className="num">{money(termTotal)}</td>
+                      <td className="num">{money(termBilled)}</td>
+                      <td>
+                        <input
+                          className="input"
+                          dir="ltr"
+                          inputMode="decimal"
+                          value={billPercents[entry.id] ?? ''}
+                          onChange={(event) =>
+                            setBillPercents((current) => ({ ...current, [entry.id]: event.target.value }))
+                          }
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </TableFrame>
 
@@ -314,11 +321,13 @@ export default function ProjectDetailPage() {
                 onChange={(event) => setRevenueAccountId(event.target.value)}
               >
                 <option value="">— افتراضي الربط المحاسبي —</option>
-                {postable.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {accountLabel(account)}
-                  </option>
-                ))}
+                {postable
+                  .filter((account) => account.type === 'revenue' || account.code.startsWith('4'))
+                  .map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {accountLabel(account)}
+                    </option>
+                  ))}
               </select>
             </label>
             <label className="field">
@@ -329,11 +338,13 @@ export default function ProjectDetailPage() {
                 onChange={(event) => setReceivableAccountId(event.target.value)}
               >
                 <option value="">— افتراضي الربط المحاسبي —</option>
-                {postable.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {accountLabel(account)}
-                  </option>
-                ))}
+                {postable
+                  .filter((account) => account.type === 'asset' || account.code.startsWith('123') || account.code.startsWith('1'))
+                  .map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {accountLabel(account)}
+                    </option>
+                  ))}
               </select>
             </label>
           </div>
@@ -346,9 +357,9 @@ export default function ProjectDetailPage() {
           columns={[
             { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number ?? 'مسودة' },
             { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => shortDate(row.billDate) },
-            { key: 'gross', header: 'الإجمالي', align: 'num', cell: (row) => money(row.grossValue) },
+            { key: 'gross', header: 'الإجمالي', align: 'num', cell: (row) => money(row.workValue ?? row.grossValue) },
             { key: 'retention', header: 'المحتجز', align: 'num', cell: (row) => money(row.retentionValue) },
-            { key: 'net', header: 'الصافي', align: 'num', cell: (row) => money(row.netValue) },
+            { key: 'net', header: 'الصافي', align: 'num', cell: (row) => money(row.netDue ?? row.netValue) },
             {
               key: 'status',
               header: 'الحالة',

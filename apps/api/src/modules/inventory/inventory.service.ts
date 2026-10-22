@@ -1706,8 +1706,30 @@ export class InventoryService {
             lotId: line.lotId ?? undefined,
             costing: 'returnAtOriginalCost',
           });
-          serialIds.push(...(line.serialIds ?? []));
+        } else if (input.mode === 'shortage') {
+          // UI-026: قيد سطر حركة مخزنية للعجز لتمكين تتبع الفاقد من تقرير حركة الصنف ومستندات المخزون
+          await tx.insert(inventoryTransactions).values({
+            id: newId(),
+            tenantId,
+            itemId: line.itemId,
+            warehouseId: transfer.toWarehouseId,
+            occurredAt: new Date(),
+            docType: 'stock_transfer_shortage',
+            docId: transferId,
+            lineId: newId(),
+            direction: 'out',
+            qty: outstanding.toFixed(4),
+            baseQty: outstanding.mul(factor).toFixed(4),
+            unitId: line.unitId ?? null,
+            factor: factor.toFixed(6),
+            unitCost: line.unitCost ?? '0',
+            totalCost: outstanding.mul(factor).mul(new Decimal(line.unitCost ?? '0')).toFixed(4),
+            costing: 'shortage',
+            lotId: line.lotId ?? null,
+            metadata: { reason: input.reason ?? 'عجز في المناقلة' },
+          });
         }
+        serialIds.push(...(line.serialIds ?? []));
       }
 
       if (movements.length) await this.recordInTx(tx, tenantId, movements, { allowNegative: true });
@@ -1719,6 +1741,14 @@ export class InventoryService {
           ['reserved'],
           'available',
           transfer.fromWarehouseId,
+        );
+      } else if (input.mode === 'shortage' && serialIds.length) {
+        await this.transitionSerialsInTx(
+          tx,
+          tenantId,
+          serialIds,
+          ['reserved'],
+          'sold',
         );
       }
 
@@ -2677,8 +2707,24 @@ export class InventoryService {
         `stock_voucher:${input.kind}`,
         prefix,
       );
+
+      const balances = await tx
+        .select({ itemId: stockBalances.itemId, averageCost: stockBalances.averageCost })
+        .from(stockBalances)
+        .where(
+          and(
+            eq(stockBalances.tenantId, tenantId),
+            eq(stockBalances.warehouseId, input.warehouseId),
+            inArray(stockBalances.itemId, input.lines.map((l) => l.itemId)),
+          ),
+        );
+      const avgCostByItem = new Map(balances.map((b) => [b.itemId, b.averageCost]));
+
       const draftTotalCost = input.lines.reduce((sum, line) => {
-        const fallbackPrice = catalogue.get(line.itemId)?.purchasePrice ?? '0';
+        const itemAvg = avgCostByItem.get(line.itemId);
+        const fallbackPrice = (input.kind === 'stock_out' && itemAvg && Number(itemAvg) > 0)
+          ? itemAvg
+          : (catalogue.get(line.itemId)?.purchasePrice ?? '0');
         const unitCost = new Decimal(line.unitCost ?? fallbackPrice ?? 0);
         const qty = new Decimal(line.qty || 0);
         return sum.plus(qty.mul(unitCost));
@@ -2716,7 +2762,10 @@ export class InventoryService {
       await tx.insert(stockVoucherLines).values(
         input.lines.map((line, index) => {
           const lot = lots.get(index);
-          const fallbackPrice = catalogue.get(line.itemId)?.purchasePrice ?? null;
+          const itemAvg = avgCostByItem.get(line.itemId);
+          const fallbackPrice = (input.kind === 'stock_out' && itemAvg && Number(itemAvg) > 0)
+            ? itemAvg
+            : (catalogue.get(line.itemId)?.purchasePrice ?? null);
           const resolvedUnitCost = line.unitCost ?? (input.kind !== 'stock_out' ? fallbackPrice : null);
           const lineCost =
             resolvedUnitCost !== null && resolvedUnitCost !== undefined
@@ -2729,7 +2778,7 @@ export class InventoryService {
             itemId: line.itemId,
             qty: line.qty,
             unitId: line.unitId ?? null,
-            unitCost: resolvedUnitCost,
+            unitCost: resolvedUnitCost ? String(resolvedUnitCost) : null,
             lineCost,
             lotId: lot?.lotId ?? null,
             batchNo: lot?.batchNo ?? null,
@@ -2908,6 +2957,7 @@ export class InventoryService {
         const fiscalPeriodId =
           options.fiscalPeriodId ??
           (await this.accounting.openPeriodForDateInTx(tx, tenantId, voucher.voucherDate));
+        await this.accounting.assertModuleUnlocked(tx, tenantId, fiscalPeriodId, 'inventory');
         const entry = await this.accounting.postJournalInTx(tx, tenantId, {
           branchId: voucher.branchId,
           fiscalPeriodId,
@@ -2963,11 +3013,43 @@ export class InventoryService {
             eq(stockVouchers.status, 'draft'),
           ),
         );
-      if (journalEntryId)
-        await tx
-          .update(stockVoucherLines)
-          .set({ lineCost: sql`${stockVoucherLines.qty} * COALESCE(${stockVoucherLines.unitCost}, 0)` })
-          .where(and(eq(stockVoucherLines.tenantId, tenantId), eq(stockVoucherLines.voucherId, id)));
+
+      // UI-005: Update voucher lines with the real moving unitCost and lineCost from inventoryTransactions
+      const txns = await tx
+        .select({
+          itemId: inventoryTransactions.itemId,
+          unitCost: inventoryTransactions.unitCost,
+          totalCost: inventoryTransactions.totalCost,
+          factor: inventoryTransactions.factor,
+        })
+        .from(inventoryTransactions)
+        .where(
+          and(
+            eq(inventoryTransactions.tenantId, tenantId),
+            eq(inventoryTransactions.docId, id),
+          ),
+        );
+      const costByItem = new Map(txns.map((t) => [t.itemId, t]));
+      for (const line of voucher.lines) {
+        const txn = costByItem.get(line.itemId);
+        if (txn) {
+          const lineUnitCost = new Decimal(txn.unitCost).mul(txn.factor ?? '1').toFixed(4);
+          const lineTotalCost = new Decimal(line.qty).mul(lineUnitCost).toFixed(4);
+          await tx
+            .update(stockVoucherLines)
+            .set({
+              unitCost: lineUnitCost,
+              lineCost: lineTotalCost,
+            })
+            .where(
+              and(
+                eq(stockVoucherLines.tenantId, tenantId),
+                eq(stockVoucherLines.voucherId, id),
+                eq(stockVoucherLines.lineNo, line.lineNo),
+              ),
+            );
+        }
+      }
       return this.getVoucherInTx(tx, tenantId, id);
     });
   }
@@ -2988,6 +3070,7 @@ export class InventoryService {
         itemId: movement.itemId,
         warehouseId: movement.warehouseId,
         qty: movement.qty,
+        unitId: movement.unitId ?? undefined,
         unitCost: movement.unitCost ?? '0',
         direction: movement.direction === 'out' ? 'in' : 'out',
         docType: 'stock_voucher_void',
@@ -3054,27 +3137,58 @@ export class InventoryService {
           createdBy: getRequestContext().tenant?.userId,
         })
         .returning();
-      await tx.insert(stockAdjustmentLines).values(
-        input.lines.map((line, index) => {
-          const lot = lots.get(index);
-          return {
-            adjustmentId: id,
-            lineNo: index + 1,
-            tenantId,
-            itemId: line.itemId,
-            expectedQty: '0',
-            countedQty: line.countedQty,
-            unitId: line.unitId ?? null,
-            unitCost: line.unitCost ?? null,
-            lotId: lot?.lotId ?? null,
-            batchNo: lot?.batchNo ?? null,
-            productionDate: lot?.productionDate ?? null,
-            expiryDate: lot?.expiryDate ?? null,
-            serialNos: (line.serialNos ?? []).map((value) => String(value).trim()).filter(Boolean),
-            note: line.note,
-          };
-        }),
-      );
+      const balances = await tx
+        .select({
+          itemId: stockBalances.itemId,
+          quantity: stockBalances.quantity,
+          averageCost: stockBalances.averageCost,
+        })
+        .from(stockBalances)
+        .where(
+          and(
+            eq(stockBalances.tenantId, tenantId),
+            eq(stockBalances.warehouseId, input.warehouseId),
+            inArray(stockBalances.itemId, input.lines.map((l) => l.itemId)),
+          ),
+        );
+      const balanceMap = new Map(balances.map((b) => [b.itemId, b]));
+
+      const resolvedLines = [];
+      for (const [index, line] of input.lines.entries()) {
+        const lot = lots.get(index);
+        const { factor } = await this.resolveUnit(tx, tenantId, {
+          itemId: line.itemId,
+          warehouseId: input.warehouseId,
+          qty: '1',
+          unitId: line.unitId ?? undefined,
+          direction: 'in',
+          docType: 'stock_adjustment',
+          docId: id,
+        });
+        const bal = balanceMap.get(line.itemId);
+        const baseQty = new Decimal(bal?.quantity ?? '0');
+        const expectedQtyInCountedUnit = baseQty.div(factor).toFixed(4);
+        const baseAvgCost = new Decimal(bal?.averageCost ?? '0');
+        const unitCostInCountedUnit = baseAvgCost.mul(factor).toFixed(4);
+
+        resolvedLines.push({
+          adjustmentId: id,
+          lineNo: index + 1,
+          tenantId,
+          itemId: line.itemId,
+          expectedQty: expectedQtyInCountedUnit,
+          countedQty: line.countedQty,
+          unitId: line.unitId ?? null,
+          unitCost: line.unitCost ?? (Number(unitCostInCountedUnit) > 0 ? unitCostInCountedUnit : null),
+          lotId: lot?.lotId ?? null,
+          batchNo: lot?.batchNo ?? null,
+          productionDate: lot?.productionDate ?? null,
+          expiryDate: lot?.expiryDate ?? null,
+          serialNos: (line.serialNos ?? []).map((value) => String(value).trim()).filter(Boolean),
+          note: line.note,
+        });
+      }
+      await tx.insert(stockAdjustmentLines).values(resolvedLines);
       return { ...adjustment, lines: await this.adjustmentLines(tx, tenantId, id) };
     });
   }

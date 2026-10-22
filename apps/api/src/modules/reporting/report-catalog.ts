@@ -762,7 +762,7 @@ const ledgerScope = (tenantId: string, f: ReportFilters): SQL => sql`
 
 /** The joins that give a ledger row its document number — one per inventory document table. */
 const documentJoins = sql`
-  LEFT JOIN stock_transfers tr ON tr.id = it.doc_id AND it.doc_type IN ('stock_transfer', 'stock_transfer_receipt', 'stock_transfer_return', 'stock_transfer_cancel')
+  LEFT JOIN stock_transfers tr ON tr.id = it.doc_id AND it.doc_type IN ('stock_transfer', 'stock_transfer_receipt', 'stock_transfer_return', 'stock_transfer_cancel', 'stock_transfer_shortage')
   LEFT JOIN stock_deliveries dl ON dl.id = it.doc_id AND it.doc_type = 'stock_delivery'
   LEFT JOIN goods_requests rq ON rq.id = it.doc_id AND it.doc_type = 'goods_request'
   LEFT JOIN stock_adjustments aj ON aj.id = it.doc_id AND it.doc_type = 'stock_adjustment'
@@ -820,7 +820,7 @@ const movementProcTypeScope = (procType?: string): SQL => {
     case 'production':
       return sql`it.doc_type = 'production_order'`;
     case 'transfer':
-      return sql`it.doc_type IN ('stock_transfer', 'stock_transfer_receipt', 'stock_transfer_return', 'stock_transfer_cancel')`;
+      return sql`it.doc_type IN ('stock_transfer', 'stock_transfer_receipt', 'stock_transfer_return', 'stock_transfer_cancel', 'stock_transfer_shortage')`;
     case 'adjustment':
       return sql`it.doc_type = 'stock_adjustment'`;
     case 'opening':
@@ -872,6 +872,7 @@ const docTypeLabel = (column: SQL = sql`it.doc_type`, sales = false, direction?:
     WHEN 'stock_transfer_receipt' THEN 'مناقلة مستلمة'
     WHEN 'stock_transfer_return' THEN 'مرتجع مناقلة'
     WHEN 'stock_transfer_cancel' THEN 'إلغاء مناقلة'
+    WHEN 'stock_transfer_shortage' THEN 'عجز مناقلة'
     WHEN 'stock_voucher' THEN ${direction ? sql`CASE WHEN ${direction} = 'in' THEN 'إذن إدخال' ELSE 'إذن إخراج' END` : sql`'إذن مخزني'`}
     WHEN 'stock_voucher_void' THEN 'إلغاء إذن'
     WHEN 'stock_adjustment' THEN ${direction ? sql`CASE WHEN ${direction} = 'in' THEN 'تسوية إدخال' ELSE 'تسوية إخراج' END` : sql`'تسوية جردية'`}
@@ -1641,7 +1642,7 @@ const definitions: ReportDefinition[] = [
       money('balance', '⚖️ الرصيد'),
       text('status', '📌 الحالة'),
     ],
-    totals: ['debit', 'credit', 'balance'],
+    totals: ['debit', 'credit'],
     emptyAr: 'لا حركة لحسابات العملاء في هذه الفترة — و`frmCustAccount` لا يطبع إلا من تحرك حسابه',
     signature: true,
     build: (tenantId, f) => sql`
@@ -1652,7 +1653,7 @@ const definitions: ReportDefinition[] = [
           JOIN journal_entries je ON je.id = jel.entry_id AND je.status = 'posted'
          WHERE party.tenant_id = ${tenantId} AND party.deleted_at IS NULL
            AND ${eqIf(sql`party.id`, f.partyId)}
-           AND ${partyKindScope('party', f.partyKind)}
+           AND ${partyKindScope('party', f.partyKind ?? 'customer')}
            AND ${onDate(sql`je.date`, f.from, f.to)}
            AND ${eqIf(sql`jel.salesman_id`, f.salesmanId)}
          GROUP BY party.id
@@ -1669,7 +1670,7 @@ const definitions: ReportDefinition[] = [
         JOIN party_move m ON m.party_id = party.id AND (coalesce(m.debit, 0) <> 0 OR coalesce(m.credit, 0) <> 0)
        WHERE party.tenant_id = ${tenantId} AND party.deleted_at IS NULL
          AND ${eqIf(sql`party.id`, f.partyId)}
-         AND ${partyKindScope('party', f.partyKind)}
+         AND ${partyKindScope('party', f.partyKind ?? 'customer')}
        ORDER BY party.code LIMIT 1000`,
   },
   {
@@ -2701,7 +2702,7 @@ const definitions: ReportDefinition[] = [
     group: 'inventory',
     params: [...PERIOD, WAREHOUSE, ITEM],
     columns: [date('day', 'التاريخ'), text('item', 'الصنف'), text('warehouse', 'المستودع'), text('doc_type', 'المستند'), text('direction', 'الاتجاه'), qty('qty', 'الكمية'), money('unit_cost', 'تكلفة الوحدة'), money('total_cost', 'القيمة')],
-    totals: ['qty', 'total_cost'],
+    totals: [],
     build: (tenantId, f) => sql`
       SELECT tx.occurred_at::date AS day, ${itemName} AS item, coalesce(wh.name, '—') AS warehouse,
              tx.doc_type, tx.direction, tx.qty::text, tx.unit_cost::text, tx.total_cost::text
@@ -3021,7 +3022,7 @@ const definitions: ReportDefinition[] = [
     hintAr: 'الأصول في مقابل الخصوم وحقوق الملكية، ويُضاف إليها صافي ربح الفترة أو خسارتها حتى التاريخ المحدد — فالميزانية لا تُقرأ إلّا متوازنة.',
     params: [{ name: 'to', labelAr: 'حتى تاريخ', kind: 'date' }, BRANCH],
     columns: [text('section', 'القسم'), text('code', 'رقم الحساب'), text('account', 'الحساب'), money('balance', 'الرصيد')],
-    totals: ['balance'],
+    totals: [],
     build: (tenantId, f) => sql`
       SELECT section, code, account, balance
       FROM (
@@ -3059,7 +3060,7 @@ const definitions: ReportDefinition[] = [
     hintAr: 'ضريبة المخرجات من المبيعات ناقص ضريبة المدخلات من المشتريات.',
     params: [...PERIOD, BRANCH],
     columns: [text('bucket', 'البند'), money('base', 'الوعاء'), money('vat', 'الضريبة')],
-    totals: ['base', 'vat'],
+    totals: ['vat'],
     build: (tenantId, f) => sql`
       SELECT 'مبيعات خاضعة' AS bucket, coalesce(sum(si.subtotal), 0)::text AS base, coalesce(sum(si.tax_total), 0)::text AS vat
       FROM sales_invoices si WHERE ${salesScope(tenantId, f, 'sale')}
@@ -3067,11 +3068,17 @@ const definitions: ReportDefinition[] = [
       SELECT 'مردود مبيعات', (-coalesce(sum(si.subtotal), 0))::text, (-coalesce(sum(si.tax_total), 0))::text
       FROM sales_invoices si WHERE ${salesScope(tenantId, f, 'sale_return')}
       UNION ALL
+      SELECT 'إشعار دائن مبيعات', (-coalesce(sum(round(san.amount / 1.15, 4)), 0))::text, (-coalesce(sum(round(san.amount - san.amount / 1.15, 4)), 0))::text
+      FROM sales_adjustment_notes san WHERE san.tenant_id = ${tenantId} AND san.status = 'posted' AND san.kind = 'credit'
+      UNION ALL
       SELECT 'مشتريات خاضعة', coalesce(sum(pi.subtotal), 0)::text, (-coalesce(sum(pi.tax_total), 0))::text
       FROM purchase_invoices pi WHERE ${purchaseScope(tenantId, f, 'purchase')}
       UNION ALL
       SELECT 'مردود مشتريات', (-coalesce(sum(pi.subtotal), 0))::text, coalesce(sum(pi.tax_total), 0)::text
-      FROM purchase_invoices pi WHERE ${purchaseScope(tenantId, f, 'purchase_return')}`,
+      FROM purchase_invoices pi WHERE ${purchaseScope(tenantId, f, 'purchase_return')}
+      UNION ALL
+      SELECT 'إشعار مدين مشتريات', (-coalesce(sum(round(pan.amount / 1.15, 4)), 0))::text, coalesce(sum(round(pan.amount - pan.amount / 1.15, 4)), 0)::text
+      FROM purchase_adjustment_notes pan WHERE pan.tenant_id = ${tenantId} AND pan.status = 'posted' AND pan.kind = 'debit'`,
   },
   {
     key: 'ar-aging',
@@ -3236,11 +3243,11 @@ const definitions: ReportDefinition[] = [
     columns: [text('year_month', 'الشهر'), text('status', 'الحالة'), int('employees', 'عدد الموظفين'), money('net', 'صافي الرواتب'), date('posted', 'تاريخ الترحيل'), date('paid', 'تاريخ الصرف')],
     totals: ['employees', 'net'],
     build: (tenantId) => sql`
-      SELECT run.year_month, run.status, count(line.employee_id)::text AS employees,
-             coalesce(sum(line.net), 0)::text AS net, run.posted_at::date AS posted, run.paid_at::date AS paid
+      SELECT run.year_month, run.status, count(DISTINCT CASE WHEN line.net > 0 THEN line.employee_id END)::text AS employees,
+             coalesce(sum(CASE WHEN line.net > 0 THEN line.net ELSE 0 END), 0)::text AS net, run.posted_at::date AS posted, run.paid_at::date AS paid
       FROM payroll_runs run
       LEFT JOIN payroll_run_lines line ON line.run_id = run.id
-      WHERE run.tenant_id = ${tenantId}
+      WHERE run.tenant_id = ${tenantId} AND run.status = 'paid'
       GROUP BY run.id, run.year_month, run.status, run.posted_at, run.paid_at
       ORDER BY run.year_month DESC LIMIT 200`,
   },
@@ -3553,7 +3560,7 @@ const definitions: ReportDefinition[] = [
       ) agg
       LEFT JOIN warehouses wh ON wh.id = agg.warehouse_id
       LEFT JOIN branches br ON br.id = wh.branch_id
-      LEFT JOIN stock_transfers tr ON tr.id = agg.doc_id AND agg.doc_type IN ('stock_transfer', 'stock_transfer_receipt', 'stock_transfer_return', 'stock_transfer_cancel')
+      LEFT JOIN stock_transfers tr ON tr.id = agg.doc_id AND agg.doc_type IN ('stock_transfer', 'stock_transfer_receipt', 'stock_transfer_return', 'stock_transfer_cancel', 'stock_transfer_shortage')
       LEFT JOIN stock_deliveries dl ON dl.id = agg.doc_id AND agg.doc_type = 'stock_delivery'
       LEFT JOIN goods_requests rq ON rq.id = agg.doc_id AND agg.doc_type = 'goods_request'
       LEFT JOIN stock_adjustments aj ON aj.id = agg.doc_id AND agg.doc_type = 'stock_adjustment'
@@ -4454,8 +4461,10 @@ const definitions: ReportDefinition[] = [
     build: (tenantId, f) => {
       const fromTime = f.fromTime || '00:00';
       const toTime = f.toTime || '23:59';
-      const box = sql`(SELECT cl.account_id FROM cash_locations cl
-                       WHERE cl.id = ${f.cashLocationId ?? null}::uuid AND cl.tenant_id = ${tenantId})`;
+      // UI-012: عند اختيار «الكل» تجميع كافة حسابات مواقع النقد بدلاً من مطابقة NULL
+      const boxCondition = f.cashLocationId
+        ? sql`jel.account_id = (SELECT cl.account_id FROM cash_locations cl WHERE cl.id = ${f.cashLocationId}::uuid AND cl.tenant_id = ${tenantId} AND cl.deleted_at IS NULL)`
+        : sql`jel.account_id IN (SELECT cl.account_id FROM cash_locations cl WHERE cl.tenant_id = ${tenantId} AND cl.deleted_at IS NULL AND cl.account_id IS NOT NULL)`;
       const opening = Boolean(f.from);
       return sql`
         WITH prior AS (
@@ -4463,7 +4472,7 @@ const definitions: ReportDefinition[] = [
           FROM journal_entry_lines jel
           JOIN journal_entries je ON je.id = jel.entry_id
           LEFT JOIN vouchers v ON v.id = je.source_id AND je.source_type = 'voucher'
-          WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND jel.account_id = ${box}
+          WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND ${boxCondition}
             AND ${f.from ? sql`je.date < ${f.from}::date
                  OR (je.date = ${f.from}::date AND coalesce(v.voucher_time, '00:00') < ${fromTime}::time)` : sql`false`}
         ), movements AS (
@@ -4473,7 +4482,7 @@ const definitions: ReportDefinition[] = [
           FROM journal_entry_lines jel
           JOIN journal_entries je ON je.id = jel.entry_id
           LEFT JOIN vouchers v ON v.id = je.source_id AND je.source_type = 'voucher'
-          WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND jel.account_id = ${box}
+          WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND ${boxCondition}
             AND ${onDate(sql`je.date`, f.from, f.to)}
             AND coalesce(v.voucher_time, '00:00') BETWEEN ${fromTime}::time AND ${toTime}::time
           GROUP BY je.id, je.date, je.number, je.description

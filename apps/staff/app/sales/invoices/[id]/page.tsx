@@ -359,7 +359,15 @@ export default function SalesInvoiceDetailPage() {
               <div className="flex flex-wrap items-center gap-3 mt-1.5">
                 <h1 className="ui-page-title">
                   <span className="me-2 align-middle text-[14px] font-bold text-muted">
-                    {doc.kind === 'quotation' ? 'عرض سعر' : 'فاتورة مبيعات'}
+                    {doc.kind === 'quotation'
+                      ? 'عرض سعر'
+                      : doc.kind === 'sale_return'
+                        ? 'مردود مبيعات'
+                        : doc.kind === 'credit_note'
+                          ? 'إشعار دائن'
+                          : doc.kind === 'debit_note'
+                            ? 'إشعار مدين'
+                            : 'فاتورة مبيعات'}
                   </span>{' '}
                   <span dir="ltr">{doc.number ?? 'مسودة'}</span>
                 </h1>
@@ -373,8 +381,8 @@ export default function SalesInvoiceDetailPage() {
                   {doc.status === 'posted' ? 'مرحّلة' : doc.status === 'voided' ? 'ملغاة' : 'مسودة'}
                 </Badge>
                 {doc.status === 'posted' ? (
-                  <Badge tone={doc.paymentStatus === 'paid' ? 'blue' : 'amber'}>
-                    {doc.paymentStatus === 'paid' ? 'مسدّدة' : 'غير مسدّدة'}
+                  <Badge tone={doc.paymentStatus === 'paid' ? 'blue' : doc.paymentStatus === 'partial' ? 'purple' : 'amber'}>
+                    {doc.paymentStatus === 'paid' ? 'مسدّدة' : doc.paymentStatus === 'partial' ? 'مسدّدة جزئياً' : 'غير مسدّدة'}
                   </Badge>
                 ) : null}
                 {approval.data?.status === 'pending' ? (

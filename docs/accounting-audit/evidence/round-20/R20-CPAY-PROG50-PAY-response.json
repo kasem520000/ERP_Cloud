@@ -1,0 +1,37 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/contracting/payments/01a16261-b8f1-745c-852b-ed9438997ff9/pay",
+  "request": {
+    "cashLocationId": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+    "method": "cash"
+  },
+  "body": {
+    "data": {
+      "id": "01a16261-b8f1-745c-852b-ed9438997ff9",
+      "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+      "contractId": "01a16260-752e-750c-978f-df3e186a47de",
+      "projectId": "01a1621b-a444-75fc-aa69-00f2916da66c",
+      "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+      "number": "CP-000004",
+      "kind": "progress",
+      "status": "paid",
+      "paymentDate": "2026-10-22",
+      "grossAmount": "50.0000",
+      "retentionAmount": "0.0000",
+      "advanceRecovery": "20.0000",
+      "netAmount": "30.0000",
+      "voucherId": "01a16262-1310-72ea-a38f-aab82d84b2a5",
+      "notes": "R20 مستخلص 50 مع استرداد المقدمة 20 اختبار معزول",
+      "approvedAt": "2026-10-22T06:52:23.965Z",
+      "approvedBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "paidAt": "2026-10-22T06:52:37.012Z",
+      "cancelledAt": null,
+      "createdAt": "2026-10-22T06:52:13.937Z",
+      "createdBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "updatedAt": "2026-10-22T06:52:37.012Z",
+      "updatedBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "version": 1
+    }
+  }
+}

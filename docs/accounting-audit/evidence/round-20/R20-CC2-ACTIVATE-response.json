@@ -1,0 +1,53 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/contracting/contracts/01a16260-752e-750c-978f-df3e186a47de/activate",
+  "request": {},
+  "body": {
+    "data": {
+      "id": "01a16260-752e-750c-978f-df3e186a47de",
+      "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+      "projectId": "01a1621b-a444-75fc-aa69-00f2916da66c",
+      "contractorPartyId": "01a16198-e586-7688-a6d9-e1f0258fb485",
+      "number": "CC-000002",
+      "title": "R20 عقد مقاول بدفعة مقدمة اختبار معزول",
+      "scope": null,
+      "status": "active",
+      "contractValue": "50.0000",
+      "retentionPct": "0.0000",
+      "advanceAmount": "20.0000",
+      "advanceRecovered": "0.0000",
+      "startsOn": null,
+      "endsOn": null,
+      "notes": null,
+      "signedAt": "2026-10-22T06:51:01.723Z",
+      "closedAt": null,
+      "createdAt": "2026-10-22T06:50:51.062Z",
+      "createdBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "updatedAt": "2026-10-22T06:51:01.733Z",
+      "updatedBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "version": 1,
+      "projectBranchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+      "projectName": "R19 مشروع اختبار معزول",
+      "lines": [
+        {
+          "contractId": "01a16260-752e-750c-978f-df3e186a47de",
+          "lineNo": 1,
+          "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+          "description": "R20 أعمال مقاول",
+          "qty": "1.0000",
+          "unitValue": "50.0000",
+          "lineValue": "50.0000"
+        }
+      ],
+      "payments": [],
+      "certified": "0.0000",
+      "remainingValue": "50.0000",
+      "advanceIssued": "0.0000",
+      "advanceOutstanding": "20.0000",
+      "retentionHeld": "0.0000",
+      "paidNet": "0.0000",
+      "recoveryPlanned": "0.0000"
+    }
+  }
+}

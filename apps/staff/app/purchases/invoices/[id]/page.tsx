@@ -176,7 +176,7 @@ export default function PurchaseInvoiceDetailPage() {
 
   return (
     <Screen
-      title={`فاتورة مشتريات ${doc.number ?? '(مسودة)'}`}
+      title={`${doc.kind === 'purchase_return' ? 'مردود مشتريات' : 'فاتورة مشتريات'} ${doc.number ?? '(مسودة)'}`}
       subtitle={`${supplier ? partyLabel(supplier) : '—'} — ${statusLabel(doc.status)}`}
       crumbs={['المشتريات', 'العمليات']}
       actions={
@@ -390,9 +390,16 @@ export default function PurchaseInvoiceDetailPage() {
                 className="btn primary"
                 type="button"
                 disabled={busy}
-                onClick={() => run(post, 'تم ترحيل الفاتورة وأُدخلت البضاعة للمخزون بتكلفتها النهائية.')}
+                onClick={() =>
+                  run(
+                    post,
+                    doc.kind === 'purchase_return'
+                      ? 'تم ترحيل مردود المشتريات وأُخرجت البضاعة من المخزون.'
+                      : 'تم ترحيل الفاتورة وأُدخلت البضاعة للمخزون بتكلفتها النهائية.',
+                  )
+                }
               >
-                {busy ? 'جارٍ الترحيل…' : 'ترحيل الفاتورة'}
+                {busy ? 'جارٍ الترحيل…' : doc.kind === 'purchase_return' ? 'ترحيل مردود المشتريات' : 'ترحيل الفاتورة'}
               </button>
             </>
           )}

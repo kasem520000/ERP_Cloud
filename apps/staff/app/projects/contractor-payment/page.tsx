@@ -31,6 +31,9 @@ type Payment = {
   netAmount: string;
   voucherId: string | null;
   notes: string | null;
+  projectName?: string | null;
+  projectCode?: string | null;
+  contractTitle?: string | null;
 };
 type Contract = {
   id: string;
@@ -158,7 +161,7 @@ export default function ContractorPaymentPage() {
       });
       setNotice({
         kind: 'ok',
-        text: `تم صرف ${money(paid.netAmount)} على السند ${payment.number}، وأُنشئ سند صرف بحالة مسودة — رحّله من شاشة السندات لقيده في الدفاتر.`,
+        text: `تم صرف ${money(paid.netAmount)} على السند ${payment.number}، ورُحّل سند الصرف تلقائياً في الخزينة ودفاتر الحسابات.`,
       });
       payments.reload();
       contract.reload();
@@ -339,6 +342,7 @@ export default function ContractorPaymentPage() {
               rowKey={(row) => row.id}
               columns={[
                 { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number },
+                { key: 'project', header: 'المشروع', cell: (row) => row.projectName ?? row.projectCode ?? '—' },
                 { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => shortDate(row.paymentDate) },
                 { key: 'kind', header: 'النوع', cell: (row) => KIND_LABELS[row.kind] ?? row.kind },
                 { key: 'gross', header: 'الإجمالي', align: 'num', cell: (row) => money(row.grossAmount) },
@@ -365,7 +369,7 @@ export default function ContractorPaymentPage() {
                 {
                   key: 'voucher',
                   header: 'سند الصرف',
-                  cell: (row) => (row.voucherId ? 'مُنشأ (مسودة)' : '—'),
+                  cell: (row) => (row.voucherId ? (row.status === 'paid' ? 'مرحّل' : 'مُنشأ (مسودة)') : '—'),
                 },
                 {
                   key: 'actions',

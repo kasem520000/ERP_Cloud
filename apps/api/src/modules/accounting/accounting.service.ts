@@ -5,6 +5,7 @@ import { DomainError, errorCodes } from '@erp/contracts';
 import {
   accounts,
   branches,
+  cashLocations,
   vouchers,
   costCenters,
   fiscalPeriods,
@@ -474,6 +475,8 @@ export type JournalLineInput = {
   branchId?: string;
   /** المندوب — `FrmNewEntry.xaml` `colSalesman`. */
   salesmanId?: string;
+  currencyCode?: string;
+  currencyAmount?: string;
 };
 
 /**
@@ -1970,6 +1973,10 @@ export class AccountingService {
    * when the date falls in no open period — back-dating into a closed period is
    * never silently re-routed, the accountant reopens or picks a period explicitly.
    */
+  async openPeriodForDate(tenantId: string, date: string): Promise<string> {
+    return withTenantTx(this.database.db, tenantId, (tx) => this.openPeriodForDateInTx(tx, tenantId, date));
+  }
+
   async openPeriodForDateInTx(tx: DrizzleTx, tenantId: string, date: string): Promise<string> {
     const [period] = await tx
       .select({ id: fiscalPeriods.id })
@@ -1997,7 +2004,52 @@ export class AccountingService {
 
     const [period] = await tx.select().from(fiscalPeriods).where(and(eq(fiscalPeriods.id, input.fiscalPeriodId), eq(fiscalPeriods.tenantId, tenantId)));
     if (!period || period.status !== 'open') throw new DomainError('FISCAL_PERIOD_CLOSED', 'Fiscal period is closed or unavailable', 409);
-    await this.assertModuleUnlocked(tx, tenantId, input.fiscalPeriodId, 'accounting');
+    if (input.date < period.startDate || input.date > period.endDate) {
+      throw new DomainError(
+        'FISCAL_PERIOD_DATE_MISMATCH',
+        `Entry date ${input.date} is outside the selected fiscal period (${period.startDate} to ${period.endDate})`,
+        409,
+      );
+    }
+    const moduleName =
+      input.sourceType === 'sales_invoice' || input.sourceType === 'sales_return' || input.sourceType === 'credit_note' || input.sourceType === 'debit_note'
+        ? 'sales'
+        : input.sourceType === 'purchase_invoice' || input.sourceType === 'purchase_return'
+          ? 'purchases'
+          : input.sourceType === 'stock_voucher' || input.sourceType === 'inventory_adjustment' || input.sourceType === 'stock_count'
+            ? 'inventory'
+            : input.sourceType === 'payment_voucher' || input.sourceType === 'receipt_voucher' || input.sourceType === 'cash_shift'
+              ? 'treasury'
+              : input.sourceType === 'payroll_run'
+                ? 'payroll'
+                : 'accounting';
+    await this.assertModuleUnlocked(tx, tenantId, input.fiscalPeriodId, moduleName);
+    if (moduleName !== 'accounting') {
+      await this.assertModuleUnlocked(tx, tenantId, input.fiscalPeriodId, 'accounting');
+    }
+
+    // ACC-023: حظر القيود اليدوية المباشرة على حسابات رقابة الخزينة (الصندوق والبنك المرتبطة بمواقع نقدية)
+    if (!input.sourceType || input.sourceType === 'manual') {
+      const lineAccountIds = input.lines.map((line) => line.accountId);
+      const cashControlAccounts = await tx
+        .select({ id: cashLocations.accountId })
+        .from(cashLocations)
+        .where(
+          and(
+            eq(cashLocations.tenantId, tenantId),
+            isNull(cashLocations.deletedAt),
+            inArray(cashLocations.accountId, lineAccountIds),
+          ),
+        );
+      if (cashControlAccounts.length > 0) {
+        throw new DomainError(
+          'MANUAL_JOURNAL_ON_TREASURY_ACCOUNT',
+          'Manual journal entries are not permitted on cash or bank control accounts — use a receipt or payment voucher instead',
+          422,
+          { field: 'accountId' },
+        );
+      }
+    }
 
     const entryId = newId();
     const allocated = await this.sequences.next({ tenantId, branchId: input.branchId, docType: 'journal_entry', fiscalYearId: period.fiscalYearId }, tx, { prefix: 'JE-', padding: 6 });
@@ -2043,12 +2095,15 @@ export class AccountingService {
       accountId: line.accountId,
       debit: line.debit ?? '0',
       credit: line.credit ?? '0',
+      currencyCode: line.currencyCode ?? null,
+      currencyAmount: line.currencyAmount ?? null,
       costCenterId: line.costCenterId ?? null,
       partyId: line.partyId ?? null,
       branchId: line.branchId ?? input.branchId,
       salesmanId: line.salesmanId ?? null,
       description:
         line.description?.trim() ||
+        input.description?.trim() ||
         `سند قيد يومية رقم: ${allocated.display} - سداد دفعة من حساب: ${names.get(line.accountId) ?? ''}`.trim(),
     })));
     const [entry] = await tx.select().from(journalEntries).where(eq(journalEntries.id, entryId));
@@ -2631,6 +2686,7 @@ export class AccountingService {
           branchId: journalEntries.branchId,
           fiscalPeriodId: journalEntries.fiscalPeriodId,
           sourceType: journalEntries.sourceType,
+          sourceId: journalEntries.sourceId,
           reversalOf: journalEntries.reversalOf,
           postedAt: journalEntries.postedAt,
           totalDebit: sql<string>`COALESCE((SELECT SUM(l.debit) FROM journal_entry_lines l WHERE l.entry_id = ${journalEntries.id}), 0)::text`,
@@ -2757,7 +2813,7 @@ export class AccountingService {
     });
   }
 
-  private async assertModuleUnlocked(tx: DrizzleTx, tenantId: string, periodId: string, module: string): Promise<void> {
+  async assertModuleUnlocked(tx: DrizzleTx, tenantId: string, periodId: string, module: string): Promise<void> {
     const [lock] = await tx.select().from(periodModuleLocks).where(and(eq(periodModuleLocks.tenantId, tenantId), eq(periodModuleLocks.periodId, periodId), eq(periodModuleLocks.module, module)));
     if (lock?.locked) throw new DomainError('PERIOD_MODULE_LOCKED', `Module ${module} is locked for this fiscal period`, 409);
   }

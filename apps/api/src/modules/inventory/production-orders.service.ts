@@ -173,7 +173,7 @@ export class ProductionOrdersService {
    */
   async complete(tenantId: string, id: string, options: { outputLot?: OutputLotInput } = {}) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const order = await this.load(tx, tenantId, id);
+      const order = await this.load(tx, tenantId, id, true);
       if (order.status !== 'draft') throw new DomainError('PRODUCTION_ORDER_INVALID_STATUS', 'Only a draft production order can be completed', 409);
 
       const out = await this.inventory.recordInTx(tx, tenantId, order.components.map((component) => ({
@@ -255,7 +255,7 @@ export class ProductionOrdersService {
 
   async cancel(tenantId: string, id: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const order = await this.load(tx, tenantId, id);
+      const order = await this.load(tx, tenantId, id, true);
       // Stock has already moved on a completed order; reverse it with an adjustment, not
       // by rewriting history.
       if (order.status !== 'draft') throw new DomainError('PRODUCTION_ORDER_INVALID_STATUS', 'Only a draft production order can be cancelled', 409);
@@ -282,8 +282,9 @@ export class ProductionOrdersService {
     return row.unitId;
   }
 
-  private async load(tx: DrizzleTx, tenantId: string, id: string) {
-    const [order] = await tx.select().from(productionOrders).where(and(eq(productionOrders.tenantId, tenantId), eq(productionOrders.id, id)));
+  private async load(tx: DrizzleTx, tenantId: string, id: string, forUpdate = false) {
+    const q = tx.select().from(productionOrders).where(and(eq(productionOrders.tenantId, tenantId), eq(productionOrders.id, id)));
+    const [order] = forUpdate ? await q.for('update') : await q;
     if (!order) throw new DomainError('PRODUCTION_ORDER_NOT_FOUND', 'Production order was not found', 404);
     const components = await tx.select().from(productionOrderComponents).where(and(eq(productionOrderComponents.tenantId, tenantId), eq(productionOrderComponents.orderId, id)));
     const [output] = await tx.select({ baseUnitId: items.baseUnitId }).from(items).where(and(eq(items.tenantId, tenantId), eq(items.id, order.outputItemId)));

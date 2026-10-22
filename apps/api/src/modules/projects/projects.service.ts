@@ -1,12 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
+import { Decimal } from 'decimal.js';
+import { and, asc, desc, eq, isNull, or, sql } from 'drizzle-orm';
 import { DomainError, newId } from '@erp/contracts';
-import { boqTerms, progressBillLines, progressBills, projects, projectRequirements, projectStages, projectStageTemplates, tenantSettings, withTenantTx, type DatabaseHandle, type DrizzleTx } from '@erp/database';
+import { accounts, boqTerms, progressBillLines, progressBills, projects, projectRequirements, projectStages, projectStageTemplates, tenantSettings, withTenantTx, type DatabaseHandle, type DrizzleTx } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { isUniqueViolation } from '../organization/shared/org-support.js';
 import { SequencesService } from '../platform-services/index.js';
 import { SalesService } from '../sales/sales.service.js';
+import { AccountingService } from '../accounting/accounting.service.js';
 
 import { computeProgressBill } from './progress-bill-calculator.js';
 
@@ -16,7 +18,12 @@ export type BillInput = { billDate: string; lines: Array<{ termId: string; billP
 
 @Injectable()
 export class ProjectsService {
-  constructor(@Inject(DATABASE_HANDLE) private readonly database: DatabaseHandle, private readonly sequences: SequencesService, private readonly sales: SalesService) {}
+  constructor(
+    @Inject(DATABASE_HANDLE) private readonly database: DatabaseHandle,
+    private readonly sequences: SequencesService,
+    private readonly sales: SalesService,
+    private readonly accounting: AccountingService,
+  ) {}
   async ensureEnabled(tenantId: string) { const [flag] = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(tenantSettings).where(and(eq(tenantSettings.tenantId, tenantId), eq(tenantSettings.key, 'pack.projects'))).limit(1)); if (flag && flag.value !== true && flag.value !== 'true') throw new DomainError('NOT_FOUND', 'Projects pack is disabled for this tenant', 404); }
   async list(tenantId: string) { await this.ensureEnabled(tenantId); return { data: await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(projects).where(and(eq(projects.tenantId, tenantId), isNull(projects.deletedAt))).orderBy(desc(projects.createdAt))) }; }
   /**
@@ -215,7 +222,297 @@ export class ProjectsService {
   }
   async createBill(tenantId: string, projectId: string, input: BillInput) { await this.ensureEnabled(tenantId); const project = (await this.read(tenantId, projectId)).data; const billId = newId(); const termIds = new Set(input.lines.map((line) => line.termId)); const terms = (project.boq as Array<typeof boqTerms.$inferSelect>).filter((term) => termIds.has(term.id)); const mapped = input.lines.map((line) => { const term = terms.find((item) => item.id === line.termId); if (!term) throw new DomainError('BOQ_TERM_NOT_FOUND', 'BOQ term not found', 404); return { termId: term.id, qty: term.qty, unitValue: term.unitValue, previouslyBilled: term.previouslyBilled, billPct: line.billPct, billValue: line.billValue }; }); const computed = computeProgressBill(mapped, project.retentionPct); await withTenantTx(this.database.db, tenantId, async (tx) => { const branchId = project.branchId; if (!branchId) throw new DomainError('PROJECT_BRANCH_REQUIRED', 'Project branch is required to number progress bills', 422); const allocated = await this.sequences.next({ tenantId, branchId, docType: 'progress_bill' }, tx, { prefix: 'PB-', padding: 6 }); await tx.insert(progressBills).values({ id: billId, tenantId, projectId, number: allocated.display, billDate: input.billDate, workValue: computed.workValue, previousValue: computed.previousValue, retentionValue: computed.retentionValue, netDue: computed.netDue, summary: { remainingAfter: computed.remainingAfter } }); await tx.insert(progressBillLines).values(computed.lines.map((line, index) => ({ billId, tenantId, lineNo: index + 1, termId: line.termId, billPct: line.billPct, billValue: line.billValue, previousValue: line.previousValue, remainingValue: line.remainingValue }))); }); return this.getBill(tenantId, billId); }
   async getBill(tenantId: string, billId: string) { const [bill] = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(progressBills).where(and(eq(progressBills.tenantId, tenantId), eq(progressBills.id, billId)))); if (!bill) throw new DomainError('PROGRESS_BILL_NOT_FOUND', 'Progress bill not found', 404); const lines = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(progressBillLines).where(and(eq(progressBillLines.tenantId, tenantId), eq(progressBillLines.billId, billId)))); return { data: { ...bill, lines } }; }
-  async postBill(tenantId: string, billId: string, input: { branchId?: string; fiscalPeriodId?: string; revenueAccountId?: string; receivableAccountId?: string; retentionReceivableAccountId?: string }) { await this.ensureEnabled(tenantId); const bill = (await this.getBill(tenantId, billId)).data; if (bill.status !== 'draft') throw new DomainError('PROGRESS_BILL_INVALID_STATE', 'Only draft progress bills can be posted', 409); const project = (await this.read(tenantId, bill.projectId)).data; const branchId = input.branchId ?? project.branchId; if (!branchId) throw new DomainError('PROJECT_BRANCH_REQUIRED', 'Project branch is required to post bill', 422); const invoice = await this.sales.create(tenantId, { branchId, partyId: project.partyId, kind: 'sale', lines: [{ description: `Progress bill ${bill.number ?? bill.id}`, quantity: '1', unitPrice: bill.netDue, taxRate: '0' }] }); await this.sales.post(tenantId, invoice.id, input.fiscalPeriodId && input.revenueAccountId && input.receivableAccountId ? { fiscalPeriodId: input.fiscalPeriodId, journalLines: [{ accountId: input.receivableAccountId, debit: bill.netDue, partyId: project.partyId }, { accountId: input.retentionReceivableAccountId ?? input.receivableAccountId, debit: bill.retentionValue, partyId: project.partyId }, { accountId: input.revenueAccountId, credit: bill.workValue }] } : {}); await withTenantTx(this.database.db, tenantId, async (tx) => { await tx.update(progressBills).set({ status: 'posted', invoiceId: invoice.id, postedAt: new Date(), updatedAt: new Date() }).where(and(eq(progressBills.tenantId, tenantId), eq(progressBills.id, billId))); for (const line of bill.lines) await tx.update(boqTerms).set({ previouslyBilled: sql`${boqTerms.previouslyBilled} + ${line.billValue}`, updatedAt: new Date() }).where(and(eq(boqTerms.tenantId, tenantId), eq(boqTerms.id, line.termId))); }); return this.getBill(tenantId, billId); }
-  async releaseRetention(tenantId: string, billId: string, input: { branchId?: string }) { await this.ensureEnabled(tenantId); const bill = (await this.getBill(tenantId, billId)).data; if (bill.status !== 'posted') throw new DomainError('PROGRESS_BILL_INVALID_STATE', 'Only posted bills can release retention', 409); const project = (await this.read(tenantId, bill.projectId)).data; const branchId = input.branchId ?? project.branchId; if (!branchId) throw new DomainError('PROJECT_BRANCH_REQUIRED', 'Project branch is required', 422); const invoice = await this.sales.create(tenantId, { branchId, partyId: project.partyId, kind: 'sale', lines: [{ description: `Retention release ${bill.number ?? bill.id}`, quantity: '1', unitPrice: bill.retentionValue, taxRate: '0' }] }); await withTenantTx(this.database.db, tenantId, (tx) => tx.update(progressBills).set({ status: 'released', releasedAt: new Date(), updatedAt: new Date(), summary: sql`${progressBills.summary} || ${JSON.stringify({ retentionReleaseInvoiceId: invoice.id })}::jsonb` }).where(and(eq(progressBills.tenantId, tenantId), eq(progressBills.id, billId)))); return { data: { retentionReleaseInvoiceId: invoice.id } }; }
+  async postBill(
+    tenantId: string,
+    billId: string,
+    input: {
+      branchId?: string;
+      fiscalPeriodId?: string;
+      revenueAccountId?: string;
+      receivableAccountId?: string;
+      retentionReceivableAccountId?: string;
+    },
+  ) {
+    await this.ensureEnabled(tenantId);
+    const bill = (await this.getBill(tenantId, billId)).data;
+    if (bill.status !== 'draft')
+      throw new DomainError('PROGRESS_BILL_INVALID_STATE', 'Only draft progress bills can be posted', 409);
+    const project = (await this.read(tenantId, bill.projectId)).data;
+    const branchId = input.branchId ?? project.branchId;
+    if (!branchId)
+      throw new DomainError('PROJECT_BRANCH_REQUIRED', 'Project branch is required to post bill', 422);
+
+    const costCenterId = project.costCenterId ?? undefined;
+
+    // 1. Create progress bill sales invoice for netDue
+    const invoice = await this.sales.create(tenantId, {
+      branchId,
+      partyId: project.partyId,
+      kind: 'sale',
+      costCenterId,
+      lines: [
+        {
+          description: `Progress bill ${bill.number ?? bill.id}`,
+          quantity: '1',
+          unitPrice: bill.netDue,
+          taxRate: '0',
+          costCenterId,
+        },
+      ],
+    });
+
+    // ACC-056: توجيه المحتجز لحساب محتجزات مستقل إن لم يُمرر صراحة
+    let retentionAccountId = input.retentionReceivableAccountId;
+    if (!retentionAccountId && new Decimal(bill.retentionValue).gt(0)) {
+      const [retAcc] = await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .select({ id: accounts.id })
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.tenantId, tenantId),
+              eq(accounts.type, 'asset'),
+              or(sql`${accounts.code} LIKE '1232%'`, sql`${accounts.nameAr} LIKE '%محتجز%'`),
+              isNull(accounts.deletedAt),
+            ),
+          )
+          .limit(1),
+      );
+      if (retAcc) retentionAccountId = retAcc.id;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const fiscalPeriodId =
+      input.fiscalPeriodId ?? (await this.accounting.openPeriodForDate(tenantId, today));
+
+    // Resolve receivable and revenue accounts if not provided
+    let receivableAccountId = input.receivableAccountId;
+    let revenueAccountId = input.revenueAccountId;
+    if (!receivableAccountId || !revenueAccountId) {
+      const [arAcc] = await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .select({ id: accounts.id })
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.tenantId, tenantId),
+              eq(accounts.type, 'asset'),
+              or(sql`${accounts.code} LIKE '1231%'`, sql`${accounts.nameAr} LIKE '%عملاء%'`),
+              isNull(accounts.deletedAt),
+            ),
+          )
+          .limit(1),
+      );
+      const [revAcc] = await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .select({ id: accounts.id })
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.tenantId, tenantId),
+              eq(accounts.type, 'revenue'),
+              or(sql`${accounts.code} LIKE '41%'`, sql`${accounts.nameAr} LIKE '%إيراد%'`),
+              isNull(accounts.deletedAt),
+            ),
+          )
+          .limit(1),
+      );
+      receivableAccountId = receivableAccountId ?? arAcc?.id;
+      revenueAccountId = revenueAccountId ?? revAcc?.id;
+    }
+
+    const targetRetentionAccount = retentionAccountId ?? receivableAccountId;
+
+    // ACC-056 & ACC-059: أسطر القيد مع وسم مركز التكلفة وفصل حساب المحتجز
+    const journalLines =
+      receivableAccountId && revenueAccountId
+        ? [
+            {
+              accountId: receivableAccountId,
+              debit: bill.netDue,
+              partyId: project.partyId,
+              costCenterId,
+              description: `مستخلص أعمال ${bill.number ?? bill.id}`,
+            },
+            ...(new Decimal(bill.retentionValue).gt(0) && targetRetentionAccount
+              ? [
+                  {
+                    accountId: targetRetentionAccount,
+                    debit: bill.retentionValue,
+                    partyId: project.partyId,
+                    costCenterId,
+                    description: `محتجز مستخلص ${bill.number ?? bill.id}`,
+                  },
+                ]
+              : []),
+            {
+              accountId: revenueAccountId,
+              credit: bill.workValue,
+              costCenterId,
+              description: `إيراد مستخلص ${bill.number ?? bill.id}`,
+            },
+          ]
+        : undefined;
+
+    await this.sales.post(tenantId, invoice.id, {
+      fiscalPeriodId,
+      journalLines,
+    });
+
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      await tx
+        .update(progressBills)
+        .set({ status: 'posted', invoiceId: invoice.id, postedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(progressBills.tenantId, tenantId), eq(progressBills.id, billId)));
+      for (const line of bill.lines)
+        await tx
+          .update(boqTerms)
+          .set({
+            previouslyBilled: sql`${boqTerms.previouslyBilled} + ${line.billValue}`,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(boqTerms.tenantId, tenantId), eq(boqTerms.id, line.termId)));
+    });
+
+    return this.getBill(tenantId, billId);
+  }
+
+  async releaseRetention(
+    tenantId: string,
+    billId: string,
+    input: {
+      branchId?: string;
+      fiscalPeriodId?: string;
+      receivableAccountId?: string;
+      retentionReceivableAccountId?: string;
+    } = {},
+  ) {
+    await this.ensureEnabled(tenantId);
+    const bill = (await this.getBill(tenantId, billId)).data;
+    if (bill.status !== 'posted')
+      throw new DomainError('PROGRESS_BILL_INVALID_STATE', 'Only posted bills can release retention', 409);
+    const project = (await this.read(tenantId, bill.projectId)).data;
+    const branchId = input.branchId ?? project.branchId;
+    if (!branchId)
+      throw new DomainError('PROJECT_BRANCH_REQUIRED', 'Project branch is required', 422);
+
+    const costCenterId = project.costCenterId ?? undefined;
+
+    // 1. Create invoice for retention release
+    const invoice = await this.sales.create(tenantId, {
+      branchId,
+      partyId: project.partyId,
+      kind: 'sale',
+      costCenterId,
+      lines: [
+        {
+          description: `Retention release ${bill.number ?? bill.id}`,
+          quantity: '1',
+          unitPrice: bill.retentionValue,
+          taxRate: '0',
+          costCenterId,
+        },
+      ],
+    });
+
+    // ACC-057: إفراج المحتجز لا يعترف بإيراد جديد (حتى لا يتضاعف الإيراد والذمة)
+    // القيد الصحيح: Dr ذمم العملاء (AR) / Cr محتجزات لدى العملاء
+    let receivableAccountId = input.receivableAccountId;
+    let retentionAccountId = input.retentionReceivableAccountId;
+
+    if (!receivableAccountId || !retentionAccountId) {
+      const [arAcc] = await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .select({ id: accounts.id })
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.tenantId, tenantId),
+              eq(accounts.type, 'asset'),
+              or(sql`${accounts.code} LIKE '1231%'`, sql`${accounts.nameAr} LIKE '%عملاء%'`),
+              isNull(accounts.deletedAt),
+            ),
+          )
+          .limit(1),
+      );
+      const [retAcc] = await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .select({ id: accounts.id })
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.tenantId, tenantId),
+              eq(accounts.type, 'asset'),
+              or(sql`${accounts.code} LIKE '1232%'`, sql`${accounts.nameAr} LIKE '%محتجز%'`),
+              isNull(accounts.deletedAt),
+            ),
+          )
+          .limit(1),
+      );
+      receivableAccountId = receivableAccountId ?? arAcc?.id;
+      retentionAccountId = retentionAccountId ?? retAcc?.id ?? receivableAccountId;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const fiscalPeriodId =
+      input.fiscalPeriodId ?? (await this.accounting.openPeriodForDate(tenantId, today));
+
+    // ACC-057 & ACC-059: Post invoice with custom journal lines preventing duplicate revenue recognition
+    if (receivableAccountId && retentionAccountId && receivableAccountId !== retentionAccountId) {
+      await this.sales.post(tenantId, invoice.id, {
+        fiscalPeriodId,
+        journalLines: [
+          {
+            accountId: receivableAccountId,
+            debit: bill.retentionValue,
+            partyId: project.partyId,
+            costCenterId,
+            description: `إفراج محتجز مستخلص ${bill.number ?? bill.id}`,
+          },
+          {
+            accountId: retentionAccountId,
+            credit: bill.retentionValue,
+            partyId: project.partyId,
+            costCenterId,
+            description: `إقفال حساب محتجز مستخلص ${bill.number ?? bill.id}`,
+          },
+        ],
+      });
+    } else {
+      await this.sales.post(tenantId, invoice.id, {
+        fiscalPeriodId,
+        journalLines: [
+          {
+            accountId: receivableAccountId!,
+            debit: bill.retentionValue,
+            partyId: project.partyId,
+            costCenterId,
+            description: `إفراج محتجز مستخلص ${bill.number ?? bill.id}`,
+          },
+          {
+            accountId: receivableAccountId!,
+            credit: bill.retentionValue,
+            partyId: project.partyId,
+            costCenterId,
+            description: `تسوية محتجز مستخلص ${bill.number ?? bill.id}`,
+          },
+        ],
+      });
+    }
+
+    await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .update(progressBills)
+        .set({
+          status: 'released',
+          releasedAt: new Date(),
+          updatedAt: new Date(),
+          summary: sql`${progressBills.summary} || ${JSON.stringify({ retentionReleaseInvoiceId: invoice.id })}::jsonb`,
+        })
+        .where(and(eq(progressBills.tenantId, tenantId), eq(progressBills.id, billId))),
+    );
+
+    return { data: { retentionReleaseInvoiceId: invoice.id } };
+  }
   async addRequirement(tenantId: string, input: { projectId?: string; partyId?: string; title: string; status?: string; payload?: Record<string, unknown> }) { await this.ensureEnabled(tenantId); const [row] = await withTenantTx(this.database.db, tenantId, (tx) => tx.insert(projectRequirements).values({ id: newId(), tenantId, projectId: input.projectId, partyId: input.partyId, title: input.title, status: input.status ?? 'open', payload: input.payload ?? {} }).returning()); return row; }
 }

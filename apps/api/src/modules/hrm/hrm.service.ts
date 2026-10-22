@@ -38,7 +38,7 @@ import { AccountingService, defaultNormalBalance, type AccountType, type Journal
 import { TreasuryService } from '../treasury/treasury.service.js';
 import { FileAttachmentRegistry } from '../platform-services/files/file-attachments.js';
 
-import { calculatePayrollLine } from './payroll-calculator.js';
+import { calculatePayrollLine, monthEnd } from './payroll-calculator.js';
 import { todayInTimezone } from './payroll-compliance.js';
 
 export type DepartmentInput = { code: string; name: string; branchId?: string; parentId?: string | null };
@@ -1406,6 +1406,27 @@ export class HrmService implements OnModuleInit {
       tx.select({ id: salaryPayments.id }).from(salaryPayments).where(and(eq(salaryPayments.tenantId, tenantId), eq(salaryPayments.employeeId, employee.id), eq(salaryPayments.yearMonth, input.yearMonth), isNull(salaryPayments.deletedAt))).limit(1));
     if (duplicate) throw new DomainError('SALARY_PAYMENT_DUPLICATE', 'لقد تم دفع راتب الموظف سابقاً.', 409);
 
+    // ACC-046: التحقق من عدم صرف راتب الموظف ضمن مسيّر رواتب مدفوع لهذا الشهر
+    const [paidRun] = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx.select({ id: payrollRuns.id }).from(payrollRuns).where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.yearMonth, input.yearMonth), eq(payrollRuns.status, 'paid'))).limit(1));
+    if (paidRun) throw new DomainError('SALARY_PAYMENT_ALREADY_PAID', 'تم صرف راتب هذا الموظف ضمن مسير الرواتب لهذا الشهر', 409);
+
+    const [paidRunLine] = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .select({ runId: payrollRunLines.runId })
+        .from(payrollRunLines)
+        .innerJoin(payrollRuns, eq(payrollRuns.id, payrollRunLines.runId))
+        .where(
+          and(
+            eq(payrollRunLines.tenantId, tenantId),
+            eq(payrollRunLines.employeeId, employee.id),
+            eq(payrollRuns.yearMonth, input.yearMonth),
+            eq(payrollRunLines.status, 'paid'),
+          ),
+        )
+        .limit(1));
+    if (paidRunLine) throw new DomainError('SALARY_PAYMENT_ALREADY_PAID', 'تم صرف راتب هذا الموظف بالفعل لهذا الشهر', 409);
+
     const amounts = await this.salaryForMonth(tenantId, employee, input.yearMonth, { runId: input.runId, unpaidDays: input.unpaidDays });
     if (new Decimal(amounts.net).lte(0)) throw new DomainError('SALARY_PAYMENT_NOTHING_DUE', 'لا يوجد رواتب مستحقة للموظف.', 422);
 
@@ -1466,8 +1487,20 @@ export class HrmService implements OnModuleInit {
       });
       if (!voucher) throw new DomainError('INTERNAL', 'Salary payment voucher was not created', 500);
       const posted = await this.treasury.postVoucher(tenantId, voucher.id, { fiscalPeriodId: input.fiscalPeriodId });
-      await withTenantTx(this.database.db, tenantId, (tx) =>
-        tx.update(salaryPayments).set({ voucherId: posted.id, journalEntryId: posted.journalEntryId ?? null, updatedAt: new Date() }).where(and(eq(salaryPayments.tenantId, tenantId), eq(salaryPayments.id, id))));
+      await withTenantTx(this.database.db, tenantId, async (tx) => {
+        await tx.update(salaryPayments).set({ voucherId: posted.id, journalEntryId: posted.journalEntryId ?? null, updatedAt: new Date() }).where(and(eq(salaryPayments.tenantId, tenantId), eq(salaryPayments.id, id)));
+        // ACC-048: تحديث حالة سطر مسير الرواتب إلى مدفوع إن وجد
+        await tx
+          .update(payrollRunLines)
+          .set({ status: 'paid' })
+          .where(
+            and(
+              eq(payrollRunLines.tenantId, tenantId),
+              eq(payrollRunLines.employeeId, employee.id),
+              input.runId ? eq(payrollRunLines.runId, input.runId) : undefined,
+            ),
+          );
+      });
       return this.readSalaryPayment(tenantId, id);
     } catch (error) {
       // Nothing half-done: an إذن whose money did not leave the till is not an إذن.
@@ -1542,9 +1575,116 @@ export class HrmService implements OnModuleInit {
 
   async approveAdjustment(tenantId: string, id: string) { await this.ensureEnabled(tenantId); const [row] = await withTenantTx(this.database.db, tenantId, (tx) => tx.update(salaryAdjustments).set({ status: 'approved', updatedAt: new Date() }).where(and(eq(salaryAdjustments.tenantId, tenantId), eq(salaryAdjustments.id, id), eq(salaryAdjustments.status, 'draft'))).returning()); if (!row) throw new DomainError('NOT_FOUND', 'Draft adjustment not found', 404); return row; }
 
-  async preview(tenantId: string, input: RunInput) { await this.ensureEnabled(tenantId); const staff = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(employees).where(and(eq(employees.tenantId, tenantId), eq(employees.status, 'active'), isNull(employees.deletedAt)))); const activeAdjustments = await this.adjustmentsForMonth(tenantId, input.yearMonth); const lines = staff.map((employee) => calculatePayrollLine({ id: employee.id, name: employee.name, components: employee.salaryComponents, unpaidDays: input.unpaidDaysByEmployee?.[employee.id] ?? 0, adjustments: activeAdjustments.filter((entry) => entry.employeeId === employee.id).map((entry) => ({ kind: entry.kind as 'addition' | 'deduction', valueText: entry.valueText })) })); return { data: { yearMonth: input.yearMonth, employeeCount: lines.length, netPayable: sumLines(lines.map((line) => line.net)), lines } }; }
+  async preview(tenantId: string, input: RunInput) {
+    await this.ensureEnabled(tenantId);
+    const mEnd = monthEnd(input.yearMonth);
+    const mStart = `${input.yearMonth}-01`;
+    const daysInM = Number(mEnd.slice(8, 10));
 
-  async createRun(tenantId: string, input: RunInput) { const preview = await this.preview(tenantId, input); const id = newId(); await withTenantTx(this.database.db, tenantId, async (tx) => { await tx.insert(payrollRuns).values({ id, tenantId, yearMonth: input.yearMonth, periodId: input.periodId, currency: input.currency ?? 'SAR', summary: { preview: preview.data } }); if (preview.data.lines.length) await tx.insert(payrollRunLines).values(preview.data.lines.map((line, index) => ({ runId: id, lineNo: index + 1, tenantId, employeeId: line.employeeId, components: line.components, additions: line.additions, deductions: line.deductions, gross: line.gross, net: line.net, status: 'draft', payslipHtml: payslipHtml(input.yearMonth, line.employeeName, line.net) }))); }); return this.readRun(tenantId, id); }
+    const staff = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .select()
+        .from(employees)
+        .where(and(eq(employees.tenantId, tenantId), eq(employees.status, 'active'), isNull(employees.deletedAt))),
+    );
+    const activeAdjustments = await this.adjustmentsForMonth(tenantId, input.yearMonth);
+
+    // ACC-038 & UI-016: استبعاد الموظفين المعينين بعد شهر المسيّر والموظفين بلا راتب
+    const eligibleStaff = staff.filter((employee) => {
+      if (employee.hireDate && employee.hireDate > mEnd) return false;
+      const comps = employee.salaryComponents ?? {};
+      const hasBase = Object.values(comps).some((val) => Number(val) > 0);
+      const hasAdj = activeAdjustments.some((adj) => adj.employeeId === employee.id);
+      return hasBase || hasAdj;
+    });
+
+    const lines = eligibleStaff.map((employee) => {
+      let hireUnpaidDays = 0;
+      if (employee.hireDate && employee.hireDate >= mStart && employee.hireDate <= mEnd) {
+        const hireDay = Number(employee.hireDate.slice(8, 10));
+        const workedDays = daysInM - hireDay + 1;
+        hireUnpaidDays = daysInM - workedDays;
+      }
+      const userUnpaid = input.unpaidDaysByEmployee?.[employee.id] ?? 0;
+      const totalUnpaid = Math.min(daysInM, userUnpaid + hireUnpaidDays);
+
+      return calculatePayrollLine({
+        id: employee.id,
+        name: employee.name,
+        components: employee.salaryComponents,
+        daysInMonth: daysInM,
+        unpaidDays: totalUnpaid,
+        adjustments: activeAdjustments
+          .filter((entry) => entry.employeeId === employee.id)
+          .map((entry) => ({
+            kind: entry.kind as 'addition' | 'deduction',
+            valueText: entry.valueText,
+          })),
+      });
+    });
+
+    return {
+      data: {
+        yearMonth: input.yearMonth,
+        employeeCount: lines.length,
+        netPayable: sumLines(lines.map((line) => line.net)),
+        lines,
+      },
+    };
+  }
+
+  async createRun(tenantId: string, input: RunInput) {
+    await this.ensureEnabled(tenantId);
+    const id = newId();
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      // ACC-037: منع إنشاء مسيّر مكرر للشهر نفسه بـ 409
+      const [existing] = await tx
+        .select({ id: payrollRuns.id })
+        .from(payrollRuns)
+        .where(
+          and(
+            eq(payrollRuns.tenantId, tenantId),
+            eq(payrollRuns.yearMonth, input.yearMonth),
+          ),
+        )
+        .limit(1);
+      if (existing) {
+        throw new DomainError(
+          'PAYROLL_RUN_EXISTS',
+          `يوجد مسيّر رواتب مسجل لشهر ${input.yearMonth}`,
+          409,
+        );
+      }
+
+      const preview = await this.preview(tenantId, input);
+      await tx.insert(payrollRuns).values({
+        id,
+        tenantId,
+        yearMonth: input.yearMonth,
+        periodId: input.periodId,
+        currency: input.currency ?? 'SAR',
+        summary: { preview: preview.data },
+      });
+      if (preview.data.lines.length) {
+        await tx.insert(payrollRunLines).values(
+          preview.data.lines.map((line, index) => ({
+            runId: id,
+            lineNo: index + 1,
+            tenantId,
+            employeeId: line.employeeId,
+            components: line.components,
+            additions: line.additions,
+            deductions: line.deductions,
+            gross: line.gross,
+            net: line.net,
+            status: 'draft',
+            payslipHtml: payslipHtml(input.yearMonth, line.employeeName, line.net),
+          })),
+        );
+      }
+    });
+    return this.readRun(tenantId, id);
+  }
   async readRun(tenantId: string, id: string) { await this.ensureEnabled(tenantId); const [run] = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(payrollRuns).where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id))).limit(1)); if (!run) throw new DomainError('NOT_FOUND', 'Payroll run not found', 404); const lines = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(payrollRunLines).where(and(eq(payrollRunLines.tenantId, tenantId), eq(payrollRunLines.runId, id))).orderBy(payrollRunLines.lineNo)); return { data: { ...run, lines } }; }
   async listRuns(tenantId: string) { await this.ensureEnabled(tenantId); return { data: await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(payrollRuns).where(eq(payrollRuns.tenantId, tenantId)).orderBy(payrollRuns.yearMonth)) }; }
   /**
@@ -1575,17 +1715,40 @@ export class HrmService implements OnModuleInit {
       if (run.status !== 'draft')
         throw new DomainError('PAYROLL_RUN_IMMUTABLE', 'Only draft payroll runs can be posted', 409);
 
+      const runLines = await tx
+        .select()
+        .from(payrollRunLines)
+        .where(and(eq(payrollRunLines.tenantId, tenantId), eq(payrollRunLines.runId, id)));
+      const netPayable = new Decimal(sumLines(runLines.map((l) => l.net)));
+
+      // ACC-039: تدقيق أسطر القيد ومنع ترحيل مسيّر بلا قيد أو بمبالغ لا تطابق الصافي
       let journalEntryId = input.journalEntryId;
-      if (
-        !journalEntryId &&
-        input.journalLines?.length &&
-        input.branchId &&
-        (input.fiscalPeriodId ?? run.periodId)
-      ) {
-        const businessToday = await this.resolveBusinessTodayInTx(tx, tenantId);
+      const businessToday = await this.resolveBusinessTodayInTx(tx, tenantId);
+
+      const periodId = input.fiscalPeriodId ?? run.periodId ?? (await this.accounting.openPeriodForDateInTx(tx, tenantId, businessToday));
+      // ACC-053: التحقق من قفل فترة الرواتب
+      await this.accounting.assertModuleUnlocked(tx, tenantId, periodId, 'payroll');
+
+      if (input.journalLines?.length) {
+        // فحص توازن القيد
+        const totalDebit = input.journalLines.reduce((sum, l) => sum.plus(l.debit ?? '0'), new Decimal(0));
+        const totalCredit = input.journalLines.reduce((sum, l) => sum.plus(l.credit ?? '0'), new Decimal(0));
+        if (!totalDebit.eq(totalCredit)) {
+          throw new DomainError('PAYROLL_JOURNAL_UNBALANCED', 'Journal lines must be balanced', 422);
+        }
+        if (netPayable.gt(0) && totalCredit.minus(netPayable).abs().gt('0.01')) {
+          throw new DomainError('PAYROLL_JOURNAL_AMOUNT_MISMATCH', 'Journal lines total must match net payable', 422);
+        }
+
+        const [defaultBranch] = await tx
+          .select({ id: branches.id })
+          .from(branches)
+          .where(and(eq(branches.tenantId, tenantId), isNull(branches.deletedAt)))
+          .limit(1);
+
         const journal = await this.accounting.postJournalInTx(tx, tenantId, {
-          branchId: input.branchId,
-          fiscalPeriodId: input.fiscalPeriodId ?? run.periodId!,
+          branchId: input.branchId ?? defaultBranch?.id ?? '',
+          fiscalPeriodId: periodId,
           date: businessToday,
           description: `Payroll ${run.yearMonth}`,
           lines: input.journalLines,
@@ -1595,7 +1758,82 @@ export class HrmService implements OnModuleInit {
         });
         if (!journal) throw new DomainError('INTERNAL', 'Payroll journal was not created', 500);
         journalEntryId = journal.id;
+      } else if (netPayable.gt(0)) {
+        // بناء القيد التلقائي من حسابات الرواتب
+        const [defaultBranch] = await tx
+          .select({ id: branches.id })
+          .from(branches)
+          .where(and(eq(branches.tenantId, tenantId), isNull(branches.deletedAt)))
+          .limit(1);
+        const branchId = input.branchId ?? defaultBranch?.id ?? '';
+
+        let expenseAccId: string | undefined;
+        let payableAccId: string | undefined;
+
+        const [expenseAcc] = await tx
+          .select({ id: accounts.id })
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.tenantId, tenantId),
+              eq(accounts.type, 'expense'),
+              or(
+                sql`${accounts.code} LIKE '3122%'`,
+                sql`${accounts.code} LIKE '511%'`,
+                sql`${accounts.nameAr} LIKE '%رواتب%'`,
+              ),
+              isNull(accounts.deletedAt),
+            ),
+          )
+          .limit(1);
+        expenseAccId = expenseAcc?.id;
+
+        const [payableAcc] = await tx
+          .select({ id: accounts.id })
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.tenantId, tenantId),
+              eq(accounts.type, 'liability'),
+              or(
+                sql`${accounts.code} LIKE '224%'`,
+                sql`${accounts.nameAr} LIKE '%رواتب مستحقة%'`,
+              ),
+              isNull(accounts.deletedAt),
+            ),
+          )
+          .limit(1);
+        payableAccId = payableAcc?.id;
+
+        if (expenseAccId && payableAccId) {
+          const journal = await this.accounting.postJournalInTx(tx, tenantId, {
+            branchId,
+            fiscalPeriodId: periodId,
+            date: businessToday,
+            description: `Payroll ${run.yearMonth}`,
+            lines: [
+              { accountId: expenseAccId, debit: netPayable.toFixed(4), description: `استحقاق رواتب شهر ${run.yearMonth}` },
+              { accountId: payableAccId, credit: netPayable.toFixed(4), description: `رواتب مستحقة شهر ${run.yearMonth}` },
+            ],
+            sourceType: 'payroll_run',
+            sourceId: id,
+            idempotencyKey: `payroll-journal:${id}`,
+          });
+          journalEntryId = journal?.id;
+        } else {
+          throw new DomainError(
+            'PAYROLL_JOURNAL_REQUIRED',
+            'Posting a payroll run requires explicit or resolvable payroll journal accounts',
+            422,
+          );
+        }
       }
+
+      // ACC-048: تحديث حالة أسطر المسير إلى posted
+      await tx
+        .update(payrollRunLines)
+        .set({ status: 'posted' })
+        .where(and(eq(payrollRunLines.tenantId, tenantId), eq(payrollRunLines.runId, id)));
 
       const claimed = await tx
         .update(payrollRuns)
@@ -1633,7 +1871,25 @@ export class HrmService implements OnModuleInit {
         .select()
         .from(payrollRunLines)
         .where(and(eq(payrollRunLines.tenantId, tenantId), eq(payrollRunLines.runId, id)));
-      const payValue = sumLines(lines.map((line) => line.net));
+
+      // ACC-046: فحص الموظفين المصروف رواتبهم فردياً لنفس الشهر
+      const existingPayments = await tx
+        .select({ employeeId: salaryPayments.employeeId })
+        .from(salaryPayments)
+        .where(
+          and(
+            eq(salaryPayments.tenantId, tenantId),
+            eq(salaryPayments.yearMonth, run.yearMonth),
+            isNull(salaryPayments.deletedAt),
+          ),
+        );
+      const paidEmployeeIds = new Set(existingPayments.map((p) => p.employeeId));
+
+      const unpaidLines = lines.filter((line) => !paidEmployeeIds.has(line.employeeId) && line.status !== 'paid');
+      if (unpaidLines.length === 0) {
+        throw new DomainError('SALARY_ALREADY_PAID', 'تم صرف رواتب جميع موظفي هذا المسير من قبل', 409);
+      }
+      const payValue = sumLines(unpaidLines.map((line) => line.net));
       const idempotencyKey = `payroll:${id}`;
 
       const [existingVoucher] = await tx
@@ -1643,17 +1899,58 @@ export class HrmService implements OnModuleInit {
         .limit(1);
 
       const businessToday = await this.resolveBusinessTodayInTx(tx, tenantId);
+
+      // ACC-040: توجيه سند صرف الرواتب لحساب الرواتب المستحقة (224...) بدلاً من ذمم الموردين
+      let counterAccountId: string | undefined;
+      const [accruedAcc] = await tx
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.tenantId, tenantId),
+            eq(accounts.type, 'liability'),
+            or(
+              sql`${accounts.code} LIKE '224%'`,
+              sql`${accounts.nameAr} LIKE '%رواتب مستحقة%'`,
+            ),
+            isNull(accounts.deletedAt),
+          ),
+        )
+        .limit(1);
+      counterAccountId = accruedAcc?.id;
+
+      let resolvedBranchId: string | undefined = input.branchId || undefined;
+      if (!resolvedBranchId && input.cashLocationId) {
+        const [cl] = await tx
+          .select({ branchId: cashLocations.branchId })
+          .from(cashLocations)
+          .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.id, input.cashLocationId)))
+          .limit(1);
+        if (cl?.branchId) resolvedBranchId = cl.branchId;
+      }
+      if (!resolvedBranchId) {
+        const [b] = await tx
+          .select({ id: branches.id })
+          .from(branches)
+          .where(and(eq(branches.tenantId, tenantId), isNull(branches.deletedAt)))
+          .limit(1);
+        if (b?.id) resolvedBranchId = b.id;
+      }
+      if (!resolvedBranchId) throw new DomainError('BRANCH_REQUIRED', 'Branch is required to pay payroll run', 422);
+
       const voucher =
         existingVoucher ??
         (await this.treasury.createVoucherInTx(tx, tenantId, {
-          branchId: input.branchId,
+          branchId: resolvedBranchId,
           kind: 'payment',
           subtype: 'salary',
           date: businessToday,
           cashLocationId: input.cashLocationId,
+          counterAccountId,
           method: input.method ?? 'cash',
           amount: payValue,
           netAmount: payValue,
+          description: `صرف رواتب شهر ${run.yearMonth}`,
           idempotencyKey,
         }));
       if (!voucher) throw new DomainError('INTERNAL', 'Payroll voucher was not created', 500);
@@ -1662,6 +1959,14 @@ export class HrmService implements OnModuleInit {
         voucher.status === 'posted'
           ? voucher
           : await this.treasury.postVoucherInTx(tx, tenantId, voucher.id, { fiscalPeriodId: input.fiscalPeriodId });
+
+      // ACC-048: تحديث حالة الأسطر المدفوعة إلى paid
+      for (const line of unpaidLines) {
+        await tx
+          .update(payrollRunLines)
+          .set({ status: 'paid' })
+          .where(and(eq(payrollRunLines.tenantId, tenantId), eq(payrollRunLines.runId, id), eq(payrollRunLines.employeeId, line.employeeId)));
+      }
 
       const claimed = await tx
         .update(payrollRuns)
@@ -1674,7 +1979,80 @@ export class HrmService implements OnModuleInit {
     return this.readRun(tenantId, id);
   }
 
-  async reverseRun(tenantId: string, id: string, reason: string) { await this.ensureEnabled(tenantId); if (!reason.trim()) throw new DomainError('VALIDATION_FAILED', 'Reversal reason is required', 422); const current = await this.readRun(tenantId, id); if (current.data.status !== 'posted' && current.data.status !== 'paid') throw new DomainError('PAYROLL_REVERSAL_INVALID', 'Only posted or paid runs can be reversed', 409); await withTenantTx(this.database.db, tenantId, (tx) => tx.update(payrollRuns).set({ status: 'reversed', reversedAt: new Date(), reversalReason: reason, updatedAt: new Date() }).where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id)))); return this.readRun(tenantId, id); }
+  async reverseRun(tenantId: string, id: string, reason: string) {
+    await this.ensureEnabled(tenantId);
+    if (!reason.trim()) throw new DomainError('VALIDATION_FAILED', 'Reversal reason is required', 422);
+    const current = await this.readRun(tenantId, id);
+    if (current.data.status !== 'posted' && current.data.status !== 'paid')
+      throw new DomainError('PAYROLL_REVERSAL_INVALID', 'Only posted or paid runs can be reversed', 409);
+
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      // ACC-047: 1. عكس قيد الاستحقاق
+      if (current.data.journalEntryId) {
+        await this.accounting.reverseJournalInTx(tx, tenantId, current.data.journalEntryId, {
+          reason: `عكس مسير الرواتب: ${reason}`,
+          sourceType: 'payroll_run',
+          sourceId: id,
+          date: current.data.postedAt ? new Date(current.data.postedAt).toISOString().slice(0, 10) : undefined,
+          ifAlreadyReversed: 'reuse',
+        });
+      }
+
+      // ACC-047: 2. إبطال سند صرف المسيّر
+      if (current.data.voucherId) {
+        const [vRow] = await tx
+          .select({ id: vouchers.id, status: vouchers.status })
+          .from(vouchers)
+          .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, current.data.voucherId)))
+          .limit(1);
+        if (vRow && vRow.status === 'posted') {
+          await this.treasury.voidVoucherInTx(tx, tenantId, vRow.id, `عكس مسير الرواتب: ${reason}`);
+        }
+      }
+
+      // ACC-047: 3. إبطال سندات الصرف الفردية المرتبطة بالمسيّر أو الشهر
+      const linkedSalaryPayments = await tx
+        .select({ id: salaryPayments.id, voucherId: salaryPayments.voucherId })
+        .from(salaryPayments)
+        .where(
+          and(
+            eq(salaryPayments.tenantId, tenantId),
+            or(eq(salaryPayments.runId, id), eq(salaryPayments.yearMonth, current.data.yearMonth)),
+            isNull(salaryPayments.deletedAt),
+          ),
+        );
+      for (const sp of linkedSalaryPayments) {
+        if (sp.voucherId) {
+          const [spV] = await tx
+            .select({ id: vouchers.id, status: vouchers.status })
+            .from(vouchers)
+            .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, sp.voucherId)))
+            .limit(1);
+          if (spV && spV.status === 'posted') {
+            await this.treasury.voidVoucherInTx(tx, tenantId, spV.id, `عكس مسير الرواتب: ${reason}`);
+          }
+        }
+        await tx
+          .update(salaryPayments)
+          .set({ deletedAt: new Date(), updatedAt: new Date() })
+          .where(and(eq(salaryPayments.tenantId, tenantId), eq(salaryPayments.id, sp.id)));
+      }
+
+      // ACC-048: 4. تحديث حالة أسطر المسير إلى reversed
+      await tx
+        .update(payrollRunLines)
+        .set({ status: 'reversed' })
+        .where(and(eq(payrollRunLines.tenantId, tenantId), eq(payrollRunLines.runId, id)));
+
+      // 5. تحديث حالة المسير إلى reversed
+      await tx
+        .update(payrollRuns)
+        .set({ status: 'reversed', reversedAt: new Date(), reversalReason: reason, updatedAt: new Date() })
+        .where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id)));
+    });
+
+    return this.readRun(tenantId, id);
+  }
 
   /**
    * The حوافز والخصومات a month's مسيّر carries.

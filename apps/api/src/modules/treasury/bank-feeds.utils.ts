@@ -36,13 +36,13 @@ export type BankMatchScore = {
 };
 
 const HEADER_ALIASES: Record<keyof ColumnMap, string[]> = {
-  date: ['date', 'transactiondate', 'transaction_date', 'txndate', 'valuedate', 'postingdate', 'تاريخ', 'تاريخالحركة', 'تاريخالقيد'],
-  description: ['description', 'details', 'narrative', 'memo', 'particulars', 'الوصف', 'البيان', 'التفاصيل', 'الحركة'],
-  reference: ['reference', 'ref', 'referenceno', 'transactionid', 'checkno', 'chequeno', 'المرجع', 'رقمالمرجع', 'رقمالحركة'],
-  amount: ['amount', 'transactionamount', 'value', 'المبلغ', 'القيمة', 'قيمةالحركة'],
-  debit: ['debit', 'withdrawal', 'withdrawals', 'out', 'مدين', 'مسحوبات', 'مدفوعات', 'صادر'],
-  credit: ['credit', 'deposit', 'deposits', 'in', 'دائن', 'إيداعات', 'مقبوضات', 'وارد'],
-  balance: ['balance', 'runningbalance', 'closingbalance', 'الرصيد', 'الرصيدالجاري', 'الرصيدالختامي'],
+  date: ['date', 'transactiondate', 'transaction_date', 'txndate', 'valuedate', 'postingdate', 'تاريخ', 'التاريخ', 'تاريخالحركة', 'تاريخ_الحركة', 'تاريخالقيد'],
+  description: ['description', 'details', 'narrative', 'memo', 'particulars', 'الوصف', 'وصف', 'البيان', 'بيان', 'التفاصيل', 'تفاصيل', 'الحركة'],
+  reference: ['reference', 'ref', 'referenceno', 'transactionid', 'checkno', 'chequeno', 'المرجع', 'مرجع', 'رقمالمرجع', 'رقمالحركة'],
+  amount: ['amount', 'transactionamount', 'value', 'المبلغ', 'مبلغ', 'القيمة', 'قيمة', 'قيمةالحركة'],
+  debit: ['debit', 'withdrawal', 'withdrawals', 'out', 'مدين', 'المدين', 'مسحوبات', 'المسحوبات', 'مدفوعات', 'صادر'],
+  credit: ['credit', 'deposit', 'deposits', 'in', 'دائن', 'الدائن', 'إيداعات', 'الإيداعات', 'مقبوضات', 'وارد'],
+  balance: ['balance', 'runningbalance', 'closingbalance', 'الرصيد', 'رصيد', 'الرصيدالجاري', 'الرصيدالختامي'],
 };
 
 function normaliseDigits(value: string): string {
@@ -52,10 +52,11 @@ function normaliseDigits(value: string): string {
 }
 
 function normaliseHeader(value: string): string {
-  return normaliseDigits(value)
+  const base = normaliseDigits(value)
     .trim()
     .toLocaleLowerCase()
     .replace(/[\uFEFF\s_\-./()[\]{}:،,]/g, '');
+  return base.startsWith('ال') && base.length > 4 ? base.slice(2) : base;
 }
 
 function detectDelimiter(line: string): string {

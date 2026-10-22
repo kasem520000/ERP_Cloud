@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
-import { and, asc, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import { DomainError, newId } from '@erp/contracts';
 import {
   accounts,
@@ -8,6 +8,7 @@ import {
   bankReconciliationRules,
   bankStatementLines,
   bankStatements,
+  cashLocations,
   costCenters,
   journalEntries,
   journalEntryLines,
@@ -287,6 +288,38 @@ export class BankFeedsService {
         if (existing) throw new DomainError('BANK_FILE_ALREADY_IMPORTED', 'This file was already imported', 409);
       }
 
+      // ACC-043: منع استيراد كشف بنكي مكرر (باللصق المباشر أو بإعادة الرفع)
+      const existingCandidates = await tx
+        .select({ id: bankStatements.id, rowCount: bankStatements.rowCount })
+        .from(bankStatements)
+        .where(
+          and(
+            eq(bankStatements.tenantId, tenantId),
+            eq(bankStatements.bankAccountId, input.bankAccountId),
+            eq(bankStatements.periodFrom, periodFrom),
+            eq(bankStatements.periodTo, periodTo),
+          ),
+        );
+      for (const ec of existingCandidates) {
+        if (ec.rowCount === parsed.length) {
+          const ecLines = await tx
+            .select({ txnDate: bankStatementLines.txnDate, amount: bankStatementLines.amount })
+            .from(bankStatementLines)
+            .where(and(eq(bankStatementLines.tenantId, tenantId), eq(bankStatementLines.statementId, ec.id)))
+            .orderBy(asc(bankStatementLines.lineNo));
+          const allMatch =
+            ecLines.length === parsed.length &&
+            ecLines.every(
+              (l, idx) =>
+                l.txnDate === parsed[idx]?.txnDate &&
+                money(l.amount).eq(money(parsed[idx]?.amount ?? '0')),
+            );
+          if (allMatch) {
+            throw new DomainError('BANK_STATEMENT_DUPLICATE', 'This bank statement has already been imported', 409);
+          }
+        }
+      }
+
       const openingBalance = input.openingBalance === undefined ? null : assertPositiveOrZero(input.openingBalance, 'openingBalance');
       const [statement] = await tx
         .insert(bankStatements)
@@ -332,9 +365,17 @@ export class BankFeedsService {
   async listLines(tenantId: string, statementId: string, status?: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       await this.mustStatement(tx, tenantId, statementId);
-      return tx
-        .select()
+      const rows = await tx
+        .select({
+          line: bankStatementLines,
+          voucherNumber: vouchers.number,
+          saleNumber: salesInvoices.number,
+          purchaseNumber: purchaseInvoices.number,
+        })
         .from(bankStatementLines)
+        .leftJoin(vouchers, eq(vouchers.id, bankStatementLines.matchedVoucherId))
+        .leftJoin(salesInvoices, eq(salesInvoices.id, bankStatementLines.matchedInvoiceId))
+        .leftJoin(purchaseInvoices, eq(purchaseInvoices.id, bankStatementLines.matchedInvoiceId))
         .where(
           and(
             eq(bankStatementLines.tenantId, tenantId),
@@ -343,6 +384,11 @@ export class BankFeedsService {
           ),
         )
         .orderBy(asc(bankStatementLines.lineNo));
+
+      return rows.map(({ line, voucherNumber, saleNumber, purchaseNumber }) => ({
+        ...line,
+        matchedDocumentNumber: voucherNumber ?? saleNumber ?? purchaseNumber ?? null,
+      }));
     });
   }
 
@@ -444,13 +490,13 @@ export class BankFeedsService {
 
   async autoMatch(tenantId: string, statementId: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      await this.mustStatement(tx, tenantId, statementId);
+      const statement = await this.mustStatement(tx, tenantId, statementId);
       const pending = await tx
         .select()
         .from(bankStatementLines)
         .where(and(eq(bankStatementLines.tenantId, tenantId), eq(bankStatementLines.statementId, statementId), eq(bankStatementLines.status, 'pending')))
         .orderBy(asc(bankStatementLines.lineNo));
-      const candidates = await this.candidates(tx, tenantId);
+      const candidates = await this.candidates(tx, tenantId, statement.bankAccountId);
       const rules = await tx
         .select()
         .from(bankReconciliationRules)
@@ -458,6 +504,25 @@ export class BankFeedsService {
         .orderBy(asc(bankReconciliationRules.priority), asc(bankReconciliationRules.createdAt));
       let matched = 0;
       let suggested = 0;
+
+      // ACC-035 & ACC-044: تتبع المرشحين المستخدمين لمنع مطابقة المستند نفسه أكثر من مرة
+      const usedCandidateIds = new Set<string>();
+      const alreadyMatched = await tx
+        .select({
+          matchedVoucherId: bankStatementLines.matchedVoucherId,
+          matchedInvoiceId: bankStatementLines.matchedInvoiceId,
+        })
+        .from(bankStatementLines)
+        .where(
+          and(
+            eq(bankStatementLines.tenantId, tenantId),
+            eq(bankStatementLines.status, 'matched'),
+          ),
+        );
+      for (const m of alreadyMatched) {
+        if (m.matchedVoucherId) usedCandidateIds.add(m.matchedVoucherId);
+        if (m.matchedInvoiceId) usedCandidateIds.add(m.matchedInvoiceId);
+      }
 
       for (const line of pending) {
         const lineForScore: ParsedBankStatementLine = {
@@ -469,8 +534,10 @@ export class BankFeedsService {
           balance: line.balance,
         };
         const rule = rules.find((item) => `${line.description} ${line.reference ?? ''}`.toLocaleLowerCase().includes(item.keyword.toLocaleLowerCase()));
-        const best = bestBankMatch(lineForScore, candidates);
+        const availableCandidates = candidates.filter((c) => !usedCandidateIds.has(c.id));
+        const best = bestBankMatch(lineForScore, availableCandidates);
         if (best) {
+          usedCandidateIds.add(best.candidate.id);
           await tx
             .update(bankStatementLines)
             .set({
@@ -596,7 +663,8 @@ export class BankFeedsService {
           .innerJoin(journalEntries, eq(journalEntries.id, journalEntryLines.entryId))
           .where(and(...ledgerConditions));
         const ledgerMovement = ledgerRows.reduce((sum, row) => sum.plus(money(row.debit).minus(money(row.credit))), new Decimal(0));
-        ledgerBalance = opening.plus(ledgerMovement);
+        // ACC-041: عند عدم تحديد تاريخ بداية (input.from) تكون حركة الأستاذ متضمنة القيد الافتتاحي فلا يضاعف
+        ledgerBalance = input.from ? opening.plus(ledgerMovement) : ledgerMovement;
         ledgerSource = 'journal ledger';
       }
 
@@ -622,27 +690,66 @@ export class BankFeedsService {
     });
   }
 
-  private async candidates(tx: DrizzleTx, tenantId: string): Promise<BankMatchCandidate[]> {
+  private async candidates(tx: DrizzleTx, tenantId: string, bankAccountId?: string): Promise<BankMatchCandidate[]> {
+    let bankCashLocIds: string[] = [];
+    if (bankAccountId) {
+      const [ba] = await tx
+        .select({ accountId: bankAccounts.accountId })
+        .from(bankAccounts)
+        .where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.id, bankAccountId)))
+        .limit(1);
+      if (ba?.accountId) {
+        const locs = await tx
+          .select({ id: cashLocations.id })
+          .from(cashLocations)
+          .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.accountId, ba.accountId)));
+        bankCashLocIds = locs.map((l) => l.id);
+      }
+    }
+
     const [sales, purchases, voucherRows] = await Promise.all([
       tx
         .select({ id: salesInvoices.id, number: salesInvoices.number, total: salesInvoices.total, postedAt: salesInvoices.postedAt, createdAt: salesInvoices.createdAt, partyName: parties.name })
         .from(salesInvoices)
         .leftJoin(parties, eq(parties.id, salesInvoices.partyId))
-        .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.status, 'posted')))
+        .where(
+          and(
+            eq(salesInvoices.tenantId, tenantId),
+            eq(salesInvoices.status, 'posted'),
+            ne(salesInvoices.paymentStatus, 'unpaid'),
+          ),
+        )
         .orderBy(desc(salesInvoices.createdAt))
         .limit(1000),
       tx
         .select({ id: purchaseInvoices.id, number: purchaseInvoices.number, total: purchaseInvoices.total, postedAt: purchaseInvoices.postedAt, createdAt: purchaseInvoices.createdAt, partyName: parties.name })
         .from(purchaseInvoices)
         .leftJoin(parties, eq(parties.id, purchaseInvoices.partyId))
-        .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.status, 'posted')))
+        .where(
+          and(
+            eq(purchaseInvoices.tenantId, tenantId),
+            eq(purchaseInvoices.status, 'posted'),
+            ne(purchaseInvoices.paymentStatus, 'unpaid'),
+          ),
+        )
         .orderBy(desc(purchaseInvoices.createdAt))
         .limit(1000),
       tx
         .select({ id: vouchers.id, number: vouchers.number, reference: vouchers.referenceNo, amount: vouchers.amount, date: vouchers.date, description: vouchers.description, partyName: parties.name, kind: vouchers.kind })
         .from(vouchers)
         .leftJoin(parties, eq(parties.id, vouchers.partyId))
-        .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.status, 'posted')))
+        .where(
+          and(
+            eq(vouchers.tenantId, tenantId),
+            eq(vouchers.status, 'posted'),
+            bankCashLocIds.length
+              ? or(
+                  inArray(vouchers.method, ['bank', 'bank_transfer', 'cheque']),
+                  inArray(vouchers.cashLocationId, bankCashLocIds),
+                )
+              : ne(vouchers.method, 'cash'),
+          ),
+        )
         .orderBy(desc(vouchers.date))
         .limit(1000),
     ]);
