@@ -1,0 +1,30 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/treasury/bank-accounts",
+  "request": {
+    "bankName": "R17 بنك اختبار",
+    "accountNo": "R17-ACC-001",
+    "iban": "SA00R17TEST0000000001",
+    "openingBalance": "180000",
+    "accountId": "01a1615f-3a98-77e4-9fb6-a2fa9620c755"
+  },
+  "body": {
+    "data": {
+      "id": "01a16178-6d9a-72fb-afed-ddd2a5364a5e",
+      "tenantId": "01a1615f-3923-768c-956e-747ec17e7b84",
+      "bankName": "R17 بنك اختبار",
+      "accountNo": "R17-ACC-001",
+      "iban": "SA00•••••••••••••0001",
+      "currency": "SAR",
+      "openingBalance": "180000.0000",
+      "accountId": "01a1615f-3a98-77e4-9fb6-a2fa9620c755",
+      "status": "active",
+      "createdAt": "2026-10-22T02:37:24.762Z",
+      "createdBy": "01a1615f-3925-7030-9f50-d80ecb3ed06a",
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1
+    }
+  }
+}
