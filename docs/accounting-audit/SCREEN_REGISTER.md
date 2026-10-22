@@ -453,3 +453,19 @@
 | `/reports/sales-notes`، `/reports/purchase-notes`، `/reports/cashier-shift`، `/reports/balance-sheet`، `/reports/cash-statement` | REPORT-* | الإشعارات posted؛ الوردية 5/3/−2؛ الميزانية من GL؛ كشف الصندوق «الكل» صفر → UI-012 |
 | `/treasury/bank-reconciliation` | REPORT-BANK-RECON | تعمل بلا كشوف مستوردة؛ لم تُختبر المطابقة |
 | `/accounting/trial-balance`، `/accounting/journal-entries`، `/treasury/movements`، `/sales/statements`، `/inventory/levels` | REPORT-TRIAL-BALANCE، REPORT-JOURNALS، REPORT-CASH-MOVEMENTS، REPORT-CUSTOMER/SUPPLIER، REPORT-LEVELS | متوازن 250,229؛ 43 قيداً؛ 49,946 و13 حركة؛ كشوف الأطراف ACC-004؛ جرد 158.41 |
+
+## تحديث R17 — 2026-10-22
+| المسار | معرّفات R17 | ما ثبت |
+|---|---|---|
+| `/inventory/items` (بطاقة مادة جديدة) | ITEM، ITEM-FG | إنشاء صنف مخزني وصنف منتج تام؛ بلا أثر مالي |
+| `/purchases/invoices/new` → `[id]` | PURCH-DRAFT، PURCH-POST، PURCH-PAY، PURCH-PAY-CONCURRENT | مسودة → ترحيل (قيد صحيح)؛ «تسجيل السداد» = تخصيص بلا قيد (ACC-032)؛ السباق يقبل الطلبين (ACC-033) |
+| `/sales/invoices/new` → `[id]` | SALE-DRAFT، SALE-POST، SALE-PAY، SALE-PAY-EXCEED | آجلة → ترحيل (قيد + COGS صحيح)؛ «تسديد» بلا قيد/سند (ACC-031)؛ حارس الزيادة 422 ✓؛ شارة الرأس متناقضة (UI-014) |
+| `/treasury/day-close` | SHIFT-OPEN، SHIFT-CLOSE، SHIFT-POST | فتح/إغلاق/ترحيل؛ المتوقع يحتسب دفعات غير مرحَّلة (ACC-034)؛ الفرعي لا يتحرك (ACC-028) |
+| `/treasury/vouchers` (قبض نقدي وتحويل بنكي عبر منتقي البنك) | RV-CASH-DRAFT/POST، RV-BANK-DRAFT/POST | القيدان صحيحان؛ الفرعي بلا افتتاحي (ACC-016) |
+| `/treasury/bank-accounts` | BANK-ACCOUNT | إنشاء حساب مرتبط بـ1221001 وافتتاحي 180000 بلا قيد |
+| `/treasury/bank-statements` | BANK-IMPORT-AR، BANK-IMPORT-EN، BANK-AUTOMATCH، BANK-AUTOMATCH-2 | الترويسة العربية 422 خام (UI-013)؛ الإنجليزية 8 أسطر ✓؛ المطابقة التلقائية 4/8 كلها خاطئة (ACC-035) |
+| `/treasury/bank-reconciliation` | BANK-UNMATCH | إلغاء المطابقة ✓؛ «رصيد الدفاتر» 360005 مضاعف (ACC-041)؛ UUID خام للسندات (UI-015) |
+| `/inventory/production` | PROD-ORDER، PROD-COMPLETE، PROD-ORDER2، PROD-CONCURRENT-COMPLETE | مسودة → تنفيذ؛ التكلفة 2×12 → 1×24 ✓؛ محايد محاسبياً ✓؛ التزامن آمن لكن 500 (ACC-036) |
+| `/hrm/employees` | EMP-CREATE | بطاقة موظف + حساب 22410002 تلقائياً ✓ |
+| `/hrm/payroll` → `[id]` | PAYROLL-PREVIEW، PAYROLL-RUN، PAYROLL-RUN-DUP، PAYROLL-RUN-PREHIRE، PAYROLL-RUN-NOV، PAYROLL-POST، PAYROLL-POST-TAMPER، PAYROLL-POST-EMPTY، PAYROLL-PAY | معاينة/إنشاء ✓؛ مكرر 500 (ACC-037)؛ قبل التعيين 120 (ACC-038)؛ الترحيل يثق بالعميل/يقبل فارغاً (ACC-039)؛ الصرف على ذمم الموردين (ACC-040)؛ موظف بصافٍ 0 (UI-016) |
+| شاشات التقارير | — | لم تُلتقط في R17 (CONTINUITY_R17 §5) |

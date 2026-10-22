@@ -295,3 +295,26 @@ R16-manifest.json يفهرس 192 ملفاً (لا يشمل نفسه)، نحو 30
 | PURCHASE4-DRAFT / CONCURRENT-POST | R16-PURCHASE4-*-before.png | -after.png | 201 / [201,500] | DB-014/015 |
 | TRANSFER-DRAFT / SEND / CONCURRENT-RECEIVE | R16-TRANSFER-*-before.png | -after.png | 201 / 201 / [201,500] | DB-016/017/018 |
 | التقارير (23) | — | R16-REPORT-<ID>.png/.txt/.json | GET فقط | DB-018 |
+
+## تحديث R17 — 2026-10-22
+انظر [نتائج R17](ROUND_17_RESULTS.md): بيئة معزولة جديدة (`AUDIT-TEST-2026-R17`) بعد ضياع المحاولة الأولى (CONTINUITY_R17 §1). 36 مرحلة كتابة رُوجعت صورتها قبل النقر/الإرسال + معاينة قرائية واحدة = 39 طلب كتابة (31×201، 3×422 منها حارس الدفعة الزائدة والترويسة العربية، 1×200 إلغاء مطابقة، 3×500 خاسر التزامن/المكرر، وطلبان متزامنان قُبلا معاً خطأً)، 37 لقطة DB، فاحص قرائي 70/112. **الدفعة جزئية**: طبقة التقارير لم تُلتقط لأن الـsandbox أُعيدت تهيئته بعد المرحلة 37 (CONTINUITY_R17 §5). عيوب جديدة: ACC-031 CRITICAL (دفعة فاتورة البيع بلا قيد/سند)، ACC-032 HIGH (سداد الشراء بلا قيد)، ACC-033 HIGH (سباق السداد: 158 > 138 وpaid_total 98)، ACC-034 HIGH (متوقع الوردية من حركات غير مرحَّلة)، ACC-035 HIGH (المطابقة البنكية 4/8 كلها خاطئة)، ACC-036 MEDIUM، ACC-037 LOW، ACC-038 HIGH (المسيّر يتجاهل تاريخ التعيين)، ACC-039 CRITICAL (ترحيل المسيّر بسطور من العميل/بلا قيد)، ACC-040 HIGH (صرف الرواتب على ذمم الموردين)، ACC-041 MEDIUM (رصيد الدفاتر مضاعف)، UI-013…UI-016؛ إعادة إنتاج ACC-016/ACC-028/نمط ACC-030. ما ثبت صحيحاً: ترحيل الشراء/البيع والمتوسط، سندا القبض، الإنتاج (تكلفة وحياد وتزامن)، حساب الموظف، قيد الاستحقاق عند صحة الحمولة، سند صرف الرواتب والبنك.
+
+R17-manifest.json يفهرس 258 ملفاً (لا يشمل نفسه)، نحو 24.4MB، SHA256 لكل ملف؛ تحققت سلامة 73 PNG (chunks + CRC) و147 JSON. لا توجد ملفات `-shot-note.txt` (كل الصور كاملة الصفحة أو viewport بلا قص). سجل HTTP كامل في `R17-http-events.jsonl`.
+
+| المرحلة | قبل النقر | بعد الحفظ | الاستجابة | DB |
+|---|---|---|---|---|
+| ITEM، PURCH-DRAFT / POST | R17-ITEM-before.png، R17-PURCH-DRAFT-before.png، R17-PURCH-POST-before.png | -after.png | 201/201/201 | DB-002/003/004 |
+| SALE-DRAFT / POST، SHIFT-OPEN | R17-SALE-*-before.png، R17-SHIFT-OPEN-before.png | -after.png | 201 | DB-005/006/007 |
+| SALE-PAY / SALE-PAY-EXCEED | R17-SALE-PAY-before.png (المبلغ 10 نقدي الصندوق الرئيسي)، R17-SALE-PAY-EXCEED-before.png | -after.png | 201 / 422 PAYMENT_EXCEEDS_DUE | DB-008/009 |
+| RV-CASH-DRAFT / POST | R17-RV-CASH-*-before.png | -after.png | 201/201 | DB-010/011 |
+| PURCH-PAY / PURCH-PAY-CONCURRENT | R17-PURCH-PAY-before.png، R17-PURCH-PAY-CONCURRENT-before.png | -after.png | 201 / [201,201] | DB-012/013 |
+| SHIFT-CLOSE / SHIFT-POST | R17-SHIFT-CLOSE-before.png (المتوقع 15 المعدود 15)، R17-SHIFT-POST-before.png | -after.png | 201/201 | DB-014/015 |
+| RV-BANK-DRAFT / POST | R17-RV-BANK-*-before.png (منتقي البنك) | -after.png | 201/201 | DB-016/017 |
+| BANK-ACCOUNT، BANK-IMPORT-AR / EN | R17-BANK-ACCOUNT-before.png، R17-BANK-IMPORT-AR-before.png (CSV عربي)، R17-BANK-IMPORT-EN-before.png | -after.png | 201 / 422 BANK_CSV_INVALID / 201 | DB-018/019/020 |
+| BANK-AUTOMATCH / UNMATCH / AUTOMATCH-2 | R17-BANK-AUTOMATCH-before.png، R17-BANK-UNMATCH-before.png (شاشة التسوية: 4 مطابقات، رصيد الدفاتر 360005)، R17-BANK-AUTOMATCH-2-before.png | -after.png | 201 (4/8) / 200 / 201 (2/5) | DB-021/022/037 |
+| ITEM-FG، PROD-ORDER / COMPLETE، PROD-ORDER2 / CONCURRENT-COMPLETE | R17-ITEM-FG-before.png، R17-PROD-*-before.png | -after.png | 201 / 201 / 201 / 201 / [500,201] | DB-023…027 |
+| EMP-CREATE، PAYROLL-PREVIEW (قراءة) | R17-EMP-CREATE-before.png، R17-PAYROLL-PREVIEW.png/.txt/.json | -after.png | 201 / 201 معاينة | DB-028 |
+| PAYROLL-RUN / RUN-DUP / RUN-PREHIRE | R17-PAYROLL-RUN-before.png، R17-PAYROLL-RUN-DUP-before.png، R17-PAYROLL-RUN-PREHIRE-before.png | -after.png | 201 / 500 / 201 | DB-029/030/031 |
+| PAYROLL-POST / POST-TAMPER / RUN-NOV / POST-EMPTY | R17-PAYROLL-POST-before.png (3122001 / 22410002)، R17-PAYROLL-POST-TAMPER-before.png، R17-PAYROLL-RUN-NOV-before.png، R17-PAYROLL-POST-EMPTY-before.png | -after.png | 201 / [201] / 201 / [201] | DB-032…035 |
+| PAYROLL-PAY | R17-PAYROLL-PAY-before.png (الحساب البنكي الرئيسي) | -after.png | 201 | DB-036 |
+| التقارير | **لم تُلتقط** (إعادة تهيئة الـsandbox) — السكربت `round17-reports.cjs` جاهز للإعادة | — | — | — |
