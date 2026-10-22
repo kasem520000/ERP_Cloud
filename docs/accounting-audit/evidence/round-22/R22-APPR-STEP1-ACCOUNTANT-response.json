@@ -1,0 +1,49 @@
+{
+  "actor": "accountant@demo.test",
+  "loginStatus": 200,
+  "tokenReceived": true,
+  "results": [
+    {
+      "label": "inbox",
+      "method": "GET",
+      "path": "/approvals/inbox",
+      "status": 200,
+      "body": [
+        {
+          "id": "01a16419-d16a-76dc-a001-e94888ea5f04",
+          "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+          "workflowId": "01a16417-f740-751f-805d-8e8209474c24",
+          "entityType": "sales_invoice",
+          "entityId": "01a16418-dac3-7661-935d-7ab435feeed8",
+          "status": "pending",
+          "currentStepOrder": 1,
+          "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+          "createdAt": "2026-10-22T14:52:56.038Z",
+          "updatedAt": "2026-10-22T14:52:56.044Z",
+          "workflowName": "R22 مبيعات ≥ 100: المحاسب ثم المالك",
+          "currentStep": {
+            "id": "01a16417-f742-75cb-b7fe-50da853cda79",
+            "workflowId": "01a16417-f740-751f-805d-8e8209474c24",
+            "stepOrder": 1,
+            "approverRole": "Accountant",
+            "approverUserId": null,
+            "condition": {
+              "min_amount": "100"
+            },
+            "action": "approve",
+            "isRequired": true
+          },
+          "decisions": [],
+          "canAct": true
+        }
+      ]
+    },
+    {
+      "label": "history",
+      "method": "GET",
+      "path": "/approvals/history",
+      "status": 200,
+      "body": []
+    }
+  ]
+}

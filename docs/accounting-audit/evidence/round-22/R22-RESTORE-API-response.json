@@ -1,0 +1,2533 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "restores",
+      "method": "GET",
+      "path": "/settings/restores",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a16429-4426-74b0-b36c-26be681048ec",
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "backupId": "01a16428-45e9-71c6-ae35-7b39019085bd",
+            "mode": "apply",
+            "status": "ready",
+            "summary": {
+              "tables": {
+                "items": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "parties": {
+                  "rows": 2,
+                  "skipped": 2,
+                  "inserted": 0
+                },
+                "accounts": {
+                  "rows": 117,
+                  "skipped": 117,
+                  "inserted": 0
+                },
+                "branches": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "projects": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "salesmen": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "vouchers": {
+                  "rows": 9,
+                  "skipped": 9,
+                  "inserted": 0
+                },
+                "boq_terms": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "employees": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "currencies": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "dashboards": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "tax_groups": {
+                  "rows": 2,
+                  "skipped": 2,
+                  "inserted": 0
+                },
+                "warehouses": {
+                  "rows": 2,
+                  "skipped": 2,
+                  "inserted": 0
+                },
+                "price_lists": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "tenant_apps": {
+                  "rows": 4,
+                  "skipped": 4,
+                  "inserted": 0
+                },
+                "cost_centers": {
+                  "rows": 3,
+                  "skipped": 3,
+                  "inserted": 0
+                },
+                "fiscal_years": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "shift_closes": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "expense_types": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "cash_locations": {
+                  "rows": 2,
+                  "skipped": 2,
+                  "inserted": 0
+                },
+                "fiscal_periods": {
+                  "rows": 12,
+                  "skipped": 12,
+                  "inserted": 0
+                },
+                "sales_invoices": {
+                  "rows": 9,
+                  "skipped": 9,
+                  "inserted": 0
+                },
+                "stock_balances": {
+                  "rows": 2,
+                  "skipped": 2,
+                  "inserted": 0
+                },
+                "stock_vouchers": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "usage_counters": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "item_categories": {
+                  "rows": 2,
+                  "skipped": 2,
+                  "inserted": 0
+                },
+                "journal_entries": {
+                  "rows": 31,
+                  "skipped": 31,
+                  "inserted": 0
+                },
+                "stock_transfers": {
+                  "rows": 3,
+                  "skipped": 3,
+                  "inserted": 0
+                },
+                "tenant_settings": {
+                  "rows": 21,
+                  "error": "Failed query: \n          INSERT INTO \"tenant_settings\" (\"key\", \"value\", \"tenant_id\", \"updated_at\")\n          VALUES ($1, $2, $3, $4)\n          ON CONFLICT DO NOTHING\n        \nparams: default_currency_code,SAR,01a163cb-c73b-741d-93c9-17f1ac98ae25,2026-10-22T13:27:41.754392+00:00",
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "van_load_orders": {
+                  "rows": 3,
+                  "skipped": 3,
+                  "inserted": 0
+                },
+                "cash_count_lines": {
+                  "rows": 2,
+                  "skipped": 2,
+                  "inserted": 0
+                },
+                "company_profiles": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "invoice_payments": {
+                  "rows": 5,
+                  "skipped": 5,
+                  "inserted": 0
+                },
+                "units_of_measure": {
+                  "rows": 4,
+                  "skipped": 4,
+                  "inserted": 0
+                },
+                "approval_requests": {
+                  "rows": 3,
+                  "skipped": 3,
+                  "inserted": 0
+                },
+                "dashboard_widgets": {
+                  "rows": 3,
+                  "skipped": 3,
+                  "inserted": 0
+                },
+                "purchase_invoices": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "shift_close_lines": {
+                  "rows": 5,
+                  "skipped": 5,
+                  "inserted": 0
+                },
+                "stock_adjustments": {
+                  "rows": 3,
+                  "skipped": 3,
+                  "inserted": 0
+                },
+                "approval_workflows": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "document_sequences": {
+                  "rows": 15,
+                  "skipped": 15,
+                  "inserted": 0
+                },
+                "salary_adjustments": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "contractor_payments": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "journal_entry_lines": {
+                  "rows": 90,
+                  "skipped": 90,
+                  "inserted": 0
+                },
+                "payment_allocations": {
+                  "rows": 2,
+                  "skipped": 2,
+                  "inserted": 0
+                },
+                "sales_invoice_lines": {
+                  "rows": 9,
+                  "skipped": 9,
+                  "inserted": 0
+                },
+                "stock_voucher_lines": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "van_sales_documents": {
+                  "rows": 5,
+                  "skipped": 5,
+                  "inserted": 0
+                },
+                "van_stock_movements": {
+                  "rows": 17,
+                  "skipped": 17,
+                  "inserted": 0
+                },
+                "contractor_contracts": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "stock_transfer_lines": {
+                  "rows": 3,
+                  "skipped": 3,
+                  "inserted": 0
+                },
+                "cash_location_balances": {
+                  "rows": 3,
+                  "skipped": 3,
+                  "inserted": 0
+                },
+                "inventory_transactions": {
+                  "rows": 20,
+                  "skipped": 20,
+                  "inserted": 0
+                },
+                "purchase_invoice_lines": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "stock_adjustment_lines": {
+                  "rows": 3,
+                  "skipped": 3,
+                  "inserted": 0
+                },
+                "branch_posting_profiles": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                },
+                "salary_adjustment_types": {
+                  "rows": 3,
+                  "skipped": 3,
+                  "inserted": 0
+                },
+                "contractor_contract_lines": {
+                  "rows": 1,
+                  "skipped": 1,
+                  "inserted": 0
+                }
+              },
+              "unresolved": [
+                "tenant_settings"
+              ]
+            },
+            "insertedRows": 0,
+            "skippedRows": 422,
+            "failedReason": null,
+            "createdAt": "2026-10-22T15:09:48.454Z",
+            "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "updatedAt": null,
+            "updatedBy": null,
+            "version": 1
+          },
+          {
+            "id": "01a163cf-fcf6-77bd-97e6-e897b0133148",
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "backupId": "01a163cf-e39e-71dd-9a74-b29b59840015",
+            "mode": "dry_run",
+            "status": "ready",
+            "summary": {
+              "tables": {
+                "items": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "parties": {
+                  "rows": 2,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "accounts": {
+                  "rows": 116,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "branches": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "projects": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "salesmen": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "vouchers": {
+                  "rows": 2,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "boq_terms": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "employees": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "currencies": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "dashboards": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "tax_groups": {
+                  "rows": 2,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "warehouses": {
+                  "rows": 2,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "price_lists": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "tenant_apps": {
+                  "rows": 4,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "cost_centers": {
+                  "rows": 3,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "fiscal_years": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "expense_types": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "cash_locations": {
+                  "rows": 2,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "fiscal_periods": {
+                  "rows": 12,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "stock_balances": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "usage_counters": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "item_categories": {
+                  "rows": 2,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "journal_entries": {
+                  "rows": 3,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "tenant_settings": {
+                  "rows": 20,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "company_profiles": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "units_of_measure": {
+                  "rows": 4,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "dashboard_widgets": {
+                  "rows": 3,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "purchase_invoices": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "document_sequences": {
+                  "rows": 5,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "contractor_payments": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "journal_entry_lines": {
+                  "rows": 9,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "contractor_contracts": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "cash_location_balances": {
+                  "rows": 2,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "inventory_transactions": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "purchase_invoice_lines": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "branch_posting_profiles": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "salary_adjustment_types": {
+                  "rows": 3,
+                  "skipped": 0,
+                  "inserted": 0
+                },
+                "contractor_contract_lines": {
+                  "rows": 1,
+                  "skipped": 0,
+                  "inserted": 0
+                }
+              },
+              "existingRows": {
+                "items": 1,
+                "parties": 2,
+                "accounts": 116,
+                "branches": 1,
+                "projects": 1,
+                "salesmen": 1,
+                "vouchers": 2,
+                "boq_terms": 1,
+                "employees": 1,
+                "currencies": 1,
+                "dashboards": 1,
+                "tax_groups": 2,
+                "warehouses": 2,
+                "price_lists": 1,
+                "tenant_apps": 4,
+                "cost_centers": 3,
+                "fiscal_years": 1,
+                "expense_types": 1,
+                "cash_locations": 2,
+                "fiscal_periods": 12,
+                "stock_balances": 1,
+                "usage_counters": 1,
+                "item_categories": 2,
+                "journal_entries": 3,
+                "tenant_settings": 20,
+                "company_profiles": 1,
+                "units_of_measure": 4,
+                "dashboard_widgets": 3,
+                "purchase_invoices": 1,
+                "document_sequences": 5,
+                "contractor_payments": 1,
+                "journal_entry_lines": 9,
+                "contractor_contracts": 1,
+                "cash_location_balances": 2,
+                "inventory_transactions": 1,
+                "purchase_invoice_lines": 1,
+                "branch_posting_profiles": 1,
+                "salary_adjustment_types": 3,
+                "contractor_contract_lines": 1
+              }
+            },
+            "insertedRows": 0,
+            "skippedRows": 0,
+            "failedReason": null,
+            "createdAt": "2026-10-22T13:32:17.526Z",
+            "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "updatedAt": null,
+            "updatedBy": null,
+            "version": 1
+          }
+        ]
+      }
+    },
+    {
+      "label": "backups",
+      "method": "GET",
+      "path": "/settings/backups",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a16428-45e9-71c6-ae35-7b39019085bd",
+            "kind": "full",
+            "status": "ready",
+            "note": "R22 نسخة بعد كل عمليات الجولة — قبل اختبار الاستعادة الفعلية",
+            "tables": [
+              "accounts",
+              "approval_requests",
+              "approval_workflows",
+              "boq_terms",
+              "branch_posting_profiles",
+              "branches",
+              "cash_count_lines",
+              "cash_location_balances",
+              "cash_locations",
+              "company_profiles",
+              "contractor_contract_lines",
+              "contractor_contracts",
+              "contractor_payments",
+              "cost_centers",
+              "currencies",
+              "dashboard_widgets",
+              "dashboards",
+              "document_sequences",
+              "employees",
+              "expense_types",
+              "fiscal_periods",
+              "fiscal_years",
+              "inventory_transactions",
+              "invoice_payments",
+              "item_categories",
+              "items",
+              "journal_entries",
+              "journal_entry_lines",
+              "parties",
+              "payment_allocations",
+              "price_lists",
+              "projects",
+              "purchase_invoice_lines",
+              "purchase_invoices",
+              "salary_adjustment_types",
+              "salary_adjustments",
+              "sales_invoice_lines",
+              "sales_invoices",
+              "salesmen",
+              "shift_close_lines",
+              "shift_closes",
+              "stock_adjustment_lines",
+              "stock_adjustments",
+              "stock_balances",
+              "stock_transfer_lines",
+              "stock_transfers",
+              "stock_voucher_lines",
+              "stock_vouchers",
+              "tax_groups",
+              "tenant_apps",
+              "tenant_settings",
+              "units_of_measure",
+              "usage_counters",
+              "van_load_orders",
+              "van_sales_documents",
+              "van_stock_movements",
+              "vouchers",
+              "warehouses"
+            ],
+            "rowCounts": {
+              "items": 1,
+              "parties": 2,
+              "accounts": 117,
+              "branches": 1,
+              "projects": 1,
+              "salesmen": 1,
+              "vouchers": 9,
+              "boq_terms": 1,
+              "employees": 1,
+              "currencies": 1,
+              "dashboards": 1,
+              "tax_groups": 2,
+              "warehouses": 2,
+              "price_lists": 1,
+              "tenant_apps": 4,
+              "cost_centers": 3,
+              "fiscal_years": 1,
+              "shift_closes": 1,
+              "expense_types": 1,
+              "cash_locations": 2,
+              "fiscal_periods": 12,
+              "sales_invoices": 9,
+              "stock_balances": 2,
+              "stock_vouchers": 1,
+              "usage_counters": 1,
+              "item_categories": 2,
+              "journal_entries": 31,
+              "stock_transfers": 3,
+              "tenant_settings": 21,
+              "van_load_orders": 3,
+              "cash_count_lines": 2,
+              "company_profiles": 1,
+              "invoice_payments": 5,
+              "units_of_measure": 4,
+              "approval_requests": 3,
+              "dashboard_widgets": 3,
+              "purchase_invoices": 1,
+              "shift_close_lines": 5,
+              "stock_adjustments": 3,
+              "approval_workflows": 1,
+              "document_sequences": 15,
+              "salary_adjustments": 1,
+              "contractor_payments": 1,
+              "journal_entry_lines": 90,
+              "payment_allocations": 2,
+              "sales_invoice_lines": 9,
+              "stock_voucher_lines": 1,
+              "van_sales_documents": 5,
+              "van_stock_movements": 17,
+              "contractor_contracts": 1,
+              "stock_transfer_lines": 3,
+              "cash_location_balances": 3,
+              "inventory_transactions": 20,
+              "purchase_invoice_lines": 1,
+              "stock_adjustment_lines": 3,
+              "branch_posting_profiles": 1,
+              "salary_adjustment_types": 3,
+              "contractor_contract_lines": 1
+            },
+            "totalRows": 443,
+            "sizeBytes": 279306,
+            "checksum": "9fc25fddf214c2f3588b88736b80d99445298b7956a5643f690f69a57b448cc0",
+            "failedReason": null,
+            "completedAt": "2026-10-22T15:08:43.490Z",
+            "createdAt": "2026-10-22T15:08:43.370Z",
+            "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd"
+          },
+          {
+            "id": "01a163cf-e39e-71dd-9a74-b29b59840015",
+            "kind": "full",
+            "status": "ready",
+            "note": "R21 نسخة قبل اختبار الاستعادة التجريبي",
+            "tables": [
+              "accounts",
+              "boq_terms",
+              "branch_posting_profiles",
+              "branches",
+              "cash_location_balances",
+              "cash_locations",
+              "company_profiles",
+              "contractor_contract_lines",
+              "contractor_contracts",
+              "contractor_payments",
+              "cost_centers",
+              "currencies",
+              "dashboard_widgets",
+              "dashboards",
+              "document_sequences",
+              "employees",
+              "expense_types",
+              "fiscal_periods",
+              "fiscal_years",
+              "inventory_transactions",
+              "item_categories",
+              "items",
+              "journal_entries",
+              "journal_entry_lines",
+              "parties",
+              "price_lists",
+              "projects",
+              "purchase_invoice_lines",
+              "purchase_invoices",
+              "salary_adjustment_types",
+              "salesmen",
+              "stock_balances",
+              "tax_groups",
+              "tenant_apps",
+              "tenant_settings",
+              "units_of_measure",
+              "usage_counters",
+              "vouchers",
+              "warehouses"
+            ],
+            "rowCounts": {
+              "items": 1,
+              "parties": 2,
+              "accounts": 116,
+              "branches": 1,
+              "projects": 1,
+              "salesmen": 1,
+              "vouchers": 2,
+              "boq_terms": 1,
+              "employees": 1,
+              "currencies": 1,
+              "dashboards": 1,
+              "tax_groups": 2,
+              "warehouses": 2,
+              "price_lists": 1,
+              "tenant_apps": 4,
+              "cost_centers": 3,
+              "fiscal_years": 1,
+              "expense_types": 1,
+              "cash_locations": 2,
+              "fiscal_periods": 12,
+              "stock_balances": 1,
+              "usage_counters": 1,
+              "item_categories": 2,
+              "journal_entries": 3,
+              "tenant_settings": 20,
+              "company_profiles": 1,
+              "units_of_measure": 4,
+              "dashboard_widgets": 3,
+              "purchase_invoices": 1,
+              "document_sequences": 5,
+              "contractor_payments": 1,
+              "journal_entry_lines": 9,
+              "contractor_contracts": 1,
+              "cash_location_balances": 2,
+              "inventory_transactions": 1,
+              "purchase_invoice_lines": 1,
+              "branch_posting_profiles": 1,
+              "salary_adjustment_types": 3,
+              "contractor_contract_lines": 1
+            },
+            "totalRows": 217,
+            "sizeBytes": 129205,
+            "checksum": "082ec0760276e2c56eee926eda8bc55ec624ff28b62fa149cf7f9187f5281d42",
+            "failedReason": null,
+            "completedAt": "2026-10-22T13:32:11.241Z",
+            "createdAt": "2026-10-22T13:32:11.039Z",
+            "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd"
+          }
+        ]
+      }
+    },
+    {
+      "label": "trial-balance",
+      "method": "GET",
+      "path": "/statements/trial-balance?from=2026-01-01&to=2026-12-31",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "accountId": "01a163cb-c8e9-754b-9229-850984cfb079",
+            "code": "1160001",
+            "name": "أثاث",
+            "type": "asset",
+            "normalBalance": "debit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "20000.0000",
+            "credit": "0.0000",
+            "balanceDebit": "20000.0000",
+            "balanceCredit": "0.0000",
+            "closingDebit": "20000.0000",
+            "closingCredit": "0.0000",
+            "balance": "20000.0000",
+            "closing": "20000.0000",
+            "status": "مدين"
+          },
+          {
+            "accountId": "01a163cb-c8e9-754b-9229-88c37d44e3ef",
+            "code": "1211001",
+            "name": "الصندوق الرئيسي",
+            "type": "asset",
+            "normalBalance": "debit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "50191.0000",
+            "credit": "119.0000",
+            "balanceDebit": "50072.0000",
+            "balanceCredit": "0.0000",
+            "closingDebit": "50072.0000",
+            "closingCredit": "0.0000",
+            "balance": "50072.0000",
+            "closing": "50072.0000",
+            "status": "مدين"
+          },
+          {
+            "accountId": "01a163cb-c8ea-7449-9b8d-c9c877b20be4",
+            "code": "1211002",
+            "name": "عهدة الإغلاق",
+            "type": "asset",
+            "normalBalance": "debit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "30.0000",
+            "credit": "0.0000",
+            "balanceDebit": "30.0000",
+            "balanceCredit": "0.0000",
+            "closingDebit": "30.0000",
+            "closingCredit": "0.0000",
+            "balance": "30.0000",
+            "closing": "30.0000",
+            "status": "مدين"
+          },
+          {
+            "accountId": "01a163cb-c8eb-705d-9f64-1944d960b898",
+            "code": "1221001",
+            "name": "شبكة",
+            "type": "asset",
+            "normalBalance": "debit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "180102.0000",
+            "credit": "56.0000",
+            "balanceDebit": "180046.0000",
+            "balanceCredit": "0.0000",
+            "closingDebit": "180046.0000",
+            "closingCredit": "0.0000",
+            "balance": "180046.0000",
+            "closing": "180046.0000",
+            "status": "مدين"
+          },
+          {
+            "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+            "code": "12310001",
+            "name": "عميل عام",
+            "type": "asset",
+            "normalBalance": "debit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "217.0000",
+            "credit": "155.0000",
+            "balanceDebit": "62.0000",
+            "balanceCredit": "0.0000",
+            "closingDebit": "62.0000",
+            "closingCredit": "0.0000",
+            "balance": "62.0000",
+            "closing": "62.0000",
+            "status": "مدين"
+          },
+          {
+            "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+            "code": "1270001",
+            "name": "حساب بضاعة آخر المدة",
+            "type": "asset",
+            "normalBalance": "debit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "300.0000",
+            "credit": "260.0000",
+            "balanceDebit": "40.0000",
+            "balanceCredit": "0.0000",
+            "closingDebit": "40.0000",
+            "closingCredit": "0.0000",
+            "balance": "40.0000",
+            "closing": "40.0000",
+            "status": "مدين"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-83fa8dc1d3b5",
+            "code": "1270003",
+            "name": "بضاعة تحت التحويل",
+            "type": "asset",
+            "normalBalance": "debit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "90.0000",
+            "credit": "90.0000",
+            "balanceDebit": "0.0000",
+            "balanceCredit": "0.0000",
+            "closingDebit": "0.0000",
+            "closingCredit": "0.0000",
+            "balance": "0.0000",
+            "closing": "0.0000",
+            "status": "رصيد متوازن"
+          },
+          {
+            "accountId": "01a163cb-c8ef-725a-8d5d-e81fca642d87",
+            "code": "2110001",
+            "name": "راس المال المدفوع",
+            "type": "equity",
+            "normalBalance": "credit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "0.0000",
+            "credit": "250000.0000",
+            "balanceDebit": "0.0000",
+            "balanceCredit": "250000.0000",
+            "closingDebit": "0.0000",
+            "closingCredit": "250000.0000",
+            "balance": "-250000.0000",
+            "closing": "-250000.0000",
+            "status": "دائن"
+          },
+          {
+            "accountId": "01a163cb-c908-75db-be95-5b33a30be545",
+            "code": "22111001",
+            "name": "مورد عام",
+            "type": "liability",
+            "normalBalance": "credit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "36.0000",
+            "credit": "230.0000",
+            "balanceDebit": "0.0000",
+            "balanceCredit": "194.0000",
+            "closingDebit": "0.0000",
+            "closingCredit": "194.0000",
+            "balance": "-194.0000",
+            "closing": "-194.0000",
+            "status": "دائن"
+          },
+          {
+            "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+            "code": "2222001",
+            "name": "ضريبة القيمة المضافة",
+            "type": "liability",
+            "normalBalance": "credit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "33.0000",
+            "credit": "42.0000",
+            "balanceDebit": "0.0000",
+            "balanceCredit": "9.0000",
+            "closingDebit": "0.0000",
+            "closingCredit": "9.0000",
+            "balance": "-9.0000",
+            "closing": "-9.0000",
+            "status": "دائن"
+          },
+          {
+            "accountId": "01a163f9-769d-72d6-b5db-cff82d80b72a",
+            "code": "22410002",
+            "name": "مندوب الشركة",
+            "type": "liability",
+            "normalBalance": "credit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "60.0000",
+            "credit": "0.0000",
+            "balanceDebit": "60.0000",
+            "balanceCredit": "0.0000",
+            "closingDebit": "60.0000",
+            "closingCredit": "0.0000",
+            "balance": "60.0000",
+            "closing": "60.0000",
+            "status": "مدين"
+          },
+          {
+            "accountId": "01a163cb-c8f8-71de-b245-580fee832d86",
+            "code": "3110004",
+            "name": "فروقات الصندوق",
+            "type": "expense",
+            "normalBalance": "debit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "3.0000",
+            "credit": "0.0000",
+            "balanceDebit": "3.0000",
+            "balanceCredit": "0.0000",
+            "closingDebit": "3.0000",
+            "closingCredit": "0.0000",
+            "balance": "3.0000",
+            "closing": "3.0000",
+            "status": "مدين"
+          },
+          {
+            "accountId": "01a163cb-c90b-73a3-a9f8-494266cc266d",
+            "code": "3121004",
+            "name": "تسويات المخزون",
+            "type": "expense",
+            "normalBalance": "debit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "30.0000",
+            "credit": "10.0000",
+            "balanceDebit": "20.0000",
+            "balanceCredit": "0.0000",
+            "closingDebit": "20.0000",
+            "closingCredit": "0.0000",
+            "balance": "20.0000",
+            "closing": "20.0000",
+            "status": "مدين"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+            "code": "3200004",
+            "name": "تكلفة المبيعات",
+            "type": "expense",
+            "normalBalance": "debit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "140.0000",
+            "credit": "10.0000",
+            "balanceDebit": "130.0000",
+            "balanceCredit": "0.0000",
+            "closingDebit": "130.0000",
+            "closingCredit": "0.0000",
+            "balance": "130.0000",
+            "closing": "130.0000",
+            "status": "مدين"
+          },
+          {
+            "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+            "code": "4100001",
+            "name": "المبيعات",
+            "type": "revenue",
+            "normalBalance": "credit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "0.0000",
+            "credit": "280.0000",
+            "balanceDebit": "0.0000",
+            "balanceCredit": "280.0000",
+            "closingDebit": "0.0000",
+            "closingCredit": "280.0000",
+            "balance": "-280.0000",
+            "closing": "-280.0000",
+            "status": "دائن"
+          },
+          {
+            "accountId": "01a163cb-c905-703d-9178-a22fba7a67f0",
+            "code": "4100002",
+            "name": "مردودات المبيعات",
+            "type": "revenue",
+            "normalBalance": "debit",
+            "openingDebit": "0.0000",
+            "openingCredit": "0.0000",
+            "debit": "20.0000",
+            "credit": "0.0000",
+            "balanceDebit": "20.0000",
+            "balanceCredit": "0.0000",
+            "closingDebit": "20.0000",
+            "closingCredit": "0.0000",
+            "balance": "20.0000",
+            "closing": "20.0000",
+            "status": "مدين"
+          }
+        ],
+        "totals": {
+          "openingDebit": "0.0000",
+          "openingCredit": "0.0000",
+          "debit": "251252.0000",
+          "credit": "251252.0000",
+          "balanceDebit": "250483.0000",
+          "balanceCredit": "250483.0000",
+          "closingDebit": "250483.0000",
+          "closingCredit": "250483.0000",
+          "balance": "0.0000",
+          "status": "",
+          "balanced": true
+        }
+      }
+    },
+    {
+      "label": "audit-log",
+      "method": "GET",
+      "path": "/audit-log?limit=20",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a16429-443a-76af-bc66-d03492c8e726",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب",
+            "action": "update",
+            "entity": "settings",
+            "entityId": "restores",
+            "before": null,
+            "after": {
+              "id": "01a16429-4426-74b0-b36c-26be681048ec",
+              "mode": "apply",
+              "status": "ready",
+              "summary": {
+                "tables": {
+                  "items": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "parties": {
+                    "rows": 2,
+                    "skipped": 2,
+                    "inserted": 0
+                  },
+                  "accounts": {
+                    "rows": 117,
+                    "skipped": 117,
+                    "inserted": 0
+                  },
+                  "branches": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "projects": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "salesmen": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "vouchers": {
+                    "rows": 9,
+                    "skipped": 9,
+                    "inserted": 0
+                  },
+                  "boq_terms": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "employees": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "currencies": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "dashboards": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "tax_groups": {
+                    "rows": 2,
+                    "skipped": 2,
+                    "inserted": 0
+                  },
+                  "warehouses": {
+                    "rows": 2,
+                    "skipped": 2,
+                    "inserted": 0
+                  },
+                  "price_lists": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "tenant_apps": {
+                    "rows": 4,
+                    "skipped": 4,
+                    "inserted": 0
+                  },
+                  "cost_centers": {
+                    "rows": 3,
+                    "skipped": 3,
+                    "inserted": 0
+                  },
+                  "fiscal_years": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "shift_closes": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "expense_types": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "cash_locations": {
+                    "rows": 2,
+                    "skipped": 2,
+                    "inserted": 0
+                  },
+                  "fiscal_periods": {
+                    "rows": 12,
+                    "skipped": 12,
+                    "inserted": 0
+                  },
+                  "sales_invoices": {
+                    "rows": 9,
+                    "skipped": 9,
+                    "inserted": 0
+                  },
+                  "stock_balances": {
+                    "rows": 2,
+                    "skipped": 2,
+                    "inserted": 0
+                  },
+                  "stock_vouchers": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "usage_counters": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "item_categories": {
+                    "rows": 2,
+                    "skipped": 2,
+                    "inserted": 0
+                  },
+                  "journal_entries": {
+                    "rows": 31,
+                    "skipped": 31,
+                    "inserted": 0
+                  },
+                  "stock_transfers": {
+                    "rows": 3,
+                    "skipped": 3,
+                    "inserted": 0
+                  },
+                  "tenant_settings": {
+                    "rows": 21,
+                    "error": "Failed query: \n          INSERT INTO \"tenant_settings\" (\"key\", \"value\", \"tenant_id\", \"updated_at\")\n          VALUES ($1, $2, $3, $4)\n          ON CONFLICT DO NOTHING\n        \nparams: default_currency_code,SAR,01a163cb-c73b-741d-93c9-17f1ac98ae25,2026-10-22T13:27:41.754392+00:00",
+                    "skipped": 0,
+                    "inserted": 0
+                  },
+                  "van_load_orders": {
+                    "rows": 3,
+                    "skipped": 3,
+                    "inserted": 0
+                  },
+                  "cash_count_lines": {
+                    "rows": 2,
+                    "skipped": 2,
+                    "inserted": 0
+                  },
+                  "company_profiles": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "invoice_payments": {
+                    "rows": 5,
+                    "skipped": 5,
+                    "inserted": 0
+                  },
+                  "units_of_measure": {
+                    "rows": 4,
+                    "skipped": 4,
+                    "inserted": 0
+                  },
+                  "approval_requests": {
+                    "rows": 3,
+                    "skipped": 3,
+                    "inserted": 0
+                  },
+                  "dashboard_widgets": {
+                    "rows": 3,
+                    "skipped": 3,
+                    "inserted": 0
+                  },
+                  "purchase_invoices": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "shift_close_lines": {
+                    "rows": 5,
+                    "skipped": 5,
+                    "inserted": 0
+                  },
+                  "stock_adjustments": {
+                    "rows": 3,
+                    "skipped": 3,
+                    "inserted": 0
+                  },
+                  "approval_workflows": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "document_sequences": {
+                    "rows": 15,
+                    "skipped": 15,
+                    "inserted": 0
+                  },
+                  "salary_adjustments": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "contractor_payments": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "journal_entry_lines": {
+                    "rows": 90,
+                    "skipped": 90,
+                    "inserted": 0
+                  },
+                  "payment_allocations": {
+                    "rows": 2,
+                    "skipped": 2,
+                    "inserted": 0
+                  },
+                  "sales_invoice_lines": {
+                    "rows": 9,
+                    "skipped": 9,
+                    "inserted": 0
+                  },
+                  "stock_voucher_lines": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "van_sales_documents": {
+                    "rows": 5,
+                    "skipped": 5,
+                    "inserted": 0
+                  },
+                  "van_stock_movements": {
+                    "rows": 17,
+                    "skipped": 17,
+                    "inserted": 0
+                  },
+                  "contractor_contracts": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "stock_transfer_lines": {
+                    "rows": 3,
+                    "skipped": 3,
+                    "inserted": 0
+                  },
+                  "cash_location_balances": {
+                    "rows": 3,
+                    "skipped": 3,
+                    "inserted": 0
+                  },
+                  "inventory_transactions": {
+                    "rows": 20,
+                    "skipped": 20,
+                    "inserted": 0
+                  },
+                  "purchase_invoice_lines": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "stock_adjustment_lines": {
+                    "rows": 3,
+                    "skipped": 3,
+                    "inserted": 0
+                  },
+                  "branch_posting_profiles": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  },
+                  "salary_adjustment_types": {
+                    "rows": 3,
+                    "skipped": 3,
+                    "inserted": 0
+                  },
+                  "contractor_contract_lines": {
+                    "rows": 1,
+                    "skipped": 1,
+                    "inserted": 0
+                  }
+                },
+                "unresolved": [
+                  "tenant_settings"
+                ]
+              },
+              "version": 1,
+              "backupId": "01a16428-45e9-71c6-ae35-7b39019085bd",
+              "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+              "createdAt": "2026-10-22T15:09:48.454Z",
+              "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "updatedAt": null,
+              "updatedBy": null,
+              "skippedRows": 422,
+              "failedReason": null,
+              "insertedRows": 0
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "settings/restores",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a16429-4160-74c1-a2b3-fb92f5d215a7",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad"
+            },
+            "createdAt": "2026-10-22T15:09:48.466Z"
+          },
+          {
+            "id": "01a16428-4674-729a-85c4-f89a2261a37b",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب",
+            "action": "update",
+            "entity": "settings",
+            "entityId": "backups",
+            "before": null,
+            "after": {
+              "id": "01a16428-45e9-71c6-ae35-7b39019085bd",
+              "note": "R22 نسخة بعد كل عمليات الجولة — قبل اختبار الاستعادة الفعلية",
+              "status": "ready",
+              "tables": [
+                "accounts",
+                "approval_requests",
+                "approval_workflows",
+                "boq_terms",
+                "branch_posting_profiles",
+                "branches",
+                "cash_count_lines",
+                "cash_location_balances",
+                "cash_locations",
+                "company_profiles",
+                "contractor_contract_lines",
+                "contractor_contracts",
+                "contractor_payments",
+                "cost_centers",
+                "currencies",
+                "dashboard_widgets",
+                "dashboards",
+                "document_sequences",
+                "employees",
+                "expense_types",
+                "fiscal_periods",
+                "fiscal_years",
+                "inventory_transactions",
+                "invoice_payments",
+                "item_categories",
+                "items",
+                "journal_entries",
+                "journal_entry_lines",
+                "parties",
+                "payment_allocations",
+                "price_lists",
+                "projects",
+                "purchase_invoice_lines",
+                "purchase_invoices",
+                "salary_adjustment_types",
+                "salary_adjustments",
+                "sales_invoice_lines",
+                "sales_invoices",
+                "salesmen",
+                "shift_close_lines",
+                "shift_closes",
+                "stock_adjustment_lines",
+                "stock_adjustments",
+                "stock_balances",
+                "stock_transfer_lines",
+                "stock_transfers",
+                "stock_voucher_lines",
+                "stock_vouchers",
+                "tax_groups",
+                "tenant_apps",
+                "tenant_settings",
+                "units_of_measure",
+                "usage_counters",
+                "van_load_orders",
+                "van_sales_documents",
+                "van_stock_movements",
+                "vouchers",
+                "warehouses"
+              ],
+              "checksum": "9fc25fddf214c2f3588b88736b80d99445298b7956a5643f690f69a57b448cc0",
+              "createdAt": "2026-10-22T15:08:43.370Z",
+              "rowCounts": {
+                "items": 1,
+                "parties": 2,
+                "accounts": 117,
+                "branches": 1,
+                "projects": 1,
+                "salesmen": 1,
+                "vouchers": 9,
+                "boq_terms": 1,
+                "employees": 1,
+                "currencies": 1,
+                "dashboards": 1,
+                "tax_groups": 2,
+                "warehouses": 2,
+                "price_lists": 1,
+                "tenant_apps": 4,
+                "cost_centers": 3,
+                "fiscal_years": 1,
+                "shift_closes": 1,
+                "expense_types": 1,
+                "cash_locations": 2,
+                "fiscal_periods": 12,
+                "sales_invoices": 9,
+                "stock_balances": 2,
+                "stock_vouchers": 1,
+                "usage_counters": 1,
+                "item_categories": 2,
+                "journal_entries": 31,
+                "stock_transfers": 3,
+                "tenant_settings": 21,
+                "van_load_orders": 3,
+                "cash_count_lines": 2,
+                "company_profiles": 1,
+                "invoice_payments": 5,
+                "units_of_measure": 4,
+                "approval_requests": 3,
+                "dashboard_widgets": 3,
+                "purchase_invoices": 1,
+                "shift_close_lines": 5,
+                "stock_adjustments": 3,
+                "approval_workflows": 1,
+                "document_sequences": 15,
+                "salary_adjustments": 1,
+                "contractor_payments": 1,
+                "journal_entry_lines": 90,
+                "payment_allocations": 2,
+                "sales_invoice_lines": 9,
+                "stock_voucher_lines": 1,
+                "van_sales_documents": 5,
+                "van_stock_movements": 17,
+                "contractor_contracts": 1,
+                "stock_transfer_lines": 3,
+                "cash_location_balances": 3,
+                "inventory_transactions": 20,
+                "purchase_invoice_lines": 1,
+                "stock_adjustment_lines": 3,
+                "branch_posting_profiles": 1,
+                "salary_adjustment_types": 3,
+                "contractor_contract_lines": 1
+              },
+              "sizeBytes": 279306,
+              "totalRows": 443,
+              "completedAt": "2026-10-22T15:08:43.490Z"
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "settings/backups",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a16428-45d5-744e-aa39-676fbfb9c7c3",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad"
+            },
+            "createdAt": "2026-10-22T15:08:43.507Z"
+          },
+          {
+            "id": "01a16427-c9ef-745b-8d95-1b503b8c4c0f",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب — owner@demo.test",
+            "action": "auth.login",
+            "entity": "auth",
+            "entityId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "before": null,
+            "after": null,
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "auth/login",
+              "method": "POST",
+              "status": 200,
+              "traceId": "01a16427-c998-72b9-9751-ef91503700c7",
+              "userAgent": "curl/7.88.1"
+            },
+            "createdAt": "2026-10-22T15:08:11.631Z"
+          },
+          {
+            "id": "01a16425-4596-70f9-b33c-2550e0019940",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب",
+            "action": "update.post",
+            "entity": "vouchers",
+            "entityId": "01a16425-4567-7668-970d-58161f55f10d",
+            "before": null,
+            "after": {
+              "id": "01a16425-4567-7668-970d-58161f55f10d",
+              "date": "2026-10-22",
+              "kind": "receipt",
+              "amount": "5.0000",
+              "fxRate": null,
+              "method": "cash",
+              "number": "RV-000006",
+              "status": "posted",
+              "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+              "subtype": "customer",
+              "version": 1,
+              "bankName": null,
+              "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+              "chequeNo": null,
+              "currency": "SAR",
+              "postedAt": "2026-10-22T15:05:26.673Z",
+              "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+              "voidedAt": null,
+              "createdAt": "2026-10-22T15:05:26.631Z",
+              "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "netAmount": "5.0000",
+              "recipient": null,
+              "updatedAt": "2026-10-22T15:05:26.673Z",
+              "updatedBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "vatAmount": "0.0000",
+              "chequeDate": null,
+              "salesmanId": null,
+              "chequeState": null,
+              "description": "R22-RV-OVER قبض 5 يُخصَّص لفاتورة مسددة بالكامل (يجب رفض التخصيص)",
+              "referenceNo": "R22-RV-OVER",
+              "voucherTime": null,
+              "costCenterId": null,
+              "createdByName": "مالك الحساب",
+              "foreignAmount": null,
+              "referenceDate": null,
+              "cashLocationId": "01a163cb-c8bc-71ea-88f6-c9f66e215f9b",
+              "fiscalPeriodId": null,
+              "idempotencyKey": null,
+              "journalEntryId": "01a16425-458a-7084-8f7b-0603ea03bc11",
+              "counterAccountId": null
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "vouchers/01a16425-4567-7668-970d-58161f55f10d/post",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a16425-4574-726e-8785-059abac42cb7",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad"
+            },
+            "createdAt": "2026-10-22T15:05:26.678Z"
+          },
+          {
+            "id": "01a16425-456e-77c9-8bf3-91bfeb9484ad",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب",
+            "action": "create",
+            "entity": "vouchers",
+            "entityId": "01a16425-4567-7668-970d-58161f55f10d",
+            "before": null,
+            "after": {
+              "id": "01a16425-4567-7668-970d-58161f55f10d",
+              "date": "2026-10-22",
+              "kind": "receipt",
+              "amount": "5.0000",
+              "fxRate": null,
+              "method": "cash",
+              "number": null,
+              "status": "draft",
+              "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+              "subtype": "customer",
+              "version": 1,
+              "bankName": null,
+              "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+              "chequeNo": null,
+              "currency": "SAR",
+              "legacyId": null,
+              "postedAt": null,
+              "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+              "voidedAt": null,
+              "createdAt": "2026-10-22T15:05:26.631Z",
+              "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "netAmount": "5.0000",
+              "recipient": null,
+              "updatedAt": null,
+              "updatedBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "vatAmount": "0.0000",
+              "chequeDate": null,
+              "salesmanId": null,
+              "chequeState": null,
+              "description": "R22-RV-OVER قبض 5 يُخصَّص لفاتورة مسددة بالكامل (يجب رفض التخصيص)",
+              "referenceNo": "R22-RV-OVER",
+              "voucherTime": null,
+              "costCenterId": null,
+              "legacySource": null,
+              "foreignAmount": null,
+              "referenceDate": null,
+              "cashLocationId": "01a163cb-c8bc-71ea-88f6-c9f66e215f9b",
+              "fiscalPeriodId": null,
+              "idempotencyKey": null,
+              "journalEntryId": null,
+              "counterAccountId": null
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "vouchers",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a16425-4557-75cc-9f54-fe3ea2195d4b",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad"
+            },
+            "createdAt": "2026-10-22T15:05:26.637Z"
+          },
+          {
+            "id": "01a16423-c421-713e-a67d-e9e35bcce477",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب",
+            "action": "update.post",
+            "entity": "vouchers",
+            "entityId": "01a16422-bf27-732e-9f99-29245b0282fd",
+            "before": null,
+            "after": {
+              "id": "01a16422-bf27-732e-9f99-29245b0282fd",
+              "date": "2026-10-22",
+              "kind": "receipt",
+              "amount": "38.0000",
+              "fxRate": "3.8000000000",
+              "method": "cash",
+              "number": "RV-000005",
+              "status": "posted",
+              "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+              "subtype": "customer",
+              "version": 1,
+              "bankName": null,
+              "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+              "chequeNo": null,
+              "currency": "USD",
+              "postedAt": "2026-10-22T15:03:47.995Z",
+              "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+              "voidedAt": null,
+              "createdAt": "2026-10-22T15:02:41.191Z",
+              "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "netAmount": "38.0000",
+              "recipient": "R22 اختبار فقط",
+              "updatedAt": "2026-10-22T15:03:47.995Z",
+              "updatedBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "vatAmount": "0.0000",
+              "chequeDate": null,
+              "salesmanId": null,
+              "chequeState": null,
+              "description": "R22-RV-FX قبض 10 دولار = 38 ريال (سعر ضمني 3.80 مقابل 3.75 في الجدول) من عميل عام — يُخصَّص لفاتورة 115",
+              "referenceNo": "R22-RV-FX",
+              "voucherTime": null,
+              "costCenterId": null,
+              "createdByName": "مالك الحساب",
+              "foreignAmount": "10.0000",
+              "referenceDate": null,
+              "cashLocationId": "01a163cb-c8bc-71ea-88f6-c9f66e215f9b",
+              "fiscalPeriodId": null,
+              "idempotencyKey": "c9ff7eab-fdb8-4e05-9c83-2cdff64309d2",
+              "journalEntryId": "01a16423-c412-76eb-b932-d77b9d0a7103",
+              "counterAccountId": null
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "vouchers/01a16422-bf27-732e-9f99-29245b0282fd/post",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a16423-c3fc-769a-a59c-7fac819ae1f2",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad"
+            },
+            "createdAt": "2026-10-22T15:03:48.000Z"
+          },
+          {
+            "id": "01a16422-bf37-749b-bb84-a827e2a22873",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب",
+            "action": "create",
+            "entity": "vouchers",
+            "entityId": "01a16422-bf27-732e-9f99-29245b0282fd",
+            "before": null,
+            "after": {
+              "id": "01a16422-bf27-732e-9f99-29245b0282fd",
+              "date": "2026-10-22",
+              "kind": "receipt",
+              "amount": "38.0000",
+              "fxRate": "3.8000000000",
+              "method": "cash",
+              "number": null,
+              "status": "draft",
+              "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+              "subtype": "customer",
+              "version": 1,
+              "bankName": null,
+              "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+              "chequeNo": null,
+              "currency": "USD",
+              "legacyId": null,
+              "postedAt": null,
+              "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+              "voidedAt": null,
+              "createdAt": "2026-10-22T15:02:41.191Z",
+              "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "netAmount": "38.0000",
+              "recipient": "R22 اختبار فقط",
+              "updatedAt": null,
+              "updatedBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "vatAmount": "0.0000",
+              "chequeDate": null,
+              "salesmanId": null,
+              "chequeState": null,
+              "description": "R22-RV-FX قبض 10 دولار = 38 ريال (سعر ضمني 3.80 مقابل 3.75 في الجدول) من عميل عام — يُخصَّص لفاتورة 115",
+              "referenceNo": "R22-RV-FX",
+              "voucherTime": null,
+              "costCenterId": null,
+              "legacySource": null,
+              "foreignAmount": "10.0000",
+              "referenceDate": null,
+              "cashLocationId": "01a163cb-c8bc-71ea-88f6-c9f66e215f9b",
+              "fiscalPeriodId": null,
+              "idempotencyKey": "c9ff7eab-fdb8-4e05-9c83-2cdff64309d2",
+              "journalEntryId": null,
+              "counterAccountId": null
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "vouchers",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a16422-befe-76ab-90bb-71055f740ab2",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad"
+            },
+            "createdAt": "2026-10-22T15:02:41.206Z"
+          },
+          {
+            "id": "01a16422-a7bd-7509-9320-2fbd492385fa",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب — owner@demo.test",
+            "action": "auth.refresh",
+            "entity": "auth",
+            "entityId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "before": null,
+            "after": null,
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "auth/refresh",
+              "method": "POST",
+              "status": 200,
+              "traceId": "01a16422-a7a7-7078-97a3-7314318f73b6",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36"
+            },
+            "createdAt": "2026-10-22T15:02:35.197Z"
+          },
+          {
+            "id": "01a16420-c335-71c6-b4e0-fef3eeaf0f9a",
+            "actorUserId": "01a163cb-c930-77eb-9826-fd993f060238",
+            "actorLabel": "محاسب الشركة",
+            "action": "update.01a1641e-de9d-7449-b8f8-596f72ecaa28",
+            "entity": "approvals",
+            "entityId": "requests",
+            "before": null,
+            "after": {
+              "id": "01a1641e-de9d-7449-b8f8-596f72ecaa28",
+              "canAct": false,
+              "status": "rejected",
+              "entityId": "01a1641d-dded-741d-a448-2f03e04573c1",
+              "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+              "createdAt": "2026-10-22T14:58:27.096Z",
+              "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "decisions": [
+                {
+                  "id": "01a16420-c32b-75ba-a554-61454c0bac3a",
+                  "stepId": "01a16417-f742-75cb-b7fe-50da853cda79",
+                  "userId": "01a163cb-c930-77eb-9826-fd993f060238",
+                  "comment": "R22 رفض المحاسب: سعر غير معتمد",
+                  "decision": "rejected",
+                  "decidedAt": "2026-10-22T15:00:31.140Z",
+                  "requestId": "01a1641e-de9d-7449-b8f8-596f72ecaa28"
+                }
+              ],
+              "updatedAt": "2026-10-22T15:00:31.148Z",
+              "entityType": "sales_invoice",
+              "workflowId": "01a16417-f740-751f-805d-8e8209474c24",
+              "currentStep": null,
+              "workflowName": "R22 مبيعات ≥ 100: المحاسب ثم المالك",
+              "currentStepOrder": null
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "approvals/requests/01a1641e-de9d-7449-b8f8-596f72ecaa28",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a16420-c311-77de-bf25-c7c6ff639abd",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c931-74a7-b9b8-5913a7a7ddb2"
+            },
+            "createdAt": "2026-10-22T15:00:31.157Z"
+          },
+          {
+            "id": "01a16420-c309-7120-8d91-2b2c6e77df33",
+            "actorUserId": "01a163cb-c930-77eb-9826-fd993f060238",
+            "actorLabel": "محاسب الشركة — accountant@demo.test",
+            "action": "auth.login",
+            "entity": "auth",
+            "entityId": "01a163cb-c930-77eb-9826-fd993f060238",
+            "before": null,
+            "after": null,
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "auth/login",
+              "method": "POST",
+              "status": 200,
+              "traceId": "01a16420-c2a7-71ac-baff-0ed16a85a710",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36"
+            },
+            "createdAt": "2026-10-22T15:00:31.112Z"
+          },
+          {
+            "id": "01a1641f-d661-72ee-9125-fe9ff684162e",
+            "actorUserId": "01a163cb-c930-77eb-9826-fd993f060238",
+            "actorLabel": "محاسب الشركة — accountant@demo.test",
+            "action": "auth.login",
+            "entity": "auth",
+            "entityId": "01a163cb-c930-77eb-9826-fd993f060238",
+            "before": null,
+            "after": null,
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "auth/login",
+              "method": "POST",
+              "status": 200,
+              "traceId": "01a1641f-d5f3-718e-8ca6-f4f230142e0e",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36"
+            },
+            "createdAt": "2026-10-22T14:59:30.528Z"
+          },
+          {
+            "id": "01a1641d-ddfb-7178-8806-f1ceb510c3bd",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب",
+            "action": "update",
+            "entity": "sales",
+            "entityId": "invoices",
+            "before": null,
+            "after": {
+              "id": "01a1641d-dded-741d-a448-2f03e04573c1",
+              "kind": "sale",
+              "lines": [
+                {
+                  "id": "01a1641d-ddef-7609-b8b2-17d255122eae",
+                  "net": "100.0000",
+                  "tax": "15.0000",
+                  "lotId": null,
+                  "total": "115.0000",
+                  "itemId": "01a163cd-c43f-7549-9c7b-373921a703e8",
+                  "lineNo": 1,
+                  "batchNo": null,
+                  "taxRate": "15.0000",
+                  "version": 1,
+                  "metadata": {},
+                  "quantity": "5.0000",
+                  "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+                  "costTotal": "0.0000",
+                  "createdAt": "2026-10-22T14:57:21.389Z",
+                  "createdBy": null,
+                  "invoiceId": "01a1641d-dded-741d-a448-2f03e04573c1",
+                  "modifiers": [],
+                  "serialNos": [],
+                  "unitPrice": "20.0000",
+                  "updatedAt": null,
+                  "updatedBy": null,
+                  "expiryDate": null,
+                  "taxGroupId": null,
+                  "description": null,
+                  "costCenterId": null,
+                  "discountRate": "0.0000",
+                  "discountAmount": "0.0000",
+                  "productionDate": null
+                }
+              ],
+              "total": "115.0000",
+              "number": null,
+              "profit": "0.0000",
+              "qrCode": null,
+              "status": "draft",
+              "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+              "shiftId": null,
+              "tableNo": null,
+              "version": 1,
+              "zatcaQr": null,
+              "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+              "currency": "SAR",
+              "extraTax": "0.0000",
+              "legacyId": null,
+              "payments": [],
+              "postedAt": null,
+              "subtotal": "100.0000",
+              "taxTotal": "15.0000",
+              "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+              "voidedAt": null,
+              "cashierId": null,
+              "costTotal": "0.0000",
+              "createdAt": "2026-10-22T14:57:21.389Z",
+              "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "orderType": null,
+              "paidTotal": "0.0000",
+              "partyName": "عميل عام",
+              "updatedAt": null,
+              "updatedBy": null,
+              "zatcaHash": "[redacted]",
+              "zatcaUuid": null,
+              "partyTaxNo": null,
+              "salesmanId": null,
+              "validUntil": null,
+              "warehouseId": "01a163cb-c8ba-7346-bad0-cd1b0e3b6328",
+              "withholding": "0.0000",
+              "zatcaStatus": null,
+              "combinedInto": null,
+              "costCenterId": null,
+              "customFields": {},
+              "legacySource": null,
+              "paymentStatus": "unpaid",
+              "taxInvoiceType": "simplified",
+              "invoiceDiscount": "0.0000",
+              "cashCustomerName": null,
+              "priceIncludesVat": false,
+              "cashCustomerMobile": null,
+              "convertedInvoiceId": null,
+              "referenceInvoiceId": null,
+              "taxInvoiceTypeLabelAr": "فاتورة ضريبية مبسطة"
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "sales/invoices",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a1641d-ddbc-738d-9353-c48f66070205",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad"
+            },
+            "createdAt": "2026-10-22T14:57:21.403Z"
+          },
+          {
+            "id": "01a1641c-a4ab-77ab-8dd8-6adba997e8e8",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب",
+            "action": "update.01a16419-d16a-76dc-a001-e94888ea5f04",
+            "entity": "approvals",
+            "entityId": "requests",
+            "before": null,
+            "after": {
+              "id": "01a16419-d16a-76dc-a001-e94888ea5f04",
+              "canAct": false,
+              "status": "approved",
+              "entityId": "01a16418-dac3-7661-935d-7ab435feeed8",
+              "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+              "createdAt": "2026-10-22T14:52:56.038Z",
+              "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "decisions": [
+                {
+                  "id": "01a1641b-b530-749a-bb37-2adf87883ba3",
+                  "stepId": "01a16417-f742-75cb-b7fe-50da853cda79",
+                  "userId": "01a163cb-c930-77eb-9826-fd993f060238",
+                  "comment": "R22 الخطوة 1: اعتماد المحاسب لفاتورة 115",
+                  "decision": "approved",
+                  "decidedAt": "2026-10-22T14:54:59.882Z",
+                  "requestId": "01a16419-d16a-76dc-a001-e94888ea5f04"
+                },
+                {
+                  "id": "01a1641c-a47a-73e8-bdea-56ab05b2e8dd",
+                  "stepId": "01a16417-f742-75cb-b7fe-54662d86c885",
+                  "userId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+                  "comment": "R22 الخطوة 2: اعتماد المالك",
+                  "decision": "approved",
+                  "decidedAt": "2026-10-22T14:56:01.143Z",
+                  "requestId": "01a16419-d16a-76dc-a001-e94888ea5f04"
+                }
+              ],
+              "updatedAt": "2026-10-22T14:56:01.147Z",
+              "entityType": "sales_invoice",
+              "workflowId": "01a16417-f740-751f-805d-8e8209474c24",
+              "currentStep": null,
+              "workflowName": "R22 مبيعات ≥ 100: المحاسب ثم المالك",
+              "currentStepOrder": null
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "approvals/requests/01a16419-d16a-76dc-a001-e94888ea5f04",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a1641c-a46b-740a-b194-6f51afca12ae",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad"
+            },
+            "createdAt": "2026-10-22T14:56:01.193Z"
+          },
+          {
+            "id": "01a1641b-b539-7448-b8fb-a5fe8d110e04",
+            "actorUserId": "01a163cb-c930-77eb-9826-fd993f060238",
+            "actorLabel": "محاسب الشركة",
+            "action": "update.01a16419-d16a-76dc-a001-e94888ea5f04",
+            "entity": "approvals",
+            "entityId": "requests",
+            "before": null,
+            "after": {
+              "id": "01a16419-d16a-76dc-a001-e94888ea5f04",
+              "canAct": false,
+              "status": "pending",
+              "entityId": "01a16418-dac3-7661-935d-7ab435feeed8",
+              "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+              "createdAt": "2026-10-22T14:52:56.038Z",
+              "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "decisions": [
+                {
+                  "id": "01a1641b-b530-749a-bb37-2adf87883ba3",
+                  "stepId": "01a16417-f742-75cb-b7fe-50da853cda79",
+                  "userId": "01a163cb-c930-77eb-9826-fd993f060238",
+                  "comment": "R22 الخطوة 1: اعتماد المحاسب لفاتورة 115",
+                  "decision": "approved",
+                  "decidedAt": "2026-10-22T14:54:59.882Z",
+                  "requestId": "01a16419-d16a-76dc-a001-e94888ea5f04"
+                }
+              ],
+              "updatedAt": "2026-10-22T14:54:59.890Z",
+              "entityType": "sales_invoice",
+              "workflowId": "01a16417-f740-751f-805d-8e8209474c24",
+              "currentStep": {
+                "id": "01a16417-f742-75cb-b7fe-54662d86c885",
+                "action": "approve",
+                "condition": {
+                  "min_amount": "100"
+                },
+                "stepOrder": 2,
+                "isRequired": true,
+                "workflowId": "01a16417-f740-751f-805d-8e8209474c24",
+                "approverRole": "Owner",
+                "approverUserId": null
+              },
+              "workflowName": "R22 مبيعات ≥ 100: المحاسب ثم المالك",
+              "currentStepOrder": 2
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "approvals/requests/01a16419-d16a-76dc-a001-e94888ea5f04",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a1641b-b51b-74cb-88d7-9cdf71d24e09",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c931-74a7-b9b8-5913a7a7ddb2"
+            },
+            "createdAt": "2026-10-22T14:54:59.897Z"
+          },
+          {
+            "id": "01a1641b-b513-7021-8717-ce1a3e19a7dc",
+            "actorUserId": "01a163cb-c930-77eb-9826-fd993f060238",
+            "actorLabel": "محاسب الشركة — accountant@demo.test",
+            "action": "auth.login",
+            "entity": "auth",
+            "entityId": "01a163cb-c930-77eb-9826-fd993f060238",
+            "before": null,
+            "after": null,
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "auth/login",
+              "method": "POST",
+              "status": 200,
+              "traceId": "01a1641b-b4c8-7327-923b-fec424cab283",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36"
+            },
+            "createdAt": "2026-10-22T14:54:59.859Z"
+          },
+          {
+            "id": "01a1641a-cedc-707c-9ecf-da500da8cbd6",
+            "actorUserId": "01a163cb-c930-77eb-9826-fd993f060238",
+            "actorLabel": "محاسب الشركة — accountant@demo.test",
+            "action": "auth.login",
+            "entity": "auth",
+            "entityId": "01a163cb-c930-77eb-9826-fd993f060238",
+            "before": null,
+            "after": null,
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "auth/login",
+              "method": "POST",
+              "status": 200,
+              "traceId": "01a1641a-ce45-7771-a1ab-31119096d7db",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36"
+            },
+            "createdAt": "2026-10-22T14:54:00.924Z"
+          },
+          {
+            "id": "01a16418-dad5-73cc-b314-d3a746181649",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب",
+            "action": "update",
+            "entity": "sales",
+            "entityId": "invoices",
+            "before": null,
+            "after": {
+              "id": "01a16418-dac3-7661-935d-7ab435feeed8",
+              "kind": "sale",
+              "lines": [
+                {
+                  "id": "01a16418-dac5-73ce-ab8f-5c0758b01eea",
+                  "net": "100.0000",
+                  "tax": "15.0000",
+                  "lotId": null,
+                  "total": "115.0000",
+                  "itemId": "01a163cd-c43f-7549-9c7b-373921a703e8",
+                  "lineNo": 1,
+                  "batchNo": null,
+                  "taxRate": "15.0000",
+                  "version": 1,
+                  "metadata": {},
+                  "quantity": "5.0000",
+                  "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+                  "costTotal": "0.0000",
+                  "createdAt": "2026-10-22T14:51:52.898Z",
+                  "createdBy": null,
+                  "invoiceId": "01a16418-dac3-7661-935d-7ab435feeed8",
+                  "modifiers": [],
+                  "serialNos": [],
+                  "unitPrice": "20.0000",
+                  "updatedAt": null,
+                  "updatedBy": null,
+                  "expiryDate": null,
+                  "taxGroupId": null,
+                  "description": null,
+                  "costCenterId": null,
+                  "discountRate": "0.0000",
+                  "discountAmount": "0.0000",
+                  "productionDate": null
+                }
+              ],
+              "total": "115.0000",
+              "number": null,
+              "profit": "0.0000",
+              "qrCode": null,
+              "status": "draft",
+              "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+              "shiftId": null,
+              "tableNo": null,
+              "version": 1,
+              "zatcaQr": null,
+              "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+              "currency": "SAR",
+              "extraTax": "0.0000",
+              "legacyId": null,
+              "payments": [],
+              "postedAt": null,
+              "subtotal": "100.0000",
+              "taxTotal": "15.0000",
+              "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+              "voidedAt": null,
+              "cashierId": null,
+              "costTotal": "0.0000",
+              "createdAt": "2026-10-22T14:51:52.898Z",
+              "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "orderType": null,
+              "paidTotal": "0.0000",
+              "partyName": "عميل عام",
+              "updatedAt": null,
+              "updatedBy": null,
+              "zatcaHash": "[redacted]",
+              "zatcaUuid": null,
+              "partyTaxNo": null,
+              "salesmanId": null,
+              "validUntil": null,
+              "warehouseId": "01a163cb-c8ba-7346-bad0-cd1b0e3b6328",
+              "withholding": "0.0000",
+              "zatcaStatus": null,
+              "combinedInto": null,
+              "costCenterId": null,
+              "customFields": {},
+              "legacySource": null,
+              "paymentStatus": "unpaid",
+              "taxInvoiceType": "simplified",
+              "invoiceDiscount": "0.0000",
+              "cashCustomerName": null,
+              "priceIncludesVat": false,
+              "cashCustomerMobile": null,
+              "convertedInvoiceId": null,
+              "referenceInvoiceId": null,
+              "taxInvoiceTypeLabelAr": "فاتورة ضريبية مبسطة"
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "sales/invoices",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a16418-da96-73df-8160-b34f66768096",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad"
+            },
+            "createdAt": "2026-10-22T14:51:52.911Z"
+          },
+          {
+            "id": "01a16417-f748-745d-81fc-839c1f659b64",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب",
+            "action": "create",
+            "entity": "approval-workflows",
+            "entityId": "01a16417-f740-751f-805d-8e8209474c24",
+            "before": null,
+            "after": {
+              "id": "01a16417-f740-751f-805d-8e8209474c24",
+              "name": "R22 مبيعات ≥ 100: المحاسب ثم المالك",
+              "steps": [
+                {
+                  "id": "01a16417-f742-75cb-b7fe-50da853cda79",
+                  "action": "approve",
+                  "condition": {
+                    "min_amount": "100"
+                  },
+                  "stepOrder": 1,
+                  "isRequired": true,
+                  "workflowId": "01a16417-f740-751f-805d-8e8209474c24",
+                  "approverRole": "Accountant",
+                  "approverUserId": null
+                },
+                {
+                  "id": "01a16417-f742-75cb-b7fe-54662d86c885",
+                  "action": "approve",
+                  "condition": {
+                    "min_amount": "100"
+                  },
+                  "stepOrder": 2,
+                  "isRequired": true,
+                  "workflowId": "01a16417-f740-751f-805d-8e8209474c24",
+                  "approverRole": "Owner",
+                  "approverUserId": null
+                }
+              ],
+              "entity": "sales_invoice",
+              "isActive": true,
+              "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+              "createdAt": "2026-10-22T14:50:54.652Z",
+              "updatedAt": null
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "approval-workflows",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a16417-f71f-7279-b361-c98ed7161a5e",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad"
+            },
+            "createdAt": "2026-10-22T14:50:54.664Z"
+          },
+          {
+            "id": "01a16417-0f03-718d-bb4b-b984f4775e78",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب",
+            "action": "update.01a16416-3640-702e-b330-872f14c5b41c",
+            "entity": "inventory",
+            "entityId": "vouchers",
+            "before": null,
+            "after": {
+              "id": "01a16416-3640-702e-b330-872f14c5b41c",
+              "kind": "stock_out",
+              "lines": [
+                {
+                  "qty": "1.0000",
+                  "note": null,
+                  "lotId": null,
+                  "itemId": "01a163cd-c43f-7549-9c7b-373921a703e8",
+                  "lineNo": 1,
+                  "unitId": null,
+                  "batchNo": null,
+                  "lineCost": "0.0000",
+                  "serialId": null,
+                  "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+                  "unitCost": null,
+                  "serialNos": [],
+                  "voucherId": "01a16416-3640-702e-b330-872f14c5b41c",
+                  "expiryDate": null,
+                  "productionDate": null
+                }
+              ],
+              "notes": null,
+              "number": "SOU-000001",
+              "reason": "R22-SV-SEP إخراج 1 بتاريخ 2026-09-15 (فترة مغلقة) — يجب رفض الترحيل",
+              "status": "posted",
+              "version": 1,
+              "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+              "legacyId": null,
+              "postedAt": "2026-10-22T14:49:55.198Z",
+              "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+              "voidedAt": null,
+              "createdAt": "2026-10-22T14:48:59.712Z",
+              "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "totalCost": "10.0000",
+              "updatedAt": "2026-10-22T14:49:55.198Z",
+              "updatedBy": null,
+              "voucherDate": "2026-09-15",
+              "warehouseId": "01a163cb-c8ba-7346-bad0-cd1b0e3b6328",
+              "legacySource": null,
+              "journalEntryId": "01a16417-0ef7-72dd-bec0-4d0f04b2a19a",
+              "counterAccountId": null
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "inventory/vouchers/01a16416-3640-702e-b330-872f14c5b41c",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a16417-0ede-774a-bdec-fdd34fc9fa65",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad"
+            },
+            "createdAt": "2026-10-22T14:49:55.203Z"
+          },
+          {
+            "id": "01a16416-3666-70ed-a415-710ef989d6b2",
+            "actorUserId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+            "actorLabel": "مالك الحساب",
+            "action": "update",
+            "entity": "inventory",
+            "entityId": "vouchers",
+            "before": null,
+            "after": {
+              "id": "01a16416-3640-702e-b330-872f14c5b41c",
+              "kind": "stock_out",
+              "lines": [
+                {
+                  "qty": "1.0000",
+                  "note": null,
+                  "lotId": null,
+                  "itemId": "01a163cd-c43f-7549-9c7b-373921a703e8",
+                  "lineNo": 1,
+                  "unitId": null,
+                  "batchNo": null,
+                  "lineCost": "0.0000",
+                  "serialId": null,
+                  "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+                  "unitCost": null,
+                  "serialNos": [],
+                  "voucherId": "01a16416-3640-702e-b330-872f14c5b41c",
+                  "expiryDate": null,
+                  "productionDate": null
+                }
+              ],
+              "notes": null,
+              "number": "SOU-000001",
+              "reason": "R22-SV-SEP إخراج 1 بتاريخ 2026-09-15 (فترة مغلقة) — يجب رفض الترحيل",
+              "status": "draft",
+              "version": 1,
+              "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+              "legacyId": null,
+              "postedAt": null,
+              "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+              "voidedAt": null,
+              "createdAt": "2026-10-22T14:48:59.712Z",
+              "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+              "totalCost": "10.0000",
+              "updatedAt": null,
+              "updatedBy": null,
+              "voucherDate": "2026-09-15",
+              "warehouseId": "01a163cb-c8ba-7346-bad0-cd1b0e3b6328",
+              "legacySource": null,
+              "journalEntryId": null,
+              "counterAccountId": null
+            },
+            "meta": {
+              "ip": "127.0.0.1",
+              "path": "inventory/vouchers",
+              "method": "POST",
+              "status": 201,
+              "traceId": "01a16416-3621-77ad-8c54-89576e0a381a",
+              "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.6778.0 Safari/537.36",
+              "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad"
+            },
+            "createdAt": "2026-10-22T14:48:59.750Z"
+          }
+        ],
+        "meta": {
+          "total": 94,
+          "limit": 20,
+          "offset": 0
+        }
+      }
+    }
+  ]
+}
