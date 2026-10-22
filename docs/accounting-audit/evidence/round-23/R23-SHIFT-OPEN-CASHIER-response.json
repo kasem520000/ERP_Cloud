@@ -1,0 +1,102 @@
+{
+  "actor": "cashier@demo.test",
+  "loginStatus": 200,
+  "tokenReceived": true,
+  "results": [
+    {
+      "label": "open-second-shift-same-branch",
+      "method": "POST",
+      "path": "/shift-closes/open",
+      "request": {
+        "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80"
+      },
+      "status": 201,
+      "body": {
+        "id": "01a164cf-10a9-7614-84ee-90300bd0f8e0",
+        "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+        "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+        "userId": "01a164b9-df08-7046-a793-b93d4195afa4",
+        "openedAt": "2026-10-22T18:10:54.248Z",
+        "closedAt": null,
+        "status": "open",
+        "number": null,
+        "journalEntryId": null,
+        "postedAt": null,
+        "expectedCash": "0.0000",
+        "countedCash": "0.0000",
+        "diff": "0.0000",
+        "summary": {},
+        "reportHtml": null,
+        "createdAt": "2026-10-22T18:10:54.248Z",
+        "createdBy": null,
+        "updatedAt": null,
+        "updatedBy": null,
+        "version": 1
+      }
+    },
+    {
+      "label": "current-cashier",
+      "method": "GET",
+      "path": "/shift-closes/current?branch_id=01a164b9-deaa-75cd-9039-64b894c7ee80",
+      "status": 200,
+      "body": {
+        "id": "01a164cf-10a9-7614-84ee-90300bd0f8e0",
+        "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+        "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+        "userId": "01a164b9-df08-7046-a793-b93d4195afa4",
+        "openedAt": "2026-10-22T18:10:54.248Z",
+        "closedAt": null,
+        "status": "open",
+        "number": null,
+        "journalEntryId": null,
+        "postedAt": null,
+        "expectedCash": "0.0000",
+        "countedCash": "0.0000",
+        "diff": "0.0000",
+        "summary": {},
+        "reportHtml": null,
+        "createdAt": "2026-10-22T18:10:54.248Z",
+        "createdBy": null,
+        "updatedAt": null,
+        "updatedBy": null,
+        "version": 1,
+        "live": {
+          "vouchers": 0,
+          "vouchersCash": "0.0000",
+          "invoices": 0,
+          "invoiceRows": 0,
+          "sales": {
+            "cash": "0.0000",
+            "card": "0.0000",
+            "bank": "0.0000",
+            "credit": "0.0000"
+          },
+          "returns": {
+            "cash": "0.0000",
+            "card": "0.0000",
+            "bank": "0.0000",
+            "credit": "0.0000"
+          },
+          "expectedCash": "0.0000",
+          "cash": "0.0000",
+          "banks": [],
+          "bankTransfers": "0.0000",
+          "network": "0.0000",
+          "sumCashAndNetwork": "0.0000",
+          "net": "0.0000",
+          "tax": "0.0000",
+          "discount": "0.0000",
+          "postponed": "0.0000",
+          "expenses": {
+            "total": "0.0000",
+            "delivery": "0.0000",
+            "hospitality": "0.0000",
+            "purchases": "0.0000",
+            "insurance": "0.0000",
+            "other": "0.0000"
+          }
+        }
+      }
+    }
+  ]
+}

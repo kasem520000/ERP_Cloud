@@ -1,0 +1,189 @@
+{
+  "actor": "accountant@demo.test",
+  "loginStatus": 200,
+  "tokenReceived": true,
+  "results": [
+    {
+      "label": "inbox-accountant",
+      "method": "GET",
+      "path": "/approvals/inbox",
+      "status": 200,
+      "body": [
+        {
+          "id": "01a164c7-cd45-7244-a7d1-dd4d9b71b020",
+          "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+          "workflowId": "01a164c6-871d-726e-94d5-b7f2436fc515",
+          "entityType": "purchase_invoice",
+          "entityId": "01a164c7-15f2-70cc-9b79-50c86ba3ca39",
+          "status": "pending",
+          "currentStepOrder": 1,
+          "createdBy": "01a164b9-dd89-740b-9144-3e5d91cbd544",
+          "createdAt": "2026-10-22T18:02:58.242Z",
+          "updatedAt": "2026-10-22T18:02:58.246Z",
+          "workflowName": "R23 مشتريات 100–1000: المحاسب بعينه",
+          "currentStep": {
+            "id": "01a164c6-871f-705c-92ee-bb9ae072442a",
+            "workflowId": "01a164c6-871d-726e-94d5-b7f2436fc515",
+            "stepOrder": 1,
+            "approverRole": null,
+            "approverUserId": "01a164b9-df04-7488-aece-ea7306004dd7",
+            "condition": {
+              "min_amount": "100",
+              "max_amount": "1000"
+            },
+            "action": "approve",
+            "isRequired": true
+          },
+          "decisions": [],
+          "canAct": true
+        }
+      ]
+    },
+    {
+      "label": "accountant-approve",
+      "method": "POST",
+      "path": "/approvals/requests/01a164c7-cd45-7244-a7d1-dd4d9b71b020/approve",
+      "request": {
+        "comment": "R23 اعتماد المراجع المسمّى"
+      },
+      "status": 201,
+      "body": {
+        "id": "01a164c7-cd45-7244-a7d1-dd4d9b71b020",
+        "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+        "workflowId": "01a164c6-871d-726e-94d5-b7f2436fc515",
+        "entityType": "purchase_invoice",
+        "entityId": "01a164c7-15f2-70cc-9b79-50c86ba3ca39",
+        "status": "approved",
+        "currentStepOrder": null,
+        "createdBy": "01a164b9-dd89-740b-9144-3e5d91cbd544",
+        "createdAt": "2026-10-22T18:02:58.242Z",
+        "updatedAt": "2026-10-22T18:05:09.155Z",
+        "workflowName": "R23 مشتريات 100–1000: المحاسب بعينه",
+        "currentStep": null,
+        "decisions": [
+          {
+            "id": "01a164c9-cca1-7573-9d8c-2a065afd308c",
+            "requestId": "01a164c7-cd45-7244-a7d1-dd4d9b71b020",
+            "stepId": "01a164c6-871f-705c-92ee-bb9ae072442a",
+            "userId": "01a164b9-df04-7488-aece-ea7306004dd7",
+            "decision": "approved",
+            "comment": "R23 اعتماد المراجع المسمّى",
+            "decidedAt": "2026-10-22T18:05:09.149Z"
+          }
+        ],
+        "canAct": false
+      }
+    },
+    {
+      "label": "request-after",
+      "method": "GET",
+      "path": "/approvals/requests/01a164c7-cd45-7244-a7d1-dd4d9b71b020",
+      "status": 200,
+      "body": {
+        "id": "01a164c7-cd45-7244-a7d1-dd4d9b71b020",
+        "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+        "workflowId": "01a164c6-871d-726e-94d5-b7f2436fc515",
+        "entityType": "purchase_invoice",
+        "entityId": "01a164c7-15f2-70cc-9b79-50c86ba3ca39",
+        "status": "approved",
+        "currentStepOrder": null,
+        "createdBy": "01a164b9-dd89-740b-9144-3e5d91cbd544",
+        "createdAt": "2026-10-22T18:02:58.242Z",
+        "updatedAt": "2026-10-22T18:05:09.155Z",
+        "workflowName": "R23 مشتريات 100–1000: المحاسب بعينه",
+        "currentStep": null,
+        "decisions": [
+          {
+            "id": "01a164c9-cca1-7573-9d8c-2a065afd308c",
+            "requestId": "01a164c7-cd45-7244-a7d1-dd4d9b71b020",
+            "stepId": "01a164c6-871f-705c-92ee-bb9ae072442a",
+            "userId": "01a164b9-df04-7488-aece-ea7306004dd7",
+            "decision": "approved",
+            "comment": "R23 اعتماد المراجع المسمّى",
+            "decidedAt": "2026-10-22T18:05:09.149Z"
+          }
+        ],
+        "canAct": false
+      }
+    },
+    {
+      "label": "pi-after",
+      "method": "GET",
+      "path": "/purchase-invoices/01a164c7-15f2-70cc-9b79-50c86ba3ca39",
+      "status": 200,
+      "body": {
+        "id": "01a164c7-15f2-70cc-9b79-50c86ba3ca39",
+        "costCenterId": null,
+        "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+        "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+        "warehouseId": "01a164b9-deab-7269-9e46-2768a0c2cf19",
+        "partyId": "01a164b9-deb3-74da-848a-5b66d7ca7b8a",
+        "referenceInvoiceId": null,
+        "kind": "purchase",
+        "status": "posted",
+        "number": "PI-000001",
+        "supplierReferenceNo": "R23-PI-115",
+        "supplierReferenceDate": "2026-10-22",
+        "currency": "SAR",
+        "priceIncludesVat": false,
+        "landedCostAlloc": "value",
+        "invoiceDiscount": "0.0000",
+        "extraTax": "0.0000",
+        "withholding": "0.0000",
+        "subtotal": "100.0000",
+        "taxTotal": "15.0000",
+        "additionalCostTotal": "0.0000",
+        "total": "115.0000",
+        "paidTotal": "0.0000",
+        "paymentStatus": "unpaid",
+        "journalEntryId": "01a164c9-ccc4-76f7-81da-844821eee4ff",
+        "postedAt": "2026-10-22T18:05:09.193Z",
+        "voidedAt": null,
+        "createdAt": "2026-10-22T18:02:11.315Z",
+        "createdBy": "01a164b9-dd89-740b-9144-3e5d91cbd544",
+        "updatedAt": null,
+        "updatedBy": null,
+        "version": 1,
+        "legacySource": null,
+        "legacyId": null,
+        "lines": [
+          {
+            "id": "01a164c7-15f6-701d-b3b0-d8fb7d7373eb",
+            "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+            "invoiceId": "01a164c7-15f2-70cc-9b79-50c86ba3ca39",
+            "lineNo": 1,
+            "itemId": "01a164bd-0e0c-70ee-abb5-469ebdfb749c",
+            "taxGroupId": "01a164b9-deee-729c-8c60-04bb56958448",
+            "description": null,
+            "quantity": "10.0000",
+            "unitPrice": "10.0000",
+            "discountRate": "0.0000",
+            "discountAmount": "0.0000",
+            "taxRate": "15.0000",
+            "net": "100.0000",
+            "tax": "15.0000",
+            "total": "115.0000",
+            "allocatedCost": "0.0000",
+            "landedTotal": "100.0000",
+            "unitCostAtPost": "10.0000",
+            "costCenterId": null,
+            "serialNos": [],
+            "lotId": null,
+            "batchNo": null,
+            "productionDate": null,
+            "expiryDate": null,
+            "metadata": {},
+            "createdAt": "2026-10-22T18:02:11.315Z",
+            "createdBy": null,
+            "updatedAt": "2026-10-22T18:05:09.182Z",
+            "updatedBy": null,
+            "version": 1
+          }
+        ],
+        "costs": [],
+        "payments": [],
+        "customFields": {}
+      }
+    }
+  ]
+}

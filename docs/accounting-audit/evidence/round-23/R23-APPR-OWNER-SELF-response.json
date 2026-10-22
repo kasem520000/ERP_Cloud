@@ -1,0 +1,19 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "inbox-owner",
+      "method": "GET",
+      "path": "/approvals/inbox",
+      "status": 200,
+      "body": []
+    },
+    {
+      "label": "history",
+      "method": "GET",
+      "path": "/approvals/history",
+      "status": 200,
+      "body": []
+    }
+  ]
+}

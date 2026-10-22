@@ -1,0 +1,21 @@
+{
+  "status": 202,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/purchase-invoices/01a164c7-15f2-70cc-9b79-50c86ba3ca39/post",
+  "request": {
+    "settlement": "credit"
+  },
+  "body": {
+    "type": "about:blank",
+    "title": "Approval required",
+    "status": 202,
+    "code": "APPROVAL_REQUIRED",
+    "detail": "This document was submitted for approval and has not been posted",
+    "traceId": "01a164c7-ca38-70fb-81ae-80db7bdce147",
+    "errors": [
+      {
+        "requestId": "01a164c7-cd45-7244-a7d1-dd4d9b71b020"
+      }
+    ]
+  }
+}

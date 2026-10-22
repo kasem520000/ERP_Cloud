@@ -1,0 +1,270 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "rv",
+      "method": "GET",
+      "path": "/vouchers/01a164d4-5931-7558-9323-6a71450c2b5a",
+      "status": 200,
+      "body": {
+        "id": "01a164d4-5931-7558-9323-6a71450c2b5a",
+        "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+        "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+        "kind": "receipt",
+        "subtype": "customer",
+        "number": "RV-000002",
+        "date": "2026-10-22",
+        "partyId": "01a164b9-deb1-77ad-a17f-47b29f8716c9",
+        "counterAccountId": null,
+        "cashLocationId": "01a164b9-dead-7509-9172-546db5caf6c0",
+        "method": "cash",
+        "amount": "37.5000",
+        "vatAmount": "0.0000",
+        "netAmount": "37.5000",
+        "currency": "USD",
+        "fxRate": "3.7500000000",
+        "chequeNo": null,
+        "chequeDate": null,
+        "bankName": null,
+        "chequeState": null,
+        "costCenterId": null,
+        "referenceNo": "R23-RV-USD",
+        "referenceDate": null,
+        "recipient": "R23 اختبار فقط",
+        "description": "R23-RV-USD قبض 10 دولار = 37.50 ريال بسعر الجدول 3.75 من عميل عام",
+        "voucherTime": null,
+        "salesmanId": null,
+        "foreignAmount": "10.0000",
+        "status": "posted",
+        "journalEntryId": "01a164d5-2488-7338-abc8-61fd9a442274",
+        "fiscalPeriodId": null,
+        "postedAt": "2026-10-22T18:17:32.558Z",
+        "voidedAt": null,
+        "idempotencyKey": "ec11063a-b48f-4931-b195-c2faa415a10c",
+        "createdAt": "2026-10-22T18:16:40.497Z",
+        "createdBy": "01a164b9-dd89-740b-9144-3e5d91cbd544",
+        "createdByName": "مالك الحساب",
+        "updatedAt": "2026-10-22T18:17:32.558Z",
+        "updatedBy": "01a164b9-dd89-740b-9144-3e5d91cbd544",
+        "version": 1
+      }
+    },
+    {
+      "label": "pv",
+      "method": "GET",
+      "path": "/vouchers/01a164d5-e4d4-70b1-84c7-f7e64de1fb24",
+      "status": 200,
+      "body": {
+        "id": "01a164d5-e4d4-70b1-84c7-f7e64de1fb24",
+        "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+        "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+        "kind": "payment",
+        "subtype": "supplier",
+        "number": "PV-000001",
+        "date": "2026-10-22",
+        "partyId": "01a164b9-deb3-74da-848a-5b66d7ca7b8a",
+        "counterAccountId": null,
+        "cashLocationId": "01a164b9-dead-7509-9172-546db5caf6c0",
+        "method": "cash",
+        "amount": "15.0000",
+        "vatAmount": "0.0000",
+        "netAmount": "15.0000",
+        "currency": "USD",
+        "fxRate": "3.7500000000",
+        "chequeNo": null,
+        "chequeDate": null,
+        "bankName": null,
+        "chequeState": null,
+        "costCenterId": null,
+        "referenceNo": "R23-PV-USD",
+        "referenceDate": null,
+        "recipient": "R23 اختبار فقط",
+        "description": "R23-PV-USD صرف 4 دولار = 15 ريال للمورد العام من الصندوق الرئيسي",
+        "voucherTime": null,
+        "salesmanId": null,
+        "foreignAmount": "4.0000",
+        "status": "posted",
+        "journalEntryId": "01a164d6-afc8-7799-a6b0-e6f4c4858afe",
+        "fiscalPeriodId": null,
+        "postedAt": "2026-10-22T18:19:13.740Z",
+        "voidedAt": null,
+        "idempotencyKey": "52ac3976-b706-435b-83da-ae32c27f718f",
+        "createdAt": "2026-10-22T18:18:21.779Z",
+        "createdBy": "01a164b9-dd89-740b-9144-3e5d91cbd544",
+        "createdByName": "مالك الحساب",
+        "updatedAt": "2026-10-22T18:19:13.740Z",
+        "updatedBy": "01a164b9-dd89-740b-9144-3e5d91cbd544",
+        "version": 1
+      }
+    },
+    {
+      "label": "cash-balance-sar",
+      "method": "GET",
+      "path": "/cash-locations/01a164b9-dead-7509-9172-546db5caf6c0/balance",
+      "status": 200,
+      "body": {
+        "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+        "cashLocationId": "01a164b9-dead-7509-9172-546db5caf6c0",
+        "currencyCode": "SAR",
+        "balance": "0.0000",
+        "updatedAt": "2026-10-22T18:08:55.090Z"
+      }
+    },
+    {
+      "label": "cash-balance-usd",
+      "method": "GET",
+      "path": "/cash-locations/01a164b9-dead-7509-9172-546db5caf6c0/balance?currency=USD",
+      "status": 200,
+      "body": {
+        "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+        "cashLocationId": "01a164b9-dead-7509-9172-546db5caf6c0",
+        "currencyCode": "USD",
+        "balance": "22.5000",
+        "updatedAt": "2026-10-22T18:19:13.740Z"
+      }
+    },
+    {
+      "label": "cash-locations",
+      "method": "GET",
+      "path": "/cash-locations",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a164b9-deae-7457-9615-b74de3f2719f",
+            "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+            "kind": "bank",
+            "name": "الحساب البنكي الرئيسي",
+            "accountId": "01a164b9-ded0-73d7-b1f9-5498d1176c85",
+            "currencyCode": "SAR",
+            "isDefault": true,
+            "bank": {
+              "iban": "SA00****************0000",
+              "bankName": "البنك الأهلي",
+              "accountNo": "000000000000"
+            },
+            "changeInPos": false,
+            "isActive": true,
+            "notes": null,
+            "custodianIds": [],
+            "version": 1,
+            "createdAt": "2026-10-22T17:47:45.198Z",
+            "updatedAt": "2026-10-22T17:47:45.258Z"
+          },
+          {
+            "id": "01a164b9-dead-7509-9172-546db5caf6c0",
+            "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+            "kind": "safe",
+            "name": "الصندوق الرئيسي",
+            "accountId": "01a164b9-decf-712d-9840-d8ff9b8a0275",
+            "currencyCode": "SAR",
+            "isDefault": true,
+            "bank": null,
+            "changeInPos": false,
+            "isActive": true,
+            "notes": null,
+            "custodianIds": [],
+            "version": 1,
+            "createdAt": "2026-10-22T17:47:45.197Z",
+            "updatedAt": "2026-10-22T17:47:45.257Z"
+          }
+        ],
+        "meta": {
+          "total": 2,
+          "limit": 50,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "label": "resolve",
+      "method": "GET",
+      "path": "/fx-rates/resolve?from=USD&to=SAR&date=2026-10-22",
+      "status": 200,
+      "body": {
+        "data": {
+          "fromCode": "USD",
+          "toCode": "SAR",
+          "rate": "3.75",
+          "source": "direct",
+          "effectiveFrom": "2026-10-01",
+          "via": null
+        }
+      }
+    },
+    {
+      "label": "journals",
+      "method": "GET",
+      "path": "/journal-entries?limit=4",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a164d6-afc8-7799-a6b0-e6f4c4858afe",
+            "number": "JE-000011",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "R23-PV-USD صرف 4 دولار = 15 ريال للمورد العام من الصندوق الرئيسي",
+            "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+            "fiscalPeriodId": "01a164b9-defd-75c4-8b4d-12bacc3e020a",
+            "sourceType": "voucher",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T18:19:13.736Z",
+            "totalDebit": "15.0000",
+            "totalCredit": "15.0000",
+            "lineCount": 2
+          },
+          {
+            "id": "01a164d5-2488-7338-abc8-61fd9a442274",
+            "number": "JE-000010",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "R23-RV-USD قبض 10 دولار = 37.50 ريال بسعر الجدول 3.75 من عميل عام",
+            "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+            "fiscalPeriodId": "01a164b9-defd-75c4-8b4d-12bacc3e020a",
+            "sourceType": "voucher",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T18:17:32.553Z",
+            "totalDebit": "37.5000",
+            "totalCredit": "37.5000",
+            "lineCount": 2
+          },
+          {
+            "id": "01a164d2-f753-7163-b270-ed815e7dc38c",
+            "number": "JE-000009",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "اغلاق اليومية خاصة الموظف أمين الصندوق رقمCS-000002",
+            "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+            "fiscalPeriodId": "01a164b9-defd-75c4-8b4d-12bacc3e020a",
+            "sourceType": "shift_close",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T18:15:09.907Z",
+            "totalDebit": "23.0000",
+            "totalCredit": "23.0000",
+            "lineCount": 2
+          },
+          {
+            "id": "01a164d2-6f49-7432-91d9-808a90b7ecff",
+            "number": "JE-000008",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "اغلاق اليومية خاصة الموظف مالك الحساب رقمCS-000001",
+            "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+            "fiscalPeriodId": "01a164b9-defd-75c4-8b4d-12bacc3e020a",
+            "sourceType": "shift_close",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T18:14:35.082Z",
+            "totalDebit": "23.0000",
+            "totalCredit": "23.0000",
+            "lineCount": 2
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,144 @@
+[
+ {
+  "id": "01a164b9-dd8b-72db-8a4c-5fde4c97d546",
+  "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+  "tenantCode": "demo",
+  "tenantName": "AUDIT-TEST-2026-R23",
+  "displayName": "مالك الحساب",
+  "status": "active",
+  "isOwner": true,
+  "branchScope": null,
+  "maxDiscountPct": null,
+  "maxDiscountAmount": null,
+  "roles": [
+   {
+    "id": "01a164b9-dd8c-742a-ae7e-0b90bccca29e",
+    "name": "Owner",
+    "description": "Full control of the tenant, including configuration and access management.",
+    "isSystem": true
+   }
+  ],
+  "kind": "staff",
+  "scopes": [
+   {
+    "roleId": "01a164b9-dd8c-742a-ae7e-0b90bccca29e",
+    "scopeType": "branch",
+    "scopeId": "00000000-0000-0000-0000-000000000000"
+   },
+   {
+    "roleId": "01a164b9-dd8c-742a-ae7e-0b90bccca29e",
+    "scopeType": "warehouse",
+    "scopeId": "00000000-0000-0000-0000-000000000000"
+   },
+   {
+    "roleId": "01a164b9-dd8c-742a-ae7e-0b90bccca29e",
+    "scopeType": "cash_location",
+    "scopeId": "00000000-0000-0000-0000-000000000000"
+   }
+  ]
+ },
+ {
+  "id": "01a164b9-df04-7488-aece-ece9b1ad8d20",
+  "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+  "tenantCode": "demo",
+  "tenantName": "AUDIT-TEST-2026-R23",
+  "displayName": "محاسب الشركة",
+  "status": "active",
+  "isOwner": false,
+  "branchScope": null,
+  "maxDiscountPct": null,
+  "maxDiscountAmount": null,
+  "roles": [
+   {
+    "id": "01a164b9-ddc6-7130-8617-c9ef1744f0cc",
+    "name": "Accountant",
+    "description": "Accounting, parties, inventory and document review without tenant administration.",
+    "isSystem": true
+   }
+  ],
+  "kind": "staff",
+  "scopes": [
+   {
+    "roleId": "01a164b9-ddc6-7130-8617-c9ef1744f0cc",
+    "scopeType": "branch",
+    "scopeId": "00000000-0000-0000-0000-000000000000"
+   },
+   {
+    "roleId": "01a164b9-ddc6-7130-8617-c9ef1744f0cc",
+    "scopeType": "warehouse",
+    "scopeId": "00000000-0000-0000-0000-000000000000"
+   },
+   {
+    "roleId": "01a164b9-ddc6-7130-8617-c9ef1744f0cc",
+    "scopeType": "cash_location",
+    "scopeId": "00000000-0000-0000-0000-000000000000"
+   }
+  ]
+ },
+ {
+  "id": "01a164b9-df08-7046-a793-bed64c54ce36",
+  "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+  "tenantCode": "demo",
+  "tenantName": "AUDIT-TEST-2026-R23",
+  "displayName": "أمين الصندوق",
+  "status": "active",
+  "isOwner": false,
+  "branchScope": null,
+  "maxDiscountPct": null,
+  "maxDiscountAmount": null,
+  "roles": [
+   {
+    "id": "01a164b9-dddf-71d1-8080-a1759e0507df",
+    "name": "Cashier",
+    "description": "Point-of-sale and treasury operations; read-only catalog and party lookup.",
+    "isSystem": true
+   }
+  ],
+  "kind": "staff",
+  "scopes": [
+   {
+    "roleId": "01a164b9-dddf-71d1-8080-a1759e0507df",
+    "scopeType": "branch",
+    "scopeId": "00000000-0000-0000-0000-000000000000"
+   },
+   {
+    "roleId": "01a164b9-dddf-71d1-8080-a1759e0507df",
+    "scopeType": "warehouse",
+    "scopeId": "00000000-0000-0000-0000-000000000000"
+   },
+   {
+    "roleId": "01a164b9-dddf-71d1-8080-a1759e0507df",
+    "scopeType": "cash_location",
+    "scopeId": "00000000-0000-0000-0000-000000000000"
+   }
+  ]
+ },
+ {
+  "id": "01a164b9-df13-76f7-a8a7-54b1487df795",
+  "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+  "tenantCode": "demo",
+  "tenantName": "AUDIT-TEST-2026-R23",
+  "displayName": "مندوب الشركة",
+  "status": "active",
+  "isOwner": false,
+  "branchScope": null,
+  "maxDiscountPct": null,
+  "maxDiscountAmount": null,
+  "roles": [
+   {
+    "id": "01a164b9-df10-771d-b620-84990bdb69e4",
+    "name": "مندوب توزيع",
+    "description": "دور مندوب التوزيع: رؤية عهدته، إصدار فواتيره، تحصيل مديونياته، وتقديم إغلاق ورديته",
+    "isSystem": false
+   }
+  ],
+  "kind": "staff",
+  "scopes": [
+   {
+    "roleId": "01a164b9-df10-771d-b620-84990bdb69e4",
+    "scopeType": "warehouse",
+    "scopeId": "01a164b9-df0f-7732-aec1-a3adc400fc5a"
+   }
+  ]
+ }
+]
