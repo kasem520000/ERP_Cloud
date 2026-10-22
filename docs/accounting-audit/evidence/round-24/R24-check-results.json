@@ -1,0 +1,583 @@
+[
+ {
+  "id": "A01",
+  "desc": "PI-000001 115 (100+15%) posted",
+  "pass": true,
+  "actual": "(201, '115.0000')",
+  "tag": ""
+ },
+ {
+  "id": "A02",
+  "desc": "JE-000002 = Dr 1270001 100 + Dr 2222001 15 / Cr 22111001 115",
+  "pass": true,
+  "actual": "[('1270001', Decimal('100.0000'), Decimal('0.0000')), ('22111001', Decimal('0.0000'), Decimal('115.0000')), ('2222001', Decimal('15.0000'), Decimal('0.0000'))]",
+  "tag": ""
+ },
+ {
+  "id": "A03",
+  "desc": "PV-000001 115 cash posted with allocation to PI-000001",
+  "pass": true,
+  "actual": "(201, 'posted')",
+  "tag": ""
+ },
+ {
+  "id": "A04",
+  "desc": "JE-000003 = Dr 22111001 115 / Cr 1211001 115",
+  "pass": true,
+  "actual": "[('1211001', Decimal('0.0000'), Decimal('115.0000')), ('22111001', Decimal('115.0000'), Decimal('0.0000'))]",
+  "tag": ""
+ },
+ {
+  "id": "A05",
+  "desc": "allocation row 115 written",
+  "pass": true,
+  "actual": "[{'id': '01a1651a-072c-7318-a829-3fdcd3096454', 'tenant_id': '01a16504-115a-7723-866c-c1b65778bb8b', 'party_id': '01a16504-139b-7777-916b-0393425a29c0', 'voucher_id': '01",
+  "tag": ""
+ },
+ {
+  "id": "A06",
+  "desc": "PI-000001 paid_total 115 / paid after the allocated payment",
+  "pass": false,
+  "actual": "('0.0000', 'unpaid')",
+  "tag": "ACC-042 (purchase side)"
+ },
+ {
+  "id": "A07",
+  "desc": "AP aging 0 after the supplier was paid in full",
+  "pass": false,
+  "actual": "[{'party': 'مورد عام', 'bucket_0_30': '115.0000', 'bucket_31_60': '0', 'bucket_61_90': '0', 'bucket_90_plus': '0', 'due': '115.0000'}]",
+  "tag": "ACC-042 (purchase side)"
+ },
+ {
+  "id": "A08",
+  "desc": "supplier balance payable 0 / receivable 0 after full payment",
+  "pass": false,
+  "actual": "{'receivable': '115.0000', 'payable': '0.0000', 'open': [{'accountId': '01a16504-13d7-7600-ad89-4bf466d310ae', 'debit': '100.0000', 'credit': '0.0000', 'date': '2026-10-2",
+  "tag": "ACC-004 (party ledger includes stock/VAT lines)"
+ },
+ {
+  "id": "A09",
+  "desc": "cash sub-ledger −115 after the payment",
+  "pass": true,
+  "actual": "-115.0000",
+  "tag": ""
+ },
+ {
+  "id": "A10",
+  "desc": "void of the posted PV from the voucher screen → voided",
+  "pass": true,
+  "actual": "(201, 'voided')",
+  "tag": ""
+ },
+ {
+  "id": "A11",
+  "desc": "void reverses the GL: 1211001 back to 50000, 22111001 back to −115",
+  "pass": false,
+  "actual": "cash 49885.0000 AP 0.0000",
+  "tag": "ACC-095 (payment side)"
+ },
+ {
+  "id": "A12",
+  "desc": "void posts a reversal entry (JE-000004 at that time)",
+  "pass": false,
+  "actual": "['JE-000001', 'JE-000002', 'JE-000003']",
+  "tag": "ACC-095 (payment side)"
+ },
+ {
+  "id": "A13",
+  "desc": "void releases the allocation",
+  "pass": false,
+  "actual": "1 allocation row(s) still reference the voided PV",
+  "tag": "ACC-095 (payment side)"
+ },
+ {
+  "id": "A14",
+  "desc": "cash sub-ledger back to 0 after void",
+  "pass": true,
+  "actual": "0.0000",
+  "tag": ""
+ },
+ {
+  "id": "A15",
+  "desc": "cash statement excludes the voided payment (50000)",
+  "pass": false,
+  "actual": "49885.0000",
+  "tag": "ACC-095 (payment side)"
+ },
+ {
+  "id": "B01",
+  "desc": "SI-000001 cash 23 posted/paid",
+  "pass": true,
+  "actual": "(201, 'paid')",
+  "tag": ""
+ },
+ {
+  "id": "B02",
+  "desc": "cash invoice stamped with the open owner shift",
+  "pass": false,
+  "actual": "shiftId NULL",
+  "tag": "ACC-093"
+ },
+ {
+  "id": "B03",
+  "desc": "JE-000004 = Dr 1211001 23 / Cr 4100001 20 / Cr 2222001 3 + COGS Dr 3200004 10 / Cr 1270001 10",
+  "pass": true,
+  "actual": "[('1211001', Decimal('23.0000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('10.0000')), ('2222001', Decimal('0.0000'), Decimal('3.0000')), ('3200004', De",
+  "tag": ""
+ },
+ {
+  "id": "B04",
+  "desc": "CS-000001 closed from the day-close screen (20×1 + 1×3 = 23)",
+  "pass": true,
+  "actual": "(201, 'CS-000001')",
+  "tag": ""
+ },
+ {
+  "id": "B05",
+  "desc": "CS-000001 posted: custody 23, till 23, difference 0",
+  "pass": true,
+  "actual": "(201, '23.0000', '0.0000')",
+  "tag": ""
+ },
+ {
+  "id": "B06",
+  "desc": "JE-000005 = Dr 1211002 23 / Cr 1211001 23",
+  "pass": true,
+  "actual": "[('1211001', Decimal('0.0000'), Decimal('23.0000')), ('1211002', Decimal('23.0000'), Decimal('0.0000'))]",
+  "tag": ""
+ },
+ {
+  "id": "B07",
+  "desc": "reversing a shift_close journal should be refused (shift stays posted)",
+  "pass": false,
+  "actual": "201 → JE-000006 created; shift CS-000001 still \"posted\" with journalEntryId of the reversed entry",
+  "tag": "ACC-103 (new)"
+ },
+ {
+  "id": "B08",
+  "desc": "after the reversal the shift cannot be re-posted (409 SHIFT_ALREADY_POSTED)",
+  "pass": true,
+  "actual": "(409, 'SHIFT_ALREADY_POSTED')",
+  "tag": ""
+ },
+ {
+  "id": "B09",
+  "desc": "GL 1211001 and cash sub-ledger agree after the reversal",
+  "pass": true,
+  "actual": "GL +0.0000 vs sub-ledger 0.0000",
+  "tag": ""
+ },
+ {
+  "id": "C01",
+  "desc": "branch BR2 created from the screen",
+  "pass": true,
+  "actual": "201",
+  "tag": ""
+ },
+ {
+  "id": "C02",
+  "desc": "warehouse WH2 created from the screen (branch BR2)",
+  "pass": true,
+  "actual": "201",
+  "tag": ""
+ },
+ {
+  "id": "C03",
+  "desc": "Treasury › safes screen can create a safe",
+  "pass": false,
+  "actual": "422 يجب اختيار موظف مسئول — a safe needs a responsible employee",
+  "tag": "UI-038"
+ },
+ {
+  "id": "C04",
+  "desc": "safe for BR2 created via Accounting › cash locations (1212001)",
+  "pass": true,
+  "actual": "(201, 'safe')",
+  "tag": ""
+ },
+ {
+  "id": "C05",
+  "desc": "partial BR2 profile (cash only) saved",
+  "pass": true,
+  "actual": "(201, {'version': 1, 'cashAccountId': '01a1650d-a4ec-754d-959a-d75cdb95ed43'})",
+  "tag": ""
+ },
+ {
+  "id": "C06",
+  "desc": "partial branch profile should fall back to the default per key (post should succeed)",
+  "pass": false,
+  "actual": "422 PURCHASE_PROFILE_KEY_MISSING Posting profile has no payableAccountId",
+  "tag": "ACC-101 (new)"
+ },
+ {
+  "id": "C07",
+  "desc": "the posting-profiles screen can save every key the default profile carries",
+  "pass": false,
+  "actual": "screen cannot set ['cashDifferenceAccountId', 'cashInTransitAccountId', 'custodyAccountId', 'exciseTaxAccountId']",
+  "tag": "ACC-101 (new)"
+ },
+ {
+  "id": "D01",
+  "desc": "first PI of BR2 posts (branch sequence must not collide with MAIN PI-000001)",
+  "pass": false,
+  "actual": "500 INTERNAL traceId 01a16526-3a44-73e5-9931-2571a55fe74d",
+  "tag": "ACC-100 (new)"
+ },
+ {
+  "id": "D02",
+  "desc": "first SI of BR2 posts (with stock in WH2)",
+  "pass": false,
+  "actual": "500 INTERNAL traceId 01a16533-ea6e-7189-be43-d0e71f02df3f",
+  "tag": "ACC-100 (new)"
+ },
+ {
+  "id": "D03",
+  "desc": "journal numbers unique per tenant (JE-000001 appears once)",
+  "pass": false,
+  "actual": "JE-000001 × 2: ['stock_voucher', None]",
+  "tag": "ACC-100 (new)"
+ },
+ {
+  "id": "D04",
+  "desc": "BR2 drafts left without number after the 500s (transaction rolled back)",
+  "pass": true,
+  "actual": "[(None, 'draft'), (None, 'draft')]",
+  "tag": ""
+ },
+ {
+  "id": "E01",
+  "desc": "cashier opens a shift on BR2 (201 open)",
+  "pass": true,
+  "actual": "(201, 'open')",
+  "tag": ""
+ },
+ {
+  "id": "E02",
+  "desc": "cashier can list warehouses for the invoice screen",
+  "pass": false,
+  "actual": "403 — screen shows no warehouse/items",
+  "tag": "UI-039"
+ },
+ {
+  "id": "E03",
+  "desc": "cashier post → 403 sales.invoice.post (guard)",
+  "pass": true,
+  "actual": "403",
+  "tag": ""
+ },
+ {
+  "id": "E04",
+  "desc": "payment on a draft → 409 SALES_INVOICE_NOT_POSTED (guard)",
+  "pass": true,
+  "actual": "(409, 'SALES_INVOICE_NOT_POSTED')",
+  "tag": ""
+ },
+ {
+  "id": "E05",
+  "desc": "sale from WH2 without stock → 422 STOCK_INSUFFICIENT (guard)",
+  "pass": true,
+  "actual": "(422, 'STOCK_INSUFFICIENT')",
+  "tag": ""
+ },
+ {
+  "id": "E06",
+  "desc": "SIN-000001 (BR2/WH2 1@10) posted = Dr 1270001 10 / Cr 3121004 10 (branch profile counter)",
+  "pass": true,
+  "actual": "(201, [('1270001', '10.0000', '0.0000'), ('3121004', '0.0000', '10.0000')])",
+  "tag": ""
+ },
+ {
+  "id": "F01",
+  "desc": "second concurrent shift (MAIN owner) while BR2 cashier shift is open → 201",
+  "pass": true,
+  "actual": "201",
+  "tag": ""
+ },
+ {
+  "id": "F02",
+  "desc": "day-close lists are branch-scoped (BR2 = cashier shift only; MAIN = owner open + CS-000001)",
+  "pass": true,
+  "actual": "(1, 2)",
+  "tag": ""
+ },
+ {
+  "id": "F03",
+  "desc": "CS-000002 (BR2, cashier) closed: expected 0, counted 23",
+  "pass": true,
+  "actual": "(201, '0.0000')",
+  "tag": ""
+ },
+ {
+  "id": "F04",
+  "desc": "shift invoice-side totals must ignore DRAFT invoices (BR2 draft 23 counted as net/tax/postponed)",
+  "pass": false,
+  "actual": "{'invoiceRows': 1, 'net': '23.0000', 'tax': '3.0000', 'postponed': '23.0000'}",
+  "tag": "ACC-102 (new)"
+ },
+ {
+  "id": "F05",
+  "desc": "posting the BR2 shift (owner) should succeed",
+  "pass": false,
+  "actual": "422 TREASURY_PROFILE_KEY_MISSING Posting profile has no cashDifferenceAccountId — map it in S",
+  "tag": "ACC-101 (new)"
+ },
+ {
+  "id": "F06",
+  "desc": "CS-000002 left closed/unposted (no journal)",
+  "pass": true,
+  "actual": "",
+  "tag": ""
+ },
+ {
+  "id": "F07",
+  "desc": "CS-000003 surplus (counted 1 / expected 0) posted",
+  "pass": true,
+  "actual": "(201, '-1.0000')",
+  "tag": ""
+ },
+ {
+  "id": "F09",
+  "desc": "same sign convention for the difference in close/print (diff) and post (differenceAmount)",
+  "pass": false,
+  "actual": "close/print diff 1.0000 (counted−expected) vs post differenceAmount -1.0000 (expected−counted)",
+  "tag": "ACC-106 (new, LOW)"
+ },
+ {
+  "id": "F08",
+  "desc": "JE-000007 (surplus) = Dr 1211002 1 / Cr 3110004 1",
+  "pass": true,
+  "actual": "[('1211002', Decimal('1.0000'), Decimal('0.0000')), ('3110004', Decimal('0.0000'), Decimal('1.0000'))]",
+  "tag": ""
+ },
+ {
+  "id": "G01",
+  "desc": "PI post under purchases module lock → should be 409 PERIOD_MODULE_LOCKED",
+  "pass": false,
+  "actual": "201 PI-000002 posted",
+  "tag": "ACC-097 (extended: purchases)"
+ },
+ {
+  "id": "G02",
+  "desc": "stock voucher post under inventory module lock → should be 409",
+  "pass": false,
+  "actual": "201 SOU-000001 posted",
+  "tag": "ACC-097 (extended: inventory)"
+ },
+ {
+  "id": "G03",
+  "desc": "period_module_locks rows record locked_by/locked_at while locked",
+  "pass": false,
+  "actual": "{'tenant_id': '01a16504-115a-7723-866c-c1b65778bb8b', 'period_id': '01a16504-1426-734e-bc3f-7bf2ddea5adb', 'module': 'purchases', 'locked': False, 'locked_by': None, 'loc",
+  "tag": "ACC-104 (new, LOW)"
+ },
+ {
+  "id": "H01",
+  "desc": "2026-09 closed from the periods screen",
+  "pass": true,
+  "actual": "(201, 'closed')",
+  "tag": ""
+ },
+ {
+  "id": "H02",
+  "desc": "reopen with a reason → open (ACC-069 only for empty body)",
+  "pass": true,
+  "actual": "(201, 'open')",
+  "tag": ""
+ },
+ {
+  "id": "I01",
+  "desc": "payment method NET30 (credit, 30 days) created from the screen",
+  "pass": true,
+  "actual": "(201, 30)",
+  "tag": ""
+ },
+ {
+  "id": "I02",
+  "desc": "customer assigned NET30",
+  "pass": true,
+  "actual": "01a1653a-2823-778d-9d0f-3ab7d28fa277",
+  "tag": ""
+ },
+ {
+  "id": "I03",
+  "desc": "SI-000002 credit 23 posted unpaid",
+  "pass": true,
+  "actual": "(201, 'unpaid')",
+  "tag": ""
+ },
+ {
+  "id": "I04",
+  "desc": "JE-000010 = Dr 12310001 23 / Cr 4100001 20 / Cr 2222001 3 + COGS",
+  "pass": true,
+  "actual": "[('12310001', Decimal('23.0000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('10.0000')), ('2222001', Decimal('0.0000'), Decimal('3.0000')), ('3200004', D",
+  "tag": ""
+ },
+ {
+  "id": "I05",
+  "desc": "credit invoice carries a due date / terms (NET30 → +30 days)",
+  "pass": false,
+  "actual": "no dueDate/paymentMethodId on the invoice or its print-data; dueDays unused outside payment-methods",
+  "tag": "ACC-105 (new)"
+ },
+ {
+  "id": "I06",
+  "desc": "AR aging as of 2026-09-30 excludes an invoice posted 2026-10-22",
+  "pass": false,
+  "actual": "[{'party': 'عميل عام', 'bucket_0_30': '23.0000', 'bucket_31_60': '0', 'bucket_61_90': '0', 'bucket_90_plus': '0', 'due': '23.0000'}] params={'from': '2026-01-01', 'to': '",
+  "tag": "ACC-105 (new)"
+ },
+ {
+  "id": "J-1160001",
+  "desc": "final GL 1160001 == 20000 (as-posted expectation)",
+  "pass": true,
+  "actual": "20000.0000",
+  "tag": ""
+ },
+ {
+  "id": "J-1211001",
+  "desc": "final GL 1211001 == 49908 (as-posted expectation)",
+  "pass": true,
+  "actual": "49908.0000",
+  "tag": ""
+ },
+ {
+  "id": "J-1211002",
+  "desc": "final GL 1211002 == 1 (as-posted expectation)",
+  "pass": true,
+  "actual": "1.0000",
+  "tag": ""
+ },
+ {
+  "id": "J-1221001",
+  "desc": "final GL 1221001 == 180000 (as-posted expectation)",
+  "pass": true,
+  "actual": "180000.0000",
+  "tag": ""
+ },
+ {
+  "id": "J-12310001",
+  "desc": "final GL 12310001 == 23 (as-posted expectation)",
+  "pass": true,
+  "actual": "23.0000",
+  "tag": ""
+ },
+ {
+  "id": "J-1270001",
+  "desc": "final GL 1270001 == 90 (as-posted expectation)",
+  "pass": true,
+  "actual": "90.0000",
+  "tag": ""
+ },
+ {
+  "id": "J-2110001",
+  "desc": "final GL 2110001 == -250000 (as-posted expectation)",
+  "pass": true,
+  "actual": "-250000.0000",
+  "tag": ""
+ },
+ {
+  "id": "J-22111001",
+  "desc": "final GL 22111001 == -11.5 (as-posted expectation)",
+  "pass": true,
+  "actual": "-11.5000",
+  "tag": ""
+ },
+ {
+  "id": "J-2222001",
+  "desc": "final GL 2222001 == 10.5 (as-posted expectation)",
+  "pass": true,
+  "actual": "10.5000",
+  "tag": ""
+ },
+ {
+  "id": "J-3110004",
+  "desc": "final GL 3110004 == -1 (as-posted expectation)",
+  "pass": true,
+  "actual": "-1.0000",
+  "tag": ""
+ },
+ {
+  "id": "J-3121004",
+  "desc": "final GL 3121004 == 0 (as-posted expectation)",
+  "pass": true,
+  "actual": "0.0000",
+  "tag": ""
+ },
+ {
+  "id": "J-3200004",
+  "desc": "final GL 3200004 == 20 (as-posted expectation)",
+  "pass": true,
+  "actual": "20.0000",
+  "tag": ""
+ },
+ {
+  "id": "J-4100001",
+  "desc": "final GL 4100001 == -40 (as-posted expectation)",
+  "pass": true,
+  "actual": "-40.0000",
+  "tag": ""
+ },
+ {
+  "id": "J-TB",
+  "desc": "trial balance balanced",
+  "pass": true,
+  "actual": "",
+  "tag": ""
+ },
+ {
+  "id": "J-STOCK",
+  "desc": "stock valuation (MAIN 8@10 + WH2 1@10 = 90) == GL 1270001",
+  "pass": true,
+  "actual": "stock 90.0000 GL 90.0000",
+  "tag": ""
+ },
+ {
+  "id": "J-AP-CORRECT",
+  "desc": "economically correct AP (PV voided → supplier still owed 126.5)",
+  "pass": false,
+  "actual": "-11.5000",
+  "tag": "ACC-095 (payment side)"
+ },
+ {
+  "id": "J-CASH-CORRECT",
+  "desc": "economically correct cash (PV voided → 50023)",
+  "pass": false,
+  "actual": "49908.0000",
+  "tag": "ACC-095 (payment side)"
+ },
+ {
+  "id": "J-AP-AGING",
+  "desc": "AP aging == GL AP (11.5 as posted)",
+  "pass": false,
+  "actual": "aging 126.5000 vs GL 11.5000",
+  "tag": "ACC-042 (purchase side)"
+ },
+ {
+  "id": "J-PARTY-SUPP",
+  "desc": "supplier balance shows payable 11.5",
+  "pass": false,
+  "actual": "{'receivable': '115.0000', 'payable': '0.0000'}",
+  "tag": "ACC-004"
+ },
+ {
+  "id": "J-PARTY-CUST",
+  "desc": "customer balance shows receivable +23",
+  "pass": false,
+  "actual": "{'receivable': '-23.0000', 'payable': '0.0000'}",
+  "tag": "ACC-004"
+ },
+ {
+  "id": "J-SUBLEDGER",
+  "desc": "cash sub-ledger MAIN == GL movement since seed (−115+115+23−23+23 = 23)",
+  "pass": false,
+  "actual": "sub-ledger 0.0000 vs GL-derived 23.0000 (as-posted: -92.0000)",
+  "tag": "ACC-103 (new)"
+ },
+ {
+  "id": "J-BR2-CASH",
+  "desc": "BR2 safe sub-ledger 0 (nothing posted on BR2 cash)",
+  "pass": true,
+  "actual": "{'e716': Decimal('0.0000'), '16aa': Decimal('0.0000'), '90d4': Decimal('0.0000')}",
+  "tag": ""
+ }
+]

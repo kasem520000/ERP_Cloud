@@ -1,0 +1,38 @@
+{
+  "status": 200,
+  "method": "PATCH",
+  "url": "http://127.0.0.1:3001/api/v1/cash-locations/01a16523-fc4a-745d-93f4-5a1c34a590d4",
+  "request": {
+    "name": "صندوق الفرع الثاني",
+    "branchId": "01a16521-1e40-73a0-81e1-cb552fb71b7c",
+    "accountId": "01a1650d-a4ec-754d-959a-d75cdb95ed43",
+    "isDefault": false,
+    "isActive": true,
+    "custodianIds": [
+      "01a16504-1454-71e2-ba13-f8475e21efe6"
+    ],
+    "notes": null,
+    "version": 1
+  },
+  "body": {
+    "data": {
+      "id": "01a16523-fc4a-745d-93f4-5a1c34a590d4",
+      "branchId": "01a16521-1e40-73a0-81e1-cb552fb71b7c",
+      "kind": "safe",
+      "name": "صندوق الفرع الثاني",
+      "accountId": "01a1650d-a4ec-754d-959a-d75cdb95ed43",
+      "currencyCode": "SAR",
+      "isDefault": false,
+      "bank": null,
+      "changeInPos": false,
+      "isActive": true,
+      "notes": null,
+      "custodianIds": [
+        "01a16504-1454-71e2-ba13-f8475e21efe6"
+      ],
+      "version": 2,
+      "createdAt": "2026-10-22T19:43:39.590Z",
+      "updatedAt": "2026-10-22T19:44:04.237Z"
+    }
+  }
+}

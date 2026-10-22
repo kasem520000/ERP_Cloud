@@ -1,0 +1,30 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/shift-closes/open",
+  "request": {
+    "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa"
+  },
+  "body": {
+    "id": "01a1651d-ff8a-73ce-ab70-25c403570fcd",
+    "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+    "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+    "userId": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+    "openedAt": "2026-10-22T19:37:07.209Z",
+    "closedAt": null,
+    "status": "open",
+    "number": null,
+    "journalEntryId": null,
+    "postedAt": null,
+    "expectedCash": "0.0000",
+    "countedCash": "0.0000",
+    "diff": "0.0000",
+    "summary": {},
+    "reportHtml": null,
+    "createdAt": "2026-10-22T19:37:07.209Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1
+  }
+}

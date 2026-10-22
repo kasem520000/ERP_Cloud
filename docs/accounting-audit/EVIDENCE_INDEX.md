@@ -417,3 +417,34 @@ R17-manifest.json يفهرس 258 ملفاً (لا يشمل نفسه)، نحو 24
 | E: أقفال الوحدات | MODULE-LOCKS (12 نداء) | **ACC-097** | DB-030 |
 | G: تقارير | REPORTS (9 نداءات)، `R23-TB-SCREEN.png`، `R23-CASH-LOCATIONS-SCREEN.png`، `R23-DAY-CLOSE-FINAL.png` | ACC-042/004 | DB-031 |
 | تحقق | `verify/*.json` (9)، `R23-check-results.json` (45/27 من 72)، `R23-http-events.jsonl` (482)، `R23-memberships.json` (ACC-099) | — | — |
+
+## الجولة 24 — `evidence/round-24/` (306 ملفاً؛ تفصيل المراحل في ROUND_24_RESULTS.md §1)
+| الكتلة | المراحل والأدلة | النتيجة | لقطات DB |
+|---|---|---|---|
+| تجهيز | `R24-SETUP-ids.json`، `R24-DB-000-BASELINE` | — | DB-000 |
+| A: شراء → صرف مخصَّص → إلغاء | PI-DRAFT/POST، PV-ALLOC-DRAFT، PV-ALLOC-POST (7 نداءات)، PV-VOID (شاشة)، PV-VOID-AFTER (8 نداءات) | ACC-042 (مشتريات)، **ACC-095 (صرف)**، ACC-004 | DB-001…006 |
+| B: وردية المالك + عكس قيدها | SHIFT-OPEN-OWNER، SI-CASH-DRAFT/POST، SHIFT-CLOSE-OWNER (عدّ فئات)، SHIFT-POST-OWNER، SHIFT-JE-REVERSE (201 JE-000006؛ `-ATTEMPT1` 400 أداة) | **ACC-103**، ACC-093 | DB-007…012B |
+| C: فرع ثانٍ | BRANCH-CREATE، WAREHOUSE-CREATE، SAFE-CREATE-ATTEMPT1 (`/treasury/safes` 422)، SAFE-CREATE، SAFE-CUSTODIAN، PROFILE-PARTIAL، PI-BR2-DRAFT، PI-BR2-POST-PARTIAL (422)، PROFILE-FULL، `R24-profiles-before-full.json`، PI-BR2-POST (**500**) | **ACC-100**، **ACC-101**، UI-038 | DB-013…021 |
+| D: أمين الصندوق على BR2 | CASHIER-HOME، CASHIER-SHIFT-OPEN-BR2، CASHIER-SI-NEW-SCREEN/API (403)، SI-BR2-DRAFT (المالك)، CASHIER-SI-BR2-POST (403/409)، SI-BR2-POST-OWNER (422)، WH2-STOCKIN-SI-RETRY (SIN-000001؛ SI **500**) | UI-039، ACC-100 (SI + JE مكرر) | DB-022…027 |
+| E: ورديتان على فرعين + زيادة | SHIFTS-CONCURRENT (8 نداءات)، CASHIER-SHIFT-CLOSE-BR2 (آجل 23 من مسودة)، SHIFT-POST-BR2-OWNER (**422**)، SHIFT-SURPLUS (+1 → JE-000007) | **ACC-102**، ACC-101، ACC-106 | DB-028…031 |
+| F: أقفال الوحدات | MODULE-LOCKS-2 (10 نداءات: PI-000002، SOU-000001 تحت القفل) | ACC-097 ممتد، ACC-104 | DB-032 |
+| G: فترة | PERIOD-CLOSE-SEP، PERIOD-REOPEN-SEP (prompt بسبب؛ `R24-dialogs.json`) | ✓ (ACC-069 مضيَّق) | DB-033/034 |
+| H: شروط السداد | PAYMENT-METHOD (شاشة)، NET30-INVOICE (10 نداءات: SI-000002، print-data، ar-aging ×2) | **ACC-105** | DB-035/036 |
+| I: شاشات وتقارير | SCREENS-API (6)، CASH-CUSTOMERS/PRICE-LISTS/SALESMAN-COMMISSIONS/SALES-POS/POSTING-PROFILES/SAFES-SCREEN، TB-SCREEN، CASH-LOCATIONS-SCREEN، SHIFTS-SCREEN، DAY-CLOSE-FINAL، REPORTS (16 نداء) | ACC-042/004 ختامياً | DB-037/038 |
+| تحقق | `R24-check-results.json` (53/30 من 83)، `R24-http-events.jsonl` (719) | — | — |
+
+## الجولة 25 — `evidence/round-25/` (196 ملفاً؛ تفصيل المراحل في ROUND_25_RESULTS.md §1)
+| الكتلة | المراحل والأدلة | النتيجة | لقطات DB |
+|---|---|---|---|
+| خط الأساس | `R25-DB-000-BASELINE` (= R24 DB-038)، SETTINGS-READ | ACC-107 | DB-000/001 |
+| B: التقريب | PI-ROUND-DRAFT/POST (PI-000003)، SI-ROUND-DRAFT/POST (SI-000003) | **ACC-108** | DB-002…005 |
+| C: ثقة بالعميل | API-TRUST (`-response.json`: si-no-tax 201، si-cent 201، si-negative-qty **500**، si-tax-99 201، post ×2) | **ACC-109/110** | DB-006 |
+| D: قوائم الأسعار | PRICE-LIST-CREATE، PRICE-LIST-ITEM، PRICE-LIST-EFFECT (`-before.png` يُظهر 20.0000 + `-before.json`) | ACC-111 | DB-007…009 |
+| E: تحويل نقدي عابر | CT-CROSS-SCREEN (`-options.json`: لا صندوق BR2)، CT-CROSS (create/send/receive) | ACC-112 | DB-010 |
+| F: مناقلة | TR-DRAFT، TR-SEND، TR-RECEIVE (من الشاشة) | ACC-113 (+ACC-112) | DB-011…013 |
+| G: انتقائية/استقطاع | SI-EXCISE، PI-WITHHOLDING (422) | ✓ / ACC-114 / نقص | DB-014/015 |
+| H: مخزون سالب | NEG-STOCK-DRAFT، NEG-STOCK-POST-BLOCKED (422)، NEG-STOCK-POST-OVERRIDE (201)، PI-NEG-COST-DRAFT/POST، STOCK-AFTER | **ACC-115/116** | DB-016…021 |
+| I: تقرير مخصص | CUSTOM-REPORT (create + run) | ACC-117/118 | DB-022 |
+| J: إعدادات ميتة | SETTINGS-DEAD (9 كتابات مع `restore-*`) | ACC-107 | DB-023 |
+| K: تقارير وشاشات | REPORTS (26 تقريراً في `R25-REPORTS-response.json`)، VAT-RETURN/INVENTORY-VALUATION/TB/JOURNALS/LEVELS/CT-LIST/AUDIT/CUSTOM-REPORTS/PRICE-LISTS/BALANCE-SHEET (صور) | ACC-119/120، UI-040/041 | DB-024 |
+| تحقق | `R25-check-results.json` (64/36 من 100)، `R25-journal-branches.json` (فرع كل قيد من DB)، `R25-http-events.jsonl` (456) | — | — |

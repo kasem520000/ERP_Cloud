@@ -1,0 +1,62 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/inventory/vouchers",
+  "request": {
+    "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+    "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+    "kind": "stock_out",
+    "voucherDate": "2026-10-22",
+    "reason": "R25 إخراج 5 والرصيد 4 — اختبار السالب",
+    "lines": [
+      {
+        "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+        "qty": "5",
+        "serialNos": []
+      }
+    ]
+  },
+  "body": {
+    "id": "01a16577-19c4-73dc-889d-46112df389c7",
+    "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+    "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+    "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+    "kind": "stock_out",
+    "number": "SOU-000002",
+    "status": "draft",
+    "voucherDate": "2026-10-22",
+    "reason": "R25 إخراج 5 والرصيد 4 — اختبار السالب",
+    "counterAccountId": null,
+    "notes": null,
+    "journalEntryId": null,
+    "totalCost": "50.0000",
+    "postedAt": null,
+    "voidedAt": null,
+    "createdAt": "2026-10-22T21:14:26.628Z",
+    "createdBy": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1,
+    "legacySource": null,
+    "legacyId": null,
+    "lines": [
+      {
+        "voucherId": "01a16577-19c4-73dc-889d-46112df389c7",
+        "lineNo": 1,
+        "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+        "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+        "qty": "5.0000",
+        "unitId": null,
+        "unitCost": null,
+        "lineCost": "0.0000",
+        "lotId": null,
+        "batchNo": null,
+        "productionDate": null,
+        "expiryDate": null,
+        "serialId": null,
+        "serialNos": [],
+        "note": null
+      }
+    ]
+  }
+}

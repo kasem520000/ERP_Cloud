@@ -1,0 +1,46 @@
+[
+ {
+  "id": "01a16504-1413-7191-8fe6-da486900866c",
+  "branchId": null,
+  "docType": "*",
+  "mapping": {
+   "version": 1,
+   "salesAccountId": "01a16504-13f4-7607-a022-e1a261318b48",
+   "salesReturnAccountId": "01a16504-13f4-7607-a022-e77154238233",
+   "purchasesAccountId": "01a16504-13f1-759b-92a8-febd72ec57e5",
+   "purchaseReturnAccountId": "01a16504-13f2-701b-babd-80ed5e363c72",
+   "discountGivenAccountId": "01a16504-13f5-75a3-8db9-8988e7e9914b",
+   "discountReceivedAccountId": "01a16504-13f3-7449-882c-ba7d65645708",
+   "vatOutputAccountId": "01a16504-13da-739b-b55e-2b65a3ea15a0",
+   "vatInputAccountId": "01a16504-13da-739b-b55e-2b65a3ea15a0",
+   "exciseTaxAccountId": "01a16504-13db-7548-b053-c72672e5de5e",
+   "inventoryAccountId": "01a16504-13d7-7600-ad89-4bf466d310ae",
+   "cogsAccountId": "01a16504-13fc-706c-90ef-2f9f2dad55ad",
+   "openingBalanceAccountId": "01a16504-13d7-7600-ad89-4c03c53c909b",
+   "inventoryAdjustmentAccountId": "01a16504-13fe-73c7-9cab-34abd4b45a31",
+   "stockInTransitAccountId": "01a16504-13fd-720d-82c1-1c2ca0091dfb",
+   "cashAccountId": "01a16504-13d2-739a-bd3c-9c85ae839b36",
+   "bankAccountId": "01a16504-13d4-73bb-84cc-4f2ed41adb4c",
+   "receivableAccountId": "01a16504-13f8-7538-bdaf-672b8a247037",
+   "payableAccountId": "01a16504-13f9-776b-99fe-cc9b870e189f",
+   "cashDifferenceAccountId": "01a16504-13e2-743c-8e94-94514989233a",
+   "custodyAccountId": "01a16504-13d3-724c-86e7-741bd0d7f61d",
+   "cashInTransitAccountId": "01a16504-13ff-7536-a882-da4a4e748819"
+  },
+  "version": 1,
+  "createdAt": "2026-10-22T19:08:48.531Z",
+  "updatedAt": null
+ },
+ {
+  "id": "01a16524-bdbc-743c-b28c-44566815fe40",
+  "branchId": "01a16521-1e40-73a0-81e1-cb552fb71b7c",
+  "docType": "*",
+  "mapping": {
+   "version": 1,
+   "cashAccountId": "01a1650d-a4ec-754d-959a-d75cdb95ed43"
+  },
+  "version": 1,
+  "createdAt": "2026-10-22T19:44:29.113Z",
+  "updatedAt": null
+ }
+]

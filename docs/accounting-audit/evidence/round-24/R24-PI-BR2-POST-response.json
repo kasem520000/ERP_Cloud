@@ -1,0 +1,16 @@
+{
+  "status": 500,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/purchase-invoices/01a16525-1bc5-75af-b7ae-71f1ab1b4c0e/post",
+  "request": {
+    "settlement": "credit"
+  },
+  "body": {
+    "type": "about:blank",
+    "title": "Internal error",
+    "status": 500,
+    "code": "INTERNAL",
+    "detail": "An unexpected error occurred",
+    "traceId": "01a16526-3a44-73e5-9931-2571a55fe74d"
+  }
+}

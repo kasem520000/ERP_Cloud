@@ -1,0 +1,21 @@
+{
+  "status": 422,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/inventory/vouchers/01a16577-19c4-73dc-889d-46112df389c7/post",
+  "request": {
+    "allowNegative": false
+  },
+  "body": {
+    "type": "about:blank",
+    "title": "Insufficient stock",
+    "status": 422,
+    "code": "STOCK_INSUFFICIENT",
+    "detail": "Stock is insufficient for this movement",
+    "traceId": "01a16577-f902-700e-ab25-79c752bd2ef8",
+    "errors": [
+      {
+        "field": "lines"
+      }
+    ]
+  }
+}

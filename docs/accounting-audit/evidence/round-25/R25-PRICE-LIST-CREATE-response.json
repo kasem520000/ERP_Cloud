@@ -1,0 +1,23 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/price-lists",
+  "request": {
+    "name": "R25-VIP",
+    "currencyCode": "SAR",
+    "isDefault": false,
+    "isActive": true
+  },
+  "body": {
+    "data": {
+      "id": "01a1656e-962a-70fd-99ea-462806529a03",
+      "name": "R25-VIP",
+      "currencyCode": "SAR",
+      "isDefault": false,
+      "isActive": true,
+      "version": 1,
+      "createdAt": "2026-10-22T21:05:08.648Z",
+      "updatedAt": null
+    }
+  }
+}
