@@ -1,0 +1,841 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "day-closes",
+      "method": "GET",
+      "path": "/shift-closes/day-closes?branch_id=01a163cb-c8b8-759f-acf5-92d467c1ff08&all=1",
+      "status": 200,
+      "body": [
+        {
+          "id": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+          "number": "CS-000001",
+          "status": "closed",
+          "employee": "مالك الحساب",
+          "employeeId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+          "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad",
+          "openedAt": "2026-10-22T14:32:18.017Z",
+          "closedAt": "2026-10-22T14:39:46.299Z",
+          "journalEntryId": "01a1640e-af86-750d-8227-13f62da081db",
+          "postedAt": "2026-10-22T14:40:46.484Z",
+          "postable": false,
+          "custodyAccountId": "01a163cb-c8ea-7449-9b8d-c9c877b20be4",
+          "custodyAccountCode": "1211002",
+          "custodyAccountName": "عهدة الإغلاق",
+          "custodyAmount": "30.0000",
+          "net": "23.0000",
+          "safeBalance": "30.0000",
+          "expected": "33.0000",
+          "diff": "-3.0000",
+          "banks": [],
+          "postponed": "0.0000",
+          "network": "0.0000",
+          "cash": "33.0000",
+          "sumCashAndNetwork": "33.0000",
+          "tax": "3.0000",
+          "discount": "0.0000",
+          "expenses": {
+            "total": "0.0000",
+            "delivery": "0.0000",
+            "hospitality": "0.0000",
+            "purchases": "0.0000",
+            "insurance": "0.0000",
+            "other": "0.0000"
+          }
+        }
+      ]
+    },
+    {
+      "label": "detail",
+      "method": "GET",
+      "path": "/shift-closes/01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+      "status": 200,
+      "body": {
+        "shift": {
+          "id": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+          "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+          "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+          "userId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+          "openedAt": "2026-10-22T14:32:18.017Z",
+          "closedAt": "2026-10-22T14:39:46.299Z",
+          "status": "closed",
+          "number": "CS-000001",
+          "journalEntryId": "01a1640e-af86-750d-8227-13f62da081db",
+          "postedAt": "2026-10-22T14:40:46.484Z",
+          "expectedCash": "33.0000",
+          "countedCash": "30.0000",
+          "diff": "-3.0000",
+          "summary": {
+            "net": "23.0000",
+            "tax": "3.0000",
+            "cash": "33.0000",
+            "diff": "-3.0000",
+            "banks": [],
+            "sales": {
+              "bank": "0.0000",
+              "card": "0.0000",
+              "cash": "23.0000",
+              "credit": "0.0000"
+            },
+            "network": "0.0000",
+            "returns": {
+              "bank": "0.0000",
+              "card": "0.0000",
+              "cash": "0.0000",
+              "credit": "0.0000"
+            },
+            "discount": "0.0000",
+            "expenses": {
+              "other": "0.0000",
+              "total": "0.0000",
+              "delivery": "0.0000",
+              "insurance": "0.0000",
+              "purchases": "0.0000",
+              "hospitality": "0.0000"
+            },
+            "invoices": 1,
+            "vouchers": 1,
+            "postponed": "0.0000",
+            "tillAmount": "33.0000",
+            "countedCash": "30.0000",
+            "invoiceRows": 1,
+            "expectedCash": "33.0000",
+            "vouchersCash": "10.0000",
+            "bankTransfers": "0.0000",
+            "custodyAmount": "30.0000",
+            "custodyAccountId": "01a163cb-c8ea-7449-9b8d-c9c877b20be4",
+            "differenceAmount": "3.0000",
+            "sumCashAndNetwork": "33.0000"
+          },
+          "reportHtml": null,
+          "createdAt": "2026-10-22T14:32:18.017Z",
+          "createdBy": null,
+          "updatedAt": "2026-10-22T14:40:46.484Z",
+          "updatedBy": null,
+          "version": 1
+        },
+        "close": {
+          "id": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+          "number": "CS-000001",
+          "status": "closed",
+          "employee": "مالك الحساب",
+          "employeeId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+          "membershipId": "01a163cb-c73f-70f9-b761-5d8f571b17ad",
+          "openedAt": "2026-10-22T14:32:18.017Z",
+          "closedAt": "2026-10-22T14:39:46.299Z",
+          "journalEntryId": "01a1640e-af86-750d-8227-13f62da081db",
+          "postedAt": "2026-10-22T14:40:46.484Z",
+          "postable": false,
+          "custodyAccountId": "01a163cb-c8ea-7449-9b8d-c9c877b20be4",
+          "custodyAccountCode": "1211002",
+          "custodyAccountName": "عهدة الإغلاق",
+          "custodyAmount": "30.0000",
+          "net": "23.0000",
+          "safeBalance": "30.0000",
+          "expected": "33.0000",
+          "diff": "-3.0000",
+          "banks": [],
+          "postponed": "0.0000",
+          "network": "0.0000",
+          "cash": "33.0000",
+          "sumCashAndNetwork": "33.0000",
+          "tax": "3.0000",
+          "discount": "0.0000",
+          "expenses": {
+            "total": "0.0000",
+            "delivery": "0.0000",
+            "hospitality": "0.0000",
+            "purchases": "0.0000",
+            "insurance": "0.0000",
+            "other": "0.0000"
+          }
+        },
+        "counts": [
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 1,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "currencyCode": "SAR",
+            "denomination": "20.0000",
+            "count": 1,
+            "total": "20.0000"
+          },
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 2,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "currencyCode": "SAR",
+            "denomination": "10.0000",
+            "count": 1,
+            "total": "10.0000"
+          }
+        ],
+        "lines": [
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 1,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "kind": "method-total",
+            "method": "cash",
+            "partyId": null,
+            "amount": "33.0000",
+            "metadata": {
+              "net": "23.0000",
+              "tax": "3.0000",
+              "cash": "33.0000",
+              "diff": "-3.0000",
+              "banks": [],
+              "sales": {
+                "bank": "0.0000",
+                "card": "0.0000",
+                "cash": "23.0000",
+                "credit": "0.0000"
+              },
+              "network": "0.0000",
+              "returns": {
+                "bank": "0.0000",
+                "card": "0.0000",
+                "cash": "0.0000",
+                "credit": "0.0000"
+              },
+              "discount": "0.0000",
+              "expenses": {
+                "other": "0.0000",
+                "total": "0.0000",
+                "delivery": "0.0000",
+                "insurance": "0.0000",
+                "purchases": "0.0000",
+                "hospitality": "0.0000"
+              },
+              "invoices": 1,
+              "vouchers": 1,
+              "postponed": "0.0000",
+              "countedCash": "30.0000",
+              "invoiceRows": 1,
+              "expectedCash": "33.0000",
+              "vouchersCash": "10.0000",
+              "bankTransfers": "0.0000",
+              "sumCashAndNetwork": "33.0000"
+            }
+          },
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 2,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "kind": "method-total",
+            "method": "card",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 3,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "kind": "method-total",
+            "method": "bank",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 4,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "kind": "method-total",
+            "method": "credit",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 5,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "kind": "voucher-cash",
+            "method": "cash",
+            "partyId": null,
+            "amount": "10.0000",
+            "metadata": {}
+          }
+        ]
+      }
+    },
+    {
+      "label": "print-data",
+      "method": "GET",
+      "path": "/shift-closes/01a16406-ed62-72ef-bd9d-85a6e462d5f2/print-data",
+      "status": 200,
+      "body": {
+        "shift": {
+          "id": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+          "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+          "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+          "userId": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+          "openedAt": "2026-10-22T14:32:18.017Z",
+          "closedAt": "2026-10-22T14:39:46.299Z",
+          "status": "closed",
+          "number": "CS-000001",
+          "journalEntryId": "01a1640e-af86-750d-8227-13f62da081db",
+          "postedAt": "2026-10-22T14:40:46.484Z",
+          "expectedCash": "33.0000",
+          "countedCash": "30.0000",
+          "diff": "-3.0000",
+          "summary": {
+            "net": "23.0000",
+            "tax": "3.0000",
+            "cash": "33.0000",
+            "diff": "-3.0000",
+            "banks": [],
+            "sales": {
+              "bank": "0.0000",
+              "card": "0.0000",
+              "cash": "23.0000",
+              "credit": "0.0000"
+            },
+            "network": "0.0000",
+            "returns": {
+              "bank": "0.0000",
+              "card": "0.0000",
+              "cash": "0.0000",
+              "credit": "0.0000"
+            },
+            "discount": "0.0000",
+            "expenses": {
+              "other": "0.0000",
+              "total": "0.0000",
+              "delivery": "0.0000",
+              "insurance": "0.0000",
+              "purchases": "0.0000",
+              "hospitality": "0.0000"
+            },
+            "invoices": 1,
+            "vouchers": 1,
+            "postponed": "0.0000",
+            "tillAmount": "33.0000",
+            "countedCash": "30.0000",
+            "invoiceRows": 1,
+            "expectedCash": "33.0000",
+            "vouchersCash": "10.0000",
+            "bankTransfers": "0.0000",
+            "custodyAmount": "30.0000",
+            "custodyAccountId": "01a163cb-c8ea-7449-9b8d-c9c877b20be4",
+            "differenceAmount": "3.0000",
+            "sumCashAndNetwork": "33.0000"
+          },
+          "reportHtml": null,
+          "createdAt": "2026-10-22T14:32:18.017Z",
+          "createdBy": null,
+          "updatedAt": "2026-10-22T14:40:46.484Z",
+          "updatedBy": null,
+          "version": 1
+        },
+        "lines": [
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 1,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "kind": "method-total",
+            "method": "cash",
+            "partyId": null,
+            "amount": "33.0000",
+            "metadata": {
+              "net": "23.0000",
+              "tax": "3.0000",
+              "cash": "33.0000",
+              "diff": "-3.0000",
+              "banks": [],
+              "sales": {
+                "bank": "0.0000",
+                "card": "0.0000",
+                "cash": "23.0000",
+                "credit": "0.0000"
+              },
+              "network": "0.0000",
+              "returns": {
+                "bank": "0.0000",
+                "card": "0.0000",
+                "cash": "0.0000",
+                "credit": "0.0000"
+              },
+              "discount": "0.0000",
+              "expenses": {
+                "other": "0.0000",
+                "total": "0.0000",
+                "delivery": "0.0000",
+                "insurance": "0.0000",
+                "purchases": "0.0000",
+                "hospitality": "0.0000"
+              },
+              "invoices": 1,
+              "vouchers": 1,
+              "postponed": "0.0000",
+              "countedCash": "30.0000",
+              "invoiceRows": 1,
+              "expectedCash": "33.0000",
+              "vouchersCash": "10.0000",
+              "bankTransfers": "0.0000",
+              "sumCashAndNetwork": "33.0000"
+            }
+          },
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 2,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "kind": "method-total",
+            "method": "card",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 3,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "kind": "method-total",
+            "method": "bank",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 4,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "kind": "method-total",
+            "method": "credit",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 5,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "kind": "voucher-cash",
+            "method": "cash",
+            "partyId": null,
+            "amount": "10.0000",
+            "metadata": {}
+          }
+        ],
+        "counts": [
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 1,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "currencyCode": "SAR",
+            "denomination": "20.0000",
+            "count": 1,
+            "total": "20.0000"
+          },
+          {
+            "shiftCloseId": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+            "lineNo": 2,
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "currencyCode": "SAR",
+            "denomination": "10.0000",
+            "count": 1,
+            "total": "10.0000"
+          }
+        ]
+      }
+    },
+    {
+      "label": "cash-balance",
+      "method": "GET",
+      "path": "/cash-locations/01a163cb-c8bc-71ea-88f6-c9f66e215f9b/balance",
+      "status": 200,
+      "body": {
+        "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+        "cashLocationId": "01a163cb-c8bc-71ea-88f6-c9f66e215f9b",
+        "currencyCode": "SAR",
+        "balance": "-3.0000",
+        "updatedAt": "2026-10-22T14:38:40.602Z"
+      }
+    },
+    {
+      "label": "cash-movements",
+      "method": "GET",
+      "path": "/cash-locations/01a163cb-c8bc-71ea-88f6-c9f66e215f9b/movements?all=1",
+      "status": 200,
+      "body": {
+        "cashLocationId": "01a163cb-c8bc-71ea-88f6-c9f66e215f9b",
+        "cashLocation": "الصندوق الرئيسي",
+        "currencyCode": "SAR",
+        "accountId": "01a163cb-c8e9-754b-9229-88c37d44e3ef",
+        "from": null,
+        "to": null,
+        "fromTime": "00:00",
+        "toTime": "23:59",
+        "all": true,
+        "openingBalance": "0.0000",
+        "totalAll": "50029.0000",
+        "totalPeriod": "50029.0000",
+        "rows": [
+          {
+            "seq": 1,
+            "processType": "قيد يومية",
+            "number": "JE-000001",
+            "date": "2026-01-01",
+            "income": "50000.0000",
+            "outcome": "0.0000",
+            "balance": "50000.0000",
+            "note": "قيد افتتاحي — رأس المال"
+          },
+          {
+            "seq": 2,
+            "processType": "سند صرف",
+            "number": "JE-000003",
+            "date": "2026-10-22",
+            "income": "0.0000",
+            "outcome": "36.0000",
+            "balance": "49964.0000",
+            "note": "سند صرف PV-000001"
+          },
+          {
+            "seq": 3,
+            "processType": "فاتورة مبيعات",
+            "number": "JE-000006",
+            "date": "2026-10-22",
+            "income": "46.0000",
+            "outcome": "0.0000",
+            "balance": "50010.0000",
+            "note": "Sales invoice SI-000001"
+          },
+          {
+            "seq": 4,
+            "processType": "سند قبض",
+            "number": "JE-000009",
+            "date": "2026-10-22",
+            "income": "23.0000",
+            "outcome": "0.0000",
+            "balance": "50033.0000",
+            "note": "سند قبض وتحصيل مديونية للفاتورة VTX-00002"
+          },
+          {
+            "seq": 5,
+            "processType": "فاتورة مبيعات",
+            "number": "JE-000012",
+            "date": "2026-10-22",
+            "income": "23.0000",
+            "outcome": "0.0000",
+            "balance": "50056.0000",
+            "note": "Sales invoice SI-000003"
+          },
+          {
+            "seq": 6,
+            "processType": "قيد يومية",
+            "number": "JE-000014",
+            "date": "2026-10-22",
+            "income": "0.0000",
+            "outcome": "50.0000",
+            "balance": "50006.0000",
+            "note": "R22-HR-ADVANCE سلفة نقدية 50 للمندوب من الصندوق الرئيسي — تُنشئ حساب الموظف تحت 2241 — اختبار معزول"
+          },
+          {
+            "seq": 7,
+            "processType": "فاتورة مبيعات",
+            "number": "JE-000017",
+            "date": "2026-10-22",
+            "income": "23.0000",
+            "outcome": "0.0000",
+            "balance": "50029.0000",
+            "note": "Sales invoice SI-000004"
+          },
+          {
+            "seq": 8,
+            "processType": "فاتورة مبيعات",
+            "number": "JE-000025",
+            "date": "2026-10-22",
+            "income": "23.0000",
+            "outcome": "0.0000",
+            "balance": "50052.0000",
+            "note": "Sales invoice SI-000006"
+          },
+          {
+            "seq": 9,
+            "processType": "سند قبض",
+            "number": "JE-000026",
+            "date": "2026-10-22",
+            "income": "10.0000",
+            "outcome": "0.0000",
+            "balance": "50062.0000",
+            "note": "R22-RV-SHIFT قبض نقدي 10 من عميل عام أثناء الوردية المفتوحة"
+          },
+          {
+            "seq": 10,
+            "processType": "قيد يومية",
+            "number": "JE-000027",
+            "date": "2026-10-22",
+            "income": "0.0000",
+            "outcome": "33.0000",
+            "balance": "50029.0000",
+            "note": "اغلاق اليومية خاصة الموظف مالك الحساب رقمCS-000001"
+          }
+        ]
+      }
+    },
+    {
+      "label": "gl-cash",
+      "method": "GET",
+      "path": "/statements/general-ledger/01a163cb-c8e9-754b-9229-88c37d44e3ef",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "rank": 1,
+            "date": "2026-01-01",
+            "entryId": "01a163cb-c92a-77fc-8143-afda69f515f9",
+            "number": "JE-000001",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "قيد اليومية",
+            "description": "نقدية بالصندوق",
+            "debit": "50000.0000",
+            "credit": "0.0000",
+            "runningBalance": "50000.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1211001",
+            "accountName": "الصندوق الرئيسي"
+          },
+          {
+            "rank": 2,
+            "date": "2026-10-22",
+            "entryId": "01a163ce-a1bb-7186-ab4f-adb4329538f2",
+            "number": "JE-000003",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "سند صرف",
+            "description": "سند صرف",
+            "debit": "0.0000",
+            "credit": "36.0000",
+            "runningBalance": "49964.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1211001",
+            "accountName": "الصندوق الرئيسي"
+          },
+          {
+            "rank": 3,
+            "date": "2026-10-22",
+            "entryId": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+            "number": "JE-000006",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "قيد مبيعات",
+            "description": "سند قيد يومية رقم: JE-000006 - سداد دفعة من حساب: الصندوق الرئيسي",
+            "debit": "46.0000",
+            "credit": "0.0000",
+            "runningBalance": "50010.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1211001",
+            "accountName": "الصندوق الرئيسي"
+          },
+          {
+            "rank": 4,
+            "date": "2026-10-22",
+            "entryId": "01a163d0-d30a-765c-96f4-211f1973d414",
+            "number": "JE-000009",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "سند قبض",
+            "description": "سند قبض وتحصيل مديونية للفاتورة VTX-00002",
+            "debit": "23.0000",
+            "credit": "0.0000",
+            "runningBalance": "50033.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1211001",
+            "accountName": "الصندوق الرئيسي"
+          },
+          {
+            "rank": 5,
+            "date": "2026-10-22",
+            "entryId": "01a163d1-d22f-77fe-9c57-5023912a4b34",
+            "number": "JE-000012",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "قيد مبيعات",
+            "description": "سند قيد يومية رقم: JE-000012 - سداد دفعة من حساب: الصندوق الرئيسي",
+            "debit": "23.0000",
+            "credit": "0.0000",
+            "runningBalance": "50056.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1211001",
+            "accountName": "الصندوق الرئيسي"
+          },
+          {
+            "rank": 6,
+            "date": "2026-10-22",
+            "entryId": "01a163f9-76af-77cc-8ca9-795b10baedd6",
+            "number": "JE-000014",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "قيد اليومية",
+            "description": "سند قيد يومية رقم: JE-000014 - سداد دفعة من حساب: الصندوق الرئيسي",
+            "debit": "0.0000",
+            "credit": "50.0000",
+            "runningBalance": "50006.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1211001",
+            "accountName": "الصندوق الرئيسي"
+          },
+          {
+            "rank": 7,
+            "date": "2026-10-22",
+            "entryId": "01a163fc-2de3-740e-b0d6-c64a47d63df5",
+            "number": "JE-000017",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "قيد مبيعات",
+            "description": "سند قيد يومية رقم: JE-000017 - سداد دفعة من حساب: الصندوق الرئيسي",
+            "debit": "23.0000",
+            "credit": "0.0000",
+            "runningBalance": "50029.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1211001",
+            "accountName": "الصندوق الرئيسي"
+          },
+          {
+            "rank": 8,
+            "date": "2026-10-22",
+            "entryId": "01a1640a-a5d0-727c-8bc1-36e56a5c8470",
+            "number": "JE-000025",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "قيد مبيعات",
+            "description": "سند قيد يومية رقم: JE-000025 - سداد دفعة من حساب: الصندوق الرئيسي",
+            "debit": "23.0000",
+            "credit": "0.0000",
+            "runningBalance": "50052.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1211001",
+            "accountName": "الصندوق الرئيسي"
+          },
+          {
+            "rank": 9,
+            "date": "2026-10-22",
+            "entryId": "01a1640c-c3d5-7243-a95b-bca48d088593",
+            "number": "JE-000026",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "سند قبض",
+            "description": "R22-RV-SHIFT قبض نقدي 10 من عميل عام أثناء الوردية المفتوحة",
+            "debit": "10.0000",
+            "credit": "0.0000",
+            "runningBalance": "50062.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1211001",
+            "accountName": "الصندوق الرئيسي"
+          },
+          {
+            "rank": 10,
+            "date": "2026-10-22",
+            "entryId": "01a1640e-af86-750d-8227-13f62da081db",
+            "number": "JE-000027",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "إغلاق اليومية",
+            "description": "نقدي في الصندوق مالك الحساب",
+            "debit": "0.0000",
+            "credit": "33.0000",
+            "runningBalance": "50029.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1211001",
+            "accountName": "الصندوق الرئيسي"
+          }
+        ],
+        "totals": {
+          "debit": "50148.0000",
+          "credit": "119.0000",
+          "periodDebit": "50029.0000",
+          "periodCredit": "0.0000",
+          "closing": "50029.0000",
+          "closingStatus": "مدين"
+        },
+        "account": {
+          "id": "01a163cb-c8e9-754b-9229-88c37d44e3ef",
+          "code": "1211001",
+          "nameAr": "الصندوق الرئيسي",
+          "type": "asset",
+          "normalBalance": "debit",
+          "openingBalance": "0.0000",
+          "branchId": null
+        }
+      }
+    },
+    {
+      "label": "gl-custody",
+      "method": "GET",
+      "path": "/statements/general-ledger/01a163cb-c8ea-7449-9b8d-c9c877b20be4",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "rank": 1,
+            "date": "2026-10-22",
+            "entryId": "01a1640e-af86-750d-8227-13f62da081db",
+            "number": "JE-000027",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "إغلاق اليومية",
+            "description": "عهدة الإغلاق مالك الحساب",
+            "debit": "30.0000",
+            "credit": "0.0000",
+            "runningBalance": "30.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1211002",
+            "accountName": "عهدة الإغلاق"
+          }
+        ],
+        "totals": {
+          "debit": "30.0000",
+          "credit": "0.0000",
+          "periodDebit": "30.0000",
+          "periodCredit": "0.0000",
+          "closing": "30.0000",
+          "closingStatus": "مدين"
+        },
+        "account": {
+          "id": "01a163cb-c8ea-7449-9b8d-c9c877b20be4",
+          "code": "1211002",
+          "nameAr": "عهدة الإغلاق",
+          "type": "asset",
+          "normalBalance": "debit",
+          "openingBalance": "0.0000",
+          "branchId": null
+        }
+      }
+    },
+    {
+      "label": "gl-cash-diff",
+      "method": "GET",
+      "path": "/statements/general-ledger/01a163cb-c8f8-71de-b245-580fee832d86",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "rank": 1,
+            "date": "2026-10-22",
+            "entryId": "01a1640e-af86-750d-8227-13f62da081db",
+            "number": "JE-000027",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "إغلاق اليومية",
+            "description": "فرق بالصندوق مالك الحساب",
+            "debit": "3.0000",
+            "credit": "0.0000",
+            "runningBalance": "3.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "3110004",
+            "accountName": "فروقات الصندوق"
+          }
+        ],
+        "totals": {
+          "debit": "3.0000",
+          "credit": "0.0000",
+          "periodDebit": "3.0000",
+          "periodCredit": "0.0000",
+          "closing": "3.0000",
+          "closingStatus": "مدين"
+        },
+        "account": {
+          "id": "01a163cb-c8f8-71de-b245-580fee832d86",
+          "code": "3110004",
+          "nameAr": "فروقات الصندوق",
+          "type": "expense",
+          "normalBalance": "debit",
+          "openingBalance": "0.0000",
+          "branchId": null
+        }
+      }
+    }
+  ]
+}

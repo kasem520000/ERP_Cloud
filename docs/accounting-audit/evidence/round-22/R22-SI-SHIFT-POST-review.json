@@ -1,0 +1,5 @@
+{
+  "reviewedAt": "2026-10-22T14:36:21.280Z",
+  "screenshot": "R22-SI-SHIFT-POST-before.png",
+  "approval": "NOT gated on a fresh review: the approval marker .scratch/r22/R22-SI-SHIFT-POST.approve pre-existed from attempt 1 (same stage id), so the re-run clicked immediately. The before screenshot (R22-SI-SHIFT-POST-before.png) was reviewed by the agent right after the click at 2026-10-22T14:37:36.845051Z and shows the intended state (طريقة الدفع نقدية، الصندوق الرئيسي، 1 × 20 + 3 = 23). Attempt 1 evidence kept as R22-SI-SHIFT-POST-ATTEMPT1-*."
+}

@@ -1,0 +1,17 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/shift-closes/01a16406-ed62-72ef-bd9d-85a6e462d5f2/post",
+  "request": {},
+  "body": {
+    "id": "01a16406-ed62-72ef-bd9d-85a6e462d5f2",
+    "number": "CS-000001",
+    "journalEntryId": "01a1640e-af86-750d-8227-13f62da081db",
+    "postedAt": "2026-10-22T14:40:46.484Z",
+    "custodyAccountId": "01a163cb-c8ea-7449-9b8d-c9c877b20be4",
+    "custodyAmount": "30.0000",
+    "tillAmount": "33.0000",
+    "differenceAmount": "3.0000",
+    "diff": "-3.0000"
+  }
+}
