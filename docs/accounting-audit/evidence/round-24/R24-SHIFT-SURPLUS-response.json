@@ -1,0 +1,769 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "close-surplus",
+      "method": "POST",
+      "path": "/shift-closes/01a16534-ec16-703e-b10f-f72ca6db7a2f/close",
+      "request": {
+        "counts": [
+          {
+            "denomination": "1",
+            "count": 1
+          }
+        ]
+      },
+      "status": 201,
+      "body": {
+        "id": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+        "number": "CS-000003",
+        "status": "closed",
+        "summary": {
+          "vouchers": 0,
+          "vouchersCash": "0.0000",
+          "invoices": 0,
+          "invoiceRows": 0,
+          "sales": {
+            "cash": "0.0000",
+            "card": "0.0000",
+            "bank": "0.0000",
+            "credit": "0.0000"
+          },
+          "returns": {
+            "cash": "0.0000",
+            "card": "0.0000",
+            "bank": "0.0000",
+            "credit": "0.0000"
+          },
+          "expectedCash": "0.0000",
+          "cash": "0.0000",
+          "banks": [],
+          "bankTransfers": "0.0000",
+          "network": "0.0000",
+          "sumCashAndNetwork": "0.0000",
+          "net": "0.0000",
+          "tax": "0.0000",
+          "discount": "0.0000",
+          "postponed": "0.0000",
+          "expenses": {
+            "total": "0.0000",
+            "delivery": "0.0000",
+            "hospitality": "0.0000",
+            "purchases": "0.0000",
+            "insurance": "0.0000",
+            "other": "0.0000"
+          },
+          "countedCash": "1.0000",
+          "diff": "1.0000"
+        }
+      }
+    },
+    {
+      "label": "print-before-post",
+      "method": "GET",
+      "path": "/shift-closes/01a16534-ec16-703e-b10f-f72ca6db7a2f/print-data",
+      "status": 200,
+      "body": {
+        "shift": {
+          "id": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+          "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+          "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+          "userId": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+          "openedAt": "2026-10-22T20:02:09.556Z",
+          "closedAt": "2026-10-22T20:05:59.738Z",
+          "status": "closed",
+          "number": "CS-000003",
+          "journalEntryId": null,
+          "postedAt": null,
+          "expectedCash": "0.0000",
+          "countedCash": "1.0000",
+          "diff": "1.0000",
+          "summary": {
+            "net": "0.0000",
+            "tax": "0.0000",
+            "cash": "0.0000",
+            "diff": "1.0000",
+            "banks": [],
+            "sales": {
+              "bank": "0.0000",
+              "card": "0.0000",
+              "cash": "0.0000",
+              "credit": "0.0000"
+            },
+            "network": "0.0000",
+            "returns": {
+              "bank": "0.0000",
+              "card": "0.0000",
+              "cash": "0.0000",
+              "credit": "0.0000"
+            },
+            "discount": "0.0000",
+            "expenses": {
+              "other": "0.0000",
+              "total": "0.0000",
+              "delivery": "0.0000",
+              "insurance": "0.0000",
+              "purchases": "0.0000",
+              "hospitality": "0.0000"
+            },
+            "invoices": 0,
+            "vouchers": 0,
+            "postponed": "0.0000",
+            "countedCash": "1.0000",
+            "invoiceRows": 0,
+            "expectedCash": "0.0000",
+            "vouchersCash": "0.0000",
+            "bankTransfers": "0.0000",
+            "sumCashAndNetwork": "0.0000"
+          },
+          "reportHtml": null,
+          "createdAt": "2026-10-22T20:02:09.556Z",
+          "createdBy": null,
+          "updatedAt": "2026-10-22T20:05:59.738Z",
+          "updatedBy": null,
+          "version": 1
+        },
+        "lines": [
+          {
+            "shiftCloseId": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+            "lineNo": 1,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "method-total",
+            "method": "cash",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {
+              "net": "0.0000",
+              "tax": "0.0000",
+              "cash": "0.0000",
+              "diff": "1.0000",
+              "banks": [],
+              "sales": {
+                "bank": "0.0000",
+                "card": "0.0000",
+                "cash": "0.0000",
+                "credit": "0.0000"
+              },
+              "network": "0.0000",
+              "returns": {
+                "bank": "0.0000",
+                "card": "0.0000",
+                "cash": "0.0000",
+                "credit": "0.0000"
+              },
+              "discount": "0.0000",
+              "expenses": {
+                "other": "0.0000",
+                "total": "0.0000",
+                "delivery": "0.0000",
+                "insurance": "0.0000",
+                "purchases": "0.0000",
+                "hospitality": "0.0000"
+              },
+              "invoices": 0,
+              "vouchers": 0,
+              "postponed": "0.0000",
+              "countedCash": "1.0000",
+              "invoiceRows": 0,
+              "expectedCash": "0.0000",
+              "vouchersCash": "0.0000",
+              "bankTransfers": "0.0000",
+              "sumCashAndNetwork": "0.0000"
+            }
+          },
+          {
+            "shiftCloseId": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+            "lineNo": 2,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "method-total",
+            "method": "card",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+            "lineNo": 3,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "method-total",
+            "method": "bank",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+            "lineNo": 4,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "method-total",
+            "method": "credit",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+            "lineNo": 5,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "voucher-cash",
+            "method": "cash",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          }
+        ],
+        "counts": [
+          {
+            "shiftCloseId": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+            "lineNo": 1,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "currencyCode": "SAR",
+            "denomination": "1.0000",
+            "count": 1,
+            "total": "1.0000"
+          }
+        ]
+      }
+    },
+    {
+      "label": "post-surplus",
+      "method": "POST",
+      "path": "/shift-closes/01a16534-ec16-703e-b10f-f72ca6db7a2f/post",
+      "request": {},
+      "status": 201,
+      "body": {
+        "id": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+        "number": "CS-000003",
+        "journalEntryId": "01a16538-750c-76ed-9304-a237fcb64b59",
+        "postedAt": "2026-10-22T20:06:01.234Z",
+        "custodyAccountId": "01a16504-13d3-724c-86e7-741bd0d7f61d",
+        "custodyAmount": "1.0000",
+        "tillAmount": "0.0000",
+        "differenceAmount": "-1.0000",
+        "diff": "1.0000"
+      }
+    },
+    {
+      "label": "shift-after",
+      "method": "GET",
+      "path": "/shift-closes/01a16534-ec16-703e-b10f-f72ca6db7a2f",
+      "status": 200,
+      "body": {
+        "shift": {
+          "id": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+          "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+          "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+          "userId": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+          "openedAt": "2026-10-22T20:02:09.556Z",
+          "closedAt": "2026-10-22T20:05:59.738Z",
+          "status": "closed",
+          "number": "CS-000003",
+          "journalEntryId": "01a16538-750c-76ed-9304-a237fcb64b59",
+          "postedAt": "2026-10-22T20:06:01.234Z",
+          "expectedCash": "0.0000",
+          "countedCash": "1.0000",
+          "diff": "1.0000",
+          "summary": {
+            "net": "0.0000",
+            "tax": "0.0000",
+            "cash": "0.0000",
+            "diff": "1.0000",
+            "banks": [],
+            "sales": {
+              "bank": "0.0000",
+              "card": "0.0000",
+              "cash": "0.0000",
+              "credit": "0.0000"
+            },
+            "network": "0.0000",
+            "returns": {
+              "bank": "0.0000",
+              "card": "0.0000",
+              "cash": "0.0000",
+              "credit": "0.0000"
+            },
+            "discount": "0.0000",
+            "expenses": {
+              "other": "0.0000",
+              "total": "0.0000",
+              "delivery": "0.0000",
+              "insurance": "0.0000",
+              "purchases": "0.0000",
+              "hospitality": "0.0000"
+            },
+            "invoices": 0,
+            "vouchers": 0,
+            "postponed": "0.0000",
+            "tillAmount": "0.0000",
+            "countedCash": "1.0000",
+            "invoiceRows": 0,
+            "expectedCash": "0.0000",
+            "vouchersCash": "0.0000",
+            "bankTransfers": "0.0000",
+            "custodyAmount": "1.0000",
+            "custodyAccountId": "01a16504-13d3-724c-86e7-741bd0d7f61d",
+            "differenceAmount": "-1.0000",
+            "sumCashAndNetwork": "0.0000"
+          },
+          "reportHtml": null,
+          "createdAt": "2026-10-22T20:02:09.556Z",
+          "createdBy": null,
+          "updatedAt": "2026-10-22T20:06:01.234Z",
+          "updatedBy": null,
+          "version": 1
+        },
+        "close": {
+          "id": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+          "number": "CS-000003",
+          "status": "closed",
+          "employee": "مالك الحساب",
+          "employeeId": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+          "membershipId": "01a16504-115f-7478-9864-69369bf57f2b",
+          "openedAt": "2026-10-22T20:02:09.556Z",
+          "closedAt": "2026-10-22T20:05:59.738Z",
+          "journalEntryId": "01a16538-750c-76ed-9304-a237fcb64b59",
+          "postedAt": "2026-10-22T20:06:01.234Z",
+          "postable": false,
+          "custodyAccountId": "01a16504-13d3-724c-86e7-741bd0d7f61d",
+          "custodyAccountCode": "1211002",
+          "custodyAccountName": "عهدة الإغلاق",
+          "custodyAmount": "1.0000",
+          "net": "0.0000",
+          "safeBalance": "1.0000",
+          "expected": "0.0000",
+          "diff": "1.0000",
+          "banks": [],
+          "postponed": "0.0000",
+          "network": "0.0000",
+          "cash": "0.0000",
+          "sumCashAndNetwork": "0.0000",
+          "tax": "0.0000",
+          "discount": "0.0000",
+          "expenses": {
+            "total": "0.0000",
+            "delivery": "0.0000",
+            "hospitality": "0.0000",
+            "purchases": "0.0000",
+            "insurance": "0.0000",
+            "other": "0.0000"
+          }
+        },
+        "counts": [
+          {
+            "shiftCloseId": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+            "lineNo": 1,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "currencyCode": "SAR",
+            "denomination": "1.0000",
+            "count": 1,
+            "total": "1.0000"
+          }
+        ],
+        "lines": [
+          {
+            "shiftCloseId": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+            "lineNo": 1,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "method-total",
+            "method": "cash",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {
+              "net": "0.0000",
+              "tax": "0.0000",
+              "cash": "0.0000",
+              "diff": "1.0000",
+              "banks": [],
+              "sales": {
+                "bank": "0.0000",
+                "card": "0.0000",
+                "cash": "0.0000",
+                "credit": "0.0000"
+              },
+              "network": "0.0000",
+              "returns": {
+                "bank": "0.0000",
+                "card": "0.0000",
+                "cash": "0.0000",
+                "credit": "0.0000"
+              },
+              "discount": "0.0000",
+              "expenses": {
+                "other": "0.0000",
+                "total": "0.0000",
+                "delivery": "0.0000",
+                "insurance": "0.0000",
+                "purchases": "0.0000",
+                "hospitality": "0.0000"
+              },
+              "invoices": 0,
+              "vouchers": 0,
+              "postponed": "0.0000",
+              "countedCash": "1.0000",
+              "invoiceRows": 0,
+              "expectedCash": "0.0000",
+              "vouchersCash": "0.0000",
+              "bankTransfers": "0.0000",
+              "sumCashAndNetwork": "0.0000"
+            }
+          },
+          {
+            "shiftCloseId": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+            "lineNo": 2,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "method-total",
+            "method": "card",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+            "lineNo": 3,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "method-total",
+            "method": "bank",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+            "lineNo": 4,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "method-total",
+            "method": "credit",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a16534-ec16-703e-b10f-f72ca6db7a2f",
+            "lineNo": 5,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "voucher-cash",
+            "method": "cash",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          }
+        ]
+      }
+    },
+    {
+      "label": "journals",
+      "method": "GET",
+      "path": "/journal-entries?limit=5",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a16538-750c-76ed-9304-a237fcb64b59",
+            "number": "JE-000007",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "اغلاق اليومية خاصة الموظف مالك الحساب رقمCS-000003",
+            "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "fiscalPeriodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+            "sourceType": "shift_close",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T20:06:01.229Z",
+            "totalDebit": "1.0000",
+            "totalCredit": "1.0000",
+            "lineCount": 2
+          },
+          {
+            "id": "01a16520-91b3-7009-b86c-2c69734b86c9",
+            "number": "JE-000006",
+            "date": "2026-10-22",
+            "kind": "reversal",
+            "status": "posted",
+            "description": "عكس القيد JE-000005: R24 عكس قيد إغلاق وردية مرحَّلة من وحدة المحاسبة (اختبار تناسق المستند مع قيده)",
+            "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "fiscalPeriodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+            "sourceType": "shift_close",
+            "reversalOf": "01a1651f-57e5-710a-8915-d5f568c51a4e",
+            "postedAt": "2026-10-22T19:39:55.700Z",
+            "totalDebit": "23.0000",
+            "totalCredit": "23.0000",
+            "lineCount": 2
+          },
+          {
+            "id": "01a1651f-57e5-710a-8915-d5f568c51a4e",
+            "number": "JE-000005",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "اغلاق اليومية خاصة الموظف مالك الحساب رقمCS-000001",
+            "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "fiscalPeriodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+            "sourceType": "shift_close",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T19:38:35.366Z",
+            "totalDebit": "23.0000",
+            "totalCredit": "23.0000",
+            "lineCount": 2
+          },
+          {
+            "id": "01a1651e-b4db-7541-906c-ca314ae9a718",
+            "number": "JE-000004",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "Sales invoice SI-000001",
+            "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "fiscalPeriodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+            "sourceType": "sales_invoice",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T19:37:53.628Z",
+            "totalDebit": "33.0000",
+            "totalCredit": "33.0000",
+            "lineCount": 5
+          },
+          {
+            "id": "01a1651a-0725-7329-bac9-e1fccc44457d",
+            "number": "JE-000003",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "R24-PV-ALLOC صرف نقدي 115 للمورد العام يُخصَّص بالكامل لفاتورة المشتريات 115 ثم يُلغى السند",
+            "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "fiscalPeriodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+            "sourceType": "voucher",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T19:32:47.013Z",
+            "totalDebit": "115.0000",
+            "totalCredit": "115.0000",
+            "lineCount": 2
+          }
+        ]
+      }
+    },
+    {
+      "label": "cash-balance",
+      "method": "GET",
+      "path": "/cash-locations/01a16504-1391-7135-a3e5-69ca78a2e716/balance",
+      "status": 200,
+      "body": {
+        "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+        "cashLocationId": "01a16504-1391-7135-a3e5-69ca78a2e716",
+        "currencyCode": "SAR",
+        "balance": "0.0000",
+        "updatedAt": "2026-10-22T19:33:54.098Z"
+      }
+    },
+    {
+      "label": "br2-shift",
+      "method": "GET",
+      "path": "/shift-closes/01a1652a-6d1d-718b-9add-3c39c90e4b21",
+      "status": 200,
+      "body": {
+        "shift": {
+          "id": "01a1652a-6d1d-718b-9add-3c39c90e4b21",
+          "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+          "branchId": "01a16521-1e40-73a0-81e1-cb552fb71b7c",
+          "userId": "01a16504-143c-744d-82a2-3c732a124904",
+          "openedAt": "2026-10-22T19:50:41.692Z",
+          "closedAt": "2026-10-22T20:03:13.654Z",
+          "status": "closed",
+          "number": "CS-000002",
+          "journalEntryId": null,
+          "postedAt": null,
+          "expectedCash": "0.0000",
+          "countedCash": "23.0000",
+          "diff": "23.0000",
+          "summary": {
+            "net": "23.0000",
+            "tax": "3.0000",
+            "cash": "0.0000",
+            "diff": "23.0000",
+            "banks": [],
+            "sales": {
+              "bank": "0.0000",
+              "card": "0.0000",
+              "cash": "0.0000",
+              "credit": "0.0000"
+            },
+            "network": "0.0000",
+            "returns": {
+              "bank": "0.0000",
+              "card": "0.0000",
+              "cash": "0.0000",
+              "credit": "0.0000"
+            },
+            "discount": "0.0000",
+            "expenses": {
+              "other": "0.0000",
+              "total": "0.0000",
+              "delivery": "0.0000",
+              "insurance": "0.0000",
+              "purchases": "0.0000",
+              "hospitality": "0.0000"
+            },
+            "invoices": 0,
+            "vouchers": 0,
+            "postponed": "23.0000",
+            "countedCash": "23.0000",
+            "invoiceRows": 1,
+            "expectedCash": "0.0000",
+            "vouchersCash": "0.0000",
+            "bankTransfers": "0.0000",
+            "sumCashAndNetwork": "0.0000"
+          },
+          "reportHtml": null,
+          "createdAt": "2026-10-22T19:50:41.692Z",
+          "createdBy": null,
+          "updatedAt": "2026-10-22T20:03:13.654Z",
+          "updatedBy": null,
+          "version": 1
+        },
+        "close": {
+          "id": "01a1652a-6d1d-718b-9add-3c39c90e4b21",
+          "number": "CS-000002",
+          "status": "closed",
+          "employee": "أمين الصندوق",
+          "employeeId": "01a16504-143c-744d-82a2-3c732a124904",
+          "membershipId": "01a16504-143d-72cd-afa8-cfb5b976a32e",
+          "openedAt": "2026-10-22T19:50:41.692Z",
+          "closedAt": "2026-10-22T20:03:13.654Z",
+          "journalEntryId": null,
+          "postedAt": null,
+          "postable": true,
+          "custodyAccountId": null,
+          "custodyAccountCode": null,
+          "custodyAccountName": null,
+          "custodyAmount": null,
+          "net": "23.0000",
+          "safeBalance": "23.0000",
+          "expected": "0.0000",
+          "diff": "23.0000",
+          "banks": [],
+          "postponed": "23.0000",
+          "network": "0.0000",
+          "cash": "0.0000",
+          "sumCashAndNetwork": "0.0000",
+          "tax": "3.0000",
+          "discount": "0.0000",
+          "expenses": {
+            "total": "0.0000",
+            "delivery": "0.0000",
+            "hospitality": "0.0000",
+            "purchases": "0.0000",
+            "insurance": "0.0000",
+            "other": "0.0000"
+          }
+        },
+        "counts": [
+          {
+            "shiftCloseId": "01a1652a-6d1d-718b-9add-3c39c90e4b21",
+            "lineNo": 1,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "currencyCode": "SAR",
+            "denomination": "20.0000",
+            "count": 1,
+            "total": "20.0000"
+          },
+          {
+            "shiftCloseId": "01a1652a-6d1d-718b-9add-3c39c90e4b21",
+            "lineNo": 2,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "currencyCode": "SAR",
+            "denomination": "1.0000",
+            "count": 3,
+            "total": "3.0000"
+          }
+        ],
+        "lines": [
+          {
+            "shiftCloseId": "01a1652a-6d1d-718b-9add-3c39c90e4b21",
+            "lineNo": 1,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "method-total",
+            "method": "cash",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {
+              "net": "23.0000",
+              "tax": "3.0000",
+              "cash": "0.0000",
+              "diff": "23.0000",
+              "banks": [],
+              "sales": {
+                "bank": "0.0000",
+                "card": "0.0000",
+                "cash": "0.0000",
+                "credit": "0.0000"
+              },
+              "network": "0.0000",
+              "returns": {
+                "bank": "0.0000",
+                "card": "0.0000",
+                "cash": "0.0000",
+                "credit": "0.0000"
+              },
+              "discount": "0.0000",
+              "expenses": {
+                "other": "0.0000",
+                "total": "0.0000",
+                "delivery": "0.0000",
+                "insurance": "0.0000",
+                "purchases": "0.0000",
+                "hospitality": "0.0000"
+              },
+              "invoices": 0,
+              "vouchers": 0,
+              "postponed": "23.0000",
+              "countedCash": "23.0000",
+              "invoiceRows": 1,
+              "expectedCash": "0.0000",
+              "vouchersCash": "0.0000",
+              "bankTransfers": "0.0000",
+              "sumCashAndNetwork": "0.0000"
+            }
+          },
+          {
+            "shiftCloseId": "01a1652a-6d1d-718b-9add-3c39c90e4b21",
+            "lineNo": 2,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "method-total",
+            "method": "card",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a1652a-6d1d-718b-9add-3c39c90e4b21",
+            "lineNo": 3,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "method-total",
+            "method": "bank",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a1652a-6d1d-718b-9add-3c39c90e4b21",
+            "lineNo": 4,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "method-total",
+            "method": "credit",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          },
+          {
+            "shiftCloseId": "01a1652a-6d1d-718b-9add-3c39c90e4b21",
+            "lineNo": 5,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "voucher-cash",
+            "method": "cash",
+            "partyId": null,
+            "amount": "0.0000",
+            "metadata": {}
+          }
+        ]
+      }
+    }
+  ]
+}

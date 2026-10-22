@@ -1,0 +1,453 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "lock-purchases",
+      "method": "POST",
+      "path": "/fiscal-periods/01a16504-1426-734e-bc3f-7bf2ddea5adb/modules/purchases/lock",
+      "request": {},
+      "status": 201,
+      "body": {
+        "data": {
+          "periodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+          "module": "purchases",
+          "locked": true
+        }
+      }
+    },
+    {
+      "label": "pi-create",
+      "method": "POST",
+      "path": "/purchase-invoices",
+      "request": {
+        "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+        "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+        "partyId": "01a16504-139b-7777-916b-0393425a29c0",
+        "kind": "purchase",
+        "supplierReferenceNo": "R24-LOCK-PI",
+        "supplierReferenceDate": "2026-10-22",
+        "priceIncludesVat": false,
+        "landedCostAlloc": "value",
+        "autoPost": false,
+        "lines": [
+          {
+            "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+            "quantity": "1",
+            "unitPrice": "10",
+            "taxRate": "15"
+          }
+        ]
+      },
+      "status": 201,
+      "body": {
+        "id": "01a16538-e934-719d-8403-3b3b197a0497",
+        "costCenterId": null,
+        "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+        "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+        "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+        "partyId": "01a16504-139b-7777-916b-0393425a29c0",
+        "referenceInvoiceId": null,
+        "kind": "purchase",
+        "status": "draft",
+        "number": null,
+        "supplierReferenceNo": "R24-LOCK-PI",
+        "supplierReferenceDate": "2026-10-22",
+        "currency": "SAR",
+        "priceIncludesVat": false,
+        "landedCostAlloc": "value",
+        "invoiceDiscount": "0.0000",
+        "extraTax": "0.0000",
+        "withholding": "0.0000",
+        "subtotal": "10.0000",
+        "taxTotal": "1.5000",
+        "additionalCostTotal": "0.0000",
+        "total": "11.5000",
+        "paidTotal": "0.0000",
+        "paymentStatus": "unpaid",
+        "journalEntryId": null,
+        "postedAt": null,
+        "voidedAt": null,
+        "createdAt": "2026-10-22T20:06:30.965Z",
+        "createdBy": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+        "updatedAt": null,
+        "updatedBy": null,
+        "version": 1,
+        "legacySource": null,
+        "legacyId": null,
+        "lines": [
+          {
+            "id": "01a16538-e939-74e9-be64-50c71b95350c",
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "invoiceId": "01a16538-e934-719d-8403-3b3b197a0497",
+            "lineNo": 1,
+            "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+            "taxGroupId": null,
+            "description": null,
+            "quantity": "1.0000",
+            "unitPrice": "10.0000",
+            "discountRate": "0.0000",
+            "discountAmount": "0.0000",
+            "taxRate": "15.0000",
+            "net": "10.0000",
+            "tax": "1.5000",
+            "total": "11.5000",
+            "allocatedCost": "0.0000",
+            "landedTotal": "0.0000",
+            "unitCostAtPost": null,
+            "costCenterId": null,
+            "serialNos": [],
+            "lotId": null,
+            "batchNo": null,
+            "productionDate": null,
+            "expiryDate": null,
+            "metadata": {},
+            "createdAt": "2026-10-22T20:06:30.965Z",
+            "createdBy": null,
+            "updatedAt": null,
+            "updatedBy": null,
+            "version": 1
+          }
+        ],
+        "costs": [],
+        "payments": [],
+        "customFields": {}
+      }
+    },
+    {
+      "label": "pi-post-under-purchases-lock",
+      "method": "POST",
+      "path": "/purchase-invoices/01a16538-e934-719d-8403-3b3b197a0497/post",
+      "request": {},
+      "status": 201,
+      "body": {
+        "id": "01a16538-e934-719d-8403-3b3b197a0497",
+        "costCenterId": null,
+        "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+        "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+        "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+        "partyId": "01a16504-139b-7777-916b-0393425a29c0",
+        "referenceInvoiceId": null,
+        "kind": "purchase",
+        "status": "posted",
+        "number": "PI-000002",
+        "supplierReferenceNo": "R24-LOCK-PI",
+        "supplierReferenceDate": "2026-10-22",
+        "currency": "SAR",
+        "priceIncludesVat": false,
+        "landedCostAlloc": "value",
+        "invoiceDiscount": "0.0000",
+        "extraTax": "0.0000",
+        "withholding": "0.0000",
+        "subtotal": "10.0000",
+        "taxTotal": "1.5000",
+        "additionalCostTotal": "0.0000",
+        "total": "11.5000",
+        "paidTotal": "0.0000",
+        "paymentStatus": "unpaid",
+        "journalEntryId": "01a16538-ec69-7478-aa03-10fe39561699",
+        "postedAt": "2026-10-22T20:06:31.790Z",
+        "voidedAt": null,
+        "createdAt": "2026-10-22T20:06:30.965Z",
+        "createdBy": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+        "updatedAt": null,
+        "updatedBy": null,
+        "version": 1,
+        "legacySource": null,
+        "legacyId": null,
+        "lines": [
+          {
+            "id": "01a16538-e939-74e9-be64-50c71b95350c",
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "invoiceId": "01a16538-e934-719d-8403-3b3b197a0497",
+            "lineNo": 1,
+            "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+            "taxGroupId": null,
+            "description": null,
+            "quantity": "1.0000",
+            "unitPrice": "10.0000",
+            "discountRate": "0.0000",
+            "discountAmount": "0.0000",
+            "taxRate": "15.0000",
+            "net": "10.0000",
+            "tax": "1.5000",
+            "total": "11.5000",
+            "allocatedCost": "0.0000",
+            "landedTotal": "10.0000",
+            "unitCostAtPost": "10.0000",
+            "costCenterId": null,
+            "serialNos": [],
+            "lotId": null,
+            "batchNo": null,
+            "productionDate": null,
+            "expiryDate": null,
+            "metadata": {},
+            "createdAt": "2026-10-22T20:06:30.965Z",
+            "createdBy": null,
+            "updatedAt": "2026-10-22T20:06:31.779Z",
+            "updatedBy": null,
+            "version": 1
+          }
+        ],
+        "costs": [],
+        "payments": [],
+        "customFields": {}
+      }
+    },
+    {
+      "label": "lock-inventory",
+      "method": "POST",
+      "path": "/fiscal-periods/01a16504-1426-734e-bc3f-7bf2ddea5adb/modules/inventory/lock",
+      "request": {},
+      "status": 201,
+      "body": {
+        "data": {
+          "periodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+          "module": "inventory",
+          "locked": true
+        }
+      }
+    },
+    {
+      "label": "sv-create",
+      "method": "POST",
+      "path": "/inventory/vouchers",
+      "request": {
+        "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+        "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+        "kind": "stock_out",
+        "voucherDate": "2026-10-22",
+        "reason": "R24-LOCK إخراج 1 أثناء قفل وحدة المخزون",
+        "lines": [
+          {
+            "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+            "qty": "1"
+          }
+        ]
+      },
+      "status": 201,
+      "body": {
+        "id": "01a16538-f28c-7536-a80c-22474531be71",
+        "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+        "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+        "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+        "kind": "stock_out",
+        "number": "SOU-000001",
+        "status": "draft",
+        "voucherDate": "2026-10-22",
+        "reason": "R24-LOCK إخراج 1 أثناء قفل وحدة المخزون",
+        "counterAccountId": null,
+        "notes": null,
+        "journalEntryId": null,
+        "totalCost": "10.0000",
+        "postedAt": null,
+        "voidedAt": null,
+        "createdAt": "2026-10-22T20:06:33.357Z",
+        "createdBy": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+        "updatedAt": null,
+        "updatedBy": null,
+        "version": 1,
+        "legacySource": null,
+        "legacyId": null,
+        "lines": [
+          {
+            "voucherId": "01a16538-f28c-7536-a80c-22474531be71",
+            "lineNo": 1,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+            "qty": "1.0000",
+            "unitId": null,
+            "unitCost": null,
+            "lineCost": "0.0000",
+            "lotId": null,
+            "batchNo": null,
+            "productionDate": null,
+            "expiryDate": null,
+            "serialId": null,
+            "serialNos": [],
+            "note": null
+          }
+        ]
+      }
+    },
+    {
+      "label": "sv-post-under-inventory-lock",
+      "method": "POST",
+      "path": "/inventory/vouchers/01a16538-f28c-7536-a80c-22474531be71/post",
+      "request": {},
+      "status": 201,
+      "body": {
+        "id": "01a16538-f28c-7536-a80c-22474531be71",
+        "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+        "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+        "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+        "kind": "stock_out",
+        "number": "SOU-000001",
+        "status": "posted",
+        "voucherDate": "2026-10-22",
+        "reason": "R24-LOCK إخراج 1 أثناء قفل وحدة المخزون",
+        "counterAccountId": null,
+        "notes": null,
+        "journalEntryId": "01a16538-f5a6-77cc-b64e-b2e0a9d2c4d5",
+        "totalCost": "10.0000",
+        "postedAt": "2026-10-22T20:06:34.154Z",
+        "voidedAt": null,
+        "createdAt": "2026-10-22T20:06:33.357Z",
+        "createdBy": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+        "updatedAt": "2026-10-22T20:06:34.154Z",
+        "updatedBy": null,
+        "version": 1,
+        "legacySource": null,
+        "legacyId": null,
+        "lines": [
+          {
+            "voucherId": "01a16538-f28c-7536-a80c-22474531be71",
+            "lineNo": 1,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+            "qty": "1.0000",
+            "unitId": null,
+            "unitCost": null,
+            "lineCost": "0.0000",
+            "lotId": null,
+            "batchNo": null,
+            "productionDate": null,
+            "expiryDate": null,
+            "serialId": null,
+            "serialNos": [],
+            "note": null
+          }
+        ]
+      }
+    },
+    {
+      "label": "unlock-purchases",
+      "method": "POST",
+      "path": "/fiscal-periods/01a16504-1426-734e-bc3f-7bf2ddea5adb/modules/purchases/unlock",
+      "request": {},
+      "status": 201,
+      "body": {
+        "data": {
+          "periodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+          "module": "purchases",
+          "locked": false
+        }
+      }
+    },
+    {
+      "label": "unlock-inventory",
+      "method": "POST",
+      "path": "/fiscal-periods/01a16504-1426-734e-bc3f-7bf2ddea5adb/modules/inventory/unlock",
+      "request": {},
+      "status": 201,
+      "body": {
+        "data": {
+          "periodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+          "module": "inventory",
+          "locked": false
+        }
+      }
+    },
+    {
+      "label": "levels",
+      "method": "GET",
+      "path": "/inventory/levels?item_id=01a1650d-9b90-7711-be44-59856a67c3ed",
+      "status": 200,
+      "body": [
+        {
+          "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+          "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+          "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+          "quantity": "9.0000",
+          "value": "90.0000",
+          "averageCost": "10.0000",
+          "version": 5,
+          "updatedAt": "2026-10-22T20:06:34.146Z"
+        },
+        {
+          "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+          "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+          "warehouseId": "01a16521-7bb0-700f-aa7d-0bc92c0904b0",
+          "quantity": "1.0000",
+          "value": "10.0000",
+          "averageCost": "10.0000",
+          "version": 2,
+          "updatedAt": "2026-10-22T20:01:02.016Z"
+        }
+      ]
+    },
+    {
+      "label": "journals",
+      "method": "GET",
+      "path": "/journal-entries?limit=4",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a16538-f5a6-77cc-b64e-b2e0a9d2c4d5",
+            "number": "JE-000009",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "سند إخراج مخزني SOU-000001",
+            "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "fiscalPeriodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+            "sourceType": "stock_voucher",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T20:06:34.151Z",
+            "totalDebit": "10.0000",
+            "totalCredit": "10.0000",
+            "lineCount": 2
+          },
+          {
+            "id": "01a16538-ec69-7478-aa03-10fe39561699",
+            "number": "JE-000008",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "Purchase invoice PI-000002",
+            "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "fiscalPeriodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+            "sourceType": "purchase_invoice",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T20:06:31.785Z",
+            "totalDebit": "11.5000",
+            "totalCredit": "11.5000",
+            "lineCount": 3
+          },
+          {
+            "id": "01a16538-750c-76ed-9304-a237fcb64b59",
+            "number": "JE-000007",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "اغلاق اليومية خاصة الموظف مالك الحساب رقمCS-000003",
+            "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "fiscalPeriodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+            "sourceType": "shift_close",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T20:06:01.229Z",
+            "totalDebit": "1.0000",
+            "totalCredit": "1.0000",
+            "lineCount": 2
+          },
+          {
+            "id": "01a16520-91b3-7009-b86c-2c69734b86c9",
+            "number": "JE-000006",
+            "date": "2026-10-22",
+            "kind": "reversal",
+            "status": "posted",
+            "description": "عكس القيد JE-000005: R24 عكس قيد إغلاق وردية مرحَّلة من وحدة المحاسبة (اختبار تناسق المستند مع قيده)",
+            "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "fiscalPeriodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+            "sourceType": "shift_close",
+            "reversalOf": "01a1651f-57e5-710a-8915-d5f568c51a4e",
+            "postedAt": "2026-10-22T19:39:55.700Z",
+            "totalDebit": "23.0000",
+            "totalCredit": "23.0000",
+            "lineCount": 2
+          }
+        ]
+      }
+    }
+  ]
+}
