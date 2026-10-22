@@ -1,0 +1,49 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/contracting/returns",
+  "request": {
+    "billId": "01a1621c-ec6a-71c6-a2ba-83a97a2db6c8",
+    "returnDate": "2026-10-22",
+    "reason": "R20 إعادة قياس بند T1 إرجاع 10 اختبار معزول",
+    "lines": [
+      {
+        "termId": "01a1621c-46ed-7182-b2be-2ddc99bb1f9c",
+        "returnValue": "10"
+      }
+    ]
+  },
+  "body": {
+    "data": {
+      "id": "01a16262-7f93-72fe-bb06-3cfe4caa91af",
+      "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+      "projectId": "01a1621b-a444-75fc-aa69-00f2916da66c",
+      "billId": "01a1621c-ec6a-71c6-a2ba-83a97a2db6c8",
+      "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+      "number": "CTR-000001",
+      "returnDate": "2026-10-22",
+      "status": "draft",
+      "reason": "R20 إعادة قياس بند T1 إرجاع 10 اختبار معزول",
+      "returnValue": "10.0000",
+      "retentionValue": "1.0000",
+      "netValue": "9.0000",
+      "creditNoteId": null,
+      "postedAt": null,
+      "cancelledAt": null,
+      "createdAt": "2026-10-22T06:53:04.787Z",
+      "createdBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "lines": [
+        {
+          "returnId": "01a16262-7f93-72fe-bb06-3cfe4caa91af",
+          "lineNo": 1,
+          "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+          "termId": "01a1621c-46ed-7182-b2be-2ddc99bb1f9c",
+          "returnValue": "10.0000"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/contracting/payments/01a1625f-a5aa-72dd-8732-e6f6c4366e7e/pay",
+  "request": {
+    "cashLocationId": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+    "method": "cash"
+  },
+  "body": {
+    "data": {
+      "id": "01a1625f-a5aa-72dd-8732-e6f6c4366e7e",
+      "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+      "contractId": "01a1621f-6b6b-7404-bf65-e1f302196335",
+      "projectId": "01a1621b-a444-75fc-aa69-00f2916da66c",
+      "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+      "number": "CP-000002",
+      "kind": "retention_release",
+      "status": "paid",
+      "paymentDate": "2026-10-22",
+      "grossAmount": "4.0000",
+      "retentionAmount": "0.0000",
+      "advanceRecovery": "0.0000",
+      "netAmount": "4.0000",
+      "voucherId": "01a16260-0a21-762a-b7fa-d8a9db5c3f33",
+      "notes": "R20 إفراج المحتجز 4 اختبار معزول",
+      "approvedAt": "2026-10-22T06:50:11.091Z",
+      "approvedBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "paidAt": "2026-10-22T06:50:23.656Z",
+      "cancelledAt": null,
+      "createdAt": "2026-10-22T06:49:57.931Z",
+      "createdBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "updatedAt": "2026-10-22T06:50:23.656Z",
+      "updatedBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "version": 1
+    }
+  }
+}
