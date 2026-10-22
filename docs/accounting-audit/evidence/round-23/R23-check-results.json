@@ -1,0 +1,511 @@
+{
+ "passed": 45,
+ "failed": 27,
+ "total": 72,
+ "checks": [
+  {
+   "id": "D01",
+   "desc": "screen save with named approver → should be 201",
+   "pass": false,
+   "actual": "422; sent approver_user_id=01a164b9-df04-7488-aece-ece9b1ad8d20 (membership id)",
+   "tag": "UI-034"
+  },
+  {
+   "id": "D02",
+   "desc": "API workflow with real userId → 201",
+   "pass": true,
+   "actual": "201",
+   "tag": ""
+  },
+  {
+   "id": "D03",
+   "desc": "PI 115 post → 202 APPROVAL_REQUIRED",
+   "pass": true,
+   "actual": "202",
+   "tag": ""
+  },
+  {
+   "id": "D04",
+   "desc": "owner inbox empty (not the named approver)",
+   "pass": true,
+   "actual": "[]",
+   "tag": ""
+  },
+  {
+   "id": "D05",
+   "desc": "owner approve → 403",
+   "pass": true,
+   "actual": "403",
+   "tag": ""
+  },
+  {
+   "id": "D06",
+   "desc": "cashier approve → 403",
+   "pass": true,
+   "actual": "403",
+   "tag": ""
+  },
+  {
+   "id": "D07",
+   "desc": "accountant inbox has the request",
+   "pass": true,
+   "actual": "1",
+   "tag": ""
+  },
+  {
+   "id": "D08",
+   "desc": "accountant approve → approved",
+   "pass": true,
+   "actual": "(201, 'approved')",
+   "tag": ""
+  },
+  {
+   "id": "D09",
+   "desc": "PI auto-posted after final approval",
+   "pass": true,
+   "actual": "posted",
+   "tag": ""
+  },
+  {
+   "id": "D10",
+   "desc": "JE-000004 = Dr 1270001 100 + Dr 2222001 15 / Cr 22111001 115",
+   "pass": true,
+   "actual": "[('1270001', Decimal('100.0000'), Decimal('0.0000')), ('2222001', Decimal('15.0000'), Decimal('0.0000')), ('22111001', Decimal('0.0000'), Decimal('115.0000'))]",
+   "tag": ""
+  },
+  {
+   "id": "D11",
+   "desc": "stock MAIN 10 @ 10 after PI",
+   "pass": true,
+   "actual": "[{'tenant_id': '01a164b9-dd87-77c8-814c-0b5ec43a9197', 'item_id': '01a164bd-0e0c-70ee-abb5-469ebdfb749c', 'warehouse_id': '01a164b9-deab-7269-9e46-2768a0c2cf19'",
+   "tag": ""
+  },
+  {
+   "id": "D12",
+   "desc": "purchase screen must not show a success banner on 202",
+   "pass": false,
+   "actual": "banner «تم ترحيل الفاتورة وأُدخلت البضاعة…» shown while status مسودة",
+   "tag": "UI-035"
+  },
+  {
+   "id": "B01",
+   "desc": "SI-000001 credit 46 posted",
+   "pass": true,
+   "actual": "(201, '46.0000')",
+   "tag": ""
+  },
+  {
+   "id": "B02",
+   "desc": "JE-000005 AR 46 / sales 40 / VAT 6 + COGS 20",
+   "pass": true,
+   "actual": "[('1270001', Decimal('0.0000'), Decimal('20.0000')), ('2222001', Decimal('0.0000'), Decimal('6.0000')), ('4100001', Decimal('0.0000'), Decimal('40.0000')), ('12",
+   "tag": ""
+  },
+  {
+   "id": "B03",
+   "desc": "RV-000001 46 posted with allocation",
+   "pass": true,
+   "actual": "201",
+   "tag": ""
+  },
+  {
+   "id": "B04",
+   "desc": "invoice paid_total 46 / paid after allocated receipt",
+   "pass": false,
+   "actual": "('0.0000', 'unpaid')",
+   "tag": "ACC-042"
+  },
+  {
+   "id": "B05",
+   "desc": "cash sub-ledger +46 after receipt",
+   "pass": true,
+   "actual": "46.0000",
+   "tag": ""
+  },
+  {
+   "id": "B06",
+   "desc": "customer balance 0 after full receipt",
+   "pass": false,
+   "actual": "-46.0000",
+   "tag": "ACC-004"
+  },
+  {
+   "id": "B07",
+   "desc": "void from screen → voided",
+   "pass": true,
+   "actual": "(201, 'voided')",
+   "tag": ""
+  },
+  {
+   "id": "B08",
+   "desc": "void asked for a confirmation dialog",
+   "pass": false,
+   "actual": "no dialog captured — one click voids a posted voucher",
+   "tag": "UI-036"
+  },
+  {
+   "id": "B09",
+   "desc": "void reverses the GL: cash back to 50000 and AR back to 46",
+   "pass": false,
+   "actual": "cash 50046.0000 AR 0.0000",
+   "tag": "ACC-095"
+  },
+  {
+   "id": "B10",
+   "desc": "void posts a reversal entry",
+   "pass": false,
+   "actual": "JE-000006",
+   "tag": "ACC-095"
+  },
+  {
+   "id": "B11",
+   "desc": "void releases the allocation",
+   "pass": false,
+   "actual": "1 allocation row(s) still reference the voided voucher",
+   "tag": "ACC-095"
+  },
+  {
+   "id": "B12",
+   "desc": "cash sub-ledger back to 0 after void (sub-ledger side moved)",
+   "pass": true,
+   "actual": "0.0000",
+   "tag": ""
+  },
+  {
+   "id": "B13",
+   "desc": "GL cash == sub-ledger after void",
+   "pass": false,
+   "actual": "GL +46.0000 vs sub-ledger 0.0000",
+   "tag": "ACC-095"
+  },
+  {
+   "id": "B14",
+   "desc": "cash statement excludes the voided receipt",
+   "pass": false,
+   "actual": "50046.0000",
+   "tag": "ACC-095"
+  },
+  {
+   "id": "C01",
+   "desc": "second open shift on the same branch should be refused",
+   "pass": false,
+   "actual": "201 — two open shifts on MAIN",
+   "tag": "ACC-096"
+  },
+  {
+   "id": "C02",
+   "desc": "SI-000002 cash 23 posted/paid",
+   "pass": true,
+   "actual": "(201, 'paid')",
+   "tag": ""
+  },
+  {
+   "id": "C03",
+   "desc": "cash invoice stamped with the open shift",
+   "pass": false,
+   "actual": "shiftId NULL",
+   "tag": "ACC-093"
+  },
+  {
+   "id": "C04",
+   "desc": "owner close CS-000001 created",
+   "pass": true,
+   "actual": "(201, 'CS-000001')",
+   "tag": ""
+  },
+  {
+   "id": "C05",
+   "desc": "cashier expected cash must be 0 (sale already in the owner shift)",
+   "pass": false,
+   "actual": "expected 23.0000 counted 0.0000 diff -23.0000",
+   "tag": "ACC-096"
+  },
+  {
+   "id": "C06",
+   "desc": "JE-000008 owner post = Dr 1211002 23 / Cr 1211001 23",
+   "pass": true,
+   "actual": "[('1211001', Decimal('0.0000'), Decimal('23.0000')), ('1211002', Decimal('23.0000'), Decimal('0.0000'))]",
+   "tag": ""
+  },
+  {
+   "id": "C07",
+   "desc": "no phantom shortage entry for the cashier shift",
+   "pass": false,
+   "actual": "JE-000009 [('1211001', Decimal('0.0000'), Decimal('23.0000')), ('3110004', Decimal('23.0000'), Decimal('0.0000'))] → 3110004 = 23.0000",
+   "tag": "ACC-096"
+  },
+  {
+   "id": "C08",
+   "desc": "GL cash after shifts = 50000+46+23−23 (void not reversed) — would be 50000 if void reversed",
+   "pass": true,
+   "actual": "50023.0000",
+   "tag": ""
+  },
+  {
+   "id": "C09",
+   "desc": "two closes, same 23 counted as expected cash in both",
+   "pass": true,
+   "actual": "[('CS-000001', '23.0000', '0.0000'), ('CS-000002', '23.0000', '-23.0000')]",
+   "tag": ""
+  },
+  {
+   "id": "C10",
+   "desc": "recalc-balance reconciles the sub-ledger to the GL",
+   "pass": false,
+   "actual": "sub-ledger 1.0000 → 1.0000 (reconciled:True) vs GL 50046.5000",
+   "tag": "ACC-098"
+  },
+  {
+   "id": "A01",
+   "desc": "USD receipt draft keeps 10 USD @ 3.75 from the table",
+   "pass": true,
+   "actual": "('USD', '10.0000', '3.7500000000')",
+   "tag": ""
+  },
+  {
+   "id": "A02",
+   "desc": "RV-000002 posted",
+   "pass": true,
+   "actual": "201",
+   "tag": ""
+  },
+  {
+   "id": "A03",
+   "desc": "JE-000010 = Dr 1211001 37.5 / Cr 12310001 37.5",
+   "pass": true,
+   "actual": "[('1211001', '37.5000', '0.0000'), ('12310001', '0.0000', '37.5000')]",
+   "tag": ""
+  },
+  {
+   "id": "A04",
+   "desc": "JE-000010 lines carry currency_code/currency_amount/fx_rate",
+   "pass": false,
+   "actual": "[(None, None, None), (None, None, None)]",
+   "tag": "ACC-089"
+  },
+  {
+   "id": "A05",
+   "desc": "JE-000010 AR line carries the party",
+   "pass": true,
+   "actual": "[None, '01a164b9-deb1-77ad-a17f-47b29f8716c9']",
+   "tag": ""
+  },
+  {
+   "id": "A06",
+   "desc": "PV-000001 4 USD = 15 posted",
+   "pass": true,
+   "actual": "(201, '15.0000', '4.0000')",
+   "tag": ""
+  },
+  {
+   "id": "A07",
+   "desc": "JE-000011 = Dr 22111001 15 / Cr 1211001 15",
+   "pass": true,
+   "actual": "[('1211001', '0.0000', '15.0000'), ('22111001', '15.0000', '0.0000')]",
+   "tag": ""
+  },
+  {
+   "id": "A08",
+   "desc": "USD sub-ledger row holds foreign units (10 − 4 = 6 USD)",
+   "pass": false,
+   "actual": "USD row = 22.5000 (SAR equivalents 37.5 − 15 stored under USD)",
+   "tag": "ACC-073"
+  },
+  {
+   "id": "A09",
+   "desc": "fx resolve USD→SAR = 3.75 direct",
+   "pass": true,
+   "actual": "{'fromCode': 'USD', 'toCode': 'SAR', 'rate': '3.75', 'source': 'direct', 'effectiveFrom': '2026-10-01', 'via': None}",
+   "tag": ""
+  },
+  {
+   "id": "A10",
+   "desc": "voucher list labels the base amount in SAR, not «37.50 USD»",
+   "pass": false,
+   "actual": "«37.50 USD» in the amount column",
+   "tag": "UI-033"
+  },
+  {
+   "id": "A11",
+   "desc": "voucher list footer excludes voided vouchers",
+   "pass": false,
+   "actual": "footer 83.50 = 37.50 + voided 46.00",
+   "tag": "UI-037"
+  },
+  {
+   "id": "E01",
+   "desc": "lock sales accepted",
+   "pass": true,
+   "actual": "201",
+   "tag": ""
+  },
+  {
+   "id": "E02",
+   "desc": "sales invoice post under sales lock → 409",
+   "pass": false,
+   "actual": "201 — SI-000003 posted",
+   "tag": "ACC-097"
+  },
+  {
+   "id": "E03",
+   "desc": "voucher post under treasury lock → 409",
+   "pass": false,
+   "actual": "201 — RV-000003 posted",
+   "tag": "ACC-097"
+  },
+  {
+   "id": "E04",
+   "desc": "voucher post under accounting lock → 409 PERIOD_MODULE_LOCKED",
+   "pass": true,
+   "actual": "409",
+   "tag": ""
+  },
+  {
+   "id": "E05",
+   "desc": "all three locks released at the end",
+   "pass": true,
+   "actual": "[{'module': 'accounting', 'locked': False, 'locked_at': None}, {'module': 'sales', 'locked': False, 'locked_at': None}, {'module': 'treasury', 'locked': False, ",
+   "tag": ""
+  },
+  {
+   "id": "G-1211001",
+   "desc": "final GL 1211001 == predicted 50046.5",
+   "pass": true,
+   "actual": "50046.5000",
+   "tag": ""
+  },
+  {
+   "id": "G-1211002",
+   "desc": "final GL 1211002 == predicted 23",
+   "pass": true,
+   "actual": "23.0000",
+   "tag": ""
+  },
+  {
+   "id": "G-1221001",
+   "desc": "final GL 1221001 == predicted 180000",
+   "pass": true,
+   "actual": "180000.0000",
+   "tag": ""
+  },
+  {
+   "id": "G-12310001",
+   "desc": "final GL 12310001 == predicted -15.5",
+   "pass": true,
+   "actual": "-15.5000",
+   "tag": ""
+  },
+  {
+   "id": "G-1270001",
+   "desc": "final GL 1270001 == predicted 60",
+   "pass": true,
+   "actual": "60.0000",
+   "tag": ""
+  },
+  {
+   "id": "G-22111001",
+   "desc": "final GL 22111001 == predicted -100",
+   "pass": true,
+   "actual": "-100.0000",
+   "tag": ""
+  },
+  {
+   "id": "G-2222001",
+   "desc": "final GL 2222001 == predicted 3",
+   "pass": true,
+   "actual": "3.0000",
+   "tag": ""
+  },
+  {
+   "id": "G-3110004",
+   "desc": "final GL 3110004 == predicted 23",
+   "pass": true,
+   "actual": "23.0000",
+   "tag": ""
+  },
+  {
+   "id": "G-3200004",
+   "desc": "final GL 3200004 == predicted 40",
+   "pass": true,
+   "actual": "40.0000",
+   "tag": ""
+  },
+  {
+   "id": "G-4100001",
+   "desc": "final GL 4100001 == predicted -80",
+   "pass": true,
+   "actual": "-80.0000",
+   "tag": ""
+  },
+  {
+   "id": "G-1160001",
+   "desc": "final GL 1160001 == predicted 20000",
+   "pass": true,
+   "actual": "20000.0000",
+   "tag": ""
+  },
+  {
+   "id": "G-2110001",
+   "desc": "final GL 2110001 == predicted -250000",
+   "pass": true,
+   "actual": "-250000.0000",
+   "tag": ""
+  },
+  {
+   "id": "G-BAL",
+   "desc": "ledger balanced",
+   "pass": true,
+   "actual": "0.0000",
+   "tag": ""
+  },
+  {
+   "id": "G-CORRECT-CASH",
+   "desc": "GL cash equals the economically correct 50022.50 (void reversed, no phantom shortage)",
+   "pass": false,
+   "actual": "50046.5000 (= correct + 46 unreversed void − 23 phantom shortage + 1 lock-test receipt)",
+   "tag": "ACC-095/096"
+  },
+  {
+   "id": "G-AGING",
+   "desc": "AR aging due == GL AR",
+   "pass": false,
+   "actual": "aging 69.00 vs GL -15.5000",
+   "tag": "ACC-042"
+  },
+  {
+   "id": "G-PARTY-C",
+   "desc": "customer balance endpoint == GL AR",
+   "pass": false,
+   "actual": "-107.5000 vs -15.5000",
+   "tag": "ACC-004"
+  },
+  {
+   "id": "G-PARTY-S",
+   "desc": "supplier balance endpoint shows payable 100",
+   "pass": false,
+   "actual": "{'receivable': '15.0000', 'payable': '0.0000', 'open': [{'accountId': '01a164b9-ded2-709d-97f0-91c0d07f9da1', 'debit': '100.0000', 'credit': '0.0000', 'date': '",
+   "tag": "ACC-004"
+  },
+  {
+   "id": "G-MOVE",
+   "desc": "ledger-derived cash statement == GL cash",
+   "pass": true,
+   "actual": "50046.5000",
+   "tag": ""
+  },
+  {
+   "id": "G-SUB",
+   "desc": "cash sub-ledger SAR == GL cash movement since baseline",
+   "pass": false,
+   "actual": "sub-ledger SAR ['0.0000', '1.0000'] vs GL Δ 46.5000",
+   "tag": "ACC-018/028/095"
+  },
+  {
+   "id": "S01",
+   "desc": "reverse without fiscalPeriodId should be a 400 validation error, not FISCAL_PERIOD_CLOSED",
+   "pass": false,
+   "actual": "409 FISCAL_PERIOD_CLOSED «فترة العكس مغلقة أو غير متاحة — اختر فترة مفتوحة»",
+   "tag": "ACC-094"
+  }
+ ]
+}
