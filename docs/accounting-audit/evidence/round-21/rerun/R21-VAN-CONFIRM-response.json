@@ -1,0 +1,531 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "confirm",
+      "method": "POST",
+      "path": "/van-sales/load-orders/01a163d0-479f-7047-9192-603f3ba5bc57/confirm-receipt",
+      "request": {
+        "receivedQty": "5",
+        "notes": "R21 تأكيد استلام 5"
+      },
+      "status": 201,
+      "body": {
+        "data": {
+          "policy": {
+            "allowInternalDeliveryWithoutTax": false,
+            "preventSelfApproval": false,
+            "shortageValuationBasis": "unconfigured",
+            "zatcaSeller": {
+              "ready": true,
+              "missingFields": [],
+              "refusalDetail": null
+            }
+          },
+          "officialStock": [
+            {
+              "itemId": "01a163cd-c43f-7549-9c7b-373921a703e8",
+              "itemName": "R21 صنف توزيع اختبار معزول (إعادة تهيئة)",
+              "sku": "R21-ITEM",
+              "warehouseId": "01a163cb-c8ba-7346-bad0-cd1b0e3b6328",
+              "warehouseName": "المستودع الرئيسي",
+              "warehouseCode": "MAIN",
+              "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+              "quantity": "15.0000",
+              "value": "150.0000",
+              "averageCost": "10.0000"
+            },
+            {
+              "itemId": "01a163cd-c43f-7549-9c7b-373921a703e8",
+              "itemName": "R21 صنف توزيع اختبار معزول (إعادة تهيئة)",
+              "sku": "R21-ITEM",
+              "warehouseId": "01a163cb-c940-7619-8ab8-604be176ce1e",
+              "warehouseName": "مستودع سيارة التوزيع",
+              "warehouseCode": "VAN-1",
+              "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+              "quantity": "5.0000",
+              "value": "50.0000",
+              "averageCost": "10.0000"
+            }
+          ],
+          "mainWarehouseId": "01a163cb-c8ba-7346-bad0-cd1b0e3b6328",
+          "postingReadiness": {
+            "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+            "salesInvoice": true,
+            "stockTransfer": true,
+            "receiptVoucher": true,
+            "message": null
+          },
+          "windows": {
+            "productionBatches": {
+              "returned": 0,
+              "total": 0,
+              "limit": 50
+            },
+            "loadOrders": {
+              "returned": 1,
+              "total": 1,
+              "limit": 60
+            },
+            "documents": {
+              "returned": 0,
+              "total": 0,
+              "limit": 120
+            },
+            "movements": {
+              "returned": 2,
+              "total": 2,
+              "limit": 80
+            },
+            "customerPriceHistory": {
+              "returned": 0,
+              "total": 0,
+              "limit": 50
+            }
+          },
+          "summary": {
+            "totalProducedKg": "0.00",
+            "totalScrapKg": "0.00",
+            "mainWarehouseBalanceKg": "0.00",
+            "vanWarehousesBalanceKg": "5.00",
+            "derivedMainWarehouseBalanceKg": "0.00",
+            "stockLedgerAgrees": true,
+            "inTransitKg": "0.00",
+            "inTransitValueSar": "0.00",
+            "inTransitTransfersCount": 0,
+            "totalProductionCostSar": "0.00",
+            "totalLoadedKg": "5.00",
+            "totalSoldKg": "0.00",
+            "totalBonusKg": "0.00",
+            "totalReturnedKg": "0.00",
+            "totalDamagedKg": "0.00",
+            "totalShortageKg": "0.00",
+            "totalShortageSar": "0.00",
+            "remainingInVansKg": "5.00",
+            "totalZatcaSalesSar": "0.00",
+            "totalInternalSalesSar": "0.00",
+            "totalRevenueSar": "0.00",
+            "totalSalesGrossSar": "0.00",
+            "totalReturnsSar": "0.00",
+            "totalReturnsVatSar": "0.00",
+            "returnDocumentCount": 0,
+            "returnsWithoutCostCount": 0,
+            "totalCollectedCashSar": "0.00",
+            "totalCreditReceivablesSar": "0.00",
+            "totalNetProfitSar": "0.00",
+            "anomalyCount": 0,
+            "pendingClosingsCount": 0,
+            "pendingReceiptsCount": 0,
+            "pendingStockSettlementsCount": 0,
+            "pendingTransitDecisionsCount": 0
+          },
+          "productionBatches": [],
+          "repPerformance": [
+            {
+              "salesmanId": "01a163cb-c94a-771e-a16a-6158b0df1dee",
+              "salesmanName": "مندوب الشركة",
+              "loadedKg": "5.00",
+              "soldKg": "0.00",
+              "bonusKg": "0.00",
+              "returnedKg": "0.00",
+              "damagedKg": "0.00",
+              "shortageKg": "0.00",
+              "shortageSar": "0.00",
+              "custodyRemainingKg": "5.00",
+              "revenueSar": "0.00",
+              "salesGrossSar": "0.00",
+              "returnsSar": "0.00",
+              "returnsVatSar": "0.00",
+              "collectedSar": "0.00",
+              "creditDebtSar": "0.00",
+              "netProfitSar": "0.00",
+              "pendingClosings": 0
+            }
+          ],
+          "loadOrders": [
+            {
+              "id": "01a163d0-479f-7047-9192-603f3ba5bc57",
+              "number": "VLO-0001",
+              "loadDate": "2026-10-22",
+              "productionBatchNo": "",
+              "vehiclePlate": "R21-VAN-1",
+              "status": "loaded",
+              "salesmanId": "01a163cb-c94a-771e-a16a-6158b0df1dee",
+              "salesmanName": "مندوب الشركة",
+              "warehouseId": "01a163cb-c8ba-7346-bad0-cd1b0e3b6328",
+              "vanWarehouseId": "01a163cb-c940-7619-8ab8-604be176ce1e",
+              "stockTransferId": "01a163d0-47a3-726e-9645-1546a4fe51b8",
+              "returnTransferId": null,
+              "damageVoucherId": null,
+              "approvalRequestId": null,
+              "shortagePolicyStatus": "pending_policy_approval",
+              "itemId": "01a163cd-c43f-7549-9c7b-373921a703e8",
+              "itemName": "R21 صنف توزيع اختبار معزول (إعادة تهيئة)",
+              "loadedQty": "5.00",
+              "receivedQty": "5.00",
+              "discrepancyQty": "0.00",
+              "discrepancyNotes": "R21 تأكيد استلام 5",
+              "receivedAt": "2026-10-22 13:32:45.65794+00",
+              "awaitingReceipt": false,
+              "soldQty": "0.00",
+              "bonusQty": "0.00",
+              "returnedQty": "0.00",
+              "damagedQty": "0.00",
+              "shortageQty": "0.00",
+              "shortageValue": "0.00",
+              "remainingQty": "5.00",
+              "actualRemainingQty": "0.00",
+              "vehicleCountQty": null,
+              "otherCustodyQty": null,
+              "expectedRemainingQty": "5.00",
+              "countVarianceQty": "5.00",
+              "stockAdjustmentId": null,
+              "remainingAction": null,
+              "remainingInventoryTxId": null,
+              "countVarianceCostValue": "0.00",
+              "countDocumentVarianceValue": null,
+              "countDocumentVarianceQty": null,
+              "vanOfficialQty": "5.00",
+              "otherCustodyInVanQty": "0.00",
+              "vanStockShortOfCustodyQty": "0.00",
+              "countDocumentExpectedQty": null,
+              "stockSettlementStatus": "not_required",
+              "stockSettlementNote": "",
+              "damageJournalEntryId": null,
+              "shortageJournalEntryId": null,
+              "shortageChargeBasis": null,
+              "shortageChargeAmount": null,
+              "awaitingStockSettlement": false,
+              "awaitingTransitDecision": false,
+              "maxBonusQty": "20.00",
+              "maxBonusPct": "20.00",
+              "expectedCash": "0.00",
+              "collectedCash": "0.00",
+              "cashVariance": "0.00",
+              "damageReason": "",
+              "damageInspected": false,
+              "salaryDeductionApproved": false,
+              "closingNotes": "",
+              "closingSubmittedAt": null,
+              "approvedAt": null,
+              "approvedByLabel": "",
+              "notes": "R21 تحميل 5 وحدات من الرئيسي إلى سيارة المندوب — اختبار معزول"
+            }
+          ],
+          "customerPrices": [],
+          "customerPriceHistory": [],
+          "documents": [],
+          "movements": [
+            {
+              "id": "01a163d0-6ae7-7628-a3c9-409313130c55",
+              "movementType": "van_receipt_confirmed",
+              "batchNo": "",
+              "qty": "5.00",
+              "unitPrice": "0.00",
+              "amount": "0.00",
+              "reason": "تأكيد المندوب استلام كامل الكمية (5.00 كجم) ودخولها عهدته رسميًا",
+              "inventoryTransactionId": null,
+              "voucherId": null,
+              "salesmanName": "مندوب الشركة",
+              "customerName": "—",
+              "actorLabel": "مالك الحساب",
+              "approvedByLabel": "",
+              "createdAt": "2026-10-22 13:32:45.65794+00"
+            },
+            {
+              "id": "01a163d0-47bb-738e-bc1c-a6d75a75b818",
+              "movementType": "van_load",
+              "batchNo": "",
+              "qty": "5.00",
+              "unitPrice": "10.00",
+              "amount": "50.00",
+              "reason": "صرف عهدة للمندوب (مندوب الشركة) بموجب مناولة مخزنية رسمية TR-000001 بقيمة 50.0000 ريال — بانتظار تأكيد الاستلام",
+              "inventoryTransactionId": null,
+              "voucherId": null,
+              "salesmanName": "مندوب الشركة",
+              "customerName": "—",
+              "actorLabel": "مالك الحساب",
+              "approvedByLabel": "",
+              "createdAt": "2026-10-22 13:32:36.665841+00"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "levels",
+      "method": "GET",
+      "path": "/inventory/levels?item_id=01a163cd-c43f-7549-9c7b-373921a703e8",
+      "status": 200,
+      "body": [
+        {
+          "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+          "itemId": "01a163cd-c43f-7549-9c7b-373921a703e8",
+          "warehouseId": "01a163cb-c8ba-7346-bad0-cd1b0e3b6328",
+          "quantity": "15.0000",
+          "value": "150.0000",
+          "averageCost": "10.0000",
+          "version": 3,
+          "updatedAt": "2026-10-22T13:32:36.653Z"
+        },
+        {
+          "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+          "itemId": "01a163cd-c43f-7549-9c7b-373921a703e8",
+          "warehouseId": "01a163cb-c940-7619-8ab8-604be176ce1e",
+          "quantity": "5.0000",
+          "value": "50.0000",
+          "averageCost": "10.0000",
+          "version": 2,
+          "updatedAt": "2026-10-22T13:32:45.620Z"
+        }
+      ]
+    },
+    {
+      "label": "dashboard-after",
+      "method": "GET",
+      "path": "/van-sales/dashboard",
+      "status": 200,
+      "body": {
+        "data": {
+          "policy": {
+            "allowInternalDeliveryWithoutTax": false,
+            "preventSelfApproval": false,
+            "shortageValuationBasis": "unconfigured",
+            "zatcaSeller": {
+              "ready": true,
+              "missingFields": [],
+              "refusalDetail": null
+            }
+          },
+          "officialStock": [
+            {
+              "itemId": "01a163cd-c43f-7549-9c7b-373921a703e8",
+              "itemName": "R21 صنف توزيع اختبار معزول (إعادة تهيئة)",
+              "sku": "R21-ITEM",
+              "warehouseId": "01a163cb-c8ba-7346-bad0-cd1b0e3b6328",
+              "warehouseName": "المستودع الرئيسي",
+              "warehouseCode": "MAIN",
+              "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+              "quantity": "15.0000",
+              "value": "150.0000",
+              "averageCost": "10.0000"
+            },
+            {
+              "itemId": "01a163cd-c43f-7549-9c7b-373921a703e8",
+              "itemName": "R21 صنف توزيع اختبار معزول (إعادة تهيئة)",
+              "sku": "R21-ITEM",
+              "warehouseId": "01a163cb-c940-7619-8ab8-604be176ce1e",
+              "warehouseName": "مستودع سيارة التوزيع",
+              "warehouseCode": "VAN-1",
+              "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+              "quantity": "5.0000",
+              "value": "50.0000",
+              "averageCost": "10.0000"
+            }
+          ],
+          "mainWarehouseId": "01a163cb-c8ba-7346-bad0-cd1b0e3b6328",
+          "postingReadiness": {
+            "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+            "salesInvoice": true,
+            "stockTransfer": true,
+            "receiptVoucher": true,
+            "message": null
+          },
+          "windows": {
+            "productionBatches": {
+              "returned": 0,
+              "total": 0,
+              "limit": 50
+            },
+            "loadOrders": {
+              "returned": 1,
+              "total": 1,
+              "limit": 60
+            },
+            "documents": {
+              "returned": 0,
+              "total": 0,
+              "limit": 120
+            },
+            "movements": {
+              "returned": 2,
+              "total": 2,
+              "limit": 80
+            },
+            "customerPriceHistory": {
+              "returned": 0,
+              "total": 0,
+              "limit": 50
+            }
+          },
+          "summary": {
+            "totalProducedKg": "0.00",
+            "totalScrapKg": "0.00",
+            "mainWarehouseBalanceKg": "0.00",
+            "vanWarehousesBalanceKg": "5.00",
+            "derivedMainWarehouseBalanceKg": "0.00",
+            "stockLedgerAgrees": true,
+            "inTransitKg": "0.00",
+            "inTransitValueSar": "0.00",
+            "inTransitTransfersCount": 0,
+            "totalProductionCostSar": "0.00",
+            "totalLoadedKg": "5.00",
+            "totalSoldKg": "0.00",
+            "totalBonusKg": "0.00",
+            "totalReturnedKg": "0.00",
+            "totalDamagedKg": "0.00",
+            "totalShortageKg": "0.00",
+            "totalShortageSar": "0.00",
+            "remainingInVansKg": "5.00",
+            "totalZatcaSalesSar": "0.00",
+            "totalInternalSalesSar": "0.00",
+            "totalRevenueSar": "0.00",
+            "totalSalesGrossSar": "0.00",
+            "totalReturnsSar": "0.00",
+            "totalReturnsVatSar": "0.00",
+            "returnDocumentCount": 0,
+            "returnsWithoutCostCount": 0,
+            "totalCollectedCashSar": "0.00",
+            "totalCreditReceivablesSar": "0.00",
+            "totalNetProfitSar": "0.00",
+            "anomalyCount": 0,
+            "pendingClosingsCount": 0,
+            "pendingReceiptsCount": 0,
+            "pendingStockSettlementsCount": 0,
+            "pendingTransitDecisionsCount": 0
+          },
+          "productionBatches": [],
+          "repPerformance": [
+            {
+              "salesmanId": "01a163cb-c94a-771e-a16a-6158b0df1dee",
+              "salesmanName": "مندوب الشركة",
+              "loadedKg": "5.00",
+              "soldKg": "0.00",
+              "bonusKg": "0.00",
+              "returnedKg": "0.00",
+              "damagedKg": "0.00",
+              "shortageKg": "0.00",
+              "shortageSar": "0.00",
+              "custodyRemainingKg": "5.00",
+              "revenueSar": "0.00",
+              "salesGrossSar": "0.00",
+              "returnsSar": "0.00",
+              "returnsVatSar": "0.00",
+              "collectedSar": "0.00",
+              "creditDebtSar": "0.00",
+              "netProfitSar": "0.00",
+              "pendingClosings": 0
+            }
+          ],
+          "loadOrders": [
+            {
+              "id": "01a163d0-479f-7047-9192-603f3ba5bc57",
+              "number": "VLO-0001",
+              "loadDate": "2026-10-22",
+              "productionBatchNo": "",
+              "vehiclePlate": "R21-VAN-1",
+              "status": "loaded",
+              "salesmanId": "01a163cb-c94a-771e-a16a-6158b0df1dee",
+              "salesmanName": "مندوب الشركة",
+              "warehouseId": "01a163cb-c8ba-7346-bad0-cd1b0e3b6328",
+              "vanWarehouseId": "01a163cb-c940-7619-8ab8-604be176ce1e",
+              "stockTransferId": "01a163d0-47a3-726e-9645-1546a4fe51b8",
+              "returnTransferId": null,
+              "damageVoucherId": null,
+              "approvalRequestId": null,
+              "shortagePolicyStatus": "pending_policy_approval",
+              "itemId": "01a163cd-c43f-7549-9c7b-373921a703e8",
+              "itemName": "R21 صنف توزيع اختبار معزول (إعادة تهيئة)",
+              "loadedQty": "5.00",
+              "receivedQty": "5.00",
+              "discrepancyQty": "0.00",
+              "discrepancyNotes": "R21 تأكيد استلام 5",
+              "receivedAt": "2026-10-22 13:32:45.65794+00",
+              "awaitingReceipt": false,
+              "soldQty": "0.00",
+              "bonusQty": "0.00",
+              "returnedQty": "0.00",
+              "damagedQty": "0.00",
+              "shortageQty": "0.00",
+              "shortageValue": "0.00",
+              "remainingQty": "5.00",
+              "actualRemainingQty": "0.00",
+              "vehicleCountQty": null,
+              "otherCustodyQty": null,
+              "expectedRemainingQty": "5.00",
+              "countVarianceQty": "5.00",
+              "stockAdjustmentId": null,
+              "remainingAction": null,
+              "remainingInventoryTxId": null,
+              "countVarianceCostValue": "0.00",
+              "countDocumentVarianceValue": null,
+              "countDocumentVarianceQty": null,
+              "vanOfficialQty": "5.00",
+              "otherCustodyInVanQty": "0.00",
+              "vanStockShortOfCustodyQty": "0.00",
+              "countDocumentExpectedQty": null,
+              "stockSettlementStatus": "not_required",
+              "stockSettlementNote": "",
+              "damageJournalEntryId": null,
+              "shortageJournalEntryId": null,
+              "shortageChargeBasis": null,
+              "shortageChargeAmount": null,
+              "awaitingStockSettlement": false,
+              "awaitingTransitDecision": false,
+              "maxBonusQty": "20.00",
+              "maxBonusPct": "20.00",
+              "expectedCash": "0.00",
+              "collectedCash": "0.00",
+              "cashVariance": "0.00",
+              "damageReason": "",
+              "damageInspected": false,
+              "salaryDeductionApproved": false,
+              "closingNotes": "",
+              "closingSubmittedAt": null,
+              "approvedAt": null,
+              "approvedByLabel": "",
+              "notes": "R21 تحميل 5 وحدات من الرئيسي إلى سيارة المندوب — اختبار معزول"
+            }
+          ],
+          "customerPrices": [],
+          "customerPriceHistory": [],
+          "documents": [],
+          "movements": [
+            {
+              "id": "01a163d0-6ae7-7628-a3c9-409313130c55",
+              "movementType": "van_receipt_confirmed",
+              "batchNo": "",
+              "qty": "5.00",
+              "unitPrice": "0.00",
+              "amount": "0.00",
+              "reason": "تأكيد المندوب استلام كامل الكمية (5.00 كجم) ودخولها عهدته رسميًا",
+              "inventoryTransactionId": null,
+              "voucherId": null,
+              "salesmanName": "مندوب الشركة",
+              "customerName": "—",
+              "actorLabel": "مالك الحساب",
+              "approvedByLabel": "",
+              "createdAt": "2026-10-22 13:32:45.65794+00"
+            },
+            {
+              "id": "01a163d0-47bb-738e-bc1c-a6d75a75b818",
+              "movementType": "van_load",
+              "batchNo": "",
+              "qty": "5.00",
+              "unitPrice": "10.00",
+              "amount": "50.00",
+              "reason": "صرف عهدة للمندوب (مندوب الشركة) بموجب مناولة مخزنية رسمية TR-000001 بقيمة 50.0000 ريال — بانتظار تأكيد الاستلام",
+              "inventoryTransactionId": null,
+              "voucherId": null,
+              "salesmanName": "مندوب الشركة",
+              "customerName": "—",
+              "actorLabel": "مالك الحساب",
+              "approvedByLabel": "",
+              "createdAt": "2026-10-22 13:32:36.665841+00"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

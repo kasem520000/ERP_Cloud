@@ -1,0 +1,18 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/roles",
+  "request": {
+    "name": "R21 أمين صندوق مقيد",
+    "permissionCodes": []
+  },
+  "body": {
+    "data": {
+      "id": "01a163cf-338a-73ea-9d69-1bc118bdbb79",
+      "name": "R21 أمين صندوق مقيد",
+      "description": null,
+      "isSystem": false,
+      "permissionCodes": []
+    }
+  }
+}

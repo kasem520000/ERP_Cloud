@@ -1,0 +1,16 @@
+{
+  "id": "01a163cf-338a-73ea-9d69-1bc118bdbb79",
+  "name": "R21 أمين صندوق مقيد",
+  "description": null,
+  "isSystem": false,
+  "permissionCodes": [
+    "catalog.item.view",
+    "organization.branch.view",
+    "organization.cashlocation.view",
+    "parties.view",
+    "sales.view",
+    "tenant.view",
+    "treasury.view",
+    "treasury.voucher.create"
+  ]
+}

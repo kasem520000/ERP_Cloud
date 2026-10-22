@@ -1,0 +1,37 @@
+{
+  "status": 200,
+  "method": "PUT",
+  "url": "http://127.0.0.1:3001/api/v1/roles/01a163cf-338a-73ea-9d69-1bc118bdbb79",
+  "request": {
+    "name": "R21 أمين صندوق مقيد",
+    "description": null,
+    "permissionCodes": [
+      "tenant.view",
+      "organization.branch.view",
+      "organization.cashlocation.view",
+      "catalog.item.view",
+      "parties.view",
+      "sales.view",
+      "treasury.view",
+      "treasury.voucher.create"
+    ]
+  },
+  "body": {
+    "data": {
+      "id": "01a163cf-338a-73ea-9d69-1bc118bdbb79",
+      "name": "R21 أمين صندوق مقيد",
+      "description": null,
+      "isSystem": false,
+      "permissionCodes": [
+        "catalog.item.view",
+        "organization.branch.view",
+        "organization.cashlocation.view",
+        "parties.view",
+        "sales.view",
+        "tenant.view",
+        "treasury.view",
+        "treasury.voucher.create"
+      ]
+    }
+  }
+}

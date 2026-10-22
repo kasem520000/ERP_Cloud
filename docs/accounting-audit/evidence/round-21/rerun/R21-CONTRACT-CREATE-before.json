@@ -1,0 +1,94 @@
+{
+  "at": "2026-10-22T13:30:15.853Z",
+  "url": "http://127.0.0.1:3001/projects/contractor-contract",
+  "text": "AUDIT-TEST-2026-R21\n\nعقد مقاول\nع\nEN\nم\nمالك الحساب\nإدارة المشاريع\n/العمليات\nعقد مقاول\n\nعقد الباطن المرتبط بالمشروع: بنود الأعمال، نسبة الاحتجاز والدفعة المقدمة. لا تُصرف أي مستخلصات إلا بعد اعتماد العقد.\n\nعقد جديد\nالمشروع\n— اختر —\nR21-PRJ — R21 مشروع اختبار معزول\nالمقاول\n— اختر —\nSUPP-GEN — مورد عام\nموضوع العقد\nنسبة الاحتجاز %\nالدفعة المقدمة\nمن تاريخ\nإلى تاريخ\nنطاق الأعمال\nبنود العقد\nالوصف\tالكمية\tسعر الوحدة\tالقيمة\n\n\t\n\t\n\t80.00\n\n\t\n\t\n\t0.00\n\n\t\n\t\n\t0.00\nإضافة سطر\nقيمة العقد من البنود: 80.00\nحفظ العقد\n\nقيمة العقد تُحسب من مجموع البنود، فلا يمكن أن يختلف رأس العقد عن تفاصيله.\n\nالعقود\n\nلا توجد عقود مقاولين\n\nأنشئ عقداً من النموذج أعلاه.",
+  "fields": [
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "01a163cd-ea7a-729f-9426-4ed6c9c23592",
+      "selected": "R21-PRJ — R21 مشروع اختبار معزول"
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "01a163cb-c8c3-732b-99f5-c8071c994b52",
+      "selected": "SUPP-GEN — مورد عام"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "R21 عقد مقاول اختبار معزول"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "10"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "0"
+    },
+    {
+      "tag": "INPUT",
+      "type": "date",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "date",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "R21 أعمال مقاول"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "1"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "80"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "1"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "1"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    }
+  ]
+}

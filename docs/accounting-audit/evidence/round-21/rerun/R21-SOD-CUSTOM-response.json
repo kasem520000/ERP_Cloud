@@ -1,0 +1,374 @@
+{
+  "actor": "rep@demo.test",
+  "loginStatus": 200,
+  "tokenReceived": true,
+  "results": [
+    {
+      "label": "me",
+      "method": "GET",
+      "path": "/me",
+      "status": 200,
+      "body": {
+        "data": {
+          "user": {
+            "id": "01a163cb-c944-75a1-8158-8616609db1f1",
+            "email": "rep@demo.test",
+            "fullName": "مندوب الشركة",
+            "phone": null,
+            "status": "active",
+            "isPlatformAdmin": false,
+            "platformRoles": [],
+            "mustChangePassword": false,
+            "lastLoginAt": "2026-10-22T13:31:51.364Z"
+          },
+          "membership": {
+            "id": "01a163cb-c945-73fe-8835-17e5d0ef4274",
+            "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+            "tenantCode": "demo",
+            "tenantName": "AUDIT-TEST-2026-R21",
+            "displayName": "مندوب الشركة",
+            "status": "active",
+            "isOwner": false,
+            "branchScope": null,
+            "maxDiscountPct": null,
+            "maxDiscountAmount": null,
+            "roles": [
+              {
+                "id": "01a163cf-338a-73ea-9d69-1bc118bdbb79",
+                "name": "R21 أمين صندوق مقيد",
+                "description": null,
+                "isSystem": false
+              },
+              {
+                "id": "01a163cb-c941-7692-b9ec-1f801665909a",
+                "name": "مندوب توزيع",
+                "description": "دور مندوب التوزيع: رؤية عهدته، إصدار فواتيره، تحصيل مديونياته، وتقديم إغلاق ورديته",
+                "isSystem": false
+              }
+            ],
+            "kind": "staff",
+            "scopes": [
+              {
+                "roleId": "01a163cb-c941-7692-b9ec-1f801665909a",
+                "scopeType": "warehouse",
+                "scopeId": "01a163cb-c940-7619-8ab8-604be176ce1e"
+              }
+            ]
+          },
+          "permissions": [
+            "catalog.item.view",
+            "organization.branch.view",
+            "organization.cashlocation.view",
+            "parties.view",
+            "sales.view",
+            "tenant.view",
+            "treasury.view",
+            "treasury.voucher.create",
+            "van_sales.closing.submit",
+            "van_sales.collection.create",
+            "van_sales.invoice.create",
+            "van_sales.view"
+          ],
+          "platformPermissions": [],
+          "branchScope": null,
+          "enabledApps": [
+            "bakery_distribution",
+            "email_pro",
+            "reports_pro",
+            "whatsapp"
+          ],
+          "impersonation": null
+        }
+      }
+    },
+    {
+      "label": "party-update-denied",
+      "method": "PUT",
+      "path": "/parties/01a163cb-c8c1-767c-b65c-438fce46c573",
+      "request": {
+        "creditLimit": "99999"
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission parties.manage required",
+        "traceId": "01a163cf-96f4-755c-a54c-2050c7c251f0",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "parties.manage"
+          }
+        ]
+      }
+    },
+    {
+      "label": "party-read",
+      "method": "GET",
+      "path": "/parties/01a163cb-c8c1-767c-b65c-438fce46c573",
+      "status": 200,
+      "body": {
+        "id": "01a163cb-c8c1-767c-b65c-438fce46c573",
+        "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+        "code": "CUST-GEN",
+        "kind": "customer",
+        "name": "عميل عام",
+        "legalName": "عميل عام",
+        "taxNo": null,
+        "nationalId": null,
+        "address": null,
+        "phone": null,
+        "email": null,
+        "receivableAccountId": null,
+        "payableAccountId": null,
+        "creditLimit": "0.0000",
+        "isOwner": false,
+        "isContractor": false,
+        "branchId": null,
+        "paymentMethodId": null,
+        "createdAt": "2026-10-22T13:27:42.018Z",
+        "createdBy": null,
+        "updatedAt": null,
+        "updatedBy": null,
+        "version": 1,
+        "deletedAt": null,
+        "deletedBy": null,
+        "customFields": {}
+      }
+    },
+    {
+      "label": "voucher-create-allowed",
+      "method": "POST",
+      "path": "/vouchers",
+      "request": {
+        "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+        "kind": "receipt",
+        "subtype": "customer",
+        "date": "2026-10-22",
+        "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+        "cashLocationId": "01a163cb-c8bc-71ea-88f6-c9f66e215f9b",
+        "method": "cash",
+        "amount": "1",
+        "description": "R21 SoD سند من الدور المخصص (مسودة فقط)"
+      },
+      "status": 201,
+      "body": {
+        "id": "01a163cf-973c-748a-8e4f-b04402e84bee",
+        "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+        "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+        "kind": "receipt",
+        "subtype": "customer",
+        "number": null,
+        "date": "2026-10-22",
+        "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+        "counterAccountId": null,
+        "cashLocationId": "01a163cb-c8bc-71ea-88f6-c9f66e215f9b",
+        "method": "cash",
+        "amount": "1.0000",
+        "vatAmount": "0.0000",
+        "netAmount": "1.0000",
+        "currency": "SAR",
+        "fxRate": null,
+        "chequeNo": null,
+        "chequeDate": null,
+        "bankName": null,
+        "chequeState": null,
+        "costCenterId": null,
+        "referenceNo": null,
+        "referenceDate": null,
+        "recipient": null,
+        "description": "R21 SoD سند من الدور المخصص (مسودة فقط)",
+        "voucherTime": null,
+        "salesmanId": null,
+        "foreignAmount": null,
+        "status": "draft",
+        "journalEntryId": null,
+        "fiscalPeriodId": null,
+        "postedAt": null,
+        "voidedAt": null,
+        "idempotencyKey": null,
+        "createdAt": "2026-10-22T13:31:51.483Z",
+        "createdBy": "01a163cb-c944-75a1-8158-8616609db1f1",
+        "updatedAt": null,
+        "updatedBy": "01a163cb-c944-75a1-8158-8616609db1f1",
+        "version": 1,
+        "legacySource": null,
+        "legacyId": null
+      }
+    },
+    {
+      "label": "voucher-post-denied",
+      "method": "POST",
+      "path": "/vouchers/MISSING/post",
+      "request": {},
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission treasury.voucher.post required",
+        "traceId": "01a163cf-974c-74b6-90c2-942c16894550",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "treasury.voucher.post"
+          }
+        ]
+      }
+    },
+    {
+      "label": "voucher-post-denied-alt",
+      "method": "POST",
+      "path": "/vouchers/01a163cf-973c-748a-8e4f-b04402e84bee/post",
+      "request": {},
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission treasury.voucher.post required",
+        "traceId": "01a163cf-9767-76f8-a9c5-64259361de7d",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "treasury.voucher.post"
+          }
+        ]
+      }
+    },
+    {
+      "label": "journal-create-denied",
+      "method": "POST",
+      "path": "/journal-entries",
+      "request": {
+        "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+        "date": "2026-10-22",
+        "description": "R21 SoD",
+        "lines": []
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission accounting.journal.post required",
+        "traceId": "01a163cf-9775-71c4-940d-fc02cf619400",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "accounting.journal.post"
+          }
+        ]
+      }
+    },
+    {
+      "label": "approvals-inbox",
+      "method": "GET",
+      "path": "/approvals/inbox",
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission approval.approve required",
+        "traceId": "01a163cf-9788-72fd-af96-c6d7a642e4a2",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "approval.approve"
+          }
+        ]
+      }
+    },
+    {
+      "label": "roles-list",
+      "method": "GET",
+      "path": "/roles",
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission tenant.role.manage required",
+        "traceId": "01a163cf-9797-7784-8d32-8cf510a00e5c",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "tenant.role.manage"
+          }
+        ]
+      }
+    },
+    {
+      "label": "van-me",
+      "method": "GET",
+      "path": "/van-sales/me",
+      "status": 200,
+      "body": {
+        "data": {
+          "isRep": true,
+          "salesmanId": "01a163cb-c94a-771e-a16a-6158b0df1dee",
+          "salesmanName": "مندوب الشركة",
+          "employeeId": "01a163cb-c948-704c-b692-895dff9ce1fa",
+          "warehouseId": "01a163cb-c940-7619-8ab8-604be176ce1e",
+          "vehiclePlate": null,
+          "active": true,
+          "balances": [],
+          "custodyKg": "0.0000",
+          "custodyValue": "0.0000",
+          "pendingReceipts": [],
+          "loadOrders": [],
+          "documents": [],
+          "collections": [],
+          "totals": {
+            "revenue": "0.00",
+            "salesGross": "0.00",
+            "cashSales": "0.00",
+            "creditSales": "0.00",
+            "collected": "0.00",
+            "outstanding": "0.00",
+            "returns": "0.00",
+            "returnsVat": "0.00",
+            "returnCount": 0,
+            "returnsWithoutCostCount": 0
+          },
+          "custody": {
+            "expectedKg": "0.0000",
+            "officialKg": "0.0000",
+            "pendingClosings": 0
+          },
+          "windows": {
+            "loadOrders": {
+              "returned": 0,
+              "total": 0,
+              "limit": 50
+            },
+            "documents": {
+              "returned": 0,
+              "total": 0,
+              "limit": 100
+            },
+            "collections": {
+              "returned": 0,
+              "total": 0,
+              "limit": 50
+            },
+            "notifications": {
+              "returned": 0,
+              "total": 0,
+              "limit": 20
+            }
+          },
+          "notifications": []
+        }
+      }
+    }
+  ]
+}

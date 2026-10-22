@@ -1,0 +1,266 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/settings/restores",
+  "request": {
+    "backupId": "01a163cf-e39e-71dd-9a74-b29b59840015",
+    "mode": "dry_run"
+  },
+  "body": {
+    "data": {
+      "id": "01a163cf-fcf6-77bd-97e6-e897b0133148",
+      "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+      "backupId": "01a163cf-e39e-71dd-9a74-b29b59840015",
+      "mode": "dry_run",
+      "status": "ready",
+      "summary": {
+        "tables": {
+          "items": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "parties": {
+            "rows": 2,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "accounts": {
+            "rows": 116,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "branches": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "projects": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "salesmen": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "vouchers": {
+            "rows": 2,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "boq_terms": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "employees": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "currencies": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "dashboards": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "tax_groups": {
+            "rows": 2,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "warehouses": {
+            "rows": 2,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "price_lists": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "tenant_apps": {
+            "rows": 4,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "cost_centers": {
+            "rows": 3,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "fiscal_years": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "expense_types": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "cash_locations": {
+            "rows": 2,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "fiscal_periods": {
+            "rows": 12,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "stock_balances": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "usage_counters": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "item_categories": {
+            "rows": 2,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "journal_entries": {
+            "rows": 3,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "tenant_settings": {
+            "rows": 20,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "company_profiles": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "units_of_measure": {
+            "rows": 4,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "dashboard_widgets": {
+            "rows": 3,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "purchase_invoices": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "document_sequences": {
+            "rows": 5,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "contractor_payments": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "journal_entry_lines": {
+            "rows": 9,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "contractor_contracts": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "cash_location_balances": {
+            "rows": 2,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "inventory_transactions": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "purchase_invoice_lines": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "branch_posting_profiles": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "salary_adjustment_types": {
+            "rows": 3,
+            "skipped": 0,
+            "inserted": 0
+          },
+          "contractor_contract_lines": {
+            "rows": 1,
+            "skipped": 0,
+            "inserted": 0
+          }
+        },
+        "existingRows": {
+          "items": 1,
+          "parties": 2,
+          "accounts": 116,
+          "branches": 1,
+          "projects": 1,
+          "salesmen": 1,
+          "vouchers": 2,
+          "boq_terms": 1,
+          "employees": 1,
+          "currencies": 1,
+          "dashboards": 1,
+          "tax_groups": 2,
+          "warehouses": 2,
+          "price_lists": 1,
+          "tenant_apps": 4,
+          "cost_centers": 3,
+          "fiscal_years": 1,
+          "expense_types": 1,
+          "cash_locations": 2,
+          "fiscal_periods": 12,
+          "stock_balances": 1,
+          "usage_counters": 1,
+          "item_categories": 2,
+          "journal_entries": 3,
+          "tenant_settings": 20,
+          "company_profiles": 1,
+          "units_of_measure": 4,
+          "dashboard_widgets": 3,
+          "purchase_invoices": 1,
+          "document_sequences": 5,
+          "contractor_payments": 1,
+          "journal_entry_lines": 9,
+          "contractor_contracts": 1,
+          "cash_location_balances": 2,
+          "inventory_transactions": 1,
+          "purchase_invoice_lines": 1,
+          "branch_posting_profiles": 1,
+          "salary_adjustment_types": 3,
+          "contractor_contract_lines": 1
+        }
+      },
+      "insertedRows": 0,
+      "skippedRows": 0,
+      "failedReason": null,
+      "createdAt": "2026-10-22T13:32:17.526Z",
+      "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1
+    }
+  }
+}
