@@ -1,6 +1,6 @@
 {
  "passed": 93,
- "failed": 33,
+ "failed": 34,
  "checks": [
   {
    "name": "ITEM / ITEM-LOT http",
@@ -625,6 +625,14 @@
    "ok": true,
    "evidence": "R21-AUDIT-LOG.json",
    "defect": null
+  },
+  {
+   "name": "AUDIT-LOG must hold the permission denials of stages 47-48 (9 x 403 by the custom role / Cashier) inside a window that spans stages 44-51; actual 0 denial rows (interceptor skips status >= 400)",
+   "actual": "(8, 0)",
+   "expected": "(9, 9)",
+   "ok": false,
+   "evidence": "R21-AUDIT-LOG.json / R21-SOD-CUSTOM / R21-SOD-CASHIER responses",
+   "defect": "ACC-076"
   },
   {
    "name": "INVMAINT-PREVIEW first attempt 404 (runner used /operations path, screen lives at /settings/invoice-maintenance)",
