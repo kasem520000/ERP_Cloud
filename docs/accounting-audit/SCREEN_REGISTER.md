@@ -567,3 +567,17 @@
 | `/treasury/vouchers` (قبض بتخصيص، إلغاء، قبض/صرف USD) | RV-ALLOC-DRAFT، RV-VOID، RV-USD-DRAFT/POST، PV-USD-DRAFT/POST | إلغاء بلا تأكيد وبلا عكس (UI-036/ACC-095)؛ «37.50 USD» (UI-033)؛ مجموع يشمل الملغي (UI-037) |
 | `/treasury/day-close` (وردتان، جرد بالفئات، ترحيل، سجل الورديات) | SHIFT-OPEN-OWNER، SHIFT-CLOSE-OWNER، SHIFT-POST-OWNER، SHIFTS-SCREEN، DAY-CLOSE-FINAL | رأس الشاشة 46.00/6.00 لبيع واحد وورديتان بمتوقع 23 (ACC-096) |
 | `/treasury/cash-locations`، `/accounting/trial-balance` | CASH-LOCATIONS-SCREEN، TB-SCREEN | قائمة الصناديق بلا أرصدة؛ الميزان متوازن ✓ |
+
+## الشاشات المنفَّذة في R24 (المستأجر السادس؛ الأدلة `evidence/round-24/`)
+| الشاشة | المراحل | النتيجة |
+|---|---|---|
+| `/purchases/invoices` (إنشاء + ترحيل؛ على MAIN وعلى BR2) | PI-DRAFT/POST، PI-BR2-DRAFT، PI-BR2-POST-PARTIAL، PI-BR2-POST | MAIN ✓؛ BR2 422 ثم **500** (ACC-101/100) |
+| `/treasury/vouchers` (صرف بتخصيص، إلغاء) | PV-ALLOC-DRAFT، PV-VOID | إلغاء بلا عكس (ACC-095) |
+| `/sales/invoices` (نقدية MAIN؛ مسودة BR2؛ ترحيل BR2) | SI-CASH-DRAFT/POST، SI-BR2-DRAFT، SI-BR2-POST-OWNER، CASHIER-SI-NEW-SCREEN | MAIN ✓؛ BR2 422 مخزون؛ لأمين الصندوق فارغة (UI-039) |
+| `/treasury/day-close` (المالك ×2، أمين الصندوق على BR2، جرد بالفئات، ترحيل) | SHIFT-OPEN/CLOSE/POST-OWNER، CASHIER-SHIFT-OPEN/CLOSE-BR2، SHIFT-POST-BR2-OWNER، SHIFTS-SCREEN، DAY-CLOSE-FINAL | عرض مسودة كآجل (ACC-102)؛ ترحيل BR2 422 (ACC-101)؛ «مُرحَّل» بعد عكس القيد (ACC-103) |
+| `/settings/branches`، `/inventory/warehouses` | BRANCH-CREATE، WAREHOUSE-CREATE | ✓ |
+| `/treasury/safes` ثم `/accounting/cash-locations` (+ المسئول) | SAFE-CREATE-ATTEMPT1 (422)، SAFE-CREATE، SAFE-CUSTODIAN، SAFES-SCREEN، CASH-LOCATIONS-SCREEN | UI-038؛ البديل ✓ |
+| `/settings/posting-profiles` (ملف فرعي جزئي/كامل) | PROFILE-PARTIAL، PROFILE-FULL، POSTING-PROFILES-SCREEN | 17 مفتاحاً من 21 (ACC-101) |
+| `/accounting/periods` (إغلاق + إعادة فتح) | PERIOD-CLOSE-SEP، PERIOD-REOPEN-SEP | ✓ |
+| `/accounting/payment-methods` | PAYMENT-METHOD | ✓ (بلا أثر لاحق ACC-105) |
+| `/accounting/trial-balance`، `/sales/pos`، `/sales/cash-customers`، `/sales/price-lists`، `/sales/salesman-commissions`، الرئيسية لأمين الصندوق | TB-SCREEN، SALES-POS-SCREEN، CASH-CUSTOMERS-SCREEN، PRICE-LISTS-SCREEN، SALESMAN-COMMISSIONS-SCREEN، CASHIER-HOME | قراءة فقط |

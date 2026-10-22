@@ -417,3 +417,18 @@ R17-manifest.json يفهرس 258 ملفاً (لا يشمل نفسه)، نحو 24
 | E: أقفال الوحدات | MODULE-LOCKS (12 نداء) | **ACC-097** | DB-030 |
 | G: تقارير | REPORTS (9 نداءات)، `R23-TB-SCREEN.png`، `R23-CASH-LOCATIONS-SCREEN.png`، `R23-DAY-CLOSE-FINAL.png` | ACC-042/004 | DB-031 |
 | تحقق | `verify/*.json` (9)، `R23-check-results.json` (45/27 من 72)، `R23-http-events.jsonl` (482)، `R23-memberships.json` (ACC-099) | — | — |
+
+## الجولة 24 — `evidence/round-24/` (306 ملفاً؛ تفصيل المراحل في ROUND_24_RESULTS.md §1)
+| الكتلة | المراحل والأدلة | النتيجة | لقطات DB |
+|---|---|---|---|
+| تجهيز | `R24-SETUP-ids.json`، `R24-DB-000-BASELINE` | — | DB-000 |
+| A: شراء → صرف مخصَّص → إلغاء | PI-DRAFT/POST، PV-ALLOC-DRAFT، PV-ALLOC-POST (7 نداءات)، PV-VOID (شاشة)، PV-VOID-AFTER (8 نداءات) | ACC-042 (مشتريات)، **ACC-095 (صرف)**، ACC-004 | DB-001…006 |
+| B: وردية المالك + عكس قيدها | SHIFT-OPEN-OWNER، SI-CASH-DRAFT/POST، SHIFT-CLOSE-OWNER (عدّ فئات)، SHIFT-POST-OWNER، SHIFT-JE-REVERSE (201 JE-000006؛ `-ATTEMPT1` 400 أداة) | **ACC-103**، ACC-093 | DB-007…012B |
+| C: فرع ثانٍ | BRANCH-CREATE، WAREHOUSE-CREATE، SAFE-CREATE-ATTEMPT1 (`/treasury/safes` 422)، SAFE-CREATE، SAFE-CUSTODIAN، PROFILE-PARTIAL، PI-BR2-DRAFT، PI-BR2-POST-PARTIAL (422)، PROFILE-FULL، `R24-profiles-before-full.json`، PI-BR2-POST (**500**) | **ACC-100**، **ACC-101**، UI-038 | DB-013…021 |
+| D: أمين الصندوق على BR2 | CASHIER-HOME، CASHIER-SHIFT-OPEN-BR2، CASHIER-SI-NEW-SCREEN/API (403)، SI-BR2-DRAFT (المالك)، CASHIER-SI-BR2-POST (403/409)، SI-BR2-POST-OWNER (422)، WH2-STOCKIN-SI-RETRY (SIN-000001؛ SI **500**) | UI-039، ACC-100 (SI + JE مكرر) | DB-022…027 |
+| E: ورديتان على فرعين + زيادة | SHIFTS-CONCURRENT (8 نداءات)، CASHIER-SHIFT-CLOSE-BR2 (آجل 23 من مسودة)، SHIFT-POST-BR2-OWNER (**422**)، SHIFT-SURPLUS (+1 → JE-000007) | **ACC-102**، ACC-101، ACC-106 | DB-028…031 |
+| F: أقفال الوحدات | MODULE-LOCKS-2 (10 نداءات: PI-000002، SOU-000001 تحت القفل) | ACC-097 ممتد، ACC-104 | DB-032 |
+| G: فترة | PERIOD-CLOSE-SEP، PERIOD-REOPEN-SEP (prompt بسبب؛ `R24-dialogs.json`) | ✓ (ACC-069 مضيَّق) | DB-033/034 |
+| H: شروط السداد | PAYMENT-METHOD (شاشة)، NET30-INVOICE (10 نداءات: SI-000002، print-data، ar-aging ×2) | **ACC-105** | DB-035/036 |
+| I: شاشات وتقارير | SCREENS-API (6)، CASH-CUSTOMERS/PRICE-LISTS/SALESMAN-COMMISSIONS/SALES-POS/POSTING-PROFILES/SAFES-SCREEN، TB-SCREEN، CASH-LOCATIONS-SCREEN، SHIFTS-SCREEN، DAY-CLOSE-FINAL، REPORTS (16 نداء) | ACC-042/004 ختامياً | DB-037/038 |
+| تحقق | `R24-check-results.json` (53/30 من 83)، `R24-http-events.jsonl` (719) | — | — |
