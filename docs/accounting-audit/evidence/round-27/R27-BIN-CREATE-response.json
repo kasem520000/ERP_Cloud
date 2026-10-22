@@ -1,0 +1,31 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/inventory/bins",
+  "request": {
+    "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+    "code": "A-01-01",
+    "zone": "A",
+    "aisle": "01",
+    "rack": "01",
+    "level": "01"
+  },
+  "body": {
+    "data": {
+      "id": "01a165d2-040c-73ad-bb65-3de7268ff6ac",
+      "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+      "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+      "code": "A-01-01",
+      "zone": "A",
+      "aisle": "01",
+      "rack": "01",
+      "level": "01",
+      "isActive": true,
+      "createdAt": "2026-10-22T22:53:44.842Z",
+      "createdBy": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1
+    }
+  }
+}
