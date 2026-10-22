@@ -34,6 +34,13 @@
 | الكتلة | المراحل | الحالة | الالتزام | ملاحظات |
 |---|---|---|---|---|
 | التجهيز | setup + DB-000 | ✓ | هذا الالتزام | `R23-DB-000-BASELINE` = أرصدة البذرة بعد عكس القيد الزائد |
+| D | WF-PI-USER (شاشة 422 UI-034) → WF-PI-USER-API (201) → PI-DRAFT → PI-GATE (202 + بانر UI-035) → APPR-OWNER-SELF (وارد فارغ) → APPR-OWNER-APPROVE (403) → APPR-CASHIER (403) → APPR-ACCOUNTANT (201 → PI-000001 posted، JE-000004) | ✓ | b54e1e0 | DB-001…009؛ المحاولتان الأوليان للرنر فشلتا (timeout/400) → `-ATTEMPT1-*` |
+| B | SI-CR-DRAFT/POST (SI-000001 46، JE-000005) → RV-ALLOC-DRAFT/POST (RV-000001، JE-000006، `paid_total 0` ACC-042) → RV-VOID (201 بلا حوار UI-036) → VOID-AFTER (**لا عكس، التخصيص باقٍ، GL 50046 / فرعي 0 = ACC-095**) | ✓ | b54e1e0 | DB-010…015 |
+| C | SHIFT-OPEN-OWNER → SHIFT-OPEN-CASHIER (201 وردية ثانية) → SI-CASH-DRAFT/POST (SI-000002 23، `shiftId null`، JE-000007) → SHIFT-CLOSE-OWNER (رأس الشاشة 46.00/6.00 لبيع واحد؛ CS-000001 23/23/0) → SHIFT-CLOSE-CASHIER (API: CS-000002 23/0/−23) → SHIFT-POST-OWNER (JE-000008) → SHIFT-POST-CASHIER (**JE-000009 Dr 3110004 23 = ACC-096**) → CASH-RECALC (المحاولة 1: 401 توكن منتهٍ → `-ATTEMPT1-*`؛ أُعيدت بعد الجولة بـ`R23_FROM=23 R23_UNTIL=23`: **لا تغيير، reconciled:true = ACC-098**) | ✓ | b54e1e0 / 6e424ab | DB-016…024 + DB-032 |
+| A | RV-USD-DRAFT/POST (RV-000002 10 USD @3.75 = 37.5، JE-000010 أسطر بلا عملة ACC-089؛ المجموع 83.50 يشمل الملغي UI-037) → PV-USD-DRAFT/POST (PV-000001 4 USD = 15، JE-000011) → FX-AFTER (فرعي USD 22.5 = ACC-073؛ resolve 3.75 direct) | ✓ | b54e1e0 | DB-025…029 |
+| E | MODULE-LOCKS (API): lock sales/treasury 201 → SI-000003 وRV-000003 رُحِّلا **201** (= ACC-097)؛ lock accounting → 409 ✓؛ unlock ×3 | ✓ | b54e1e0 | DB-030 |
+| G | REPORTS (API ×9) + شاشات TB / CASH-LOCATIONS / SHIFTS / DAY-CLOSE-FINAL | ✓ | b54e1e0 | DB-031؛ أعمار 69 مقابل AR −15.5 (ACC-042)؛ أرصدة الأطراف ACC-004 |
+| التحقق | `verify/` (9 استخراجات DB) + `round23-check.py` **45/27 من 72** + DEFECTS + ROUND_23_RESULTS | ✓ | 6e424ab / 8a1d120 / f2d555f + هذا الالتزام | الأرصدة الختامية مطابقة **حساباً حساباً** للمرجَّحة في §1 |
 
 ## 3. طريقة التشغيل
 ```
@@ -44,4 +51,4 @@ R23_PHASE=0 node docs/accounting-audit/scripts/round23-main.cjs > /tmp/r23.log 2
 ```
 
 ## 4. الترقيم
-التالي: **ACC-094** (محجوز لرسالة `reverse` المضلِّلة)، UI-034.
+مُستهلك في R23: ACC-094…099، UI-034…037. التالي: **ACC-100**، **UI-038**.
