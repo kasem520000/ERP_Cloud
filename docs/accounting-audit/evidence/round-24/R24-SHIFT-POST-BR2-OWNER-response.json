@@ -1,0 +1,19 @@
+{
+  "status": 422,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/shift-closes/01a1652a-6d1d-718b-9add-3c39c90e4b21/post",
+  "request": {},
+  "body": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "TREASURY_PROFILE_KEY_MISSING",
+    "detail": "Posting profile has no cashDifferenceAccountId — map it in Settings › Posting profiles",
+    "traceId": "01a16536-5d9f-7459-bb7b-2e5a41d172bd",
+    "errors": [
+      {
+        "field": "cashDifferenceAccountId"
+      }
+    ]
+  }
+}
