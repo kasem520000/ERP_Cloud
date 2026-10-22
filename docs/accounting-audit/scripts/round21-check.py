@@ -57,10 +57,16 @@ def voucher(s,id=None,number=None):
     return next((v for v in s['vouchers'] if (id and v['id']==id) or (number and v['number']==number)),None)
 def vlo(s,number):
     return next((o for o in s['van_load_orders'] if o['number']==number),None)
+def _rf(id):
+    f=E/f'R21-{id}-response.json'
+    return f if f.exists() else E/'rerun'/f'R21-{id}-response.json'
 def has(id):
-    return (E/f'R21-{id}-response.json').exists()
+    return _rf(id).exists()
 def resp(id):
-    return json.load(open(E/f'R21-{id}-response.json'))
+    return json.load(open(_rf(id)))
+def rdb(n):
+    f=sorted((E/'rerun').glob(f'R21-DB-{n:03d}-*.json'))
+    return json.load(open(f[0])) if f else None
 def results(id):
     r=resp(id)
     if isinstance(r,dict) and 'results' in r: return r['results']
@@ -205,6 +211,7 @@ if has('INVMAINT-PREVIEW2'):
     im=labelled('INVMAINT-PREVIEW2','preview')[1]
     ck('INVMAINT-PREVIEW2 findings all zero on a consistent tenant (staleDrafts, numberingGaps, totalsMismatch, postedWithoutJournal)',(im['mode'],im['status'],im['findings']['counts']),('preview','ready',{'staleDrafts':0,'numberingGaps':0,'totalsMismatch':0,'repairableTotals':0,'postedWithoutJournal':0}),'R21-INVMAINT-PREVIEW2-response.json')
     if 73 in S: unchanged('INVMAINT-PREVIEW2 is read-only (DB-072 == DB-073)',S[72],S[73],'R21-DB-072/073')
+    elif rdb(51) and rdb(52): unchanged('INVMAINT-PREVIEW2 is read-only (reconstruction run: rerun/DB-051 == rerun/DB-052)',rdb(51),rdb(52),'rerun/R21-DB-051/052')
 
 # ---------- H: van-sales custody cycle VLO-0001 (53-65) ----------
 ck('VAN-LOAD http (policy, load order, levels)',statuses('VAN-LOAD'),[200,201,200],'R21-VAN-LOAD-response.json')
@@ -307,7 +314,8 @@ if vr is not None:
     sm=vr['summary']
     ck('VAN-REPORTS collected 92 = 46 + 23 + 23, credit receivables 0, net profit 40, shortage 1 / 10, loaded 7, sold 5',(D(sm['totalCollectedCashSar']),D(sm['totalCreditReceivablesSar']),D(sm['totalNetProfitSar']),D(sm['totalShortageKg']),D(sm['totalShortageSar']),D(sm['totalLoadedKg']),D(sm['totalSoldKg'])),(D(92),D(0),D(40),D(1),D(10),D(7),D(5)),'R21-API-VAN-REPORTS.json')
     ck('VAN-REPORTS remainingInVansKg must be 0 (both orders settled, VAN-1 stock 0, repCustody custodyRemainingKg 0); actual 1',(D(sm['remainingInVansKg']),D(vr['repCustodyReport'][0]['custodyRemainingKg'])),(D(0),D(0)),'R21-API-VAN-REPORTS.json','ACC-086')
-    ck('VAN-REPORTS totalReturnedKg must count the customer return 1 (VRT-00001); actual 0',D(sm['totalReturnedKg']),D(1),'R21-API-VAN-REPORTS.json','ACC-077')
+    ck('VAN-REPORTS totalReturnedKg must count the customer return 1 (VRT-00001); actual 0 while the same payload reports returnDocumentCount 1 / totalReturnsSar 20',(D(sm['totalReturnedKg']),sm['returnDocumentCount'],D(sm['totalReturnsSar'])),(D(1),1,D(20)),'R21-API-VAN-REPORTS.json','ACC-077')
+    ck('VAN-REPORTS rep row: shortage approved WITHOUT charging the rep (salary_deduction_approved false, booked to 3121004) must not be reported as a salary deduction; actual repCustodyReport.shortageSar 10 is rendered under «خصم الراتب (SAR)» on the owner screen and no per-rep charged flag exists',(D(vr['repCustodyReport'][0]['shortageSar']),'chargedSar' in vr['repCustodyReport'][0] or 'salaryDeductionSar' in vr['repCustodyReport'][0],vlo(F,'VLO-0002')['salary_deduction_approved']),(D(10),True,False),'R21-API-VAN-REPORTS.json / R21-REPORT-VAN-OWNER.png / R21-DB-072','UI-032')
 ah=api('APPROVALS-HISTORY')
 if ah is not None:
     ck('APPROVALS-HISTORY empty on the third seed (no workflow here) — the D-block requests lived in the wiped first seed',ah,[],'R21-API-APPROVALS-HISTORY.json')

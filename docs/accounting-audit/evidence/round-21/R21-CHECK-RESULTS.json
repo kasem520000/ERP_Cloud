@@ -1,6 +1,6 @@
 {
- "passed": 107,
- "failed": 43,
+ "passed": 110,
+ "failed": 44,
  "checks": [
   {
    "name": "ITEM / ITEM-LOT http",
@@ -643,6 +643,30 @@
    "defect": null
   },
   {
+   "name": "INVMAINT-PREVIEW2 preview 201 + runs 200",
+   "actual": "[201, 200]",
+   "expected": "[201, 200]",
+   "ok": true,
+   "evidence": "R21-INVMAINT-PREVIEW2-response.json",
+   "defect": null
+  },
+  {
+   "name": "INVMAINT-PREVIEW2 findings all zero on a consistent tenant (staleDrafts, numberingGaps, totalsMismatch, postedWithoutJournal)",
+   "actual": "('preview', 'ready', {'staleDrafts': 0, 'numberingGaps': 0, 'totalsMismatch': 0, 'repairableTotals': 0, 'postedWithoutJournal': 0})",
+   "expected": "('preview', 'ready', {'staleDrafts': 0, 'numberingGaps': 0, 'totalsMismatch': 0, 'repairableTotals': 0, 'postedWithoutJournal': 0})",
+   "ok": true,
+   "evidence": "R21-INVMAINT-PREVIEW2-response.json",
+   "defect": null
+  },
+  {
+   "name": "INVMAINT-PREVIEW2 is read-only (reconstruction run: rerun/DB-051 == rerun/DB-052)",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "rerun/R21-DB-051/052",
+   "defect": null
+  },
+  {
    "name": "VAN-LOAD http (policy, load order, levels)",
    "actual": "[200, 201, 200]",
    "expected": "[200, 201, 200]",
@@ -1155,12 +1179,20 @@
    "defect": "ACC-086"
   },
   {
-   "name": "VAN-REPORTS totalReturnedKg must count the customer return 1 (VRT-00001); actual 0",
-   "actual": "0.00",
-   "expected": "1",
+   "name": "VAN-REPORTS totalReturnedKg must count the customer return 1 (VRT-00001); actual 0 while the same payload reports returnDocumentCount 1 / totalReturnsSar 20",
+   "actual": "(Decimal('0.00'), 1, Decimal('20.00'))",
+   "expected": "(Decimal('1'), 1, Decimal('20'))",
    "ok": false,
    "evidence": "R21-API-VAN-REPORTS.json",
    "defect": "ACC-077"
+  },
+  {
+   "name": "VAN-REPORTS rep row: shortage approved WITHOUT charging the rep (salary_deduction_approved false, booked to 3121004) must not be reported as a salary deduction; actual repCustodyReport.shortageSar 10 is rendered under «خصم الراتب (SAR)» on the owner screen and no per-rep charged flag exists",
+   "actual": "(Decimal('10.00'), False, False)",
+   "expected": "(Decimal('10'), True, False)",
+   "ok": false,
+   "evidence": "R21-API-VAN-REPORTS.json / R21-REPORT-VAN-OWNER.png / R21-DB-072",
+   "defect": "UI-032"
   },
   {
    "name": "APPROVALS-HISTORY empty on the third seed (no workflow here) — the D-block requests lived in the wiped first seed",
