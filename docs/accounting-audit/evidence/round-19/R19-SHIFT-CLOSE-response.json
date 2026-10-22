@@ -1,0 +1,56 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/shift-closes/01a1620d-2f29-70be-988c-2c8f04553c9c/close",
+  "request": {
+    "counts": [
+      {
+        "denomination": "1",
+        "count": 68
+      }
+    ]
+  },
+  "body": {
+    "id": "01a1620d-2f29-70be-988c-2c8f04553c9c",
+    "number": "CS-000001",
+    "status": "closed",
+    "summary": {
+      "vouchers": 0,
+      "vouchersCash": "0.0000",
+      "invoices": 5,
+      "invoiceRows": 4,
+      "sales": {
+        "cash": "68.0000",
+        "card": "12.0000",
+        "bank": "0.0000",
+        "credit": "0.0000"
+      },
+      "returns": {
+        "cash": "0.0000",
+        "card": "0.0000",
+        "bank": "0.0000",
+        "credit": "0.0000"
+      },
+      "expectedCash": "68.0000",
+      "cash": "68.0000",
+      "banks": [],
+      "bankTransfers": "0.0000",
+      "network": "12.0000",
+      "sumCashAndNetwork": "80.0000",
+      "net": "80.0000",
+      "tax": "10.4348",
+      "discount": "0.0000",
+      "postponed": "0.0000",
+      "expenses": {
+        "total": "0.0000",
+        "delivery": "0.0000",
+        "hospitality": "0.0000",
+        "purchases": "0.0000",
+        "insurance": "0.0000",
+        "other": "0.0000"
+      },
+      "countedCash": "68.0000",
+      "diff": "0.0000"
+    }
+  }
+}

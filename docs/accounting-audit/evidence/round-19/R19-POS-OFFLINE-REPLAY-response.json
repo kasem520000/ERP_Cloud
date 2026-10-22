@@ -1,0 +1,61 @@
+{
+  "method": "POST",
+  "path": "/pos/offline-sync",
+  "requests": [
+    {
+      "deviceId": "R19-DEV-1",
+      "invoices": [
+        {
+          "offlineId": "R19-OFF-1",
+          "sequenceNo": 1,
+          "payload": {
+            "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+            "warehouseId": "01a16198-e57b-7003-b1d1-4562344efb18",
+            "priceIncludesVat": true,
+            "lines": [
+              {
+                "itemId": "01a161a2-e5fa-733f-bb31-e435012a3cb1",
+                "quantity": "1",
+                "unitPrice": "20",
+                "taxRate": "15",
+                "description": "R19-OFF-1"
+              }
+            ],
+            "payment": {
+              "method": "cash",
+              "cashLocationId": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+              "tendered": "20"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "elapsedMs": 27,
+  "results": [
+    {
+      "status": 201,
+      "body": {
+        "data": {
+          "processed": 1,
+          "synced": 1,
+          "conflicts": 0,
+          "results": [
+            {
+              "offlineId": "R19-OFF-1",
+              "sequenceNo": 1,
+              "status": "synced",
+              "invoiceId": "01a1620f-5ae9-716b-8e03-ec1c46b661f8",
+              "number": "SI-000005",
+              "errorCode": null,
+              "message": null,
+              "resolution": {
+                "action": "remove-local-copy"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

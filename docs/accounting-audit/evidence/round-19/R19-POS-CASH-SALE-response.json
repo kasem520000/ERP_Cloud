@@ -1,0 +1,45 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/pos/checkout",
+  "request": {
+    "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+    "warehouseId": "01a16198-e57b-7003-b1d1-4562344efb18",
+    "priceIncludesVat": true,
+    "orderType": "pos",
+    "shiftId": "01a1620d-2f29-70be-988c-2c8f04553c9c",
+    "cashCustomerName": "عميل عام",
+    "lines": [
+      {
+        "itemId": "01a161a2-e5fa-733f-bb31-e435012a3cb1",
+        "quantity": "1",
+        "unitPrice": "20.0000",
+        "taxRate": "15"
+      }
+    ],
+    "payment": {
+      "method": "cash",
+      "cashLocationId": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+      "tendered": "50"
+    }
+  },
+  "body": {
+    "data": {
+      "invoiceId": "01a1620d-c619-779d-9cd4-da132b189b5d",
+      "number": "SI-000003",
+      "subtotal": "17.3913",
+      "taxTotal": "2.6087",
+      "total": "20.0000",
+      "paidTotal": "20.0000",
+      "paymentStatus": "paid",
+      "method": "cash",
+      "tenders": null,
+      "onAccount": null,
+      "cashierId": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "cashLocationId": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+      "shiftId": "01a1620d-2f29-70be-988c-2c8f04553c9c",
+      "change": "30.0000",
+      "tendered": "50.0000"
+    }
+  }
+}
