@@ -1,0 +1,762 @@
+{
+ "checks": [
+  {
+   "block": "A",
+   "id": "A01",
+   "desc": "baseline cash 1211001 (end of R21 seed)",
+   "expected": "50056",
+   "actual": "50056.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "A",
+   "id": "A02",
+   "desc": "advance 50 posted Dr 22410002 (new employee account) / Cr 1211001",
+   "expected": "[('1211001', Decimal('0'), Decimal('50')), ('22410002', Decimal('50'), Decimal('0'))]",
+   "actual": "[('1211001', Decimal('0.0000'), Decimal('50.0000')), ('22410002', Decimal('50.0000'), Decimal('0.0000'))]",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "A",
+   "id": "A03",
+   "desc": "cash GL after advance",
+   "expected": "50006",
+   "actual": "50006.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "A",
+   "id": "A04",
+   "desc": "cash sub-ledger moves with the cash advance (−13 → −63)",
+   "expected": "-63",
+   "actual": "-13.0000",
+   "status": "FAIL",
+   "tag": "ACC-088"
+  },
+  {
+   "block": "A",
+   "id": "A05",
+   "desc": "a payment voucher documents the cash leaving the till",
+   "expected": "4",
+   "actual": "3",
+   "status": "FAIL",
+   "tag": "ACC-088"
+  },
+  {
+   "block": "A",
+   "id": "A06",
+   "desc": "employee statement after charge: 50 advance + 10 shortage = 60 Dr",
+   "expected": "60",
+   "actual": "60.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "A",
+   "id": "A07",
+   "desc": "van load 2 units: MAIN 15→13, in-transit 1270003 = 20",
+   "expected": "(Decimal('13'), Decimal('20'))",
+   "actual": "(Decimal('13.0000'), Decimal('20.0000'))",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "A",
+   "id": "A08",
+   "desc": "confirm receipt: in-transit cleared, van stock 2",
+   "expected": "(Decimal('0'), Decimal('2'))",
+   "actual": "(Decimal('0.0000'), Decimal('2.0000'))",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "A",
+   "id": "A09",
+   "desc": "van cash tax invoice 1 × 20 + 3 VAT: cash +23, revenue 20, VAT 3, COGS 10",
+   "expected": "(Decimal('50029'), Decimal('-120'), Decimal('15'), Decimal('50'), Decimal('140'))",
+   "actual": "(Decimal('50029.0000'), Decimal('-120.0000'), Decimal('15.0000'), Decimal('50.0000'), Decimal('140.0000'))",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "A",
+   "id": "A10",
+   "desc": "approve-closing charges the 1-unit shortage (10) to the employee",
+   "expected": "[('22410002', Decimal('10'), Decimal('0')), ('3121004', Decimal('0'), Decimal('10'))]",
+   "actual": "[('22410002', Decimal('10.0000'), Decimal('0.0000')), ('3121004', Decimal('0.0000'), Decimal('10.0000'))]",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "A",
+   "id": "A11",
+   "desc": "settle-stock writes the missing unit off inventory (Dr 3121004 / Cr 1270001)",
+   "expected": "[('1270001', Decimal('0'), Decimal('10')), ('3121004', Decimal('10'), Decimal('0'))]",
+   "actual": "[('1270001', Decimal('0.0000'), Decimal('10.0000')), ('3121004', Decimal('10.0000'), Decimal('0.0000'))]",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "A",
+   "id": "A12",
+   "desc": "net effect of the shortage: expense 10 (unchanged vs baseline), inventory 130, van 0",
+   "expected": "(Decimal('10'), Decimal('130'), Decimal('0'))",
+   "actual": "(Decimal('10.0000'), Decimal('130.0000'), Decimal('0.0000'))",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "B",
+   "id": "B01",
+   "desc": "SI-000004 credit 2 × 20 + 6 VAT = 46: AR 46, revenue −160, VAT 9, COGS 70, inventory 110",
+   "expected": "(Decimal('46'), Decimal('-160'), Decimal('9'), Decimal('70'), Decimal('110'))",
+   "actual": "(Decimal('46.0000'), Decimal('-160.0000'), Decimal('9.0000'), Decimal('70.0000'), Decimal('110.0000'))",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "B",
+   "id": "B02",
+   "desc": "cheque receipt posts to cheques-under-collection 1240001 (not the bank)",
+   "expected": "[('1240001', Decimal('46'), Decimal('0')), ('12310001', Decimal('0'), Decimal('46'))]",
+   "actual": "[('1221001', Decimal('46.0000'), Decimal('0.0000')), ('12310001', Decimal('0.0000'), Decimal('46.0000'))]",
+   "status": "FAIL",
+   "tag": "ACC-010"
+  },
+  {
+   "block": "B",
+   "id": "B03",
+   "desc": "bank GL untouched while the cheque is pending",
+   "expected": "180000",
+   "actual": "180046.0000",
+   "status": "FAIL",
+   "tag": "ACC-010"
+  },
+  {
+   "block": "B",
+   "id": "B04",
+   "desc": "clearing entry moves 1240001 → bank (not a zero-sum Dr/Cr on the same account)",
+   "expected": "[('1221001', Decimal('46'), Decimal('0')), ('1240001', Decimal('0'), Decimal('46'))]",
+   "actual": "[('1221001', Decimal('0.0000'), Decimal('46.0000')), ('1221001', Decimal('46.0000'), Decimal('0.0000'))]",
+   "status": "FAIL",
+   "tag": "ACC-010"
+  },
+  {
+   "block": "B",
+   "id": "B05",
+   "desc": "bank sub-ledger +46 only when the cheque clears",
+   "expected": "(Decimal('0'), Decimal('46'))",
+   "actual": "(Decimal('0.0000'), Decimal('46.0000'))",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "B",
+   "id": "B06",
+   "desc": "bank GL = bank sub-ledger after posting the pending cheque",
+   "expected": "46.0000",
+   "actual": "0.0000",
+   "status": "FAIL",
+   "tag": "ACC-010"
+  },
+  {
+   "block": "B",
+   "id": "B07",
+   "desc": "bounce restores AR 10 and reverses the bank",
+   "expected": "[('1221001', Decimal('0'), Decimal('10')), ('12310001', Decimal('10'), Decimal('0'))]",
+   "actual": "[('1221001', Decimal('0.0000'), Decimal('10.0000')), ('12310001', Decimal('10.0000'), Decimal('0.0000'))]",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "B",
+   "id": "B08",
+   "desc": "bounce entry carries the customer on the AR line",
+   "expected": "True",
+   "actual": "False",
+   "status": "FAIL",
+   "tag": "ACC-011"
+  },
+  {
+   "block": "B",
+   "id": "B09",
+   "desc": "cheque states: RV-000002 cleared, RV-000003 bounced",
+   "expected": "{'RV-000002': 'cleared', 'RV-000003': 'bounced'}",
+   "actual": "{'RV-000002': 'cleared', 'RV-000003': 'bounced'}",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "C",
+   "id": "C01",
+   "desc": "cash invoice SI-000006 settled at post: GL cash +23 (JE-000025)",
+   "expected": "[('1211001', Decimal('23'), Decimal('0')), ('1270001', Decimal('0'), Decimal('10')), ('2222001', Decimal('0'), Decimal('3')), ('3200004', Decimal('10'), Decimal('0')), ('4100001', Decimal('0'), Decimal('20'))]",
+   "actual": "[('1211001', Decimal('23.0000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('10.0000')), ('2222001', Decimal('0.0000'), Decimal('3.0000')), ('3200004', Decimal('10.0000'), Decimal('0.0000')), ('4100001', Decimal('0.0000'), Decimal('20.0000'))]",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "C",
+   "id": "C02",
+   "desc": "cash sub-ledger +23 with the cash invoice settlement",
+   "expected": "10",
+   "actual": "-13.0000",
+   "status": "FAIL",
+   "tag": "ACC-018"
+  },
+  {
+   "block": "C",
+   "id": "C03",
+   "desc": "cash receipt RV-000004 during the shift: GL +10 and sub-ledger +10",
+   "expected": "(Decimal('50062'), Decimal('-3'))",
+   "actual": "(Decimal('50062.0000'), Decimal('-3.0000'))",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "C",
+   "id": "C04",
+   "desc": "CS-000001 expected 33 / counted 30 / diff −3 (expected built from ledger-backed movements only)",
+   "expected": "('33.0000', '30.0000', '-3.0000', 'closed')",
+   "actual": "('33.0000', '30.0000', '-3.0000', 'closed')",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "C",
+   "id": "C05",
+   "desc": "shift post JE-000027: Dr custody 30 + Dr shortage 3 / Cr cash 33",
+   "expected": "[('1211001', Decimal('0'), Decimal('33')), ('1211002', Decimal('30'), Decimal('0')), ('3110004', Decimal('3'), Decimal('0'))]",
+   "actual": "[('1211001', Decimal('0.0000'), Decimal('33.0000')), ('1211002', Decimal('30.0000'), Decimal('0.0000')), ('3110004', Decimal('3.0000'), Decimal('0.0000'))]",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "C",
+   "id": "C06",
+   "desc": "cash sub-ledger −33 with the shift post (−3 → −36)",
+   "expected": "-36",
+   "actual": "-3.0000",
+   "status": "FAIL",
+   "tag": "ACC-028"
+  },
+  {
+   "block": "C",
+   "id": "C07",
+   "desc": "shift linked to its journal entry",
+   "expected": "True",
+   "actual": "True",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "C",
+   "id": "C08",
+   "desc": "invoice posted inside the open shift is stamped with shift_id",
+   "expected": "True",
+   "actual": "False",
+   "status": "FAIL",
+   "tag": "ACC-093"
+  },
+  {
+   "block": "D",
+   "id": "D01",
+   "desc": "2026-09 closed",
+   "expected": "closed",
+   "actual": "closed",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "D",
+   "id": "D02",
+   "desc": "voucher dated 2026-09-15 refused on post",
+   "expected": "(409, 'FISCAL_PERIOD_CLOSED')",
+   "actual": "(409, 'FISCAL_PERIOD_CLOSED')",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "D",
+   "id": "D03",
+   "desc": "no journal created by the refused voucher",
+   "expected": "27",
+   "actual": "27",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "D",
+   "id": "D04",
+   "desc": "stock voucher dated 2026-09-15 refused without a period override",
+   "expected": "(409, 'FISCAL_PERIOD_CLOSED')",
+   "actual": "(409, 'FISCAL_PERIOD_CLOSED')",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "D",
+   "id": "D05",
+   "desc": "stock voucher dated 2026-09-15 still refused when fiscalPeriodId points at open 2026-10",
+   "expected": "409",
+   "actual": "201",
+   "status": "FAIL",
+   "tag": "ACC-070"
+  },
+  {
+   "block": "D",
+   "id": "D06",
+   "desc": "no journal dated inside the closed month",
+   "expected": "None",
+   "actual": "2026-09-15T00:00:00.000Z",
+   "status": "FAIL",
+   "tag": "ACC-070"
+  },
+  {
+   "block": "D",
+   "id": "D07",
+   "desc": "override entry (if any) is a correct stock-out: Dr 3121004 10 / Cr 1270001 10, inventory 90 / 9 units",
+   "expected": "([('1270001', Decimal('0'), Decimal('10')), ('3121004', Decimal('10'), Decimal('0'))], Decimal('90'), Decimal('9'))",
+   "actual": "([('1270001', Decimal('0.0000'), Decimal('10.0000')), ('3121004', Decimal('10.0000'), Decimal('0.0000'))], Decimal('90.0000'), Decimal('9.0000'))",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "E",
+   "id": "E01",
+   "desc": "workflow sales_invoice with 2 steps Accountant → Owner, min 100",
+   "expected": "[('Accountant', 1), ('Owner', 2)]",
+   "actual": "[('Accountant', 1), ('Owner', 2)]",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "E",
+   "id": "E02",
+   "desc": "post of 115 invoice gated: 202 APPROVAL_REQUIRED",
+   "expected": "(202, 'APPROVAL_REQUIRED')",
+   "actual": "(202, 'APPROVAL_REQUIRED')",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "E",
+   "id": "E03",
+   "desc": "gate leaves the ledger untouched",
+   "expected": "-10.0000",
+   "actual": "-10.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "E",
+   "id": "E04",
+   "desc": "owner inbox empty while step 1 belongs to Accountant",
+   "expected": "True",
+   "actual": "True",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "E",
+   "id": "E05",
+   "desc": "accountant inbox shows the request at step 1",
+   "expected": "(1, 1)",
+   "actual": "(1, 1)",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "E",
+   "id": "E06",
+   "desc": "step 1 approved by accountant → step 2 pending",
+   "expected": "('pending', 2, '01a163cb-c930-77eb-9826-fd993f060238')",
+   "actual": "('pending', 2, '01a163cb-c930-77eb-9826-fd993f060238')",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "E",
+   "id": "E07",
+   "desc": "owner inbox shows the request at step 2",
+   "expected": "True",
+   "actual": "True",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "E",
+   "id": "E08",
+   "desc": "final approval auto-posts SI-000007",
+   "expected": "('approved', 'posted', 'SI-000007')",
+   "actual": "('approved', 'posted', 'SI-000007')",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "E",
+   "id": "E09",
+   "desc": "SI-000007 ledger: AR +115, revenue −100, VAT −15, COGS 50, inventory 40",
+   "expected": "(Decimal('105'), Decimal('-280'), Decimal('-9'), Decimal('130'), Decimal('40'))",
+   "actual": "(Decimal('105.0000'), Decimal('-280.0000'), Decimal('-9.0000'), Decimal('130.0000'), Decimal('40.0000'))",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "E",
+   "id": "E10",
+   "desc": "requester cannot approve his own request (owner created SI-000007 and approved step 2)",
+   "expected": "False",
+   "actual": "True",
+   "status": "FAIL",
+   "tag": "ACC-075"
+  },
+  {
+   "block": "E",
+   "id": "E11",
+   "desc": "rejection keeps the second invoice a draft without a number",
+   "expected": "('rejected', 'draft', None)",
+   "actual": "('rejected', 'draft', None)",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "E",
+   "id": "E12",
+   "desc": "rejection leaves the ledger untouched",
+   "expected": "[Decimal('105.0000'), Decimal('-280.0000')]",
+   "actual": "[Decimal('105.0000'), Decimal('-280.0000')]",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "E",
+   "id": "E13",
+   "desc": "re-posting a rejected invoice opens a new request (not a direct post)",
+   "expected": "(202, 'APPROVAL_REQUIRED')",
+   "actual": "(202, 'APPROVAL_REQUIRED')",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "E",
+   "id": "E14",
+   "desc": "three approval requests at the end (approved, rejected, pending)",
+   "expected": "{'rejected', 'pending', 'approved'}",
+   "actual": "{'rejected', 'pending', 'approved'}",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "F",
+   "id": "F00",
+   "desc": "USD is an enabled tenant currency before a USD voucher is accepted",
+   "expected": "True",
+   "actual": "False",
+   "status": "FAIL",
+   "tag": "ACC-072"
+  },
+  {
+   "block": "F",
+   "id": "F01",
+   "desc": "a USD receipt needs a rate in fx_rates (table empty) or must be refused",
+   "expected": "1",
+   "actual": "0",
+   "status": "FAIL",
+   "tag": "ACC-072"
+  },
+  {
+   "block": "F",
+   "id": "F02",
+   "desc": "implied rate 3.80 (38 SAR / 10 USD) not accepted without a table rate",
+   "expected": "422",
+   "actual": "201",
+   "status": "FAIL",
+   "tag": "ACC-072"
+  },
+  {
+   "block": "F",
+   "id": "F03",
+   "desc": "JE-000030: Dr cash 38 / Cr AR 38",
+   "expected": "[('1211001', Decimal('38'), Decimal('0')), ('12310001', Decimal('0'), Decimal('38'))]",
+   "actual": "[('1211001', Decimal('38.0000'), Decimal('0.0000')), ('12310001', Decimal('0.0000'), Decimal('38.0000'))]",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "F",
+   "id": "F04",
+   "desc": "cash sub-ledger: USD row = 10 (foreign amount) — not the base amount",
+   "expected": "10",
+   "actual": "38.0000",
+   "status": "FAIL",
+   "tag": "ACC-073"
+  },
+  {
+   "block": "F",
+   "id": "F05",
+   "desc": "allocation 38 → SI-000007 recorded",
+   "expected": "[Decimal('38')]",
+   "actual": "[Decimal('38.0000')]",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "F",
+   "id": "F06",
+   "desc": "SI-000007 paid_total 38 / partial after the allocation",
+   "expected": "('38.0000', 'partial')",
+   "actual": "('0.0000', 'unpaid')",
+   "status": "FAIL",
+   "tag": "ACC-042"
+  },
+  {
+   "block": "F",
+   "id": "F07",
+   "desc": "allocation 5 to the fully paid SI-000006 refused",
+   "expected": "409",
+   "actual": "201",
+   "status": "FAIL",
+   "tag": "ACC-090"
+  },
+  {
+   "block": "F",
+   "id": "F08",
+   "desc": "no allocation row beyond the invoice balance",
+   "expected": "[]",
+   "actual": "[Decimal('5.0000')]",
+   "status": "FAIL",
+   "tag": "ACC-090"
+  },
+  {
+   "block": "F",
+   "id": "F09",
+   "desc": "AR aging due = AR control 12310001 (62)",
+   "expected": "62.0000",
+   "actual": "184.00",
+   "status": "FAIL",
+   "tag": "ACC-042"
+  },
+  {
+   "block": "G",
+   "id": "G-1211001",
+   "desc": "final GL 1211001 = §1 expectation",
+   "expected": "50072",
+   "actual": "50072.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-1221001",
+   "desc": "final GL 1221001 = §1 expectation",
+   "expected": "180046",
+   "actual": "180046.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-1240001",
+   "desc": "final GL 1240001 = §1 expectation",
+   "expected": "0",
+   "actual": "0",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-1211002",
+   "desc": "final GL 1211002 = §1 expectation",
+   "expected": "30",
+   "actual": "30.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-3110004",
+   "desc": "final GL 3110004 = §1 expectation",
+   "expected": "3",
+   "actual": "3.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-12310001",
+   "desc": "final GL 12310001 = §1 expectation",
+   "expected": "62",
+   "actual": "62.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-1270001",
+   "desc": "final GL 1270001 = §1 expectation",
+   "expected": "40",
+   "actual": "40.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-3121004",
+   "desc": "final GL 3121004 = §1 expectation",
+   "expected": "20",
+   "actual": "20.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-22410002",
+   "desc": "final GL 22410002 = §1 expectation",
+   "expected": "60",
+   "actual": "60.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-4100001",
+   "desc": "final GL 4100001 = §1 expectation",
+   "expected": "-280",
+   "actual": "-280.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-2222001",
+   "desc": "final GL 2222001 = §1 expectation",
+   "expected": "-9",
+   "actual": "-9.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-3200004",
+   "desc": "final GL 3200004 = §1 expectation",
+   "expected": "130",
+   "actual": "130.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-JE",
+   "desc": "31 posted journals at the end (13 inherited + 18 of R22)",
+   "expected": "31",
+   "actual": "31",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-STK",
+   "desc": "MAIN stock 4 units / 40 SAR, van 0",
+   "expected": "(Decimal('4'), Decimal('40'), Decimal('0'))",
+   "actual": "(Decimal('4.0000'), Decimal('40.0000'), Decimal('0.0000'))",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-SUB",
+   "desc": "cash sub-ledger SAR = GL movement since baseline (50072 − 50056 = +16 on −13 → 3)",
+   "expected": "3",
+   "actual": "2.0000",
+   "status": "FAIL",
+   "tag": "ACC-018/ACC-028/ACC-073/ACC-088"
+  },
+  {
+   "block": "G",
+   "id": "G-TB",
+   "desc": "trial balance balanced (closing debit = closing credit)",
+   "expected": "250483.0000",
+   "actual": "250483.0000",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "G",
+   "id": "G-API",
+   "desc": "GET /vouchers?kind=payment returns payment vouchers only",
+   "expected": "{'payment'}",
+   "actual": "{'receipt', 'payment'}",
+   "status": "FAIL",
+   "tag": "ACC-092"
+  },
+  {
+   "block": "G",
+   "id": "G-UI",
+   "desc": "voucher list shows the base amount in SAR (not \"38.00 USD\")",
+   "expected": "False",
+   "actual": "True",
+   "status": "FAIL",
+   "tag": "UI-033"
+  },
+  {
+   "block": "G",
+   "id": "G-PARTY",
+   "desc": "customer balance endpoint = AR control (62 receivable, positive)",
+   "expected": "62.0000",
+   "actual": "-247.0000",
+   "status": "FAIL",
+   "tag": "ACC-004"
+  },
+  {
+   "block": "H",
+   "id": "H01",
+   "desc": "backup ready with 443 rows",
+   "expected": "(201, 'ready', 443)",
+   "actual": "(201, 'ready', 443)",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "H",
+   "id": "H02",
+   "desc": "restore apply on the live tenant inserts nothing (all rows already present)",
+   "expected": "0",
+   "actual": "0",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "H",
+   "id": "H03",
+   "desc": "every backed-up row is accounted for (skipped + inserted = rows; no unresolved tables)",
+   "expected": "(443, [])",
+   "actual": "(422, ['tenant_settings'])",
+   "status": "FAIL",
+   "tag": "ACC-091"
+  },
+  {
+   "block": "H",
+   "id": "H04",
+   "desc": "restore leaves the ledger and documents untouched",
+   "expected": "(Decimal('50072.0000'), 31, 9)",
+   "actual": "(Decimal('50072.0000'), 31, 9)",
+   "status": "PASS",
+   "tag": ""
+  },
+  {
+   "block": "H",
+   "id": "H05",
+   "desc": "restore screen surfaces the failed table to the user",
+   "expected": "True",
+   "actual": "False",
+   "status": "FAIL",
+   "tag": "ACC-091"
+  }
+ ],
+ "pass": 57,
+ "fail": 27
+}
