@@ -1,0 +1,43 @@
+AUDIT-TEST-2026-R24
+
+إعدادات عامة
+ع
+EN
+م
+مالك الحساب
+الإعدادات
+/إعدادات عامة
+إعدادات عامة
+
+الإعدادات المطبقة على هذه المنشأة (إعدادات الكاشير، العملة، الضريبة، سياسة الترقيم…).
+
+تحديث
+إعدادات الكاشير
+
+تُطبَّق مباشرة على شاشة نقطة البيع.
+
+حفظ فاتورة المبيعات كمسودة قبل الترحيل
+عند إيقاف هذا الخيار (الوضع الافتراضي السحابي)، يتم حفظ وترحيل فاتورة المبيعات فوراً وإصدار رقمها الضريبي وباركود QR مباشرة.
+الباركود أوتوماتيك
+يُسجَّل الباركود تلقائياً عند فتح شاشة البيع.
+الشاشة تدعم التاتش سكرين
+تكبير أزرار شاشة اللمس وتبسيط التنقل.
+عرض المجموعات والأصناف
+عرض المجموعات كأزرار سريعة أعلى لوحة الأصناف.
+قيمة التوصيل الافتراضية
+قيمة التأمين الافتراضية
+الوحدة الافتراضية
+بلا وحدة افتراضية
+كرتون
+كيلوجرام
+لتر
+حبة
+الحفظ يحدّث كل المفاتيح أعلاه دفعة واحدة.
+حفظ
+كل المفاتيح المخزنة (2)
+
+مراجعة متقدمة للمفاتيح التي يقرؤها النظام — لا تُعدَّل من هنا.
+
+المفتاح	القيمة
+settings	{"allow_negative_stock":false,"default_currency_code":"SAR","fiscal_year_start_month":1,"timezone":"UTC","branding.primary_color":"#0f172a","invoice.number_prefix":"INV-","invoice.padding":6,"money.rounding_digits":2,"pricing.price_includes_vat":false,"sales.saveAsDraft":false,"vat.default_rate_percent":15,"locale.timezone":"Asia/Riyadh","locale.code":"ar","pos.barcodeAuto":true,"pos.touchScreen":false,"pos.showGroups":true,"pos.defaultDeliveryFee":0,"pos.defaultInsurance":0,"pos.defaultUnitId":"","pos.requireShift":false,"feature.pos":false,"feature.projects":false,"feature.hrm":false,"feature.niche":false}
+registry	[{"key":"allow_negative_stock","module":"inventory","description":"Allow posting documents that drive stock below zero.","default":false},{"key":"default_currency_code","module":"organization","description":"ISO-4217 code used when a document omits one.","default":"SAR"},{"key":"fiscal_year_start_month","module":"accounting","description":"Month (1-12) the fiscal year starts in.","default":1},{"key":"timezone","module":"organization","description":"Legacy flat timezone key; `locale.timezone` is authoritative.","default":"UTC"},{"key":"branding.primary_color","module":"branding","description":"Primary brand colour as #rrggbb.","default":"#0f172a"},{"key":"invoice.number_prefix","module":"sales","description":"Prefix for the sales invoice document sequence.","default":"INV-"},{"key":"invoice.padding","module":"sales","description":"Zero-padding width of the sales invoice sequence.","default":6},{"key":"money.rounding_digits","module":"accounting","description":"Currency minor units used for rounding (legacy `DigitsNo`).","default":2},{"key":"pricing.price_includes_vat","module":"sales","description":"Default for `price_includes_vat` on new documents.","default":false},{"key":"sales.saveAsDraft","module":"sales","description":"When true, new sales invoices default to draft mode instead of immediate posting.","default":false},{"key":"vat.default_rate_percent","module":"accounting","description":"Default VAT percentage applied when a line has no tax group.","default":15},{"key":"locale.timezone","module":"organization","description":"IANA timezone used to resolve business dates (tenants.timezone).","default":"Asia/Riyadh"},{"key":"locale.code","module":"organization","description":"BCP-47 locale code for rendering.","default":"ar"},{"key":"pos.barcodeAuto","module":"pos","description":"📷 الباركود أوتوماتيك: the barcode field takes focus.","default":true},{"key":"pos.touchScreen","module":"pos","description":"👆 الشاشة تدعم التاتش سكرين: larger till tiles.","default":false},{"key":"pos.showGroups","module":"pos","description":"📦 عرض المجموعات والأصناف: show the category chips.","default":true},{"key":"pos.defaultDeliveryFee","module":"pos","description":"🚗 قيمة التوصيل الافتراضية.","default":0},{"key":"pos.defaultInsurance","module":"pos","description":"🛡️ قيمة التأمين الافتراضية.","default":0},{"key":"pos.defaultUnitId","module":"pos","description":"📏 الوحدة الافتراضية (unit id).","default":""},{"key":"pos.requireShift","module":"pos","description":"Open a cashier shift before taking cash.","default":false},{"key":"feature.pos","module":"pos","description":"Restaurant/retail POS pack.","default":false},{"key":"feature.projects","module":"projects","description":"Projects & contracting pack.","default":false},{"key":"feature.hrm","module":"hrm","description":"Human resources & payroll pack.","default":false},{"key":"feature.niche","module":"niche","description":"Niche verticals pack (optical, marine, vehicles).","default":false}]
