@@ -1,0 +1,303 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "receive-1-of-2",
+      "method": "POST",
+      "path": "/inventory/transfers/01a165aa-7c48-7678-979a-e51d9f7a6ec4/receive",
+      "request": {
+        "received": [
+          {
+            "lineNo": 1,
+            "qty": "1"
+          }
+        ]
+      },
+      "status": 201,
+      "body": {
+        "transferId": "01a165aa-7c48-7678-979a-e51d9f7a6ec4",
+        "status": "partially_received",
+        "value": "8.3692",
+        "journalEntryId": "01a165ac-a893-772d-b8a2-a0150ec73569",
+        "lines": [
+          {
+            "transferId": "01a165aa-7c48-7678-979a-e51d9f7a6ec4",
+            "lineNo": 1,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+            "qty": "2.0000",
+            "unitId": null,
+            "sentQty": "2.0000",
+            "receivedQty": "1.0000",
+            "closedQty": "0.0000",
+            "unitCost": "8.3692",
+            "lotId": null,
+            "batchNo": null,
+            "productionDate": null,
+            "expiryDate": null,
+            "serialIds": [],
+            "serialNos": []
+          }
+        ]
+      }
+    },
+    {
+      "label": "transfer-after-partial",
+      "method": "GET",
+      "path": "/inventory/transfers/01a165aa-7c48-7678-979a-e51d9f7a6ec4",
+      "status": 200,
+      "body": {
+        "id": "01a165aa-7c48-7678-979a-e51d9f7a6ec4",
+        "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+        "fromWarehouseId": "01a16521-7bb0-700f-aa7d-0bc92c0904b0",
+        "toWarehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+        "number": "TR-000002",
+        "status": "partially_received",
+        "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+        "sentJournalEntryId": "01a165ab-8d1f-71ef-899c-9b50ccd9b30f",
+        "receivedJournalEntryId": "01a165ac-a893-772d-b8a2-a0150ec73569",
+        "sentAt": "2026-10-22T22:11:44.042Z",
+        "receivedAt": null,
+        "cancelledAt": null,
+        "closedAt": null,
+        "closedJournalEntryId": null,
+        "closureMode": null,
+        "closureReason": null,
+        "createdAt": "2026-10-22T22:10:34.184Z",
+        "createdBy": null,
+        "updatedAt": "2026-10-22T22:12:56.603Z",
+        "updatedBy": null,
+        "version": 1,
+        "legacySource": null,
+        "legacyId": null,
+        "lines": [
+          {
+            "transferId": "01a165aa-7c48-7678-979a-e51d9f7a6ec4",
+            "lineNo": 1,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+            "qty": "2.0000",
+            "unitId": null,
+            "sentQty": "2.0000",
+            "receivedQty": "1.0000",
+            "closedQty": "0.0000",
+            "unitCost": "8.3692",
+            "lotId": null,
+            "batchNo": null,
+            "productionDate": null,
+            "expiryDate": null,
+            "serialIds": [],
+            "serialNos": []
+          }
+        ]
+      }
+    },
+    {
+      "label": "journals-after-partial",
+      "method": "GET",
+      "path": "/journal-entries?limit=2",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a165ac-a893-772d-b8a2-a0150ec73569",
+            "number": "JE-000027",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "مناقلة TR-000002 — استلام",
+            "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "fiscalPeriodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+            "sourceType": "stock_transfer_receipt",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T22:12:56.596Z",
+            "totalDebit": "8.3692",
+            "totalCredit": "8.3692",
+            "lineCount": 2
+          },
+          {
+            "id": "01a165ab-8d1f-71ef-899c-9b50ccd9b30f",
+            "number": "JE-000026",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "مناقلة TR-000002 — إرسال إلى بضاعة تحت التحويل",
+            "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "fiscalPeriodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+            "sourceType": "stock_transfer",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T22:11:44.032Z",
+            "totalDebit": "16.7383",
+            "totalCredit": "16.7383",
+            "lineCount": 2
+          }
+        ]
+      }
+    },
+    {
+      "label": "close-shortage",
+      "method": "POST",
+      "path": "/inventory/transfers/01a165aa-7c48-7678-979a-e51d9f7a6ec4/close",
+      "request": {
+        "mode": "shortage",
+        "reason": "R26 عجز وحدة واحدة في الطريق — اختبار معزول"
+      },
+      "status": 201,
+      "body": {
+        "transferId": "01a165aa-7c48-7678-979a-e51d9f7a6ec4",
+        "number": "TR-000002",
+        "status": "closed",
+        "mode": "shortage",
+        "value": "8.3692",
+        "returnedQty": "0.0000",
+        "journalEntryId": "01a165ac-b0e0-734d-8a8a-66c4fa5ac2da",
+        "lines": [
+          {
+            "lineNo": 1,
+            "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+            "qty": "1.0000"
+          }
+        ]
+      }
+    },
+    {
+      "label": "transfer-after-close",
+      "method": "GET",
+      "path": "/inventory/transfers/01a165aa-7c48-7678-979a-e51d9f7a6ec4",
+      "status": 200,
+      "body": {
+        "id": "01a165aa-7c48-7678-979a-e51d9f7a6ec4",
+        "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+        "fromWarehouseId": "01a16521-7bb0-700f-aa7d-0bc92c0904b0",
+        "toWarehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+        "number": "TR-000002",
+        "status": "closed",
+        "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+        "sentJournalEntryId": "01a165ab-8d1f-71ef-899c-9b50ccd9b30f",
+        "receivedJournalEntryId": "01a165ac-a893-772d-b8a2-a0150ec73569",
+        "sentAt": "2026-10-22T22:11:44.042Z",
+        "receivedAt": null,
+        "cancelledAt": null,
+        "closedAt": "2026-10-22T22:12:58.724Z",
+        "closedJournalEntryId": "01a165ac-b0e0-734d-8a8a-66c4fa5ac2da",
+        "closureMode": "shortage",
+        "closureReason": "R26 عجز وحدة واحدة في الطريق — اختبار معزول",
+        "createdAt": "2026-10-22T22:10:34.184Z",
+        "createdBy": null,
+        "updatedAt": "2026-10-22T22:12:58.724Z",
+        "updatedBy": null,
+        "version": 1,
+        "legacySource": null,
+        "legacyId": null,
+        "lines": [
+          {
+            "transferId": "01a165aa-7c48-7678-979a-e51d9f7a6ec4",
+            "lineNo": 1,
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+            "qty": "2.0000",
+            "unitId": null,
+            "sentQty": "2.0000",
+            "receivedQty": "1.0000",
+            "closedQty": "1.0000",
+            "unitCost": "8.3692",
+            "lotId": null,
+            "batchNo": null,
+            "productionDate": null,
+            "expiryDate": null,
+            "serialIds": [],
+            "serialNos": []
+          }
+        ]
+      }
+    },
+    {
+      "label": "journals-after-close",
+      "method": "GET",
+      "path": "/journal-entries?limit=2",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a165ac-b0e0-734d-8a8a-66c4fa5ac2da",
+            "number": "JE-000028",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "إقفال مناقلة TR-000002 — عجز بضاعة تحت التحويل: R26 عجز وحدة واحدة في الطريق — اختبار معزول",
+            "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "fiscalPeriodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+            "sourceType": "stock_transfer_shortage",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T22:12:58.720Z",
+            "totalDebit": "8.3692",
+            "totalCredit": "8.3692",
+            "lineCount": 2
+          },
+          {
+            "id": "01a165ac-a893-772d-b8a2-a0150ec73569",
+            "number": "JE-000027",
+            "date": "2026-10-22",
+            "kind": "manual",
+            "status": "posted",
+            "description": "مناقلة TR-000002 — استلام",
+            "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "fiscalPeriodId": "01a16504-1426-734e-bc3f-7bf2ddea5adb",
+            "sourceType": "stock_transfer_receipt",
+            "reversalOf": null,
+            "postedAt": "2026-10-22T22:12:56.596Z",
+            "totalDebit": "8.3692",
+            "totalCredit": "8.3692",
+            "lineCount": 2
+          }
+        ]
+      }
+    },
+    {
+      "label": "levels",
+      "method": "GET",
+      "path": "/inventory/levels?item_id=01a1650d-9b90-7711-be44-59856a67c3ed",
+      "status": 200,
+      "body": [
+        {
+          "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+          "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+          "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+          "quantity": "2.0000",
+          "value": "18.1460",
+          "averageCost": "9.0730",
+          "version": 19,
+          "updatedAt": "2026-10-22T22:12:56.590Z"
+        },
+        {
+          "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+          "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+          "warehouseId": "01a16521-7bb0-700f-aa7d-0bc92c0904b0",
+          "quantity": "0.0000",
+          "value": "0.0000",
+          "averageCost": "0.0000",
+          "version": 5,
+          "updatedAt": "2026-10-22T22:11:44.026Z"
+        }
+      ]
+    },
+    {
+      "label": "close-again",
+      "method": "POST",
+      "path": "/inventory/transfers/01a165aa-7c48-7678-979a-e51d9f7a6ec4/close",
+      "request": {
+        "mode": "shortage",
+        "reason": "R26 تكرار"
+      },
+      "status": 409,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 409,
+        "code": "TRANSFER_ALREADY_CLOSED",
+        "detail": "This transfer is already closed",
+        "traceId": "01a165ac-ba08-76d0-84ab-5607ccc675c5"
+      }
+    }
+  ]
+}

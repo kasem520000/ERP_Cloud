@@ -1,0 +1,14 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/inventory/transfers/01a165aa-7c48-7678-979a-e51d9f7a6ec4/send",
+  "request": {},
+  "body": {
+    "transferId": "01a165aa-7c48-7678-979a-e51d9f7a6ec4",
+    "number": "TR-000002",
+    "status": "in_transit",
+    "value": "16.7383",
+    "journalEntryId": "01a165ab-8d1f-71ef-899c-9b50ccd9b30f",
+    "lines": 1
+  }
+}

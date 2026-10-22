@@ -1,0 +1,307 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "pay-0.01",
+      "method": "POST",
+      "path": "/purchase-invoices/01a16569-5bda-7319-9e63-498aa44f5d74/payments",
+      "request": {
+        "amount": "0.01",
+        "idempotencyKey": "R26-PAY-RESIDUAL-1"
+      },
+      "status": 422,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 422,
+        "code": "PAYMENT_EXCEEDS_DUE",
+        "detail": "Payment exceeds purchase invoice balance",
+        "traceId": "01a165a8-6b10-71cc-84d3-32ae9074b4a1"
+      }
+    },
+    {
+      "label": "pi3-after-cent",
+      "method": "GET",
+      "path": "/purchase-invoices/01a16569-5bda-7319-9e63-498aa44f5d74",
+      "status": 200,
+      "body": {
+        "id": "01a16569-5bda-7319-9e63-498aa44f5d74",
+        "costCenterId": null,
+        "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+        "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+        "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+        "partyId": "01a16504-139b-7777-916b-0393425a29c0",
+        "referenceInvoiceId": null,
+        "kind": "purchase",
+        "status": "posted",
+        "number": "PI-000003",
+        "supplierReferenceNo": "R25-PI-ROUND",
+        "supplierReferenceDate": "2026-10-22",
+        "currency": "SAR",
+        "priceIncludesVat": false,
+        "landedCostAlloc": "value",
+        "invoiceDiscount": "0.0000",
+        "extraTax": "0.0000",
+        "withholding": "0.0000",
+        "subtotal": "3.0900",
+        "taxTotal": "0.4635",
+        "additionalCostTotal": "0.0000",
+        "total": "3.5535",
+        "paidTotal": "3.5500",
+        "paymentStatus": "partial",
+        "journalEntryId": "01a1656a-432c-7148-831a-1467507a2094",
+        "postedAt": "2026-10-22T21:00:25.267Z",
+        "voidedAt": null,
+        "createdAt": "2026-10-22T20:59:26.043Z",
+        "createdBy": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+        "updatedAt": "2026-10-22T22:07:02.974Z",
+        "updatedBy": null,
+        "version": 1,
+        "legacySource": null,
+        "legacyId": null,
+        "lines": [
+          {
+            "id": "01a16569-5bdf-73e8-a5cb-94f3e7a67b2b",
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "invoiceId": "01a16569-5bda-7319-9e63-498aa44f5d74",
+            "lineNo": 1,
+            "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+            "taxGroupId": "01a16504-140d-706a-a528-adc6b113d560",
+            "description": null,
+            "quantity": "3.0000",
+            "unitPrice": "1.0300",
+            "discountRate": "0.0000",
+            "discountAmount": "0.0000",
+            "taxRate": "15.0000",
+            "net": "3.0900",
+            "tax": "0.4635",
+            "total": "3.5535",
+            "allocatedCost": "0.0000",
+            "landedTotal": "3.0900",
+            "unitCostAtPost": "1.0300",
+            "costCenterId": null,
+            "serialNos": [],
+            "lotId": null,
+            "batchNo": null,
+            "productionDate": null,
+            "expiryDate": null,
+            "metadata": {},
+            "createdAt": "2026-10-22T20:59:26.043Z",
+            "createdBy": null,
+            "updatedAt": "2026-10-22T21:00:25.253Z",
+            "updatedBy": null,
+            "version": 1
+          }
+        ],
+        "costs": [],
+        "payments": [
+          {
+            "id": "01a165a7-433c-779c-954b-cd76d98e4520",
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "partyId": "01a16504-139b-7777-916b-0393425a29c0",
+            "voucherId": null,
+            "invoiceKind": "purchase",
+            "invoiceId": "01a16569-5bda-7319-9e63-498aa44f5d74",
+            "amount": "3.5500",
+            "allocatedAt": "2026-10-22T22:07:02.971Z",
+            "createdBy": null
+          }
+        ],
+        "customFields": {}
+      }
+    },
+    {
+      "label": "pay-0.0035",
+      "method": "POST",
+      "path": "/purchase-invoices/01a16569-5bda-7319-9e63-498aa44f5d74/payments",
+      "request": {
+        "amount": "0.0035",
+        "idempotencyKey": "R26-PAY-RESIDUAL-2"
+      },
+      "status": 201,
+      "body": {
+        "id": "01a165a8-7446-7797-b353-50fffa431611",
+        "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+        "partyId": "01a16504-139b-7777-916b-0393425a29c0",
+        "voucherId": null,
+        "invoiceKind": "purchase",
+        "invoiceId": "01a16569-5bda-7319-9e63-498aa44f5d74",
+        "amount": "0.0035",
+        "allocatedAt": "2026-10-22T22:08:21.062Z",
+        "createdBy": null
+      }
+    },
+    {
+      "label": "pi3-after-residual",
+      "method": "GET",
+      "path": "/purchase-invoices/01a16569-5bda-7319-9e63-498aa44f5d74",
+      "status": 200,
+      "body": {
+        "id": "01a16569-5bda-7319-9e63-498aa44f5d74",
+        "costCenterId": null,
+        "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+        "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+        "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+        "partyId": "01a16504-139b-7777-916b-0393425a29c0",
+        "referenceInvoiceId": null,
+        "kind": "purchase",
+        "status": "posted",
+        "number": "PI-000003",
+        "supplierReferenceNo": "R25-PI-ROUND",
+        "supplierReferenceDate": "2026-10-22",
+        "currency": "SAR",
+        "priceIncludesVat": false,
+        "landedCostAlloc": "value",
+        "invoiceDiscount": "0.0000",
+        "extraTax": "0.0000",
+        "withholding": "0.0000",
+        "subtotal": "3.0900",
+        "taxTotal": "0.4635",
+        "additionalCostTotal": "0.0000",
+        "total": "3.5535",
+        "paidTotal": "3.5535",
+        "paymentStatus": "paid",
+        "journalEntryId": "01a1656a-432c-7148-831a-1467507a2094",
+        "postedAt": "2026-10-22T21:00:25.267Z",
+        "voidedAt": null,
+        "createdAt": "2026-10-22T20:59:26.043Z",
+        "createdBy": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+        "updatedAt": "2026-10-22T22:08:21.063Z",
+        "updatedBy": null,
+        "version": 1,
+        "legacySource": null,
+        "legacyId": null,
+        "lines": [
+          {
+            "id": "01a16569-5bdf-73e8-a5cb-94f3e7a67b2b",
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "invoiceId": "01a16569-5bda-7319-9e63-498aa44f5d74",
+            "lineNo": 1,
+            "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+            "taxGroupId": "01a16504-140d-706a-a528-adc6b113d560",
+            "description": null,
+            "quantity": "3.0000",
+            "unitPrice": "1.0300",
+            "discountRate": "0.0000",
+            "discountAmount": "0.0000",
+            "taxRate": "15.0000",
+            "net": "3.0900",
+            "tax": "0.4635",
+            "total": "3.5535",
+            "allocatedCost": "0.0000",
+            "landedTotal": "3.0900",
+            "unitCostAtPost": "1.0300",
+            "costCenterId": null,
+            "serialNos": [],
+            "lotId": null,
+            "batchNo": null,
+            "productionDate": null,
+            "expiryDate": null,
+            "metadata": {},
+            "createdAt": "2026-10-22T20:59:26.043Z",
+            "createdBy": null,
+            "updatedAt": "2026-10-22T21:00:25.253Z",
+            "updatedBy": null,
+            "version": 1
+          }
+        ],
+        "costs": [],
+        "payments": [
+          {
+            "id": "01a165a7-433c-779c-954b-cd76d98e4520",
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "partyId": "01a16504-139b-7777-916b-0393425a29c0",
+            "voucherId": null,
+            "invoiceKind": "purchase",
+            "invoiceId": "01a16569-5bda-7319-9e63-498aa44f5d74",
+            "amount": "3.5500",
+            "allocatedAt": "2026-10-22T22:07:02.971Z",
+            "createdBy": null
+          },
+          {
+            "id": "01a165a8-7446-7797-b353-50fffa431611",
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "partyId": "01a16504-139b-7777-916b-0393425a29c0",
+            "voucherId": null,
+            "invoiceKind": "purchase",
+            "invoiceId": "01a16569-5bda-7319-9e63-498aa44f5d74",
+            "amount": "0.0035",
+            "allocatedAt": "2026-10-22T22:08:21.062Z",
+            "createdBy": null
+          }
+        ],
+        "customFields": {}
+      }
+    },
+    {
+      "label": "ap-aging",
+      "method": "GET",
+      "path": "/reports/ap-aging?from=2026-08-01&to=2026-10-31",
+      "status": 200,
+      "body": {
+        "key": "ap-aging",
+        "titleAr": "أعمار ديون الموردين",
+        "group": "accounting",
+        "hintAr": null,
+        "chart": null,
+        "params": {
+          "from": "2026-08-01",
+          "to": "2026-10-31"
+        },
+        "layout": null,
+        "columns": [
+          {
+            "key": "party",
+            "labelAr": "المورد",
+            "type": "text"
+          },
+          {
+            "key": "bucket_0_30",
+            "labelAr": "0-30 يوم",
+            "type": "money"
+          },
+          {
+            "key": "bucket_31_60",
+            "labelAr": "31-60",
+            "type": "money"
+          },
+          {
+            "key": "bucket_61_90",
+            "labelAr": "61-90",
+            "type": "money"
+          },
+          {
+            "key": "bucket_90_plus",
+            "labelAr": "أكثر من 90",
+            "type": "money"
+          },
+          {
+            "key": "due",
+            "labelAr": "الإجمالي",
+            "type": "money"
+          }
+        ],
+        "rows": [
+          {
+            "party": "مورد عام",
+            "bucket_0_30": "140.3000",
+            "bucket_31_60": "0",
+            "bucket_61_90": "0",
+            "bucket_90_plus": "0",
+            "due": "140.3000"
+          }
+        ],
+        "totals": {
+          "bucket_0_30": "140.30",
+          "bucket_31_60": "0.00",
+          "bucket_61_90": "0.00",
+          "bucket_90_plus": "0.00",
+          "due": "140.30"
+        },
+        "grandTotal": [],
+        "rowCount": 1,
+        "generatedAt": "2026-10-22T22:08:22.639Z"
+      }
+    }
+  ]
+}
