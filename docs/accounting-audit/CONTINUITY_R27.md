@@ -48,6 +48,10 @@
 | الكتلة | المراحل | الحالة | الالتزام | ملاحظات |
 |---|---|---|---|---|
 | خط الأساس | `R27-DB-000-BASELINE` (= R26 DB-019؛ اللقطة تضم جداول التصنيع/الأرفف/التسلسلي) | ✓ | «R27: runner + continuity + baseline» | `round27-snapshot.cjs` |
+| A–D | 1 ITEMS … 9 MO-GUARDS | ✓ | «R27: raw evidence for all 18 stages» | PI-000006 مرّ بلا أرقام (ACC-128)؛ MF-000001 done 40.1460 |
+| E–F | 10–11 SI-FG، 12 BIN-CREATE، 13 BIN-RECEIVE، 14 BIN-MOVES | ✓ | نفس الالتزام | استلام الرف 3 > 1 مقبول بلا قيد (ACC-130/131) |
+| G | 15 SERIAL-GENERATE (أُعيدت بعد تصحيح محدِّد «المستودع» → `nth(1)`؛ الصورة الأولى حُذفت)، 16 SERIAL-FLOW (مرجع الرقم `SN27G-1`؛ أُعيد الإطلاق بـ`PHASE=15 FROM=16`) | ✓ | نفس الالتزام | SI-000011 بلا رقم مرحَّل (ACC-128)؛ بيع رقم مولَّد (ACC-132) |
+| H | 17 REPORTS، 18 شاشات؛ + `round27-readonly-extra.cjs` (VALUATION بالمسار الصحيح، ITEM-CARD، MOVEMENTS) | ✓ `ALL STAGES DONE` | «R27: results, checker, defects, tails» | GL 248.0728 / المخزون 336.1752 (ACC-130)؛ الفاحص 74/24 من 98 |
 
 ## 3. طريقة التشغيل
 - `/tmp/r27start.sh` (متغيرات `PHASE/FROM/UNTIL`)، اللوج `/tmp/r27.log`، الموافقة بإنشاء `.scratch/r27/<stage>.approve` بعد مراجعة `-before.png`؛ `/tmp/r27kill.sh` للإيقاف. اللقطات: `node docs/accounting-audit/scripts/round27-snapshot.cjs R27-DB-NNN-<id>` من جذر المستودع (لا تكتب فوق ملف موجود).

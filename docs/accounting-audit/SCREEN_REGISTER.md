@@ -608,3 +608,17 @@
 | `/treasury/transfers` (قراءة بعد الدورة) | CT-SCREEN | 3 تحويلات؛ voided خارج الدلاء |
 | `/sales/invoices`، `/purchases/invoices` (قراءة البطاقات) | SALES-LIST-SCREEN، PURCHASES-LIST-SCREEN | ACC-126 / ACC-026 |
 | `/accounting/income-statement`، `/inventory/levels` (قراءة) | INCOME-STATEMENT-SCREEN، LEVELS-SCREEN | ACC-120؛ 18.15 ✓ |
+
+## الشاشات المنفَّذة في R27 (مستأجر R24؛ الأدلة `evidence/round-27/`)
+| الشاشة | المراحل | النتيجة |
+|---|---|---|
+| `/inventory/items` (سياق إنشاء الأصناف عبر API) | ITEMS، ITEMS-SCREEN | 3 أصناف ✓ |
+| `/purchases/invoices/new` ثم `/purchases/invoices/[id]` (ترحيل آجل) | PI-RM-DRAFT، PI-RM-POST | ✓ PI-000005 57.50 |
+| `/manufacturing/boms` (نموذج BOM مع هدر؛ السطر الفارغ يُرشَّح) | BOM-CREATE، BOM-SCREEN | ✓ v1 |
+| `/manufacturing/orders` (إنشاء أمر؛ «تنفيذ» بكمية 1؛ قراءة بعد الإتمام) | MO-CREATE، MO-PRODUCE-1، MO-SCREEN | ✓ التنفيذ؛ **ACC-129** (مخطط 22.00 / فعلي 40.15) |
+| `/sales/invoices/new` ثم `/sales/invoices/[id]` (ترحيل نقدي) | SI-FG-DRAFT، SI-FG-POST | ✓ SI-000008 46.00 |
+| `/inventory/bins` (رف جديد؛ «مواقع الرف» استلام) | BIN-CREATE، BIN-RECEIVE، BINS-SCREEN | ✓ الإنشاء؛ **ACC-130** (استلام 3 > الرصيد 1 مقبول) |
+| `/inventory/bin-balances` (قراءة بعد النقل والجرد) | BIN-BALANCES-SCREEN | A-01-01 1 / A-01-02 1 ✓ |
+| `/inventory/serials` (توليد دفعة؛ قراءة ختامية) | SERIAL-GENERATE، SERIALS-SCREEN | **ACC-132/UI-044**؛ **UI-045** («مُرتجع 0») |
+| `/inventory/levels`، `/reports/inventory-valuation`، `/accounting/trial-balance` (قراءة) | LEVELS-SCREEN، VALUATION-SCREEN، TB-SCREEN | 336.18 مقابل 248.07 (**ACC-130** ظاهر للمستخدم) |
+| `/inventory/item-card`، `/inventory/movements` (قراءة) | ITEM-CARD-SCREEN، MOVEMENTS-SCREEN | 42 حركة؛ صافي 10.6 ✓ |

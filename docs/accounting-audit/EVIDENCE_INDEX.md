@@ -461,3 +461,17 @@ R17-manifest.json يفهرس 258 ملفاً (لا يشمل نفسه)، نحو 24
 | F: تحويل نقدي | CT-CANCEL (draft cancel، CT-000002 send/cancel/receive، cancel received، أرصدة الفرعي) | **ACC-127**؛ ACC-112 | DB-018 |
 | G: قوائم وتقارير | STATEMENTS (23 طلباً في `R26-STATEMENTS-response.json`)، SALES-LIST/PURCHASES-LIST/IN-TRANSIT/CT/INCOME-STATEMENT/COMMISSIONS/LEVELS (صور + نصوص) | **ACC-125/126**؛ ACC-004/042/118/119/120 | DB-019 |
 | تحقق | `R26-check-results.json` (49/33 من 82)، `R26-http-events.jsonl` (425) | — | — |
+
+## الجولة 27 — `evidence/round-27/` (155 ملفاً؛ تفصيل المراحل في ROUND_27_RESULTS.md §1)
+| الكتلة | المراحل والأدلة | النتيجة | لقطات DB |
+|---|---|---|---|
+| خط الأساس | `R27-DB-000-BASELINE` (= R26 DB-019؛ يضم جداول التصنيع/الأرفف/التسلسلي) | — | DB-000 |
+| A: أصناف | ITEMS (3 أصناف من شاشة الأصناف عبر API؛ `R27-ITEMS-before.png`) | ✓ | DB-001 |
+| B: شراء | PI-RM-DRAFT/POST (شاشة الشراء؛ PI-000005)، PI-SERIAL (noserial create/post، dupserial، serial post، serials، levels) | **ACC-128**؛ JE-033/034/035 ✓ | DB-002…004 |
+| C: BOM | BOM-CREATE (شاشة `/manufacturing/boms`)، BOM-GUARDS (5 حرّاس) | ✓ | DB-005…006 |
+| D: تصنيع | MO-CREATE (شاشة)، MO-PRODUCE-1 (شاشة؛ `-before.png` تعرض المسودة 0/2 ومخطط 40.15)، MO-GUARDS (exceeds/zero/second/after-done + levels) | ✓ محرك التكلفة؛ **ACC-129** | DB-007…009 |
+| E: بيع المنتج | SI-FG-DRAFT/POST (شاشة البيع ثم شاشة الفاتورة؛ SI-000008) | ✓ COGS 20.0730؛ ACC-018 | DB-010…011 |
+| F: أرفف | BIN-CREATE (شاشة)، BIN-RECEIVE (شاشة؛ استلام 3 والمستودع فيه 1)، BIN-MOVES (19 طلباً: code X/taken/WH2، receive @100، issue 10/1، transfer cross/2، count 1/−1، balances، valuation) | **ACC-130/131، UI-043** | DB-012…014 |
+| G: تسلسلي | SERIAL-GENERATE (شاشة التقرير؛ الصورة الأولى حُذفت لخطأ محدِّد وأُعيدت)، SERIAL-FLOW (20 طلباً: reserve ×2، SI-000009، resell 422، SI-000010، SI-000011، consume/return، SR-000003، trace، lookup) | **ACC-128/132/133/134، UI-044/045**؛ ACC-019 | DB-015…016 |
+| H: تقارير وشاشات | REPORTS (27 طلباً)، MO/BOM/BINS/BIN-BALANCES/SERIALS/LEVELS/TB/ITEMS-SCREEN، VALUATION-SCREEN (المسار الصحيح؛ الخاطئ محفوظ `-wrong-path-404`)، ITEM-CARD-SCREEN، MOVEMENTS-SCREEN | **UI-046**؛ ACC-113/118/125؛ فرق GL/المخزون 88.10 | DB-017…018 |
+| تحقق | `R27-check-results.json` (74/24 من 98)، `R27-http-events.jsonl` (369)، لوجات الرنر `R27-runner-log-*.txt` | — | — |
