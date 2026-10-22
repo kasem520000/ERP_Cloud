@@ -556,3 +556,14 @@
 | `/settings/approvals` (مسار بخطوتين) + `/approvals/inbox` + `/approvals/history` | WF-SI-2STEP، APPR-STEP1-*، APPR-STEP2-OWNER، APPR-REJECT-*، APPR-HISTORY، APPR-INBOX-FINAL | المسار كامل ✓؛ اعتماد ذاتي (ACC-075) |
 | `/accounting/trial-balance`، `/accounting/income-statement`، `/reports/ar-aging`، `/treasury/cash-locations` | TB-SCREEN، INCOME-SCREEN، AR-AGING-SCREEN، CASH-LOCATIONS-SCREEN، REPORTS | الميزان ✓؛ الأعمار 184 ≠ 62 (ACC-042)؛ الفرعي ≠ الأستاذ |
 | `/settings/backup`، `/settings/restore` (تنفيذ فعلي برمز المنشأة) | BACKUP، RESTORE-APPLY، RESTORE-FINAL، RESTORE-API | غير مدمِّرة ✓؛ `tenant_settings` تفشل بصمت (ACC-091) |
+
+## الشاشات المنفَّذة في R23 (المستأجر الخامس؛ الأدلة `evidence/round-23/`)
+| الشاشة | المراحل | النتيجة |
+|---|---|---|
+| `/settings/approvals` (مسار بمراجع بعينه «مستخدم محدد») | WF-PI-USER (+ WF-PI-USER-API) | **422** من الشاشة (UI-034 / ACC-099)؛ API ✓ |
+| `/purchases/invoices` (إنشاء + ترحيل تحت بوابة اعتماد) | PI-DRAFT، PI-GATE | 202 صحيح؛ بانر نجاح مضلِّل (UI-035) |
+| `/approvals/inbox` (المالك / المحاسب) | APPR-OWNER-SELF، APPR-ACCOUNTANT | فارغ لغير المسمّى ✓؛ اعتماد → ترحيل تلقائي ✓ |
+| `/sales/invoices` (آجلة ونقدية مع لوحة تسوية نقدية) | SI-CR-DRAFT/POST، SI-CASH-DRAFT/POST | القيود ✓؛ `shift_id NULL` (ACC-093) |
+| `/treasury/vouchers` (قبض بتخصيص، إلغاء، قبض/صرف USD) | RV-ALLOC-DRAFT، RV-VOID، RV-USD-DRAFT/POST، PV-USD-DRAFT/POST | إلغاء بلا تأكيد وبلا عكس (UI-036/ACC-095)؛ «37.50 USD» (UI-033)؛ مجموع يشمل الملغي (UI-037) |
+| `/treasury/day-close` (وردتان، جرد بالفئات، ترحيل، سجل الورديات) | SHIFT-OPEN-OWNER، SHIFT-CLOSE-OWNER، SHIFT-POST-OWNER، SHIFTS-SCREEN، DAY-CLOSE-FINAL | رأس الشاشة 46.00/6.00 لبيع واحد وورديتان بمتوقع 23 (ACC-096) |
+| `/treasury/cash-locations`، `/accounting/trial-balance` | CASH-LOCATIONS-SCREEN، TB-SCREEN | قائمة الصناديق بلا أرصدة؛ الميزان متوازن ✓ |
