@@ -1,0 +1,209 @@
+{
+  "at": "2026-10-22T03:49:50.031Z",
+  "url": "http://127.0.0.1:3001/hrm/employees",
+  "text": "AUDIT-TEST-2026-R18\n\nتعريف موظف\nع\nEN\nم\nمالك الحساب\nالموظفين والرواتب\n/التعاريف\nتعريف موظف\n\nبطاقة الموظف: بياناته الأساسية ورواتبه، ثم قائمة الموظفين للتنقّل والبحث.\n\nتحديث\nأول\nالسابق\nالتالي\nالأخير\nعدد الموظفين\n1\nفي القائمة الحالية\nعلى رأس العمل\n1\nحالتهم نشطة\nإجمالي الرواتب\n0.00\nشهرياً، لكل الموظفين\nبلا حساب محاسبي\n1\nيُخصَّص عند أول ترحيل\nإضافة جديد\nبيانات الموظف الأساسية\nرقم الموظف *\nاسم الموظف *\nرقم الحساب\nالإدارة\nاختر...\nالقسم\nاختر الإدارة أولاً\nالوظيفة\nاختر...\nالحالة\nنشط\nموقوف\nمنتهي الخدمة\nتاريخ الميلاد\nتاريخ التعيين\nرقم التأمينات\nانتهاء الإقامة\nانتهاء التأمين\nنظام التأمينات\nتلقائي من تاريخ التعيين\nقديم (قبل 3 يوليو 2024)\nجديد\nالحالة الاجتماعية\nالجنسية\nالنوع\nذكر\nأنثى\nرقم الهاتف\nرقم الموبايل\nالبريد الإلكتروني\nالفرع\nكل الفروع\nMAIN — الفرع الرئيسي\nالرواتب والمستحقات\nالراتب الأساسي\nبدل سكن\nبدل مواصلات\nطعام\nطبي\nمكافأة ثابتة\nأخرى\nإجمالي الرواتب والمستحقات\nالبيانات التكميلية\nالعنوان\nرقم الهوية\nرقم الحساب البنكي\nاسم البنك\nالآيبان\nرمز البنك\nملاحظات\nصورة الموظف — frmEmployees.xaml L195 imgPersonal\nالصورة الحالية\nلا توجد صورة — btnImgAdd / btnImgDelete\nرفع صورة جديدة\nفروع الموظف — frmEmployees.xaml L172 EmpBranches\nالفروع الإضافية (بجانب الفرع الأساسي)\nالفرع الرئيسي\n\nالفرع الأساسي يُحدد في «بيانات الموظف الأساسية»؛ هذه الفروع الإضافية تُخزن في EmpBranches — employee_branches.\n\nحفظ\nجديد\n\nاضغط Enter في خانة البحث للبحث عن موظف بالاسم — «اسم الموظف:» في نافذة الديسكتوب.\n\nقائمة الموظفين\nبحث\nالرقم\tالاسم\tإجمالي المرتب\tالإدارة\tالقسم\tالوظيفة\tرقم الحساب\tالموبايل\tالتعيين\tالحالة\t\nEMP-REP-1\tمندوب الشركة\t0.00\t—\t—\t—\t—\t—\t—\tنشط\t",
+  "fields": [
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "R18-EMP-1"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "R18 موظف اختبار معزول"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "",
+      "selected": "اختر..."
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "",
+      "selected": "اختر الإدارة أولاً"
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "",
+      "selected": "اختر..."
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "active",
+      "selected": "نشط"
+    },
+    {
+      "tag": "INPUT",
+      "type": "date",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "date",
+      "value": "2026-10-16"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "date",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "date",
+      "value": ""
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "",
+      "selected": "تلقائي من تاريخ التعيين"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "value": "on"
+    },
+    {
+      "tag": "INPUT",
+      "type": "radio",
+      "value": "on"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "email",
+      "value": ""
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "",
+      "selected": "كل الفروع"
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "value": "120"
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "number",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "120.00"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "file",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "value": "on",
+      "checked": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    }
+  ]
+}

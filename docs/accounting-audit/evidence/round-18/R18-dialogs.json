@@ -1,22 +1,7 @@
 [
   {
-    "type": "prompt",
-    "message": "أدخل معرّف الفاتورة أو السند لمطابقة الحركة:",
-    "answer": "01a161a6-69bb-7680-aae0-a3504b5b6736"
-  },
-  {
-    "type": "prompt",
-    "message": "اكتب invoice أو voucher:",
-    "answer": "voucher"
-  },
-  {
-    "type": "prompt",
-    "message": "أدخل معرّف الفاتورة أو السند لمطابقة الحركة:",
-    "answer": "01a161ad-0b5b-74fe-b730-8f40fa7c0ac6"
-  },
-  {
-    "type": "prompt",
-    "message": "اكتب invoice أو voucher:",
-    "answer": "voucher"
+    "type": "confirm",
+    "message": "هل أنت متأكد من إغلاق الفترة المحاسبية «2026-09»؟",
+    "answer": null
   }
 ]

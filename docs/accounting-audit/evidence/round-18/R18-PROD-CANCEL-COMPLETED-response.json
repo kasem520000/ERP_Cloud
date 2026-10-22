@@ -1,0 +1,21 @@
+{
+  "method": "POST",
+  "path": "/inventory/production-orders/01a161b9-1952-72e8-b73f-4caa4ac6dbb4/cancel",
+  "requests": [
+    {}
+  ],
+  "elapsedMs": 40,
+  "results": [
+    {
+      "status": 409,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 409,
+        "code": "PRODUCTION_ORDER_INVALID_STATUS",
+        "detail": "Only a draft production order can be cancelled",
+        "traceId": "01a161ba-969c-7566-8b98-2ddce39a4abe"
+      }
+    }
+  ]
+}

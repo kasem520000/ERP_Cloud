@@ -1,0 +1,19 @@
+{
+  "status": 422,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/inventory/production-orders/01a161b5-9b79-7593-b3f4-f2733bd3943e/complete",
+  "request": {},
+  "body": {
+    "type": "about:blank",
+    "title": "Insufficient stock",
+    "status": 422,
+    "code": "STOCK_INSUFFICIENT",
+    "detail": "Stock is insufficient for this movement",
+    "traceId": "01a161b7-b803-7472-b180-7a4eaecf1724",
+    "errors": [
+      {
+        "field": "lines"
+      }
+    ]
+  }
+}

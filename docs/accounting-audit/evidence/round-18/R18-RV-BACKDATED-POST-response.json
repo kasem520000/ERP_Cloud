@@ -1,0 +1,14 @@
+{
+  "status": 409,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/vouchers/01a161c5-3ce4-71de-aa21-45b29e0d1478/post",
+  "request": {},
+  "body": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "FISCAL_PERIOD_CLOSED",
+    "detail": "No open fiscal period contains 2026-09-15",
+    "traceId": "01a161c6-0aef-7408-b583-a0f898055629"
+  }
+}
