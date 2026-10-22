@@ -1,0 +1,51 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/inventory/vouchers/01a16200-a87d-7388-b8d1-4ac2f6b73606/post",
+  "request": {
+    "allowNegative": false
+  },
+  "body": {
+    "id": "01a16200-a87d-7388-b8d1-4ac2f6b73606",
+    "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+    "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+    "warehouseId": "01a16198-e57b-7003-b1d1-4562344efb18",
+    "kind": "stock_in",
+    "number": "SIN-000001",
+    "status": "posted",
+    "voucherDate": "2026-10-22",
+    "reason": "R19-SV-IN إدخال 3 بتكلفة 15 اختبار معزول",
+    "counterAccountId": null,
+    "notes": null,
+    "journalEntryId": "01a16201-34b7-76da-b0bf-def3707a91f2",
+    "totalCost": "45.0000",
+    "postedAt": "2026-10-22T05:06:48.643Z",
+    "voidedAt": null,
+    "createdAt": "2026-10-22T05:06:12.733Z",
+    "createdBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+    "updatedAt": "2026-10-22T05:06:48.643Z",
+    "updatedBy": null,
+    "version": 1,
+    "legacySource": null,
+    "legacyId": null,
+    "lines": [
+      {
+        "voucherId": "01a16200-a87d-7388-b8d1-4ac2f6b73606",
+        "lineNo": 1,
+        "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+        "itemId": "01a161a2-e5fa-733f-bb31-e435012a3cb1",
+        "qty": "3.0000",
+        "unitId": null,
+        "unitCost": "15.0000",
+        "lineCost": "45.0000",
+        "lotId": null,
+        "batchNo": null,
+        "productionDate": null,
+        "expiryDate": null,
+        "serialId": null,
+        "serialNos": [],
+        "note": null
+      }
+    ]
+  }
+}

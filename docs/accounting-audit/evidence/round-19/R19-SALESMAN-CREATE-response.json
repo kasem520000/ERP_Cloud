@@ -1,0 +1,39 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/sales/salesmen",
+  "request": {
+    "name": "R19-SM مندوب اختبار معزول",
+    "commissionRate": "10",
+    "collectionCommissionRate": "5",
+    "profitCommissionRate": "20",
+    "employeeId": null,
+    "tel": null,
+    "mobile": null,
+    "email": null,
+    "notes": null,
+    "active": true
+  },
+  "body": {
+    "id": "01a16206-5b36-729d-923a-8fc812c124ac",
+    "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+    "name": "R19-SM مندوب اختبار معزول",
+    "employeeRef": null,
+    "active": true,
+    "commissionRate": "10.0000",
+    "collectionCommissionRate": "5.0000",
+    "profitCommissionRate": "20.0000",
+    "employeeId": null,
+    "warehouseId": null,
+    "vehiclePlate": null,
+    "tel": null,
+    "mobile": null,
+    "email": null,
+    "notes": null,
+    "createdAt": "2026-10-22T05:12:26.166Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1
+  }
+}

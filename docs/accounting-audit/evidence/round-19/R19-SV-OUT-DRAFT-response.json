@@ -1,0 +1,62 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/inventory/vouchers",
+  "request": {
+    "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+    "warehouseId": "01a16198-e57b-7003-b1d1-4562344efb18",
+    "kind": "stock_out",
+    "voucherDate": "2026-10-22",
+    "reason": "R19-SV-OUT إخراج 1 بمتوسط التكلفة اختبار معزول",
+    "lines": [
+      {
+        "itemId": "01a161a2-e5fa-733f-bb31-e435012a3cb1",
+        "qty": "1",
+        "serialNos": []
+      }
+    ]
+  },
+  "body": {
+    "id": "01a16201-d480-717f-9be1-8d2d233643f0",
+    "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+    "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+    "warehouseId": "01a16198-e57b-7003-b1d1-4562344efb18",
+    "kind": "stock_out",
+    "number": "SOU-000001",
+    "status": "draft",
+    "voucherDate": "2026-10-22",
+    "reason": "R19-SV-OUT إخراج 1 بمتوسط التكلفة اختبار معزول",
+    "counterAccountId": null,
+    "notes": null,
+    "journalEntryId": null,
+    "totalCost": "12.0000",
+    "postedAt": null,
+    "voidedAt": null,
+    "createdAt": "2026-10-22T05:07:29.537Z",
+    "createdBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1,
+    "legacySource": null,
+    "legacyId": null,
+    "lines": [
+      {
+        "voucherId": "01a16201-d480-717f-9be1-8d2d233643f0",
+        "lineNo": 1,
+        "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+        "itemId": "01a161a2-e5fa-733f-bb31-e435012a3cb1",
+        "qty": "1.0000",
+        "unitId": null,
+        "unitCost": null,
+        "lineCost": "0.0000",
+        "lotId": null,
+        "batchNo": null,
+        "productionDate": null,
+        "expiryDate": null,
+        "serialId": null,
+        "serialNos": [],
+        "note": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "method": "POST",
+  "path": "/inventory/transfers/01a16204-4f15-737b-9f68-a968ffaa5d18/close",
+  "requests": [
+    {
+      "mode": "shortage",
+      "reason": "R19 عجز وحدة واحدة أثناء النقل اختبار معزول"
+    }
+  ],
+  "elapsedMs": 41,
+  "results": [
+    {
+      "status": 201,
+      "body": {
+        "transferId": "01a16204-4f15-737b-9f68-a968ffaa5d18",
+        "number": "TR-000001",
+        "status": "closed",
+        "mode": "shortage",
+        "value": "12.9000",
+        "returnedQty": "0.0000",
+        "journalEntryId": "01a16205-de24-76dc-b381-ef759e6784f0",
+        "lines": [
+          {
+            "lineNo": 1,
+            "itemId": "01a161a2-e5fa-733f-bb31-e435012a3cb1",
+            "qty": "1.0000"
+          }
+        ]
+      }
+    }
+  ]
+}
