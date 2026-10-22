@@ -1,0 +1,46 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "before",
+      "method": "GET",
+      "path": "/cash-locations/01a16198-e57d-7532-b598-3caa8ed1bad2/balance",
+      "status": 200,
+      "body": {
+        "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+        "cashLocationId": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+        "currencyCode": "SAR",
+        "balance": "-254.0000",
+        "updatedAt": "2026-10-22T06:44:08.792Z"
+      }
+    },
+    {
+      "label": "recalc",
+      "method": "POST",
+      "path": "/cash-locations/01a16198-e57d-7532-b598-3caa8ed1bad2/recalc-balance",
+      "request": {},
+      "status": 201,
+      "body": {
+        "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+        "cashLocationId": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+        "currencyCode": "SAR",
+        "balance": "-254.0000",
+        "updatedAt": "2026-10-22T06:44:08.792Z",
+        "reconciled": true
+      }
+    },
+    {
+      "label": "after",
+      "method": "GET",
+      "path": "/cash-locations/01a16198-e57d-7532-b598-3caa8ed1bad2/balance",
+      "status": 200,
+      "body": {
+        "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+        "cashLocationId": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+        "currencyCode": "SAR",
+        "balance": "-254.0000",
+        "updatedAt": "2026-10-22T06:44:08.792Z"
+      }
+    }
+  ]
+}
