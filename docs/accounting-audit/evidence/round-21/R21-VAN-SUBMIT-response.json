@@ -1,0 +1,46 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "submit-closing",
+      "method": "POST",
+      "path": "/van-sales/load-orders/01a16359-c210-7691-90a9-75501fd893ad/submit-closing",
+      "request": {
+        "returnedQty": "1",
+        "damagedQty": "0",
+        "collectedCash": "69",
+        "actualRemainingQty": "1",
+        "vehicleCountQty": "1",
+        "closingNotes": "R21 إغلاق: حُمّل 5، بيع 4، مرتجع عميل 1 (رصيد السيارة 2)، أُعيد 1 للمستودع، عجز 1 وحدة"
+      },
+      "status": 422,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 422,
+        "code": "VAN_VEHICLE_COUNT_CONFLICTS_WITH_ORDER_COUNT",
+        "detail": "أُعلن عددُ المركبة كلها (vehicleCountQty) وعددٌ لهذا الأمر وحده (actualRemainingQty) في الطلب نفسه — أرسل أحدهما فقط: فمن عدد المركبة يشتقّ الخادم نصيبَ الأمر بعد طرح عهدة الغير، ولا يُجمعان",
+        "traceId": "01a16369-3281-7594-9b1f-c3ae2c52c856",
+        "errors": [
+          {
+            "field": "vehicleCountQty"
+          }
+        ]
+      }
+    },
+    {
+      "label": "load-after",
+      "method": "GET",
+      "path": "/van-sales/load-orders/01a16359-c210-7691-90a9-75501fd893ad",
+      "status": 404,
+      "body": {
+        "type": "about:blank",
+        "title": "Not found",
+        "status": 404,
+        "code": "NOT_FOUND",
+        "detail": "Cannot GET /api/v1/van-sales/load-orders/01a16359-c210-7691-90a9-75501fd893ad",
+        "traceId": "01a16369-329e-7748-a9b2-5b4191edd1ec"
+      }
+    }
+  ]
+}
