@@ -1,0 +1,17 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/journal-entries/01a16213-2354-7549-b747-4b4884810656/reverse",
+  "request": {
+    "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+    "fiscalPeriodId": "01a16198-e5ea-70d8-a307-d3f9b2d83384",
+    "date": "2026-10-22",
+    "reason": "R19 عكس قيد الاختبار المعزول"
+  },
+  "body": {
+    "data": {
+      "id": "01a16214-8ed3-7449-a0bd-6f246e23f21f",
+      "reversalOf": "01a16213-2354-7549-b747-4b4884810656"
+    }
+  }
+}

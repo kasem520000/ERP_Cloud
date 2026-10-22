@@ -1,0 +1,60 @@
+{
+  "method": "GET",
+  "path": "/hrm/payroll/runs/01a161c3-9604-7698-8faf-024ff320c41f/gosi-preview",
+  "requests": [
+    null
+  ],
+  "elapsedMs": 40,
+  "results": [
+    {
+      "status": 200,
+      "body": {
+        "payrollRunId": "01a161c3-9604-7698-8faf-024ff320c41f",
+        "yearMonth": "2026-10",
+        "establishmentNo": "",
+        "employeeCount": 2,
+        "ready": false,
+        "totalContribution": "2.40",
+        "rows": [
+          {
+            "employeeId": "01a161bb-3aa3-7149-92ce-21dfe375470e",
+            "name": "R18 موظف اختبار معزول",
+            "nationalId": "",
+            "nationality": "غير سعودي",
+            "insuranceNo": "",
+            "basic": "120.00",
+            "housing": "0.00",
+            "contributoryWage": "120.00",
+            "employeeShare": "0.00",
+            "employerShare": "2.40",
+            "occupationalHazard": "2.40",
+            "totalContribution": "2.40",
+            "scheme": "expat",
+            "errors": [
+              "رقم الهوية/الإقامة يجب أن يكون 10 أرقام"
+            ]
+          },
+          {
+            "employeeId": "01a16198-e60b-702b-a818-8978835290c7",
+            "name": "مندوب الشركة",
+            "nationalId": "",
+            "nationality": "غير سعودي",
+            "insuranceNo": "",
+            "basic": "0.00",
+            "housing": "0.00",
+            "contributoryWage": "0.00",
+            "employeeShare": "0.00",
+            "employerShare": "0.00",
+            "occupationalHazard": "0.00",
+            "totalContribution": "0.00",
+            "scheme": "expat",
+            "errors": [
+              "رقم الهوية/الإقامة يجب أن يكون 10 أرقام"
+            ]
+          }
+        ],
+        "csv": "﻿NationalId,EmployeeName,Nationality,InsuranceNo,BasicSalary,HousingAllowance,ContributoryWage,EmployeeShare,EmployerShare,OccupationalHazard,TotalContribution,Scheme\r\n,R18 موظف اختبار معزول,غير سعودي,,120.00,0.00,120.00,0.00,2.40,2.40,2.40,expat\r\n,مندوب الشركة,غير سعودي,,0.00,0.00,0.00,0.00,0.00,0.00,0.00,expat\r\n"
+      }
+    }
+  ]
+}

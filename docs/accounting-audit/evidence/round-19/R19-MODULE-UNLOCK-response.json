@@ -1,0 +1,42 @@
+{
+  "sales": {
+    "method": "POST",
+    "path": "/fiscal-periods/01a16198-e5ea-70d8-a307-d3f9b2d83384/modules/sales/unlock",
+    "requests": [
+      {}
+    ],
+    "elapsedMs": 28,
+    "results": [
+      {
+        "status": 201,
+        "body": {
+          "data": {
+            "periodId": "01a16198-e5ea-70d8-a307-d3f9b2d83384",
+            "module": "sales",
+            "locked": false
+          }
+        }
+      }
+    ]
+  },
+  "accounting": {
+    "method": "POST",
+    "path": "/fiscal-periods/01a16198-e5ea-70d8-a307-d3f9b2d83384/modules/accounting/unlock",
+    "requests": [
+      {}
+    ],
+    "elapsedMs": 24,
+    "results": [
+      {
+        "status": 201,
+        "body": {
+          "data": {
+            "periodId": "01a16198-e5ea-70d8-a307-d3f9b2d83384",
+            "module": "accounting",
+            "locked": false
+          }
+        }
+      }
+    ]
+  }
+}

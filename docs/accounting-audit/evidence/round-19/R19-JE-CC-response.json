@@ -1,0 +1,56 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/journal-entries",
+  "request": {
+    "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+    "fiscalPeriodId": "01a16198-e5ea-70d8-a307-d3f9b2d83384",
+    "date": "2026-10-22",
+    "time": "05:25",
+    "isVat": false,
+    "description": "R19-JE-CC إطفاء مصروف كهرباء مدفوع مقدماً 6 على مركز R19-CC اختبار معزول",
+    "lines": [
+      {
+        "accountId": "01a16198-e5c7-776b-91fe-9b1ec493427b",
+        "debit": "6.00",
+        "credit": "0.00",
+        "costCenterId": "01a16212-96e9-751f-b3ac-d988635a8e28",
+        "description": "R19 كهرباء أكتوبر"
+      },
+      {
+        "accountId": "01a16198-e5b7-73a8-a22a-9ee7974a0a23",
+        "debit": "0.00",
+        "credit": "6.00",
+        "description": "R19 من المدفوع مقدماً"
+      }
+    ]
+  },
+  "body": {
+    "data": {
+      "id": "01a16213-2354-7549-b747-4b4884810656",
+      "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+      "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+      "fiscalPeriodId": "01a16198-e5ea-70d8-a307-d3f9b2d83384",
+      "date": "2026-10-22",
+      "number": "JE-000023",
+      "entryTime": "05:25:00",
+      "isVat": false,
+      "kind": "manual",
+      "status": "posted",
+      "description": "R19-JE-CC إطفاء مصروف كهرباء مدفوع مقدماً 6 على مركز R19-CC اختبار معزول",
+      "sourceType": null,
+      "sourceId": null,
+      "reversalOf": null,
+      "idempotencyKey": null,
+      "postedAt": "2026-10-22T05:26:23.829Z",
+      "postedBy": null,
+      "createdAt": "2026-10-22T05:26:23.820Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "legacySource": null,
+      "legacyId": null
+    }
+  }
+}

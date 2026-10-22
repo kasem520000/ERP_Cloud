@@ -1,0 +1,53 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/projects/01a1621b-a444-75fc-aa69-00f2916da66c/progress-bills",
+  "request": {
+    "billDate": "2026-10-22",
+    "lines": [
+      {
+        "termId": "01a1621c-46ed-7182-b2be-2ddc99bb1f9c",
+        "billPct": "50"
+      }
+    ]
+  },
+  "body": {
+    "data": {
+      "id": "01a1621c-ec6a-71c6-a2ba-83a97a2db6c8",
+      "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+      "projectId": "01a1621b-a444-75fc-aa69-00f2916da66c",
+      "number": "PB-000001",
+      "billDate": "2026-10-22",
+      "status": "draft",
+      "workValue": "50.0000",
+      "previousValue": "0.0000",
+      "retentionValue": "5.0000",
+      "netDue": "45.0000",
+      "invoiceId": null,
+      "postedAt": null,
+      "releasedAt": null,
+      "summary": {
+        "remainingAfter": "50.0000"
+      },
+      "createdAt": "2026-10-22T05:37:05.131Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "legacySource": null,
+      "legacyId": null,
+      "lines": [
+        {
+          "billId": "01a1621c-ec6a-71c6-a2ba-83a97a2db6c8",
+          "lineNo": 1,
+          "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+          "termId": "01a1621c-46ed-7182-b2be-2ddc99bb1f9c",
+          "billPct": "50.0000",
+          "billValue": "50.0000",
+          "previousValue": "0.0000",
+          "remainingValue": "50.0000"
+        }
+      ]
+    }
+  }
+}

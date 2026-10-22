@@ -1,0 +1,20 @@
+{
+  "method": "POST",
+  "path": "/fiscal-periods/01a16198-e5ea-70d8-a307-d3f9b2d83384/modules/sales/lock",
+  "requests": [
+    {}
+  ],
+  "elapsedMs": 38,
+  "results": [
+    {
+      "status": 201,
+      "body": {
+        "data": {
+          "periodId": "01a16198-e5ea-70d8-a307-d3f9b2d83384",
+          "module": "sales",
+          "locked": true
+        }
+      }
+    }
+  ]
+}

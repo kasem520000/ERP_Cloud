@@ -1,0 +1,13 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/projects/progress-bills/01a1621c-ec6a-71c6-a2ba-83a97a2db6c8/release-retention",
+  "request": {
+    "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57"
+  },
+  "body": {
+    "data": {
+      "retentionReleaseInvoiceId": "01a1621e-b4a6-73ae-86b3-8537910bdb8d"
+    }
+  }
+}

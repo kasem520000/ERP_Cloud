@@ -1,0 +1,101 @@
+{
+  "method": "POST",
+  "path": "/hrm/payroll/runs/01a161c3-9604-7698-8faf-024ff320c41f/reverse",
+  "requests": [
+    {
+      "reason": "R19 عكس مسيّر غير مدفوع اختبار معزول"
+    }
+  ],
+  "elapsedMs": 46,
+  "results": [
+    {
+      "status": 201,
+      "body": {
+        "data": {
+          "id": "01a161c3-9604-7698-8faf-024ff320c41f",
+          "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+          "periodId": "01a16198-e5ea-70d8-a307-d3f9b2d83384",
+          "yearMonth": "2026-10",
+          "status": "reversed",
+          "currency": "SAR",
+          "summary": {
+            "preview": {
+              "lines": [
+                {
+                  "net": "140.0000",
+                  "gross": "120.0000",
+                  "additions": "30.0000",
+                  "components": {
+                    "basic": "120"
+                  },
+                  "deductions": "10.0000",
+                  "employeeId": "01a161bb-3aa3-7149-92ce-21dfe375470e",
+                  "employeeName": "R18 موظف اختبار معزول",
+                  "unpaidFactor": "1.000000"
+                },
+                {
+                  "net": "0.0000",
+                  "gross": "0.0000",
+                  "additions": "0.0000",
+                  "components": {},
+                  "deductions": "0.0000",
+                  "employeeId": "01a16198-e60b-702b-a818-8978835290c7",
+                  "employeeName": "مندوب الشركة",
+                  "unpaidFactor": "1.000000"
+                }
+              ],
+              "yearMonth": "2026-10",
+              "netPayable": "140.0000",
+              "employeeCount": 2
+            }
+          },
+          "journalEntryId": "01a16218-c711-7153-9f4a-7704eebcc451",
+          "voucherId": null,
+          "postedAt": "2026-10-22T05:32:33.433Z",
+          "paidAt": null,
+          "reversedAt": "2026-10-22T05:33:25.342Z",
+          "reversalReason": "R19 عكس مسيّر غير مدفوع اختبار معزول",
+          "createdAt": "2026-10-22T03:59:30.308Z",
+          "createdBy": null,
+          "updatedAt": "2026-10-22T05:33:25.342Z",
+          "updatedBy": null,
+          "version": 1,
+          "legacySource": null,
+          "legacyId": null,
+          "lines": [
+            {
+              "runId": "01a161c3-9604-7698-8faf-024ff320c41f",
+              "lineNo": 1,
+              "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+              "employeeId": "01a161bb-3aa3-7149-92ce-21dfe375470e",
+              "components": {
+                "basic": "120"
+              },
+              "additions": "30.0000",
+              "deductions": "10.0000",
+              "gross": "120.0000",
+              "net": "140.0000",
+              "costCenterId": null,
+              "status": "draft",
+              "payslipHtml": "<!doctype html><html dir=\"rtl\"><body><h1>قسيمة راتب 2026-10</h1><p>R18 موظف اختبار معزول: 140.0000</p></body></html>"
+            },
+            {
+              "runId": "01a161c3-9604-7698-8faf-024ff320c41f",
+              "lineNo": 2,
+              "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+              "employeeId": "01a16198-e60b-702b-a818-8978835290c7",
+              "components": {},
+              "additions": "0.0000",
+              "deductions": "0.0000",
+              "gross": "0.0000",
+              "net": "0.0000",
+              "costCenterId": null,
+              "status": "draft",
+              "payslipHtml": "<!doctype html><html dir=\"rtl\"><body><h1>قسيمة راتب 2026-10</h1><p>مندوب الشركة: 0.0000</p></body></html>"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

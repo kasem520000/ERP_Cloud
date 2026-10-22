@@ -1,0 +1,14 @@
+{
+  "status": 409,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/vouchers/01a161ad-0b5b-74fe-b730-8f40fa7c0ac6/post",
+  "request": {},
+  "body": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "PERIOD_MODULE_LOCKED",
+    "detail": "Module accounting is locked for this fiscal period",
+    "traceId": "01a16217-a5f5-73bd-96ab-81d0062633ae"
+  }
+}
