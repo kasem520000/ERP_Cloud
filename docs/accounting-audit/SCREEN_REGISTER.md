@@ -504,3 +504,26 @@
 | `/projects` → `[id]` (+ `/projects/cost`) | PROJ-CREATE، BOQ-TERM، PB-CREATE، PB-POST، PB-RELEASE | 50/5/45 ✓؛ «القيمة —/المستخلص سابقاً —» (UI-022/023)؛ منتقيات حسابات بلا تقييد (UI-025)؛ المحتجز في AR (ACC-056)؛ الإفراج فاتورة بيع عادية (ACC-057)؛ قيود بلا مركز المشروع (ACC-059) |
 | `/projects/contractor-contract`، `/projects/contractor-payment` | CONTRACT-CREATE/ACTIVATE، CPAY-CREATE/APPROVE/PAY | يمنع عقداً بلا بنود ✓؛ شرائح 40/4/36 والمتبقي/المحتجز ✓؛ «المشروع: –» (UI-024)؛ الصرف «مدفوع» بسند مسودة (ACC-058) |
 | شاشات التقارير/المستندات (52) | R19-REPORT-* | مطابقة للأستاذ: ميزان، أرصدة الحسابات، الأستاذ العام (UI-019)، تقييم المخزون، حركة الصنف (إجمالي UI-017)، مستندات المخزون، مبيعات POS، وردية الكاشير، أرصدة مراكز التكلفة، مستخلصات المشاريع، صافي الإقرار؛ مخالفة: قائمة الدخل (ACC-002)، أعمار الذمم (ACC-042)، أرصدة/كشوف الأطراف (ACC-004/UI-011)، ربحية الفواتير/المبيعات حسب المندوب (ACC-001)، كشف الصندوق (UI-012)، إجمالي الميزانية (UI-017)؛ بطاقات SI-000009/المسودتين توثّق ACC-057/050/051 |
+
+## تحديث R20 — 2026-10-22
+| المسار | معرّفات R20 | ما ثبت |
+|---|---|---|
+| `/treasury/transfers` (مناقلات نقدية) | CT-CREATE/SEND/RECEIVE، CT2-CREATE/CANCEL | إرسال/استلام عبر 1211003 بقيدين ✓؛ حراس الحالة 422 (API) ✓؛ الإجمالي يجمع المسودة/الملغاة (UI-027) |
+| `/treasury/vouchers?kind=…` → بطاقة السند | PV36-POST، RV50-POST | ترحيل مسودة يرقّمها ويقيّدها ✓؛ صرف المقاول 36 يُدين 22111001 بلا التزام (ACC-058) |
+| `/treasury` / `/accounting/cash-locations` | CASH-RECALC (API) | `recalc-balance` بلا أثر (ACC-060)؛ الفرعي −254 مقابل أستاذ 49766 |
+| `/purchases/invoices/new` → `[id]` | PI-DISC-DRAFT/POST، PI-LOT-DRAFT/POST | خصم سطر + خصم فاتورة محسوبان ✓؛ القيد إجمالي والمخزون صافٍ (ACC-061)؛ شراء على دفعة بلا `lot_id` في الحركة (ACC-067) |
+| `/sales/customers/new` → بطاقة العميل | CUST-CREATE، CUST-LIMIT-RESTORE | حد ائتمان يُحفظ ولا يُنفَّذ (ACC-062)؛ Cashier يعدّله (ACC-068) |
+| `/sales/invoices/new` → `[id]` | SI-DISC-DRAFT/POST، SI7-VOID، SI-LOT-*، SI-LOT-UNKNOWN-* | آجلة فوق الحد تُقبل (ACC-062)؛ الإلغاء يعكس القيد والمخزون ✓ والثاني 409 ✓؛ رقم دفعة مجهول يُقبل ويُنشئها (ACC-066) |
+| `/sales/returns` | SR-OVER، SR-PARTIAL-DRAFT/POST | حارس الكمية 422 ✓؛ المردود يتجاهل خصم الفاتورة (ACC-063) |
+| `/treasury/bank-reconciliation` (+ قواعد المطابقة عبر API) | BANK-RULE/AUTOMATCH/CLEANUP | القاعدة تقترح الحساب وتترك السطر pending ✓؛ unmatch على pending 200 (ACC-064) |
+| `/projects/contractor-payment`، `/projects/contractor-contract` | CPAY-RET-OVER/RET4، CC2-*، CPAY-ADV-OVER/ADV20، CPAY-PROG50 | حراس المحتجز/الدفعة المقدمة 422 ✓؛ شرائح 50/20/30 ✓؛ «مدفوع» بسندات مسودة بلا قيد (ACC-058) |
+| `/projects/contracting-return` | CRET-CREATE/POST، CRET-NOTE-POST (API) | 10 / 1 / 9 ✓؛ الترحيل بلا قيد/محتجز وإشعار مسودة (ACC-065)؛ الإشعار يُرحَّل في فترة مقفلة بلا قيد (ACC-027) |
+| `/projects/offers` → بطاقة العرض → مشروع | OFFER-CREATE/SEND/ACCEPT/CONVERT | دورة الحالة ✓؛ التحويل يحفظ 200 ومحتجز 5 % ✓؛ بلا أثر مالي (سياسة) |
+| `/inventory/items/new`، `/inventory/lots`، `/inventory/expiry`، `/inventory/item-card` | ITEM-LOT، LOT-CREATE، LOT-REPORTS | تتبع بدفعات شكلي: لا أرصدة لكل دفعة، الصلاحية تنسب رصيد الصنف لكل دفعة (ACC-067)؛ دفعة R20-NOPE بلا صلاحية (ACC-066)؛ بطاقة الصنف ✓ |
+| `/inventory/adjustments/new` → `[id]` | ADJ-CREATE/POST | المسودة «مطابق / 0 / 0» (UI-028)؛ الاعتماد −2 / 25.80 بقيد صحيح ✓ |
+| `/hrm/adjustments`، `/hrm/payroll` → `[id]` | HR-DEDUCT/APPROVE، PAYROLL-NOV-PREVIEW/RUN/POST/PAY/EXPORTS | خصم 5 ✓ معاينة 115 ✓؛ القيد بالصافي داخل المصروف (سياسة)؛ فترة 2026-11 بتاريخ 2026-10-22 (ACC-070)؛ الصرف إلى 22111001 (ACC-040)؛ WPS/GOSI 422 ✓؛ تقرير الرواتب لا يرى صرف المسيّر (UI-029) |
+| `/pos` (تعليق/استرجاع) | POS-HOLD، POS-RECALL-SALE | تعليق واستهلاك ✓؛ بيع نقدي 20 شامل بقيد صحيح ✓ |
+| `/accounting/periods` | PERIOD-CLOSE-OCT(-2)، PERIOD-REOPEN-OCT(-2)، POST-IN-CLOSED-2 | الإقفال يمنع السند/القيد 409 ✓ ولا يمنع الإشعار (ACC-027)؛ إعادة فتح بلا سبب 500 (ACC-069)؛ الشاشة لا تعرض سبب إعادة الفتح |
+| `/accounting/journal-entries/new` (بالكود) | PERIOD-BYPASS-PROBE (API) | قائمة الفترات المفتوحة + تاريخ حر → قيد في شهر مقفل يُرحَّل (ACC-070) — إعادة من الشاشة بالصور مؤجَّلة |
+| `/settings/users` / الأدوار | SOD-CASHIER، SOD-ACCOUNTANT، USERS-ROLES | 403 لما يتجاوز الدور ✓ عدا `parties.manage` للكاشير (ACC-068)؛ Accountant يجمع الإعداد والاعتماد (سياسة) |
+| `/sales/statements`، `/reports/*` (61 عرضاً) | R20-REPORT-* | مطابقة للأستاذ: ميزان، أرصدة الحسابات، الأستاذ العام، الميزانية، الإقرار، التقييم، المستويات، حركة المواد، بطاقة الصنف، المناقلات، حركة الخزينة، الفترات؛ مخالفة: قائمة الدخل (ACC-002)، أعمار الذمم (ACC-042)، أرصدة/كشوف الأطراف (ACC-004/UI-011)، كشف الصندوق (UI-012)، ربحية الفواتير (ACC-001)، تقرير الرواتب (UI-029)، منتقي الإشعار (UI-030)، فواتير المقاولات بلا مرتجع (ACC-065) |
