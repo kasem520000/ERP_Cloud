@@ -477,6 +477,7 @@ export type JournalLineInput = {
   salesmanId?: string;
   currencyCode?: string;
   currencyAmount?: string;
+  fxRate?: string;
 };
 
 /**
@@ -962,12 +963,19 @@ export class AccountingService {
     });
   }
 
-  async reopenPeriod(tenantId: string, periodId: string, reason: string) {
-    if (!reason.trim()) throw new Error('Reopen reason is required');
+  async reopenPeriod(tenantId: string, periodId: string, reason?: string) {
+    if (!reason || !reason.trim())
+      throw new DomainError('REOPEN_REASON_REQUIRED', 'Reopen reason is required', 422, { field: 'reason' });
     await withTenantTx(this.database.db, tenantId, async (tx) => {
-      const [period] = await tx.select().from(fiscalPeriods).where(and(eq(fiscalPeriods.id, periodId), eq(fiscalPeriods.tenantId, tenantId)));
-      if (!period) throw new Error('Fiscal period not found');
-      await tx.update(fiscalPeriods).set({ status: 'open', closedAt: null, closedBy: null }).where(eq(fiscalPeriods.id, periodId));
+      const [period] = await tx
+        .select()
+        .from(fiscalPeriods)
+        .where(and(eq(fiscalPeriods.id, periodId), eq(fiscalPeriods.tenantId, tenantId)));
+      if (!period) throw new DomainError('FISCAL_PERIOD_NOT_FOUND', 'Fiscal period not found', 404);
+      await tx
+        .update(fiscalPeriods)
+        .set({ status: 'open', closedAt: null, closedBy: null, notes: `سبب إعادة الفتح: ${reason.trim()}` })
+        .where(eq(fiscalPeriods.id, periodId));
     });
   }
 
@@ -1225,12 +1233,12 @@ export class AccountingService {
     return { id: reversalId, number: allocated.display, reversalOf: entryId, reused: false };
   }
 
-  async reverseJournal(tenantId: string, entryId: string, input: { branchId: string; fiscalPeriodId: string; date: string; reason: string }) {
+  async reverseJournal(tenantId: string, entryId: string, input: { branchId?: string; fiscalPeriodId?: string; date?: string; reason: string }) {
     /**
      * أخطاء العكس أخطاءُ تحقّق لا أعطالٌ داخلية: `Error` عادية كانت تخرج 500 بلا كود، فلا
      * تعرف الشاشة هل السبب مُغلق الفترة أم قيدٌ غير مُرحَّل. صارت `DomainError` بكود وحالة.
      */
-    if (!input.reason.trim())
+    if (!input.reason?.trim())
       throw new DomainError('REVERSAL_REASON_REQUIRED', 'سبب العكس مطلوب — يُحفظ في السجلّ التدقيقي', 422, {
         field: 'reason',
       });
@@ -1252,16 +1260,23 @@ export class AccountingService {
           field: 'entryId',
           reversalId: existing.id,
         });
-      const [period] = await tx.select().from(fiscalPeriods).where(and(eq(fiscalPeriods.id, input.fiscalPeriodId), eq(fiscalPeriods.tenantId, tenantId)));
+
+      const date = input.date?.trim() || original.date;
+      const fiscalPeriodId =
+        input.fiscalPeriodId ?? (await this.openPeriodForDateInTx(tx, tenantId, date));
+      const [period] = await tx
+        .select()
+        .from(fiscalPeriods)
+        .where(and(eq(fiscalPeriods.id, fiscalPeriodId), eq(fiscalPeriods.tenantId, tenantId)));
       if (!period || period.status !== 'open')
         throw new DomainError('FISCAL_PERIOD_CLOSED', 'فترة العكس مغلقة أو غير متاحة — اختر فترة مفتوحة', 409, {
           field: 'fiscalPeriodId',
         });
       const reversed = await this.reverseJournalInTx(tx, tenantId, entryId, {
         reason: input.reason,
-        date: input.date,
+        date,
         branchId: input.branchId,
-        fiscalPeriodId: input.fiscalPeriodId,
+        fiscalPeriodId,
       });
       return { id: reversed.id, reversalOf: entryId };
     });
@@ -2018,7 +2033,7 @@ export class AccountingService {
           ? 'purchases'
           : input.sourceType === 'stock_voucher' || input.sourceType === 'inventory_adjustment' || input.sourceType === 'stock_count'
             ? 'inventory'
-            : input.sourceType === 'payment_voucher' || input.sourceType === 'receipt_voucher' || input.sourceType === 'cash_shift'
+            : input.sourceType === 'payment_voucher' || input.sourceType === 'receipt_voucher' || input.sourceType === 'cash_shift' || input.sourceType === 'voucher'
               ? 'treasury'
               : input.sourceType === 'payroll_run'
                 ? 'payroll'
@@ -2097,6 +2112,7 @@ export class AccountingService {
       credit: line.credit ?? '0',
       currencyCode: line.currencyCode ?? null,
       currencyAmount: line.currencyAmount ?? null,
+      fxRate: line.fxRate ?? null,
       costCenterId: line.costCenterId ?? null,
       partyId: line.partyId ?? null,
       branchId: line.branchId ?? input.branchId,
@@ -2802,6 +2818,9 @@ export class AccountingService {
           costCenterId: journalEntryLines.costCenterId,
           partyId: journalEntryLines.partyId,
           salesmanId: journalEntryLines.salesmanId,
+          currencyCode: journalEntryLines.currencyCode,
+          currencyAmount: journalEntryLines.currencyAmount,
+          fxRate: journalEntryLines.fxRate,
           description: journalEntryLines.description,
         })
         .from(journalEntryLines)

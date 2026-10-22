@@ -466,6 +466,12 @@ export class BankFeedsService {
   async unmatchLine(tenantId: string, statementId: string, lineId: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const line = await this.mustLine(tx, tenantId, statementId, lineId);
+      if (line.status === 'pending') {
+        throw new DomainError('LINE_NOT_MATCHED', 'Bank statement line is not matched', 409, {
+          field: 'lineId',
+          status: line.status,
+        });
+      }
       const [updated] = await tx
         .update(bankStatementLines)
         .set({

@@ -130,8 +130,8 @@ export class AccountingController {
 
   @Post('fiscal-periods/:id/reopen')
   @RequiresPermission('accounting.period.reopen')
-  async reopenPeriod(@Param('id') id: string, @Body() body: { reason: string }) {
-    await this.accounting.reopenPeriod(getTenantContext().tenantId, id, body.reason);
+  async reopenPeriod(@Param('id') id: string, @Body() body: { reason?: string }) {
+    await this.accounting.reopenPeriod(getTenantContext().tenantId, id, body?.reason);
     return { data: { id, status: 'open' } };
   }
 
@@ -444,7 +444,10 @@ export class AccountingController {
 
   @Post('journal-entries/:id/reverse')
   @RequiresPermission('accounting.journal.reverse')
-  async reverseJournal(@Param('id') id: string, @Body() body: { branchId: string; fiscalPeriodId: string; date: string; reason: string }) {
+  async reverseJournal(
+    @Param('id') id: string,
+    @Body() body: { branchId?: string; fiscalPeriodId?: string; date?: string; reason: string },
+  ) {
     return { data: await this.accounting.reverseJournal(getTenantContext().tenantId, id, body) };
   }
 }
