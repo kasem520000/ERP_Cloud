@@ -1,6 +1,6 @@
 {
- "passed": 93,
- "failed": 34,
+ "passed": 107,
+ "failed": 43,
  "checks": [
   {
    "name": "ITEM / ITEM-LOT http",
@@ -1017,6 +1017,190 @@
    "ok": false,
    "evidence": "R21-DB-072",
    "defect": "ACC-077"
+  },
+  {
+   "name": "TRIAL-BALANCE API rows equal final DB balances account by account",
+   "actual": "[('1160001', Decimal('20000.0000')), ('1211001', Decimal('50056.0000')), ('1221001', Decimal('180000.0000')), ('1270001', Decimal('150.0000')), ('2110001', Decimal('-250000.0000')), ('22111001', Decimal('-194.0000')), ('2222001', Decimal('18.0000')), ('3121004', Decimal('10.0000')), ('3200004', Decimal('40.0000')), ('4100001', Decimal('-100.0000')), ('4100002', Decimal('20.0000'))]",
+   "expected": "[('1160001', Decimal('20000.0000')), ('1211001', Decimal('50056.0000')), ('1221001', Decimal('180000.0000')), ('1270001', Decimal('150.0000')), ('2110001', Decimal('-250000.0000')), ('22111001', Decimal('-194.0000')), ('2222001', Decimal('18.0000')), ('3121004', Decimal('10.0000')), ('3200004', Decimal('40.0000')), ('4100001', Decimal('-100.0000')), ('4100002', Decimal('20.0000'))]",
+   "ok": true,
+   "evidence": "R21-API-TRIAL-BALANCE.json",
+   "defect": null
+  },
+  {
+   "name": "TRIAL-BALANCE totals debit = credit",
+   "actual": "0.0000",
+   "expected": "0",
+   "ok": true,
+   "evidence": "R21-API-TRIAL-BALANCE.json",
+   "defect": null
+  },
+  {
+   "name": "BALANCE-SHEET profit row 30 (sales 80 net - COGS 40 - adjustment 10) and sides 250206 = 250206",
+   "actual": "(Decimal('30.0000'), Decimal('250206.0000'), Decimal('250206.0000'))",
+   "expected": "(Decimal('30'), Decimal('250206'), Decimal('250206'))",
+   "ok": true,
+   "evidence": "R21-API-BALANCE-SHEET.json",
+   "defect": null
+  },
+  {
+   "name": "BALANCE-SHEET footer \"balance\" must be one side (250206); actual sums both sides",
+   "actual": "500412.00",
+   "expected": "250206",
+   "ok": false,
+   "evidence": "R21-API-BALANCE-SHEET.json",
+   "defect": "UI-017"
+  },
+  {
+   "name": "INCOME-STATEMENT net profit must be 30 (perpetual COGS already booked); actual adds closing stock 150 → 180",
+   "actual": "180.0000",
+   "expected": "30",
+   "ok": false,
+   "evidence": "R21-API-INCOME-STATEMENT.json",
+   "defect": "ACC-002"
+  },
+  {
+   "name": "VAT-RETURN buckets: sales 100 / 15, returns -20 / -3, purchases 200 / -30 → net -18 = VAT control debit 18",
+   "actual": "([('مبيعات خاضعة', Decimal('100.0000'), Decimal('15.0000')), ('مردود مبيعات', Decimal('-20.0000'), Decimal('-3.0000')), ('مشتريات خاضعة', Decimal('200.0000'), Decimal('-30.0000')), ('مردود مشتريات', Decimal('0'), Decimal('0'))], Decimal('-18.00'), Decimal('18.0000'))",
+   "expected": "([('مبيعات خاضعة', Decimal('100'), Decimal('15')), ('مردود مبيعات', Decimal('-20'), Decimal('-3')), ('مشتريات خاضعة', Decimal('200'), Decimal('-30')), ('مردود مشتريات', Decimal('0'), Decimal('0'))], Decimal('-18'), Decimal('18'))",
+   "ok": true,
+   "evidence": "R21-API-VAT-RETURN.json",
+   "defect": null
+  },
+  {
+   "name": "CASH-STATEMENT report must list the cash journal lines (50000, -36, 46, 23, 23) reaching 50056; actual only \"رصيد سابق 0.00\"",
+   "actual": "(1, Decimal('0.00'))",
+   "expected": "(6, Decimal('50056'))",
+   "ok": false,
+   "evidence": "R21-API-CASH-STATEMENT.json",
+   "defect": "UI-012"
+  },
+  {
+   "name": "CASH-MOVEMENTS (cash-locations/:id/movements?all=1) totalAll 50056 = GL cash, 5 rows",
+   "actual": "(Decimal('50056.0000'), 5, [('JE-000001', Decimal('50000.0000')), ('JE-000003', Decimal('-36.0000')), ('JE-000006', Decimal('46.0000')), ('JE-000009', Decimal('23.0000')), ('JE-000012', Decimal('23.0000'))])",
+   "expected": "(Decimal('50056'), 5, [('JE-000001', Decimal('50000')), ('JE-000003', Decimal('-36')), ('JE-000006', Decimal('46')), ('JE-000009', Decimal('23')), ('JE-000012', Decimal('23'))])",
+   "ok": true,
+   "evidence": "R21-API-CASH-MOVEMENTS.json",
+   "defect": null
+  },
+  {
+   "name": "CASH-BALANCE sub-ledger endpoint -13 vs GL 50056 (same gap as DB)",
+   "actual": "-13.0000",
+   "expected": "-13.0000",
+   "ok": true,
+   "evidence": "R21-API-CASH-BALANCE.json",
+   "defect": null
+  },
+  {
+   "name": "CUST-BALANCE CUST-GEN receivable must be 0 (46 - 23 return - 23 collected); actual -92 (sums every party-tagged line: sales, VAT, COGS, inventory)",
+   "actual": "(Decimal('-92.0000'), Decimal('0.0000'))",
+   "expected": "(Decimal('0'), Decimal('0'))",
+   "ok": false,
+   "evidence": "R21-API-CUST-BALANCE.json",
+   "defect": "ACC-004"
+  },
+  {
+   "name": "CUST-STATEMENT open lines mix non-AR accounts (sales/VAT/COGS/inventory) under the customer",
+   "actual": "6",
+   "expected": "1",
+   "ok": false,
+   "evidence": "R21-API-CUST-STATEMENT.json",
+   "defect": "ACC-004"
+  },
+  {
+   "name": "SUPP-BALANCE SUPP-GEN payable must be 194 (230 PI - 36 paid) / receivable 0; actual receivable 36 payable 0",
+   "actual": "(Decimal('36.0000'), Decimal('0.0000'))",
+   "expected": "(Decimal('0'), Decimal('194'))",
+   "ok": false,
+   "evidence": "R21-API-SUPP-BALANCE.json",
+   "defect": "ACC-004"
+  },
+  {
+   "name": "INVENTORY-VALUATION 15 / 150 = GL inventory 150",
+   "actual": "(Decimal('15.00'), Decimal('150.00'), Decimal('150.0000'))",
+   "expected": "(Decimal('15'), Decimal('150'), Decimal('150'))",
+   "ok": true,
+   "evidence": "R21-API-INV-VALUATION.json",
+   "defect": null
+  },
+  {
+   "name": "ITEM-CARD R21-ITEM in 30 / 300, out 15 / 150, closing 15 / 150 (12 rows, all warehouses)",
+   "actual": "('30.0000', '15.0000', '15.0000', '150.0000', 12)",
+   "expected": "('30.0000', '15.0000', '15.0000', '150.0000', 12)",
+   "ok": true,
+   "evidence": "R21-API-ITEM-CARD.json",
+   "defect": null
+  },
+  {
+   "name": "LEVELS MAIN 15 / 150 avg 10, VAN-1 0 (rows compared without warehouse ids: the re-captured layer lives on the rebuilt seed whose ids differ)",
+   "actual": "(2, [(Decimal('0.0000'), Decimal('0.0000'), Decimal('0.0000')), (Decimal('15.0000'), Decimal('150.0000'), Decimal('10.0000'))])",
+   "expected": "(2, [(Decimal('0'), Decimal('0'), Decimal('0')), (Decimal('15'), Decimal('150'), Decimal('10'))])",
+   "ok": true,
+   "evidence": "R21-API-LEVELS.json",
+   "defect": null
+  },
+  {
+   "name": "VAN-REPORTS collected 92 = 46 + 23 + 23, credit receivables 0, net profit 40, shortage 1 / 10, loaded 7, sold 5",
+   "actual": "(Decimal('92.00'), Decimal('0.00'), Decimal('40.00'), Decimal('1.00'), Decimal('10.00'), Decimal('7.00'), Decimal('5.00'))",
+   "expected": "(Decimal('92'), Decimal('0'), Decimal('40'), Decimal('1'), Decimal('10'), Decimal('7'), Decimal('5'))",
+   "ok": true,
+   "evidence": "R21-API-VAN-REPORTS.json",
+   "defect": null
+  },
+  {
+   "name": "VAN-REPORTS remainingInVansKg must be 0 (both orders settled, VAN-1 stock 0, repCustody custodyRemainingKg 0); actual 1",
+   "actual": "(Decimal('1.00'), Decimal('0.00'))",
+   "expected": "(Decimal('0'), Decimal('0'))",
+   "ok": false,
+   "evidence": "R21-API-VAN-REPORTS.json",
+   "defect": "ACC-086"
+  },
+  {
+   "name": "VAN-REPORTS totalReturnedKg must count the customer return 1 (VRT-00001); actual 0",
+   "actual": "0.00",
+   "expected": "1",
+   "ok": false,
+   "evidence": "R21-API-VAN-REPORTS.json",
+   "defect": "ACC-077"
+  },
+  {
+   "name": "APPROVALS-HISTORY empty on the third seed (no workflow here) — the D-block requests lived in the wiped first seed",
+   "actual": "[]",
+   "expected": "[]",
+   "ok": true,
+   "evidence": "R21-API-APPROVALS-HISTORY.json",
+   "defect": null
+  },
+  {
+   "name": "ROLES API lists 5 roles incl. the custom one",
+   "actual": "['Accountant', 'Cashier', 'Owner', 'R21 أمين صندوق مقيد', 'مندوب توزيع']",
+   "expected": "['Accountant', 'Cashier', 'Owner', 'R21 أمين صندوق مقيد', 'مندوب توزيع']",
+   "ok": true,
+   "evidence": "R21-API-ROLES.json",
+   "defect": null
+  },
+  {
+   "name": "SI2 API: SI-000002 posted 46 / paid 23 / partial (return not netted)",
+   "actual": "('posted', Decimal('46.0000'), Decimal('23.0000'), 'partial')",
+   "expected": "('posted', Decimal('46'), Decimal('23'), 'partial')",
+   "ok": true,
+   "evidence": "R21-API-SI2.json",
+   "defect": "ACC-082"
+  },
+  {
+   "name": "CUSTOMER statement screen (sales/statements) receivable must be 0; reproduces ACC-004 on screen",
+   "actual": "-92.0000",
+   "expected": "0",
+   "ok": false,
+   "evidence": "R21-REPORT-CUSTOMER",
+   "defect": "ACC-004"
+  },
+  {
+   "name": "JOURNALS screen (2026-10-01..22 filter) lists the 12 posted October journals (opening JE-000001 is dated 2026-01-01)",
+   "actual": "(12, ['posted'])",
+   "expected": "(12, ['posted'])",
+   "ok": true,
+   "evidence": "R21-REPORT-JOURNALS",
+   "defect": null
   }
  ]
 }

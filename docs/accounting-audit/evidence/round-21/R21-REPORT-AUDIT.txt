@@ -1,0 +1,175 @@
+AUDIT-TEST-2026-R21
+
+سجل التدقيق
+ع
+EN
+12
+م
+مالك الحساب
+الإعدادات
+/التدقيق
+سجلّ المستخدمين
+
+سجلٌّ غير قابل للتعديل لكل عملية: من فعلها، وماذا كانت، ومتى — بالعربية وبأرقام المستندات.
+
+تحديث
+بحث في الأحداث
+نوع العملية
+كل العمليات
+auth.login
+أنشأ
+عدّل
+update.01a163ce-22b3-70b6-9421-a92234f006e4
+update.01a163ce-54bb-745d-a9e5-b338e13a9bb1
+update.01a163d0-479f-7047-9192-603f3ba5bc57
+update.01a163d0-a355-73c9-ac10-337fee4ff293
+update.01a163d1-913e-721a-8e86-cccc5fb46b6f
+update.boq
+update.items
+update.post
+update.scopes
+van_sales.policy.update
+46 من 46 حدثاً
+الأحداث
+
+اختر صفاً لقراءة التفاصيل والفرق قبل/بعد
+
+الوقت	ماذا جرى	المنفّذ	من أين
+22 Oct 2026, 13:35	auth.login جلسة دخول 01a163cb	
+مالك الحساب — owner@demo.test
+	127.0.0.1
+22 Oct 2026, 13:34	update.01a163d1-913e-721a-8e86-cccc5fb46b6f سجل load-ord	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:34	update.01a163d1-913e-721a-8e86-cccc5fb46b6f سجل load-ord	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:34	عدّل سجل policy — «configured»، «preventSelfApproval»، «shortageValuationBasis» و1 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:34	van_sales.policy.update سجل van_sale	
+مستخدم 01a163cb
+	—
+22 Oct 2026, 13:34	عدّل سجل policy — «configured»، «preventSelfApproval»، «shortageValuationBasis» و1 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:34	van_sales.policy.update سجل van_sale	
+مستخدم 01a163cb
+	—
+22 Oct 2026, 13:34	update.01a163d1-913e-721a-8e86-cccc5fb46b6f سجل load-ord	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:34	عدّل سجل document — «customerPriceHistory»، «customerPrices»، «documents» و10 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:34	update.01a163d1-913e-721a-8e86-cccc5fb46b6f سجل load-ord	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:34	عدّل سجل load-ord — «customerPriceHistory»، «customerPrices»، «documents» و10 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:33	update.01a163d0-479f-7047-9192-603f3ba5bc57 سجل load-ord	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:33	update.01a163d0-479f-7047-9192-603f3ba5bc57 سجل load-ord	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:33	update.01a163d0-479f-7047-9192-603f3ba5bc57 سجل load-ord	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:33	عدّل سجل collecti — «customerPriceHistory»، «customerPrices»، «documents» و10 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:33	update.01a163d0-a355-73c9-ac10-337fee4ff293 سجل document	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:33	عدّل سجل document — «customerPriceHistory»، «customerPrices»، «documents» و10 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:32	عدّل سجل document — «customerPriceHistory»، «customerPrices»، «documents» و10 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:32	update.01a163d0-479f-7047-9192-603f3ba5bc57 سجل load-ord	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:32	عدّل سجل load-ord — «customerPriceHistory»، «customerPrices»، «documents» و10 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:32	عدّل سجل 01a163d0 — «applied»، «createdAt»، «createdBy» و7 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:32	عدّل سجل 01a163cf — «backupId»، «createdAt»، «createdBy» و8 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:32	عدّل سجل 01a163cf — «checksum»، «completedAt»، «createdAt» و7 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:32	أنشأ سجل R21 ضيافة ونظافة	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:31	عدّل سجل CUST-GEN — «الرمز»، «createdAt»، «creditLimit» و10 حقولٍ أخرى	
+أمين الصندوق
+	127.0.0.1
+22 Oct 2026, 13:31	عدّل سجل CUST-GEN — «الرمز»، «createdAt»، «creditLimit» و10 حقولٍ أخرى	
+أمين الصندوق
+	127.0.0.1
+22 Oct 2026, 13:31	auth.login جلسة دخول 01a163cb	
+أمين الصندوق — cashier@demo.test
+	127.0.0.1
+22 Oct 2026, 13:31	أنشأ سجل 01a163cf	
+مندوب الشركة
+	127.0.0.1
+22 Oct 2026, 13:31	auth.login جلسة دخول 01a163cb	
+مندوب الشركة — rep@demo.test
+	127.0.0.1
+22 Oct 2026, 13:31	update.scopes سجل 01a163cb	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:31	عدّل سجل 01a163cb — «displayName»، «id»، «isOwner» و7 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:31	عدّل سجل R21 أمين صندوق مقيد — «id»، «isSystem»، «الاسم» و1 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:31	أنشأ سجل R21 أمين صندوق مقيد	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:30	update.post سجل PV-000001	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:30	update.01a163ce-54bb-745d-a9e5-b338e13a9bb1 سجل CP-000001	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:30	update.01a163ce-54bb-745d-a9e5-b338e13a9bb1 سجل CP-000001	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:30	update.01a163ce-22b3-70b6-9421-a92234f006e4 سجل CP-000001	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:30	update.01a163ce-22b3-70b6-9421-a92234f006e4 سجل CC-000001	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:30	عدّل سجل CC-000001 — «advanceAmount»، «advanceIssued»، «advanceOutstanding» و22 حقولٍ أخرى	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:30	update.boq سجل T1	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:30	أنشأ سجل R21-PRJ	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:29	update.post سجل PI-000001	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:29	أنشأ سجل 01a163cd	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:29	update.items سجل R21 صنف توزيع اختبار معزول (إعادة تهيئة)	
+مالك الحساب
+	127.0.0.1
+22 Oct 2026, 13:29	auth.login جلسة دخول 01a163cb	
+مالك الحساب — owner@demo.test
+	127.0.0.1
+22 Oct 2026, 13:29	auth.login جلسة دخول 01a163cb	
+مالك الحساب — owner@demo.test
+	127.0.0.1
