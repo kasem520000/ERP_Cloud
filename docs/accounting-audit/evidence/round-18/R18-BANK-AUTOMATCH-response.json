@@ -1,0 +1,15 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/treasury/bank-statements/01a161af-65d4-76f7-9698-e69c596df83f/auto-match",
+  "request": {},
+  "body": {
+    "data": {
+      "statementId": "01a161af-65d4-76f7-9698-e69c596df83f",
+      "scanned": 6,
+      "matched": 4,
+      "suggested": 0,
+      "pending": 2
+    }
+  }
+}

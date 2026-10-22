@@ -1,0 +1,35 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/treasury/bank-statements/import",
+  "request": {
+    "bankAccountId": "01a161ad-c3e5-735a-b0a2-fcf7845cf10e",
+    "csv": "date,description,reference,amount,balance\n2026-10-22,ايداع من عميل عام R18 تحويل,R18-RV-BANK,5.00,180005.00\n2026-10-22,تحويل عميل بدون سند مرحل,R18-RV-DRAFT7,7.00,180012.00\n2026-10-22,رسوم بنكية,FEE-R18,-2.50,180009.50\n2026-10-22,تحصيل فاتورة بيع SI-000001,R18-SI-46,46.00,180055.50\n2026-10-22,سداد مورد عام R18,R18-PV-38,-38.00,180017.50\n2026-10-22,تحصيل عميل عام R18,R18-RV-10,10.00,180027.50\n",
+    "openingBalance": "180000"
+  },
+  "body": {
+    "data": {
+      "statement": {
+        "id": "01a161ae-6ae3-76ee-b8a8-fbc155c63012",
+        "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+        "bankAccountId": "01a161ad-c3e5-735a-b0a2-fcf7845cf10e",
+        "fileId": null,
+        "periodFrom": "2026-10-22",
+        "periodTo": "2026-10-22",
+        "openingBalance": "180000.0000",
+        "closingBalance": "180027.5000",
+        "status": "processed",
+        "sourceFileName": null,
+        "rowCount": 6,
+        "error": null,
+        "processedAt": "2026-10-22T03:36:23.015Z",
+        "createdAt": "2026-10-22T03:36:23.011Z",
+        "createdBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+        "updatedAt": null,
+        "updatedBy": null,
+        "version": 1
+      },
+      "importedLines": 6
+    }
+  }
+}
