@@ -527,3 +527,18 @@
 | `/accounting/journal-entries/new` (بالكود) | PERIOD-BYPASS-PROBE (API) | قائمة الفترات المفتوحة + تاريخ حر → قيد في شهر مقفل يُرحَّل (ACC-070) — إعادة من الشاشة بالصور مؤجَّلة |
 | `/settings/users` / الأدوار | SOD-CASHIER، SOD-ACCOUNTANT، USERS-ROLES | 403 لما يتجاوز الدور ✓ عدا `parties.manage` للكاشير (ACC-068)؛ Accountant يجمع الإعداد والاعتماد (سياسة) |
 | `/sales/statements`، `/reports/*` (61 عرضاً) | R20-REPORT-* | مطابقة للأستاذ: ميزان، أرصدة الحسابات، الأستاذ العام، الميزانية، الإقرار، التقييم، المستويات، حركة المواد، بطاقة الصنف، المناقلات، حركة الخزينة، الفترات؛ مخالفة: قائمة الدخل (ACC-002)، أعمار الذمم (ACC-042)، أرصدة/كشوف الأطراف (ACC-004/UI-011)، كشف الصندوق (UI-012)، ربحية الفواتير (ACC-001)، تقرير الرواتب (UI-029)، منتقي الإشعار (UI-030)، فواتير المقاولات بلا مرتجع (ACC-065) |
+
+## تحديث R21 — 2026-10-22
+| المسار | معرّفات R21 | ما ثبت |
+|---|---|---|
+| `/inventory/items/new`، `/inventory/lots` | ITEM، ITEM-LOT، LOT-EXPIRED، LOTS-AFTER/FINAL | لوت بتاريخ انتهاء ماضٍ يُقبل (ACC-071) |
+| `/purchases/invoices/new` → `/purchase-invoices/:id` | PI1-*، PI-LOT-*، PI2-*، REBASE-ITEM-PI | ترحيل صحيح؛ بوابة الاعتماد 202 ✓؛ حركة اللوت بلا `lot_id` (ACC-067) |
+| `/sales/invoices/new` → بطاقة | SI-EXP-DRAFT/POST، SR-LOT(+POST) | بيع من لوت منتهٍ يُرحَّل (ACC-071)؛ المردود الكامل يعكس ✓ |
+| `/accounting/periods`، `/accounting/journal-entries/new` | PERIOD-CLOSE-SEP، JE-BACKDATE(+VIEW)، JE-BACKDATE-REVERSE | تاريخ في شهر مقفل بفترة مفتوحة يُرحَّل — من الشاشة بالصور (ACC-070) |
+| `/settings/currencies` (API)، `/treasury/vouchers/new` | CUR-USD، RV-USD-*، RV-YER-* | عملة غير مفعَّلة تُقبل (ACC-072)؛ الفرعي بالعملة الخاطئة (ACC-073) |
+| `/settings/approvals`، `/approvals` (صندوق الوارد) | WF-PI، WF-VOUCHER، APPR-OWNER(-TRY)، APPR-ACCOUNTANT، APPR-SELF-3، WF-*-DEACTIVATE | مسار الشراء كامل ✓؛ مسار السندات لا يعمل (ACC-074)؛ اعتماد ذاتي (ACC-075) |
+| `/projects`, `/projects/contractor-contract`, `/projects/contractor-payment`, `/treasury/vouchers` | PROJ-CREATE، BOQ-TERM، CONTRACT-*، CPAY-*، CPAY-VOUCHER-POST/LIST | مستخلص «مدفوع» بسند مسودة (ACC-058)؛ ترحيله يُدين مورد البضاعة |
+| `/settings/roles`، `/settings/users` | ROLE-CREATE، ROLE-PERMS، USER-ROLE، SOD-CUSTOM، SOD-CASHIER | الدور المخصص محصور ✓؛ Cashier يعدّل طرفاً (ACC-068)؛ الرفض غير مدقَّق (ACC-076) |
+| `/accounting/expenses`، `/settings/backup`، `/settings/restore`، `/settings/audit`، `/settings/invoice-maintenance` | EXPTYPE، BACKUP، RESTORE-DRYRUN، AUDIT-LOG، INVMAINT-PREVIEW | نسخة بلا خطوات الاعتماد (ACC-079)؛ محاكاة بلا تقرير (ACC-080)؛ المعاينة الصحيحة فُقد دليلها |
+| `/van-sales?tab=owner|loads` + API `/van-sales/*` | VAN-*، VAN2-*، VAN-OWNER-SUMMARY، VAN(2)-LOADS-FINAL | الدورة محاسبياً صحيحة؛ الإقفال الصادق مرفوض وجرد وهمي (ACC-077)؛ فائض نقدي وهمي (ACC-078)؛ عجز بسعر البيع (ACC-083)؛ بوابات الحساب/السياسة (ACC-084/085)؛ اللوحة بلا `settledAt` (UI-031)؛ لا `GET load-orders/:id` (ACC-087) |
+| التقارير (49 عرضاً) | — | **فُقدت قبل الالتزام** (ROUND_21_RESULTS §0) |
