@@ -1,0 +1,27 @@
+{
+  "status": 422,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/sales/invoices/01a1625c-4862-70b4-9ded-d210c88d6ded/return",
+  "request": {
+    "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+    "warehouseId": "01a16198-e57b-7003-b1d1-4562344efb18",
+    "partyId": "01a1625c-09e5-7391-9c7b-745f9754fb62",
+    "lines": [
+      {
+        "itemId": "01a161a2-e5fa-733f-bb31-e435012a3cb1",
+        "quantity": "3",
+        "unitPrice": "20.0000",
+        "taxRate": "15.0000",
+        "discountRate": "10.0000"
+      }
+    ]
+  },
+  "body": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "SALES_RETURN_QUANTITY_EXCEEDED",
+    "detail": "Return quantity exceeds the remaining invoice quantity",
+    "traceId": "01a1625d-7249-72c1-a856-9b1b6fa8c606"
+  }
+}

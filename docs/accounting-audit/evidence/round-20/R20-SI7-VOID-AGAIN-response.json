@@ -1,0 +1,23 @@
+{
+  "method": "POST",
+  "path": "/sales/invoices/01a1620a-5c1d-71e7-8cf6-8a62fbeb61f7/void",
+  "requests": [
+    {
+      "reason": "R20 إلغاء ثانٍ للفاتورة نفسها"
+    }
+  ],
+  "elapsedMs": 27,
+  "results": [
+    {
+      "status": 409,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 409,
+        "code": "SALES_INVOICE_INVALID_STATUS",
+        "detail": "Only posted invoices can be voided",
+        "traceId": "01a1625d-333e-75f4-b07f-c77ed81ca65e"
+      }
+    }
+  ]
+}
