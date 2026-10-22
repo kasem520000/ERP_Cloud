@@ -1,0 +1,20 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/purchase-invoices/01a1616b-087b-743a-9419-19b8ef640744/payments",
+  "request": {
+    "amount": "38",
+    "idempotencyKey": "cb44e231-d941-4fd3-b804-a02e72f4c4e8"
+  },
+  "body": {
+    "id": "01a16173-e3f6-74d4-9e74-8fc04cb6579d",
+    "tenantId": "01a1615f-3923-768c-956e-747ec17e7b84",
+    "partyId": "01a1615f-3a78-710b-8200-4f18cc962090",
+    "voucherId": null,
+    "invoiceKind": "purchase",
+    "invoiceId": "01a1616b-087b-743a-9419-19b8ef640744",
+    "amount": "38.0000",
+    "allocatedAt": "2026-10-22T02:32:27.372Z",
+    "createdBy": null
+  }
+}

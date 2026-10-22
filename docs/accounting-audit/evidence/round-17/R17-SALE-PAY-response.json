@@ -1,0 +1,23 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/sales/invoices/01a16170-5bef-73f6-a0c4-8a627eaf5fe2/payments",
+  "request": {
+    "method": "cash",
+    "amount": "10",
+    "cashLocationId": "01a1615f-3a72-72c9-8c12-7d0b945a5a35",
+    "idempotencyKey": "d10e2a8b-62fd-404b-bb3b-ecafeb0507ef"
+  },
+  "body": {
+    "id": "01a16171-b7f3-75af-981e-4e877ab2d3e6",
+    "tenantId": "01a1615f-3923-768c-956e-747ec17e7b84",
+    "invoiceId": "01a16170-5bef-73f6-a0c4-8a627eaf5fe2",
+    "method": "cash",
+    "amount": "10.0000",
+    "cashLocationId": "01a1615f-3a72-72c9-8c12-7d0b945a5a35",
+    "reference": null,
+    "idempotencyKey": "d10e2a8b-62fd-404b-bb3b-ecafeb0507ef",
+    "createdAt": "2026-10-22T02:30:05.042Z",
+    "createdBy": null
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "status": 422,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/sales/invoices/01a16170-5bef-73f6-a0c4-8a627eaf5fe2/payments",
+  "request": {
+    "method": "cash",
+    "amount": "100",
+    "cashLocationId": "01a1615f-3a72-72c9-8c12-7d0b945a5a35",
+    "idempotencyKey": "7a65adf8-e585-4fb3-8f4f-ca35acdc9409"
+  },
+  "body": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "PAYMENT_EXCEEDS_DUE",
+    "detail": "Payment exceeds invoice balance",
+    "traceId": "01a16172-5e46-74f8-a896-006eebd9c328"
+  }
+}
