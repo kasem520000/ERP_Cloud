@@ -30,7 +30,16 @@
 ## 2. سجل التشغيل
 | الكتلة | المراحل | الحالة | الالتزام | ملاحظات |
 |---|---|---|---|---|
-| خط الأساس | `R25-DB-000-BASELINE` (= R24 DB-038) | ✓ | هذا الالتزام | `round25-snapshot.cjs` يتحقق من عزل القاعدة (مستأجر R24 + Platform فقط) |
+| خط الأساس | `R25-DB-000-BASELINE` (= R24 DB-038) | ✓ | «R25: continuity (expectations) + snapshot script + baseline DB-000» | `round25-snapshot.cjs` يتحقق من عزل القاعدة (مستأجر R24 + Platform فقط) |
+| الرنر | `round25-main.cjs` كُتب (25 مرحلة) | ✓ | «R25: runner (25 stages …)» | `R25_PHASE/R25_FROM/R25_UNTIL`، موافقة يدوية `.approve` بعد مراجعة كل `-before.png` |
+| 1–6 | SETTINGS-READ، PI-ROUND-DRAFT/POST (PI-000003، JE-000011)، SI-ROUND-DRAFT/POST (SI-000003، JE-000012)، API-TRUST (SI-000004/JE-000013، SI-000005/JE-000014، مسودة 99 %، كمية سالبة 500) | ✓ | «R25: runner evidence — 25 stages …» | DB-001…006 |
+| 7–9 | PRICE-LIST-CREATE (R25-VIP)، PRICE-LIST-ITEM (18)، PRICE-LIST-EFFECT (الشاشة 20.0000) | ✓ | نفسه | DB-007…009 |
+| 10–13 | CT-CROSS (CT-000001، JE-000015/16 على MAIN)، TR-DRAFT/SEND/RECEIVE (TR-000001، JE-000017 15.1073 / JE-000018 15.1074) | ✓ | نفسه | DB-010…013؛ `R25-CT-CROSS-SCREEN-options.json` يثبت غياب صندوق BR2 من الشاشة |
+| 14–15 | SI-EXCISE (SI-000006، JE-000019)، PI-WITHHOLDING (مسودة؛ post 422 `PURCHASE_WITHHOLDING_MANUAL_POSTING`) | ✓ | نفسه | DB-014…015 |
+| 16–20 | NEG-STOCK-DRAFT (SOU-000002)، POST-BLOCKED 422، POST-OVERRIDE 201 (JE-000020؛ MAIN −1)، PI-NEG-COST-DRAFT/POST (PI-000004، JE-000021؛ MAIN 0 @ 4.4463) | ✓ | نفسه | DB-016…020 |
+| 21–25 | STOCK-AFTER، CUSTOM-REPORT (6 صفوف، profit 0)، SETTINGS-DEAD (9 كتابات مع الإرجاع؛ SOU-000003 مسودة)، REPORTS (26 تقريراً)، الشاشات الست | ✓ `ALL STAGES DONE` | نفسه | DB-021…024؛ الإعدادات مستعادة 15 / false / false |
+| الفاحص | `round25-check.py` → `R25-check-results.json` | ✓ **64/36 من 100** | «R25: checker (64/36 of 100) + DEFECTS ACC-107…120 …» | يقرأ فرع القيد من `R25-journal-branches.json` (استعلام DB مباشر لأن اللقطات بلا `branch_id`) |
+| التوثيق | `DEFECTS.md` (ACC-107…120، UI-040…042)، `ROUND_25_RESULTS.md`، الذيول الست | ✓ | التزام التوثيق | لا إعادة تشغيل مطلوبة؛ العمليات الثلاث (postgres/api/staff) تبقى حية للجولة التالية |
 
 ## 3. طريقة التشغيل
 - `scripts/round25-main.cjs` (منسوخ من R24 بالمساعدات نفسها؛ `R25_FROM/R25_PHASE/R25_UNTIL/R25_AUTO_APPROVE`؛ علامات الموافقة `.scratch/r25/<stage>.approve` بعد مراجعة `-before.png`)؛ اللقطات `scripts/round25-snapshot.cjs`؛ الفاحص `scripts/round25-check.py`.

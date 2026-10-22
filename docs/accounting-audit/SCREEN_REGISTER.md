@@ -581,3 +581,16 @@
 | `/accounting/periods` (إغلاق + إعادة فتح) | PERIOD-CLOSE-SEP، PERIOD-REOPEN-SEP | ✓ |
 | `/accounting/payment-methods` | PAYMENT-METHOD | ✓ (بلا أثر لاحق ACC-105) |
 | `/accounting/trial-balance`، `/sales/pos`، `/sales/cash-customers`، `/sales/price-lists`، `/sales/salesman-commissions`، الرئيسية لأمين الصندوق | TB-SCREEN، SALES-POS-SCREEN، CASH-CUSTOMERS-SCREEN، PRICE-LISTS-SCREEN، SALESMAN-COMMISSIONS-SCREEN، CASHIER-HOME | قراءة فقط |
+
+## الشاشات المنفَّذة في R25 (مستأجر R24؛ الأدلة `evidence/round-25/`)
+| الشاشة | المراحل | النتيجة |
+|---|---|---|
+| `/settings/general` (قراءة؛ ثم تعديل/إرجاع عبر API من الجلسة) | SETTINGS-READ، SETTINGS-DEAD | الإعدادات الأربعة بلا قارئ (ACC-107) |
+| `/purchases/invoices/new` (إنشاء + ترحيل؛ 1.03 وبعد السالب) | PI-ROUND-DRAFT/POST، PI-NEG-COST-DRAFT/POST | أجزاء الهللة (ACC-108)؛ قيمة شبح (ACC-116) |
+| `/sales/invoices/new` (سطران، نقدي؛ وبعد قائمة الأسعار) | SI-ROUND-DRAFT/POST، PRICE-LIST-EFFECT، API-TRUST (سياق) | الشاشة تعرض 2.37 والقيد 2.369 (ACC-108)؛ السعر 20 لا 18 (ACC-111) |
+| `/sales/price-lists` (إنشاء قائمة + صنف) | PRICE-LIST-CREATE، PRICE-LIST-ITEM | ✓ حفظ؛ بلا مستهلك (ACC-111) |
+| `/treasury/transfers` (نموذج التحويل) | CT-CROSS-SCREEN، CT-CROSS (API)، CT-LIST | الوجهة مرشَّحة بفرع المصدر؛ API بلا فحص (ACC-112) |
+| `/inventory/transfers` (مسودة → إرسال → استلام) | TR-DRAFT، TR-SEND، TR-RECEIVE | ✓ وظيفياً؛ −0.0001 تحت التحويل (ACC-113) |
+| `/inventory/vouchers?kind=stock_out` (إخراج فوق الرصيد) | NEG-STOCK-DRAFT، POST-BLOCKED، POST-OVERRIDE | 422 ثم 201 بالعلم (ACC-115)؛ تقييم المسودة بسعر الشراء وعنوان «بضاعة أول المدة» (UI-042) |
+| `/settings/custom-reports` | CUSTOM-REPORT، CUSTOM-REPORTS-SCREEN | ✓ إنشاء/تشغيل؛ float وprofit 0 (ACC-117/118) |
+| `/accounting/vat-return`، `/inventory/valuation`، `/accounting/trial-balance`، `/accounting/journals`، `/accounting/levels`، `/accounting/audit-log`، `/accounting/balance-sheet` (قراءة) | VAT-RETURN، INVENTORY-VALUATION، TB، JOURNALS، LEVELS، AUDIT، BALANCE-SHEET | ACC-119/120، UI-040/041 |

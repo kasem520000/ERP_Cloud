@@ -432,3 +432,19 @@ R17-manifest.json يفهرس 258 ملفاً (لا يشمل نفسه)، نحو 24
 | H: شروط السداد | PAYMENT-METHOD (شاشة)، NET30-INVOICE (10 نداءات: SI-000002، print-data، ar-aging ×2) | **ACC-105** | DB-035/036 |
 | I: شاشات وتقارير | SCREENS-API (6)، CASH-CUSTOMERS/PRICE-LISTS/SALESMAN-COMMISSIONS/SALES-POS/POSTING-PROFILES/SAFES-SCREEN، TB-SCREEN، CASH-LOCATIONS-SCREEN، SHIFTS-SCREEN، DAY-CLOSE-FINAL، REPORTS (16 نداء) | ACC-042/004 ختامياً | DB-037/038 |
 | تحقق | `R24-check-results.json` (53/30 من 83)، `R24-http-events.jsonl` (719) | — | — |
+
+## الجولة 25 — `evidence/round-25/` (196 ملفاً؛ تفصيل المراحل في ROUND_25_RESULTS.md §1)
+| الكتلة | المراحل والأدلة | النتيجة | لقطات DB |
+|---|---|---|---|
+| خط الأساس | `R25-DB-000-BASELINE` (= R24 DB-038)، SETTINGS-READ | ACC-107 | DB-000/001 |
+| B: التقريب | PI-ROUND-DRAFT/POST (PI-000003)، SI-ROUND-DRAFT/POST (SI-000003) | **ACC-108** | DB-002…005 |
+| C: ثقة بالعميل | API-TRUST (`-response.json`: si-no-tax 201، si-cent 201، si-negative-qty **500**، si-tax-99 201، post ×2) | **ACC-109/110** | DB-006 |
+| D: قوائم الأسعار | PRICE-LIST-CREATE، PRICE-LIST-ITEM، PRICE-LIST-EFFECT (`-before.png` يُظهر 20.0000 + `-before.json`) | ACC-111 | DB-007…009 |
+| E: تحويل نقدي عابر | CT-CROSS-SCREEN (`-options.json`: لا صندوق BR2)، CT-CROSS (create/send/receive) | ACC-112 | DB-010 |
+| F: مناقلة | TR-DRAFT، TR-SEND، TR-RECEIVE (من الشاشة) | ACC-113 (+ACC-112) | DB-011…013 |
+| G: انتقائية/استقطاع | SI-EXCISE، PI-WITHHOLDING (422) | ✓ / ACC-114 / نقص | DB-014/015 |
+| H: مخزون سالب | NEG-STOCK-DRAFT، NEG-STOCK-POST-BLOCKED (422)، NEG-STOCK-POST-OVERRIDE (201)، PI-NEG-COST-DRAFT/POST، STOCK-AFTER | **ACC-115/116** | DB-016…021 |
+| I: تقرير مخصص | CUSTOM-REPORT (create + run) | ACC-117/118 | DB-022 |
+| J: إعدادات ميتة | SETTINGS-DEAD (9 كتابات مع `restore-*`) | ACC-107 | DB-023 |
+| K: تقارير وشاشات | REPORTS (26 تقريراً في `R25-REPORTS-response.json`)، VAT-RETURN/INVENTORY-VALUATION/TB/JOURNALS/LEVELS/CT-LIST/AUDIT/CUSTOM-REPORTS/PRICE-LISTS/BALANCE-SHEET (صور) | ACC-119/120، UI-040/041 | DB-024 |
+| تحقق | `R25-check-results.json` (64/36 من 100)، `R25-journal-branches.json` (فرع كل قيد من DB)، `R25-http-events.jsonl` (456) | — | — |
