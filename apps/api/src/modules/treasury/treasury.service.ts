@@ -789,7 +789,6 @@ export class TreasuryService implements OnModuleInit {
       .from(vouchers)
       .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, id)));
     if (!existing) throw new DomainError('VOUCHER_NOT_FOUND', 'Voucher was not found', 404);
-    if (existing.status === 'posted') return existing;
     if (existing.status !== 'draft')
       throw new DomainError('VOUCHER_INVALID_STATUS', 'Only draft vouchers can be posted', 409);
     if (input.journalLines?.length && !input.fiscalPeriodId && !existing.fiscalPeriodId)
