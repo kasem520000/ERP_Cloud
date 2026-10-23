@@ -1,0 +1,14 @@
+{
+  "id": "R32-J05-cheque-bounce",
+  "at": "2026-10-23T08:22:14.516Z",
+  "method": "POST",
+  "path": "/vouchers/01a167da-72e0-77ef-bd7e-77d8019f65e1/cheque",
+  "status": 201,
+  "request": {
+    "action": "bounce"
+  },
+  "response": {
+    "id": "01a167da-72e0-77ef-bd7e-77d8019f65e1",
+    "chequeState": "bounced"
+  }
+}

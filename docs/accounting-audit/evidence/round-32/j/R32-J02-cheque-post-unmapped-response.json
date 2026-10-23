@@ -1,0 +1,21 @@
+{
+  "id": "R32-J02-cheque-post-unmapped",
+  "at": "2026-10-23T08:22:11.942Z",
+  "method": "POST",
+  "path": "/vouchers/01a167da-72e0-77ef-bd7e-77d8019f65e1/post",
+  "status": 422,
+  "request": {},
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "TREASURY_CHEQUES_ACCOUNT_REQUIRED",
+    "detail": "حساب أوراق القبض غير محدد — يرجى ربط حساب أوراق القبض في الملف المحاسبي قبل ترحيل الشيك",
+    "traceId": "01a167da-72e8-71c2-bb6a-c391a3d22698",
+    "errors": [
+      {
+        "field": "chequesInHandAccountId"
+      }
+    ]
+  }
+}
