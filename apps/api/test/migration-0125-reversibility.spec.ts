@@ -110,8 +110,11 @@ describe('migration 0125 — journal reversal convention', () => {
     expect(fiscal.status, JSON.stringify(fiscal.body)).toBe(201);
 
     const accounts = await api(ctx.server, 'get', '/api/v1/accounts', { token: actor.token });
-    const rows = (accounts.body.data ?? accounts.body) as Array<Record<string, unknown>>;
-    cashId = (rows.find((row) => row.code === '1100')?.id ?? rows[0]?.id) as string;
+    // ACC-170 (R33): group accounts refuse postings (`ACCOUNT_NOT_POSTABLE`) — pick postable leaves only.
+    // Manual journals are refused on cash/bank control accounts too (MANUAL_JOURNAL_ON_TREASURY_ACCOUNT),
+    // so the debit leg uses a postable expense leaf — the entry only needs two legal accounts.
+    const rows = ((accounts.body.data ?? accounts.body) as Array<Record<string, unknown>>).filter((row) => row.isPostable !== false);
+    cashId = (rows.find((row) => String(row.code).startsWith('3') && row.type === 'expense')?.id ?? rows.find((row) => row.code === '1100')?.id ?? rows[0]?.id) as string;
     revenueId = (rows.find((row) => String(row.code).startsWith('4'))?.id ?? rows[1]?.id) as string;
 
     const periods = await api(ctx.server, 'get', '/api/v1/fiscal-periods', { token: actor.token });

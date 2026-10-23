@@ -481,7 +481,7 @@ describe('purchase posting engine', () => {
       token: actor.token,
       body: { amount: '50' },
     });
-    expect(added.status).toBe(201);
+    expect(added.status, JSON.stringify(added.body)).toBe(201);
     const reread = await api(ctx.server, 'get', `/api/v1/purchase-invoices/${credit.id}`, { token: actor.token });
     const payments = (data(reread.body) as { payments: Array<{ amount: string }>; paidTotal: string; paymentStatus: string }).payments;
     expect(payments).toHaveLength(1);

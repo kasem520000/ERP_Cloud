@@ -108,7 +108,9 @@ describe('Remediation Phase 8 — Multi-Currency Vouchers, Module Locks, Allocat
 
     // Accounts
     const accListRes = await req('get', '/api/v1/accounts');
-    const existingAccounts = rows(accListRes.body) as Array<{ id: string; code: string; type: string }>;
+    // ACC-170 (R33): group accounts refuse postings (`ACCOUNT_NOT_POSTABLE`) — pick postable leaves only.
+    const existingAccounts = (rows(accListRes.body) as Array<{ id: string; code: string; type: string; isPostable?: boolean }>)
+      .filter((a) => a.isPostable !== false);
     const accMap = new Map(existingAccounts.map((a) => [a.code, a]));
 
     cashAccountId = accMap.get('1211001')?.id ?? (accMap.get('121101')?.id as string);

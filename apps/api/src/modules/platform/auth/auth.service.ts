@@ -18,6 +18,7 @@ import {
 import {
   memberships,
   passwordResetTokens,
+  portalAccounts,
   refreshTokens,
   sessionHandoffCodes,
   tenants,
@@ -205,6 +206,10 @@ export class AuthService {
       });
     }
 
+    // ACC-162 (R33): a portal account whose access was suspended from «حسابات البوابة» must not
+    // sign in. Checked *after* the credentials so the answer never leaks to a guesser.
+    await this.assertPortalAccountActive(tenant.id, user.id, membership);
+
     await this.registerSuccessfulLogin(user.id);
 
     return this.issueSession(user, membership, meta);
@@ -271,6 +276,9 @@ export class AuthService {
     if (!membership) {
       throw new DomainError(errorCodes.UNAUTHENTICATED, 'Membership is no longer active', 401);
     }
+    // ACC-162 (R33): refresh re-reads the portal-account flag, so a suspension lands within the
+    // access-token lifetime even for sessions opened before it.
+    await this.assertPortalAccountActive(tenant.id, user.id, membership);
 
     // AUD-07 — التدوير compare-and-swap ذرّي. القراءة أعلاه تفحص `revokedAt`، لكن الفحص
     // وحده لا يمنع طلبين متزامنين من اجتيازه معاً ثم إنشاء بديلين صالحين لرمزٍ واحد.
@@ -653,6 +661,27 @@ export class AuthService {
   }
 
   // --- internals ---------------------------------------------------------------
+
+  /**
+   * ACC-162 (R33): portal memberships carry a second switch — `portal_accounts.status` — toggled by
+   * the staff screen («إيقاف/تفعيل الوصول»). A suspended account is refused with a *distinct* code
+   * (403 `PORTAL_ACCESS_SUSPENDED`) so the portal can show «تم إيقاف وصولكم» instead of «بيانات خاطئة»;
+   * staff memberships are unaffected.
+   */
+  private async assertPortalAccountActive(tenantId: string, userId: string, membership: MembershipRow): Promise<void> {
+    if (membership.kind !== 'portal') return;
+    const account = await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const rows = await tx
+        .select({ status: portalAccounts.status })
+        .from(portalAccounts)
+        .where(and(eq(portalAccounts.tenantId, tenantId), eq(portalAccounts.userId, userId)))
+        .limit(1);
+      return rows[0];
+    });
+    if (account && account.status !== 'active') {
+      throw new DomainError('PORTAL_ACCESS_SUSPENDED', 'تم إيقاف وصولكم إلى البوابة — راجعوا الجهة التي أنشأت حسابكم', 403);
+    }
+  }
 
   private async findActiveMembership(tenantId: string, userId: string): Promise<MembershipRow | undefined> {
     return withTenantTx(this.database.db, tenantId, async (tx) => {

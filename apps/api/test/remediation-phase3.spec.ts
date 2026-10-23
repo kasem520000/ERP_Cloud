@@ -503,7 +503,7 @@ describe('Remediation Phase 3 — Sales, Purchases, Treasury, and Reporting (ACC
         method: 'cash',
       },
     });
-    expect(payRes.status).toBe(201);
+    expect(payRes.status, JSON.stringify(payRes.body)).toBe(201);
 
     // التحقق من حالة الفاتورة
     const purCheck = await api(ctx.server, 'get', `/api/v1/purchase-invoices/${purId}`, { token: actor.token });

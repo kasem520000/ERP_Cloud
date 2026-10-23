@@ -981,11 +981,13 @@ export class PurchasesService {
         }
         let cashLocationId = input.cashLocationId;
         if (!cashLocationId) {
+          // Fallback: the branch's default location of the matching kind (`safe` for cash, `bank` for
+          // transfers/cards) — the explicit `cashLocationId` from the screen always wins.
           const wantBank = input.method === 'bank_transfer' || input.method === 'card';
           const [loc] = await tx
             .select({ id: cashLocations.id })
             .from(cashLocations)
-            .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.branchId, locked.branchId), eq(cashLocations.isActive, true), isNull(cashLocations.deletedAt), eq(cashLocations.kind, wantBank ? 'bank' : 'cash')))
+            .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.branchId, locked.branchId), eq(cashLocations.isActive, true), isNull(cashLocations.deletedAt), eq(cashLocations.kind, wantBank ? 'bank' : 'safe')))
             .orderBy(desc(cashLocations.isDefault), asc(cashLocations.createdAt))
             .limit(1);
           cashLocationId = loc?.id;

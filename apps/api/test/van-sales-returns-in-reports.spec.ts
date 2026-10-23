@@ -168,8 +168,9 @@ describe('van-sales returns are netted in every money aggregate, at the official
        * الضريبة** (كما يكتبه `createDocument`: ‏`grandTotal = subtotal + taxTotal`)، آجلٌ
        * فـ`paid_amount = 0`، وتكلفة ٤ ⇒ `net_profit = ١٠٠ − ٤٠ = ٦٠`.
        *
-       * وصفا المرتجع: ‏**`total` بلا ضريبة** (‏٢٠ و٥) و`tax_total` بجانبها (‏٣ و٠.٧٥) و
-       * `paid_amount = 0` — تمامًا كما يكتبها `createReturnDocument`. وأمّا `unit_cost` فلا
+       * وصفا المرتجع (ACC-153/154 — R33): ‏`subtotal` **بلا ضريبة** (‏٢٠ و٥)، و`tax_total`
+       * بجانبها (‏٣ و٠.٧٥)، و**`total` شاملُ الضريبة** (‏٢٣ و٥.٧٥) و`paid_amount = 0` — تمامًا
+       * كما يكتبها `createReturnDocument` (‏`total = returnGrossTotal`). وأمّا `unit_cost` فلا
        * يُكتب ⇒ يأخذ القيمةَ الافتراضية الحيّة ٣.٨٠ المفبركة.
        */
       await tx.execute(sql`
@@ -184,10 +185,10 @@ describe('van-sales returns are netted in every money aggregate, at the official
            100, 15, 15, 115, 0, 4, 60, ${invoiceSaleId}::uuid, now() - INTERVAL '2 minutes'),
           (${newId()}::uuid, ${tenantId}::uuid, 'VRT-RET-R1', ${salesmanId}::uuid, ${loadOrderId}::uuid,
            ${partyId}::uuid, DATE '2026-05-11', 'return', ${saleDocId}::uuid, 'zatca_tax', 'credit', 2, 0, 10,
-           20, 15, 3, 20, 0, DEFAULT, DEFAULT, ${invoiceReturnId}::uuid, now() - INTERVAL '1 minute'),
+           20, 15, 3, 23, 0, DEFAULT, DEFAULT, ${invoiceReturnId}::uuid, now() - INTERVAL '1 minute'),
           (${newId()}::uuid, ${tenantId}::uuid, 'VRT-RET-R2', ${salesmanId}::uuid, ${loadOrderId}::uuid,
            ${partyId}::uuid, DATE '2026-05-11', 'return', ${saleDocId}::uuid, 'zatca_tax', 'credit', 0.5, 0, 10,
-           5, 15, 0.75, 5, 0, DEFAULT, DEFAULT, ${invoiceDraftReturnId}::uuid, now())
+           5, 15, 0.75, 5.75, 0, DEFAULT, DEFAULT, ${invoiceDraftReturnId}::uuid, now())
       `);
     });
 
@@ -304,8 +305,9 @@ describe('van-sales returns are netted in every money aggregate, at the official
       `);
       /**
        * بيعٌ آجلٌ بزاتكا: ‏٥ كجم @ ١٦ ⇒ subtotal ٨٠، ضريبة ١٢، ‏total ٩٢، مدفوع ٠.
-       * ومرتجعٌ عليه: ‏٠.٥ كجم @ ١٦ ⇒ total ٨ و`tax_total` ١.٢٠ (بلا إشعارٍ دائنٍ مُرحَّل،
-       * فلا حاجةَ له في هذا الحكم — المطلوبُ أثرُ المرتجع في **دين العميل**).
+       * ومرتجعٌ عليه: ‏٠.٥ كجم @ ١٦ ⇒ subtotal ٨ و`tax_total` ١.٢٠ و**total ٩.٢٠ شاملٌ**
+       * (ACC-153/154؛ بلا إشعارٍ دائنٍ مُرحَّل، فلا حاجةَ له في هذا الحكم — المطلوبُ أثرُ
+       * المرتجع في **دين العميل**).
        *
        * فدينُ العميل بعد الإصلاح = ‏٩٢ − (‏٨ + ١.٢٠) = **٨٢.٨٠**، وقبله = ‏٩٢ + ٨ =
        * ‏**١٠٠.٠٠** (فالمرتجعُ كان يُجمع كأنّه بيعٌ غير مدفوع). والبيعُ الجديد ١ كجم @ ١٠
@@ -324,7 +326,7 @@ describe('van-sales returns are netted in every money aggregate, at the official
            80, 15, 12, 92, 0, 4, 60, now() - INTERVAL '2 minutes'),
           (${newId()}::uuid, ${tenantB}::uuid, 'VRT-CR-R1', ${salesmanB}::uuid, ${loadOrderBId}::uuid,
            ${partyBId}::uuid, DATE '2026-05-11', 'return', 'zatca_tax', 'credit', 0.5, 0, 16,
-           8, 15, 1.2, 8, 0, DEFAULT, DEFAULT, now() - INTERVAL '1 minute')
+           8, 15, 1.2, 9.2, 0, DEFAULT, DEFAULT, now() - INTERVAL '1 minute')
       `);
     });
   }, 300_000);
@@ -574,7 +576,8 @@ describe('van-sales returns are netted in every money aggregate, at the official
     expect(row.unit_cost).not.toBe('3.8000');
     // ‏ومطابقةٌ للإشعار الدائن نفسه (‏١ كجم × ٤).
     expect(row.official_cost).toBe('4.0000');
-    expect(row.total).toBe('10.0000');
+    // ACC-153/154 (R33): `total` is the credit note's GROSS value (10 + 1.50) — the net lives in `subtotal`.
+    expect(row.total).toBe('11.5000');
     expect(row.tax_total).toBe('1.5000');
     // ‏والربحُ لا يُكتب في صفّ المرآة (قرارُ ١٣ب: يُحسب عند القراءة من الإشعار).
     expect(row.net_profit).toBe('0.0000');

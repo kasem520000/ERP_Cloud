@@ -214,9 +214,13 @@ describe('قائمة الدخل — frmRptIncomeStatement', () => {
   });
 
   it('6. قيمة مخزون بضاعة آخر المدة حتى هذا التاريخ', async () => {
-    // with_stock=0 — the row is not printed at all.
+    // ACC-120 (R33): the ledger is perpetual, so the closing-stock row is OFF by default — it is
+    // printed only on an explicit `with_stock=1`, and even then suppressed when cost of sales is
+    // already posted in the period (otherwise COGS would be counted twice).
     const without = (await statement('with_stock=0')).body as Record<string, unknown>;
     expect(rows(without).some((row) => row.kind === 'stock')).toBe(false);
+    const byDefault = (await statement()).body as Record<string, unknown>;
+    expect(rows(byDefault).some((row) => row.kind === 'stock')).toBe(false);
 
     const category = await api(ctx.server, 'post', '/api/v1/organization/catalog/categories', {
       token: actor.token,
@@ -261,11 +265,13 @@ describe('قائمة الدخل — frmRptIncomeStatement', () => {
     });
     expect(received.status, JSON.stringify(received.body)).toBeLessThan(300);
 
-    const body = (await statement()).body as Record<string, unknown>;
+    const body = (await statement('with_stock=1')).body as Record<string, unknown>;
     const stock = rows(body).find((row) => row.kind === 'stock') as Record<string, unknown>;
     expect(stock.name).toBe('قيمة مخزون بضاعة آخر المدة حتى هذا التاريخ');
     expect(amt(stock.credit)).toBe('200.0000');
     expect(amt(totalsOf(body).stock)).toBe('200.0000');
+    // No cost of sales was posted in this period, so nothing suppresses the row.
+    expect((totalsOf(body) as Record<string, unknown>).closingStockNote ?? null).toBeNull();
     // 1000 + 300 إيرادات + 200 مخزون − 400 مصروفات = 1100 ربحاً، يُسجَّل في جانب المدين.
     expect(amt(totalsOf(body).profit)).toBe('1100.0000');
     expect(amt(totalsOf(body).debit)).toBe('1500.0000');
@@ -273,7 +279,7 @@ describe('قائمة الدخل — frmRptIncomeStatement', () => {
   });
 
   it('7. عزل المؤسسات — قائمة دخل مؤسسة لا تُقرأ من أخرى', async () => {
-    const foreign = await api(ctx.server, 'get', '/api/v1/statements/income-statement', { token: stranger.token });
+    const foreign = await api(ctx.server, 'get', '/api/v1/statements/income-statement?with_stock=1', { token: stranger.token });
     // لا حسابات: صفّ المخزون وصفّ الربح، وكلاهما صفر.
     expect(rows(foreign.body).map((row) => row.kind)).toEqual(['stock', 'profit']);
     expect(amt((foreign.body as { totals?: Record<string, string> }).totals?.profit)).toBe('0.0000');

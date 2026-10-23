@@ -253,10 +253,13 @@ const VAN_MONEY_SQL = {
       ELSE COALESCE(d.total, 0) - COALESCE(d.paid_amount, 0) END), 0))::text`,
   /** الربحُ كما يكتبه مستندُ البيع (`net_profit`) — وصفُّ المرتجع يحمل صفرًا. */
   profitGross: sql`COALESCE(SUM(d.net_profit), 0)::text`,
-  /** أثرُ المرتجعات في الربح: قيمتُها بلا ضريبة − تكلفتُها الرسمية، ويُطرح من الربح. */
+  /**
+   * أثرُ المرتجعات في الربح: قيمتُها **بلا ضريبة** (`subtotal`؛ فـ`total` شاملٌ منذ ACC-153/154) − تكلفتُها
+   * الرسمية، ويُطرح من الربح — فالضريبةُ المعكوسة ليست إيرادًا مفقودًا.
+   */
   returnsProfitEffect: sql`COALESCE(SUM(CASE
       WHEN ${RETURN_ROW_SQL} AND ${RETURN_OFFICIAL_COST_SQL} > 0
-      THEN GREATEST(0, COALESCE(d.total, 0) - ${RETURN_OFFICIAL_COST_SQL})
+      THEN GREATEST(0, COALESCE(d.subtotal, d.total, 0) - ${RETURN_OFFICIAL_COST_SQL})
       ELSE 0 END), 0)::text`,
   /** مرتجعاتٌ بلا تكلفةٍ رسمية (إشعارُها الدائن لم يُرحَّل) — فلا أثرَ لها في الربح. */
   returnsWithoutCost: sql`COUNT(*) FILTER (

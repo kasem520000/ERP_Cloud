@@ -144,7 +144,7 @@ async function voucher(id, body) {
   const susp = await L.api('R33-R03-portal-suspend', 'PATCH', `/portal-access/${grantId}`, { status: 'suspended' });
   const lg2 = await portalLogin('R33-R04-portal-login-suspended');
   const memb = await L.one(`select m.status from memberships m join users u on u.id = m.user_id where u.email = $1 and m.tenant_id = $2`, [portalEmail, S.tenant]);
-  check('R04', 'ACC-162 portal login while SUSPENDED → 401 (membership suspended too)', [true, 401, 'suspended'], [susp.status === 200 || susp.status === 201, lg2.status, memb && memb.status], code(lg2));
+  check('R04', 'ACC-162 portal login while SUSPENDED → 403 PORTAL_ACCESS_SUSPENDED (membership untouched)', [true, 403, 'PORTAL_ACCESS_SUSPENDED', 'active'], [susp.status === 200 || susp.status === 201, lg2.status, code(lg2), memb && memb.status], code(lg2));
   const react = await L.api('R33-R05-portal-reactivate', 'PATCH', `/portal-access/${grantId}`, { status: 'active' });
   const lg3 = await portalLogin('R33-R06-portal-login-reactivated');
   check('R06', 'ACC-162 re-activation restores login → 200', [true, 200], [react.status === 200 || react.status === 201, lg3.status], code(lg3));

@@ -610,11 +610,14 @@ describe('Remediation Phase 6 — Installments, Projects Progress Billing, Contr
       direction: string;
     }>;
 
-    const shortageMovement = movements.find(
+    // ACC-169 (R33): the shortage is written as a *pair* on the destination warehouse — `in` (the
+    // in-transit quantity lands at its sending cost) then `out` (the write-off) — so the ledger and
+    // the balance stay equal and the shortage is traceable as a movement, not a bare `out` row.
+    const shortageMovements = movements.filter(
       (m) => m.docId === transfer.id && m.docType === 'stock_transfer_shortage',
     );
-    expect(shortageMovement).toBeDefined();
-    expect(Number(shortageMovement!.qty)).toBe(2);
-    expect(shortageMovement!.direction).toBe('out');
+    expect(shortageMovements).toHaveLength(2);
+    expect(shortageMovements.map((m) => m.direction).sort()).toEqual(['in', 'out']);
+    for (const m of shortageMovements) expect(Number(m.qty)).toBe(2);
   });
 });

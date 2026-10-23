@@ -104,7 +104,10 @@ describe('Remediation Phase 4 — Bank Feeds, Reconciliation, Shift Takings, Pro
     });
 
     const accountsRes = await api(ctx.server, 'get', '/api/v1/accounts', { token: actor.token });
-    const allAccounts = rows(accountsRes.body) as Array<{ id: string; code: string; type: string }>;
+    // ACC-170 (R33): postings are refused on group accounts (`ACCOUNT_NOT_POSTABLE`), so the fixture
+    // must pick postable leaves — `122`/`224` themselves are parents in the seeded chart.
+    const allAccounts = (rows(accountsRes.body) as Array<{ id: string; code: string; type: string; isPostable?: boolean }>)
+      .filter((a) => a.isPostable !== false);
     const cashAcc = allAccounts.find((a) => a.code === '1211' || a.type === 'asset');
     const bankAcc = allAccounts.find((a) => a.code.startsWith('122') || a.code === '1221');
     bankGlAccountId = bankAcc ? bankAcc.id : cashAcc!.id;
@@ -390,8 +393,21 @@ describe('Remediation Phase 4 — Bank Feeds, Reconciliation, Shift Takings, Pro
       token: actor.token,
     });
     expect(voucherRes.status).toBe(200);
-    // Counter account should be accrued salaries payable, NOT trade payables
-    expect(data(voucherRes.body).counterAccountId).toBe(accruedSalariesAccountId);
+    // ACC-040 + ACC-170 (R33): the counter account is the employee's OWN postable leaf under the
+    // accrued-salaries group (the account the accrual credited) — never trade payables and never the
+    // «224» header itself.
+    const counterAccountId = data(voucherRes.body).counterAccountId as string;
+    const counterRes = await api(ctx.server, 'get', `/api/v1/accounts/${counterAccountId}`, { token: actor.token });
+    expect(counterRes.status).toBe(200);
+    const counter = data(counterRes.body) as { code: string; type: string; nameAr: string; isPostable?: boolean };
+    expect(counter.type).toBe('liability');
+    expect(counter.code.startsWith('224')).toBe(true);
+    expect(counter.isPostable).toBe(true);
+    expect(counterAccountId).not.toBe(accruedSalariesAccountId);
+    // …and it is the payee's own sub-account (named after the employee), not a shared bucket:
+    // the run keeps the first of its per-employee vouchers, whose description names that employee.
+    const voucherDescription = String((data(voucherRes.body) as { description?: string }).description ?? '');
+    expect(voucherDescription).toContain(counter.nameAr);
   });
 
   it('ACC-034: استبعاد فواتير المبيعات المسودة والملغاة من نقدية الوردية المتوقعة', async () => {
