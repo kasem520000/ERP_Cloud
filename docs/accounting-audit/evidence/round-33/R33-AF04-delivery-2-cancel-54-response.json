@@ -1,0 +1,39 @@
+{
+  "id": "R33-AF04-delivery-2-cancel-54",
+  "at": "2026-10-23T22:41:40.354Z",
+  "method": "POST",
+  "path": "/inventory/deliveries/01a16aed-4eec-777f-9d84-c65a72c16061/cancel",
+  "status": 201,
+  "request": {},
+  "response": {
+    "id": "01a16aed-4eec-777f-9d84-c65a72c16061",
+    "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+    "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+    "warehouseId": "01a16a85-7d3b-703a-934b-daeedd7a2267",
+    "invoiceId": "01a16aed-3f72-75fb-90e3-d5118dd5d617",
+    "partyId": "01a16a86-256a-71ba-bf3d-2f0dc06bce3d",
+    "number": "DLV-000006",
+    "status": "cancelled",
+    "deliveredOn": "2026-10-23",
+    "recipientName": "AF04",
+    "driverName": null,
+    "notes": null,
+    "deliveredAt": "2026-10-23T22:41:40.350Z",
+    "cancelledAt": "2026-10-23T22:41:41.133Z",
+    "createdAt": "2026-10-23T22:41:39.564Z",
+    "createdBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f",
+    "updatedAt": "2026-10-23T22:41:41.133Z",
+    "updatedBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f",
+    "version": 1,
+    "lines": [
+      {
+        "deliveryId": "01a16aed-4eec-777f-9d84-c65a72c16061",
+        "lineNo": 1,
+        "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+        "itemId": "01a16aec-f2bf-771d-8320-9363d389b0a1",
+        "qty": "1.0000",
+        "note": null
+      }
+    ]
+  }
+}

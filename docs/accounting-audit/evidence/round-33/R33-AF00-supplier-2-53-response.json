@@ -1,0 +1,39 @@
+{
+  "id": "R33-AF00-supplier-2-53",
+  "at": "2026-10-23T22:36:12.203Z",
+  "method": "POST",
+  "path": "/parties",
+  "status": 201,
+  "request": {
+    "kind": "supplier",
+    "name": "مورد AF 53"
+  },
+  "response": {
+    "id": "01a16ae8-533c-7322-a842-b6b8d4ecb3fe",
+    "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+    "code": "000008",
+    "kind": "supplier",
+    "name": "مورد AF 53",
+    "legalName": null,
+    "taxNo": null,
+    "nationalId": null,
+    "address": null,
+    "phone": null,
+    "email": null,
+    "receivableAccountId": null,
+    "payableAccountId": null,
+    "creditLimit": "0.0000",
+    "isOwner": false,
+    "isContractor": false,
+    "branchId": null,
+    "paymentMethodId": null,
+    "createdAt": "2026-10-23T22:36:12.994Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1,
+    "deletedAt": null,
+    "deletedBy": null,
+    "customFields": {}
+  }
+}

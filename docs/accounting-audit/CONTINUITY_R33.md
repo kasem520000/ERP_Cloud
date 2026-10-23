@@ -18,6 +18,13 @@
 - **بذرة 15:** DB `pgdata-r33`، tenant `01a16a85-7afb-710e-94c5-718cb1afc4ba`، آخر RUN **51** → التالي 52. الحسابان `1232`/`12320001` موجودان (أنشأهما probe9 RUN 49 عبر API).
 - **vitest الكامل الختامي:** 542 ملفاً / 2058 ✓ / 0 ✗ / 0 معلّق (`evidence/round-33/R33-vitest-full-e2c5a2e.json`).
 
+### 1.ج — المرحلة 3 («واصل العمل واكمل اصلاح كل شي») — **مكتملة في `ROUND_33_RESULTS.md` §7**
+- المتبقي من المرحلة 2 أُغلق: ACC-021 (`40b76bb` + probe10 AF03)، UI-005/006/047 (probe10 AF02/AF04/AF01 حيّاً)، UI-051 + ACC-188 (`6ac938f`؛ web-van 95/95)، UI-020 (`0958964`)، UI-025 (CODE-VERIFIED).
+- عيوب جديدة مُصلَحة: ACC-189/190 (`c97975f` — `receiveTransfer`)، ACC-191 (`6ceb39c` — `recordInTx.totalCost`)، ACC-192 (`d886331` — `agingSql` في `report-catalog.ts`؛ أعمار الذمم = حساب الرقابة). السياسات §4.31–4.36.
+- فاحص جديد `round33-probe10.cjs` (كتل AF00–AF07؛ **RUN 54: 22/22**)؛ مسح التقارير RUN 55: 103 × 0×5xx. أدلة `R33-AG-*-response.json` (الأعمار بعد ACC-192).
+- **بذرة 15:** آخر RUN **55** → التالي 56. أثر تاريخي موثَّق على البذرة: 1270001 − Σ `stock_balances` = 20.0054 (ACC-190 قبل الإصلاح)، P7-R33-43 +0.50 (ACC-191 قبل الإصلاح)، 1270003 = −28.0054.
+- `DEFECTS.md`: بطاقات ACC-188…192 + ملاحظة المرحلة 3 + سطور حالة ACC-021/UI-005/006/020/025/047/051.
+
 ## 2. البيئة (التهيئة 13 — بذرة 13؛ bootstrap RUN 34) — إعادة البناء عند الحاجة (~4 دقائق)
 1. العلامة أن البيئة أُعيدت تهيئتها: `git log -1` = `54171c6` و`git status` يُظهر `?? docs/accounting-audit/` ولا يوجد `/home/user/.bin` ولا `.env`.
 2. الوصفة: `git fetch origin +refs/heads/arena/0e400dd3-erp-cloud:refs/remotes/origin/arena/0e400dd3-erp-cloud && rm -rf docs/accounting-audit && git reset --hard origin/arena/0e400dd3-erp-cloud` → `mkdir -p /home/user/.bin /home/user/.corepack; COREPACK_HOME=/home/user/.corepack corepack enable --install-directory /home/user/.bin; corepack prepare pnpm@9.15.0 --activate` → `export PATH=/home/user/.bin:$PATH COREPACK_HOME=/home/user/.corepack` → `pnpm install --frozen-lockfile` → `pnpm -r --filter "./packages/*" build` → `node scripts/setup-env.mjs` → `sed -i 's/^DEMO_TENANT_NAME=.*/DEMO_TENANT_NAME=AUDIT-TEST-2026-R24/' .env` (قبل البذرة فيأخذه الـseed) → start_process `DB_LOCAL_PERSIST=true DB_LOCAL_DATA_DIR=/home/user/.pgdata-r33 node scripts/local-db.mjs` → `pnpm db:migrate` (143) → `pnpm db:seed` → `cd apps/api && pnpm build` → start_process `node dist/main.js` → `R33_RUN=NN … round33-bootstrap.cjs`.
@@ -40,7 +47,7 @@
 ## 5. الخطوات التالية المقترحة (بالترتيب)
 1. ~~فرز الـ38 فشلاً القديم~~ ✅ (§6). ~~فاحص حي لـACC-177/178/180~~ ✅ (`round33-probe4.cjs`).
 2. ~~تشغيل vitest كامل على `b307d21`~~ ✅ 2013/0/25 → ~~فرز الـ25 المعلّقة~~ ✅ (3 ملفات محجوبة → ACC-182…185 + fixtures) → التشغيل الختامي على `d4e48ed`+ (النتيجة في §1).
-3. ~~جولة تحقق للـ153 معرّفاً NOT-RETESTED~~ ✅ (`ROUND_33_RESULTS.md` §2) — بقي 10 بنود UI بصرية. (7 صارت FIXED-VERIFIED-R33 في `ROUND_32_VERDICTS.md`) (أولوية: التصنيع/الأصول/التقارير التفصيلية؛ الخياطة والمقاولات غطّتها اختبارات R33).
+3. ~~جولة تحقق للـ153 معرّفاً NOT-RETESTED~~ ✅ (`ROUND_33_RESULTS.md` §2) — ~~بقي 10 بنود UI بصرية~~ ✅ أُغلقت في المرحلة 3 (§7) عدا اللقطات نفسها. (7 صارت FIXED-VERIFIED-R33 في `ROUND_32_VERDICTS.md`) (أولوية: التصنيع/الأصول/التقارير التفصيلية؛ الخياطة والمقاولات غطّتها اختبارات R33).
 4. جولة UI (staff + bakery) بلقطات حقيقية للمسارات التي تغيّر سلوك API فيها (الرواتب، المناقلات النقدية، الخياطة، الأرقام التسلسلية).
 5. تنفيذ MF-45 (إلغاء مسودة مسيّر) وMF-46 (مسودة القيد اليدوي — بعد قرار المالك)؛ اقتراح MF جديد: ضريبة التفصيل كإعداد للمستأجر بدل `TAX_RATE` ثابت.
 

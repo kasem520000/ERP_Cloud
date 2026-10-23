@@ -1,0 +1,16 @@
+{
+  "id": "R33-AF03-policy-on-52",
+  "at": "2026-10-23T22:31:40.451Z",
+  "method": "PUT",
+  "path": "/settings/purchases.require_return_reference",
+  "status": 200,
+  "request": {
+    "value": true
+  },
+  "response": {
+    "data": {
+      "key": "purchases.require_return_reference",
+      "value": true
+    }
+  }
+}

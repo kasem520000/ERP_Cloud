@@ -1,0 +1,41 @@
+{
+  "id": "R33-AF03-return-draft-reference-54",
+  "at": "2026-10-23T22:41:26.122Z",
+  "method": "POST",
+  "path": "/purchase-invoices",
+  "status": 422,
+  "request": {
+    "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+    "warehouseId": "01a16a85-7d3b-703a-934b-daeedd7a2267",
+    "partyId": "01a16a85-7d48-76df-9259-580a9fab43df",
+    "kind": "purchase_return",
+    "supplierReferenceNo": "R33-AF03-return-draft-reference-54",
+    "supplierReferenceDate": "2026-10-23",
+    "priceIncludesVat": false,
+    "autoPost": false,
+    "lines": [
+      {
+        "itemId": "01a16aec-f2bf-771d-8320-9363d389b0a1",
+        "quantity": "1",
+        "unitPrice": "10",
+        "discountRate": "0",
+        "taxRate": "15",
+        "taxGroupId": "01a16a85-7da0-71ee-8bbe-e1341879ad4a"
+      }
+    ],
+    "referenceInvoiceId": "01a16aed-0877-71ab-80b3-b2767c3d185c"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "PURCHASE_RETURN_REFERENCE_INVALID",
+    "detail": "الفاتورة المرجعية للمردود يجب أن تكون فاتورة مشتريات مرحَّلة",
+    "traceId": "01a16aed-1a6b-748f-a022-8e54f0443050",
+    "errors": [
+      {
+        "field": "referenceInvoiceId"
+      }
+    ]
+  }
+}

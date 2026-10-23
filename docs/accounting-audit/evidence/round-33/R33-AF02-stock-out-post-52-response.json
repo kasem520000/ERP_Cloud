@@ -1,0 +1,51 @@
+{
+  "id": "R33-AF02-stock-out-post-52",
+  "at": "2026-10-23T22:31:31.723Z",
+  "method": "POST",
+  "path": "/inventory/vouchers/01a16ae4-0875-766f-9f33-a03cb8bd93bc/post",
+  "status": 201,
+  "request": {},
+  "response": {
+    "id": "01a16ae4-0875-766f-9f33-a03cb8bd93bc",
+    "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+    "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+    "warehouseId": "01a16a85-7d3b-703a-934b-daeedd7a2267",
+    "kind": "stock_out",
+    "number": "SOU-000002",
+    "status": "posted",
+    "voucherDate": "2026-10-23",
+    "reason": "R33 AF02 إخراج بلا تكلفة",
+    "counterAccountId": null,
+    "notes": null,
+    "journalEntryId": "01a16ae4-0ba0-769a-997f-9fe1abb74003",
+    "totalCost": "10.0000",
+    "postedAt": "2026-10-23T22:31:32.515Z",
+    "voidedAt": null,
+    "createdAt": "2026-10-23T22:31:31.702Z",
+    "createdBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f",
+    "updatedAt": "2026-10-23T22:31:32.515Z",
+    "updatedBy": null,
+    "version": 1,
+    "legacySource": null,
+    "legacyId": null,
+    "lines": [
+      {
+        "voucherId": "01a16ae4-0875-766f-9f33-a03cb8bd93bc",
+        "lineNo": 1,
+        "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+        "itemId": "01a16ae3-e89c-707d-adf8-0cd1a6cbd09e",
+        "qty": "1.0000",
+        "unitId": null,
+        "unitCost": "10.0000",
+        "lineCost": "10.0000",
+        "lotId": null,
+        "batchNo": null,
+        "productionDate": null,
+        "expiryDate": null,
+        "serialId": null,
+        "serialNos": [],
+        "note": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "id": "R33-AF01-order-statuses-52",
+  "at": "2026-10-23T22:31:29.306Z",
+  "method": "GET",
+  "path": "/tailoring/order-statuses",
+  "status": 200,
+  "response": {
+    "data": [
+      {
+        "id": "01a16ae4-022a-737b-b2e8-0831a2691d2c",
+        "code": "received",
+        "nameAr": "مستلم",
+        "displayOrder": 1,
+        "isFinal": false,
+        "active": true
+      },
+      {
+        "id": "01a16ae4-022a-737b-b2e8-0d8d044a63a8",
+        "code": "sewing",
+        "nameAr": "في الخياطة",
+        "displayOrder": 2,
+        "isFinal": false,
+        "active": true
+      },
+      {
+        "id": "01a16ae4-022a-737b-b2e8-12cdeb63e9d0",
+        "code": "ready",
+        "nameAr": "جاهز",
+        "displayOrder": 3,
+        "isFinal": false,
+        "active": true
+      },
+      {
+        "id": "01a16ae4-022a-737b-b2e8-164241e9a958",
+        "code": "delivered",
+        "nameAr": "تم التسليم",
+        "displayOrder": 4,
+        "isFinal": true,
+        "active": true
+      }
+    ]
+  }
+}

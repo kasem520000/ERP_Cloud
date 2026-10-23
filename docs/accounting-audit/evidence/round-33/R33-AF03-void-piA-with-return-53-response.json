@@ -1,0 +1,30 @@
+{
+  "id": "R33-AF03-void-piA-with-return-53",
+  "at": "2026-10-23T22:36:26.654Z",
+  "method": "POST",
+  "path": "/purchase-invoices/01a16ae8-58bd-72e8-ac1d-2d5f2d21125c/void",
+  "status": 409,
+  "request": {
+    "reason": "R33 AF03 void with returns"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Purchase has posted returns",
+    "status": 409,
+    "code": "PURCHASE_VOID_HAS_RETURNS",
+    "detail": "Void the returns that reference this purchase first",
+    "traceId": "01a16ae8-889f-752e-825e-e359e91f458a",
+    "errors": [
+      {
+        "references": [
+          {
+            "id": "01a16ae8-81e0-7273-befb-52c5c784372b",
+            "number": "PR-000004",
+            "kind": "purchase_return"
+          }
+        ],
+        "count": 1
+      }
+    ]
+  }
+}

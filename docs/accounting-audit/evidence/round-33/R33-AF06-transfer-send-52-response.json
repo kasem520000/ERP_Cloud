@@ -1,0 +1,16 @@
+{
+  "id": "R33-AF06-transfer-send-52",
+  "at": "2026-10-23T22:31:53.020Z",
+  "method": "POST",
+  "path": "/inventory/transfers/01a16ae4-5bb5-7077-bd20-9ae2443e2a53/send",
+  "status": 201,
+  "request": {},
+  "response": {
+    "transferId": "01a16ae4-5bb5-7077-bd20-9ae2443e2a53",
+    "number": "TR-000005",
+    "status": "in_transit",
+    "value": "70.0191",
+    "journalEntryId": "01a16ae4-5ec9-777b-b4ba-5d2934e8906d",
+    "lines": 1
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "R33-AF07-negative-restore-54",
+  "at": "2026-10-23T22:41:51.487Z",
+  "method": "PUT",
+  "path": "/settings/allow_negative_stock",
+  "status": 200,
+  "request": {
+    "value": false
+  },
+  "response": {
+    "data": {
+      "key": "allow_negative_stock",
+      "value": false
+    }
+  }
+}
