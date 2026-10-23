@@ -34,22 +34,30 @@ async function acct(codeStr) { return (await L.one(`select id from accounts wher
   L.snapshot(`R33-DB-${RUN}-010-probe2-baseline`);
   const ACC_3122 = await acct('3122'), ACC_224 = await acct('224');
 
-  // ───────── Block M: payroll 2026-11 ─────────
+  // ───────── Block M: payroll (first month from 2026-11 without a live run — re-run safe) ─────────
+  // A draft/posted/paid run of a month blocks a second one (PAYROLL_RUN_EXISTS by design); only a reversed
+  // run does not. A previous probe run leaves a fresh draft behind (M07), so pick the next free month.
+  const freeMonths = await L.db(`select p.id, p.name from fiscal_periods p where p.name in ('2026-11','2026-12') and p.status = 'open' and not exists (select 1 from payroll_runs r where r.year_month = p.name and r.status <> 'reversed') order by p.name limit 1`);
+  const YM = freeMonths[0] ? freeMonths[0].name : '2026-11';
+  const PERIOD_M = freeMonths[0] ? freeMonths[0].id : PERIOD_NOV;
+  const YM_START = `${YM}-01`;
+  const YM_END = YM === '2026-11' ? '2026-11-30' : '2026-12-31';
+  console.log('   payroll month for this run:', YM, PERIOD_M);
   const emps = await L.db(`select e.id, e.employee_no, e.name, e.salary_components, a.code from employees e left join accounts a on a.id = e.employee_account_id where e.status = 'active' order by e.employee_no`);
   console.log('   active employees:', emps.map((e) => `${e.employee_no}:${e.code}:${JSON.stringify(e.salary_components)}`).join(' | '));
-  const guard = await L.api('R33-M00-je-on-nonpostable', 'POST', '/journal-entries', { branchId: S.branch, fiscalPeriodId: PERIOD_NOV, date: '2026-11-05', description: 'R33 حارس: قيد على حساب تجميعي 3122', lines: [{ accountId: ACC_3122, debit: '1.0000' }, { accountId: ACC_224, credit: '1.0000' }] });
+  const guard = await L.api('R33-M00-je-on-nonpostable', 'POST', '/journal-entries', { branchId: S.branch, fiscalPeriodId: PERIOD_M, date: `${YM}-05`, description: 'R33 حارس: قيد على حساب تجميعي 3122', lines: [{ accountId: ACC_3122, debit: '1.0000' }, { accountId: ACC_224, credit: '1.0000' }] });
   check('M00', 'journal on non-postable 3122/224 → 422 ACCOUNT_NOT_POSTABLE', [422, 'ACCOUNT_NOT_POSTABLE'], [guard.status, code(guard)], JSON.stringify(guard.body && guard.body.details));
-  const prev = await L.api('R33-M01-payroll-preview', 'POST', '/hrm/payroll/preview', { yearMonth: '2026-11' });
+  const prev = await L.api('R33-M01-payroll-preview', 'POST', '/hrm/payroll/preview', { yearMonth: YM });
   const prevLines = (prev.data && (prev.data.lines || (prev.data.preview && prev.data.preview.lines))) || [];
-  check('M01', 'preview 2026-11 → 200/201 with lines', true, (prev.status === 200 || prev.status === 201) && prevLines.length > 0, `${prev.status} lines=${prevLines.length} nets=${prevLines.map((l) => `${l.employeeName}:${l.net}`).join(',')}`);
+  check('M01', `preview ${YM} → 200/201 with lines`, true, (prev.status === 200 || prev.status === 201) && prevLines.length > 0, `${prev.status} lines=${prevLines.length} nets=${prevLines.map((l) => `${l.employeeName}:${l.net}`).join(',')}`);
   const expectedTotal = n4(prevLines.reduce((s, l) => s + Number(l.net), 0));
-  const run = await L.api('R33-M02-payroll-run', 'POST', '/hrm/payroll/runs', { yearMonth: '2026-11', periodId: PERIOD_NOV });
+  const run = await L.api('R33-M02-payroll-run', 'POST', '/hrm/payroll/runs', { yearMonth: YM, periodId: PERIOD_M });
   let runId = run.data && run.data.id;
   if (!runId) {
-    const existing = await L.one(`select id, status from payroll_runs where year_month = '2026-11' and status = 'draft' order by created_at desc limit 1`);
+    const existing = await L.one(`select id, status from payroll_runs where year_month = ${'$'}{YM} and status = 'draft' order by created_at desc limit 1`);
     runId = existing && existing.id;
   }
-  check('M02', 'ACC-174 payroll run 2026-11 → 201 draft (a reversed run of the same month must not block it)', [201, 'draft'], [run.status, run.data && run.data.status], `${code(run) || ''}`);
+  check('M02', `ACC-174 payroll run ${YM} → 201 draft (a reversed run of the same month must not block it)`, [201, 'draft'], [run.status, run.data && run.data.status], `${code(run) || ''}`);
   const empBefore = {};
   // employees without an account yet get one at the post — balances start at 0 for them
   for (const e of emps) empBefore[e.id] = e.code ? await gl(e.code) : '0.0000';
@@ -58,7 +66,7 @@ async function acct(codeStr) { return (await L.one(`select id from accounts wher
   check('M03', 'ACC-170/176 post with empty body (accrual dated inside the run period) → 201', 201, post.status, `${code(post) || ''} ${JSON.stringify(post.body && post.body.detail || '').slice(0, 200)}`);
   const runRow = await L.one(`select status, journal_entry_id, voucher_id from payroll_runs where id = $1`, [runId]);
   const jeHead = runRow && runRow.journal_entry_id ? await L.one(`select number, date::text, fiscal_period_id from journal_entries where id = $1`, [runRow.journal_entry_id]) : null;
-  check('M03a', 'ACC-176 accrual journal dated inside 2026-11 and in the November period', [true, PERIOD_NOV], [Boolean(jeHead && jeHead.date >= '2026-11-01' && jeHead.date <= '2026-11-30'), jeHead && jeHead.fiscal_period_id], jeHead && `${jeHead.number} ${jeHead.date}`);
+  check('M03a', `ACC-176 accrual journal dated inside ${YM} and in its fiscal period`, [true, PERIOD_M], [Boolean(jeHead && jeHead.date >= YM_START && jeHead.date <= YM_END), jeHead && jeHead.fiscal_period_id], jeHead && `${jeHead.number} ${jeHead.date}`);
   const jeLines = runRow && runRow.journal_entry_id ? await linesOf(runRow.journal_entry_id) : [];
   check('M03b', 'ACC-170 every journal line is on a postable leaf account', true, jeLines.length > 0 && jeLines.every((l) => l.is_postable === true), JSON.stringify(jeLines.map((l) => [l.code, l.debit, l.credit])));
   check('M03c', 'ACC-170 no line on 3122 / 224 (summary accounts)', 0, jeLines.filter((l) => l.code === '3122' || l.code === '224').length);
@@ -98,7 +106,7 @@ async function acct(codeStr) { return (await L.one(`select id from accounts wher
   for (const e of paidEmps) check(`M06d-${e.code}`, `employee ${e.employee_no} unchanged after reverse`, empBefore[e.id], await gl(e.code));
   const runRev = await L.one(`select status from payroll_runs where id = $1`, [runId]);
   check('M06e', 'run status reversed', 'reversed', runRev.status);
-  const run2 = await L.api('R33-M07-payroll-run-after-reverse', 'POST', '/hrm/payroll/runs', { yearMonth: '2026-11', periodId: PERIOD_NOV });
+  const run2 = await L.api('R33-M07-payroll-run-after-reverse', 'POST', '/hrm/payroll/runs', { yearMonth: YM, periodId: PERIOD_M });
   check('M07', 'ACC-174 a new run for the same month is accepted after the reversal', [201, 'draft'], [run2.status, run2.data && run2.data.status], code(run2));
   L.snapshot(`R33-DB-${RUN}-013-after-payroll-reverse`);
 

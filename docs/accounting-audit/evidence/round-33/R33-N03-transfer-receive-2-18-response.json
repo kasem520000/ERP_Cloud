@@ -1,0 +1,41 @@
+{
+  "id": "R33-N03-transfer-receive-2-18",
+  "at": "2026-10-23T16:19:53.094Z",
+  "method": "POST",
+  "path": "/inventory/transfers/01a1698f-c557-7119-9ddc-2b946e917e12/receive",
+  "status": 201,
+  "request": {
+    "received": [
+      {
+        "lineNo": 1,
+        "qty": "2"
+      }
+    ]
+  },
+  "response": {
+    "transferId": "01a1698f-c557-7119-9ddc-2b946e917e12",
+    "status": "partially_received",
+    "value": "2.0000",
+    "journalEntryId": "01a1698f-cbb4-74a0-aeea-15b70f791a37",
+    "lines": [
+      {
+        "transferId": "01a1698f-c557-7119-9ddc-2b946e917e12",
+        "lineNo": 1,
+        "tenantId": "01a16976-3534-755a-a19a-f7e37286ad69",
+        "itemId": "01a16977-86b5-73f2-bad5-51281d56a6a1",
+        "qty": "3.0000",
+        "unitId": null,
+        "sentQty": "3.0000",
+        "receivedQty": "2.0000",
+        "closedQty": "0.0000",
+        "unitCost": "1.0000",
+        "lotId": "01a1698f-2309-7459-93d5-518d6f21f1e5",
+        "batchNo": "BATCH-R33-18",
+        "productionDate": "2026-10-23",
+        "expiryDate": null,
+        "serialIds": [],
+        "serialNos": []
+      }
+    ]
+  }
+}

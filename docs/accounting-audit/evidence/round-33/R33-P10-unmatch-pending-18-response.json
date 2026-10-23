@@ -1,0 +1,21 @@
+{
+  "id": "R33-P10-unmatch-pending-18",
+  "at": "2026-10-23T16:20:13.737Z",
+  "method": "DELETE",
+  "path": "/treasury/bank-statements/01a16990-14d1-7505-9a3a-6f8e0507917f/lines/01a16990-14d6-77eb-ac2c-dd583eddf125/match",
+  "status": 409,
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "LINE_NOT_MATCHED",
+    "detail": "Bank statement line is not matched",
+    "traceId": "01a16990-192a-708c-95e7-bda870283eb4",
+    "errors": [
+      {
+        "field": "lineId",
+        "status": "pending"
+      }
+    ]
+  }
+}

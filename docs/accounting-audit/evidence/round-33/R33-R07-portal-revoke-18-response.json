@@ -1,0 +1,13 @@
+{
+  "id": "R33-R07-portal-revoke-18",
+  "at": "2026-10-23T16:20:31.029Z",
+  "method": "DELETE",
+  "path": "/portal-access/01a16990-5009-77fb-bcee-688228b92a53",
+  "status": 200,
+  "response": {
+    "data": {
+      "id": "01a16990-5009-77fb-bcee-688228b92a53",
+      "revoked": true
+    }
+  }
+}

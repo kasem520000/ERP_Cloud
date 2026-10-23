@@ -1,0 +1,17 @@
+{
+  "id": "R33-P09-auto-match-18",
+  "at": "2026-10-23T16:20:12.645Z",
+  "method": "POST",
+  "path": "/treasury/bank-statements/01a16990-14d1-7505-9a3a-6f8e0507917f/auto-match",
+  "status": 201,
+  "request": {},
+  "response": {
+    "data": {
+      "statementId": "01a16990-14d1-7505-9a3a-6f8e0507917f",
+      "scanned": 6,
+      "matched": 3,
+      "suggested": 1,
+      "pending": 3
+    }
+  }
+}

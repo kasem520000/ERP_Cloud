@@ -1,0 +1,30 @@
+{
+  "id": "R33-Q03-webhook-amount-mismatch-18",
+  "at": "2026-10-23T16:20:24.102Z",
+  "method": "POST",
+  "path": "/payments/webhooks/moyasar?tenant_id=01a16976-3534-755a-a19a-f7e37286ad69",
+  "status": 422,
+  "request": {
+    "type": "payment_paid",
+    "secret_token": "***",
+    "data": {
+      "id": "pay_r33_mismatch_18",
+      "status": "paid",
+      "amount": 2000,
+      "currency": "SAR",
+      "metadata": {
+        "tenant_id": "01a16976-3534-755a-a19a-f7e37286ad69",
+        "payment_link_id": "01a16990-419f-7718-85a5-bcb61966dfcf",
+        "invoice_id": "01a16990-0b3e-7108-b419-3ab8314d4837"
+      }
+    }
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "PAYMENT_AMOUNT_MISMATCH",
+    "detail": "لا يمكن تسوية الرابط: amount-mismatch",
+    "traceId": "01a16990-41a7-745f-9a93-d168a1029773"
+  }
+}

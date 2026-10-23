@@ -1,0 +1,19 @@
+{
+  "id": "R33-M02-payroll-run-18",
+  "at": "2026-10-23T16:19:45.744Z",
+  "method": "POST",
+  "path": "/hrm/payroll/runs",
+  "status": 409,
+  "request": {
+    "yearMonth": "2026-11",
+    "periodId": "01a16976-3775-7769-b4d1-f318caebd3ff"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "PAYROLL_RUN_EXISTS",
+    "detail": "يوجد مسيّر رواتب مسجل لشهر 2026-11",
+    "traceId": "01a1698f-abd1-751c-9a5f-d16f14284d50"
+  }
+}

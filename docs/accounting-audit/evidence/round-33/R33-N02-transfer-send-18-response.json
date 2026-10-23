@@ -1,0 +1,16 @@
+{
+  "id": "R33-N02-transfer-send-18",
+  "at": "2026-10-23T16:19:52.290Z",
+  "method": "POST",
+  "path": "/inventory/transfers/01a1698f-c557-7119-9ddc-2b946e917e12/send",
+  "status": 201,
+  "request": {},
+  "response": {
+    "transferId": "01a1698f-c557-7119-9ddc-2b946e917e12",
+    "number": "TR-000014",
+    "status": "in_transit",
+    "value": "3.0000",
+    "journalEntryId": "01a1698f-c87b-74d9-8147-576e2da5e0ef",
+    "lines": 1
+  }
+}

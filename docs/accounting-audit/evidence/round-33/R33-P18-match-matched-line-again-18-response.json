@@ -1,0 +1,24 @@
+{
+  "id": "R33-P18-match-matched-line-again-18",
+  "at": "2026-10-23T16:20:19.841Z",
+  "method": "POST",
+  "path": "/treasury/bank-statements/01a16990-14d1-7505-9a3a-6f8e0507917f/match",
+  "status": 409,
+  "request": {
+    "lineId": "01a16990-14d6-77eb-ac2c-ce019ef91999",
+    "voucherId": "01a1698f-e981-7200-ad93-1a2b744f38b2"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "BANK_LINE_ALREADY_MATCHED",
+    "detail": "Bank statement line is already matched — unmatch it first",
+    "traceId": "01a16990-3102-711f-a379-6d7ed061e5a6",
+    "errors": [
+      {
+        "field": "lineId"
+      }
+    ]
+  }
+}

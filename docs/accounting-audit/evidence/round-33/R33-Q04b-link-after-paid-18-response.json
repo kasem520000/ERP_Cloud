@@ -1,0 +1,42 @@
+{
+  "id": "R33-Q04b-link-after-paid-18",
+  "at": "2026-10-23T16:20:25.960Z",
+  "method": "GET",
+  "path": "/payments/links/01a16990-419f-7718-85a5-bcb61966dfcf",
+  "status": 200,
+  "response": {
+    "id": "01a16990-419f-7718-85a5-bcb61966dfcf",
+    "invoiceId": "01a16990-0b3e-7108-b419-3ab8314d4837",
+    "provider": "moyasar",
+    "label": "ميسر",
+    "amount": "23.0000",
+    "currency": "SAR",
+    "linkUrl": "https://pay.simulation.local/moyasar/sim_moyasar_01a16990419f7718",
+    "externalId": "sim_moyasar_01a16990419f7718",
+    "status": "paid",
+    "paidAt": "2026-10-23T16:20:25.954Z",
+    "voucherId": "01a16990-48be-737b-a426-6f10edeb4b52",
+    "createdAt": "2026-10-23T16:20:24.098Z",
+    "lastError": null,
+    "payload": {
+      "lastEvent": {
+        "data": {
+          "id": "pay_r33_ok_18",
+          "amount": 2300,
+          "status": "paid",
+          "currency": "SAR",
+          "metadata": {
+            "tenant_id": "01a16976-3534-755a-a19a-f7e37286ad69",
+            "invoice_id": "01a16990-0b3e-7108-b419-3ab8314d4837",
+            "payment_link_id": "01a16990-419f-7718-85a5-bcb61966dfcf"
+          }
+        },
+        "type": "payment_paid"
+      },
+      "paymentId": "pay_r33_ok_18",
+      "simulation": true,
+      "voucherStatus": "posted",
+      "providerStatus": "initiated"
+    }
+  }
+}

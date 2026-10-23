@@ -1,0 +1,129 @@
+{
+  "id": "R33-M07-payroll-run-after-reverse-18",
+  "at": "2026-10-23T16:19:50.402Z",
+  "method": "POST",
+  "path": "/hrm/payroll/runs",
+  "status": 201,
+  "request": {
+    "yearMonth": "2026-11",
+    "periodId": "01a16976-3775-7769-b4d1-f318caebd3ff"
+  },
+  "response": {
+    "data": {
+      "id": "01a1698f-c10d-75a2-9f55-7917d3d3f1be",
+      "tenantId": "01a16976-3534-755a-a19a-f7e37286ad69",
+      "periodId": "01a16976-3775-7769-b4d1-f318caebd3ff",
+      "yearMonth": "2026-11",
+      "status": "draft",
+      "currency": "SAR",
+      "summary": {
+        "preview": {
+          "lines": [
+            {
+              "net": "100.0000",
+              "gross": "100.0000",
+              "additions": "0.0000",
+              "components": {
+                "basic": "100"
+              },
+              "deductions": "0.0000",
+              "employeeId": "01a16978-090e-7198-9976-6ab2d1d2940a",
+              "employeeName": "R33 مندوب بلا حساب 16",
+              "unpaidFactor": "1.000000"
+            },
+            {
+              "net": "100.0000",
+              "gross": "100.0000",
+              "additions": "0.0000",
+              "components": {
+                "basic": "100"
+              },
+              "deductions": "0.0000",
+              "employeeId": "01a16978-c9c7-75d8-96da-bd742a62bdf4",
+              "employeeName": "R33 مندوب بلا حساب 17",
+              "unpaidFactor": "1.000000"
+            },
+            {
+              "net": "100.0000",
+              "gross": "100.0000",
+              "additions": "0.0000",
+              "components": {
+                "basic": "100"
+              },
+              "deductions": "0.0000",
+              "employeeId": "01a1698f-5212-70b1-9e87-1efae32a6291",
+              "employeeName": "R33 مندوب بلا حساب 18",
+              "unpaidFactor": "1.000000"
+            }
+          ],
+          "yearMonth": "2026-11",
+          "netPayable": "300.0000",
+          "employeeCount": 3
+        }
+      },
+      "journalEntryId": null,
+      "voucherId": null,
+      "postedAt": null,
+      "paidAt": null,
+      "reversedAt": null,
+      "reversalReason": null,
+      "createdAt": "2026-10-23T16:19:51.181Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "legacySource": null,
+      "legacyId": null,
+      "lines": [
+        {
+          "runId": "01a1698f-c10d-75a2-9f55-7917d3d3f1be",
+          "lineNo": 1,
+          "tenantId": "01a16976-3534-755a-a19a-f7e37286ad69",
+          "employeeId": "01a16978-090e-7198-9976-6ab2d1d2940a",
+          "components": {
+            "basic": "100"
+          },
+          "additions": "0.0000",
+          "deductions": "0.0000",
+          "gross": "100.0000",
+          "net": "100.0000",
+          "costCenterId": null,
+          "status": "draft",
+          "payslipHtml": "<!doctype html><html dir=\"rtl\"><body><h1>قسيمة راتب 2026-11</h1><p>R33 مندوب بلا حساب 16: 100.0000</p></body></html>"
+        },
+        {
+          "runId": "01a1698f-c10d-75a2-9f55-7917d3d3f1be",
+          "lineNo": 2,
+          "tenantId": "01a16976-3534-755a-a19a-f7e37286ad69",
+          "employeeId": "01a16978-c9c7-75d8-96da-bd742a62bdf4",
+          "components": {
+            "basic": "100"
+          },
+          "additions": "0.0000",
+          "deductions": "0.0000",
+          "gross": "100.0000",
+          "net": "100.0000",
+          "costCenterId": null,
+          "status": "draft",
+          "payslipHtml": "<!doctype html><html dir=\"rtl\"><body><h1>قسيمة راتب 2026-11</h1><p>R33 مندوب بلا حساب 17: 100.0000</p></body></html>"
+        },
+        {
+          "runId": "01a1698f-c10d-75a2-9f55-7917d3d3f1be",
+          "lineNo": 3,
+          "tenantId": "01a16976-3534-755a-a19a-f7e37286ad69",
+          "employeeId": "01a1698f-5212-70b1-9e87-1efae32a6291",
+          "components": {
+            "basic": "100"
+          },
+          "additions": "0.0000",
+          "deductions": "0.0000",
+          "gross": "100.0000",
+          "net": "100.0000",
+          "costCenterId": null,
+          "status": "draft",
+          "payslipHtml": "<!doctype html><html dir=\"rtl\"><body><h1>قسيمة راتب 2026-11</h1><p>R33 مندوب بلا حساب 18: 100.0000</p></body></html>"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "R33-P07-bank-account-18",
+  "at": "2026-10-23T16:20:11.028Z",
+  "method": "POST",
+  "path": "/treasury/bank-accounts",
+  "status": 201,
+  "request": {
+    "bankName": "R33 بنك اختبار 18",
+    "accountNo": "R33-ACC-18",
+    "iban": "SA00R33TEST0000000018",
+    "openingBalance": "180000",
+    "cashLocationId": "01a16976-36f8-741b-9a53-2db276bcfd69"
+  },
+  "response": {
+    "data": {
+      "id": "01a16990-11b7-767d-b5f6-511b8bb84a83",
+      "tenantId": "01a16976-3534-755a-a19a-f7e37286ad69",
+      "bankName": "R33 بنك اختبار 18",
+      "accountNo": "R33-ACC-18",
+      "iban": "SA00•••••••••••••0018",
+      "currency": "SAR",
+      "openingBalance": "180000.0000",
+      "accountId": "01a16976-372c-77e9-92db-4d72ca0a5277",
+      "status": "active",
+      "createdAt": "2026-10-23T16:20:11.832Z",
+      "createdBy": "01a16976-3537-77a8-a8da-9bac5a0c6424",
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1
+    }
+  }
+}
