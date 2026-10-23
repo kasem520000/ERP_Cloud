@@ -1,0 +1,311 @@
+{
+  "sequence": true,
+  "mode": "none",
+  "results": [
+    {
+      "label": "no-secret",
+      "method": "POST",
+      "path": "/payments/webhooks/moyasar?tenant_id=01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+      "mode": "none",
+      "request": {
+        "type": "payment_paid",
+        "data": {
+          "id": "pay_r30_nosecret",
+          "status": "paid",
+          "amount": 575,
+          "currency": "SAR",
+          "metadata": {
+            "tenant_id": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+            "payment_link_id": "01a167b4-a443-70dd-ae9c-4262c3d91aaa",
+            "invoice_id": "01a167af-58e9-745e-8d85-ff1ebfc50712"
+          }
+        }
+      },
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 401,
+        "code": "WEBHOOK_SIGNATURE_INVALID",
+        "detail": "Webhook secret did not match",
+        "traceId": "01a167b4-fa95-71b5-a2f0-ca8c47646592"
+      }
+    },
+    {
+      "label": "wrong-secret",
+      "method": "POST",
+      "path": "/payments/webhooks/moyasar?tenant_id=01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+      "mode": "none",
+      "request": {
+        "type": "payment_paid",
+        "secret_token": "wrong-secret",
+        "data": {
+          "id": "pay_r30_wrong",
+          "status": "paid",
+          "amount": 575,
+          "currency": "SAR",
+          "metadata": {
+            "tenant_id": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+            "payment_link_id": "01a167b4-a443-70dd-ae9c-4262c3d91aaa",
+            "invoice_id": "01a167af-58e9-745e-8d85-ff1ebfc50712"
+          }
+        }
+      },
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 401,
+        "code": "WEBHOOK_SIGNATURE_INVALID",
+        "detail": "Webhook secret did not match",
+        "traceId": "01a167b4-fba6-719e-930d-ea2c84ee2295"
+      }
+    },
+    {
+      "label": "amount-mismatch",
+      "method": "POST",
+      "path": "/payments/webhooks/moyasar?tenant_id=01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+      "mode": "none",
+      "request": {
+        "type": "payment_paid",
+        "secret_token": "r30-webhook-secret",
+        "data": {
+          "id": "pay_r30_mismatch",
+          "status": "paid",
+          "amount": 500,
+          "currency": "SAR",
+          "metadata": {
+            "tenant_id": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+            "payment_link_id": "01a167b4-a443-70dd-ae9c-4262c3d91aaa",
+            "invoice_id": "01a167af-58e9-745e-8d85-ff1ebfc50712"
+          }
+        }
+      },
+      "status": 422,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 422,
+        "code": "PAYMENT_AMOUNT_MISMATCH",
+        "detail": "لا يمكن تسوية الرابط: amount-mismatch",
+        "traceId": "01a167b4-fcad-70d3-a260-af3efc94e013"
+      }
+    },
+    {
+      "label": "paid",
+      "method": "POST",
+      "path": "/payments/webhooks/moyasar?tenant_id=01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+      "mode": "none",
+      "request": {
+        "type": "payment_paid",
+        "secret_token": "r30-webhook-secret",
+        "data": {
+          "id": "pay_r30_ok_575",
+          "status": "paid",
+          "amount": 575,
+          "currency": "SAR",
+          "metadata": {
+            "tenant_id": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+            "payment_link_id": "01a167b4-a443-70dd-ae9c-4262c3d91aaa",
+            "invoice_id": "01a167af-58e9-745e-8d85-ff1ebfc50712"
+          }
+        }
+      },
+      "status": 201,
+      "body": {
+        "accepted": true,
+        "status": "paid",
+        "voucherId": "01a167b4-fec8-757c-9d35-52f8769ac772",
+        "link": {
+          "id": "01a167b4-a443-70dd-ae9c-4262c3d91aaa",
+          "invoiceId": "01a167af-58e9-745e-8d85-ff1ebfc50712",
+          "provider": "moyasar",
+          "label": "ميسر",
+          "amount": "5.7500",
+          "currency": "SAR",
+          "linkUrl": "https://pay.simulation.local/moyasar/sim_moyasar_01a167b4a44370dd",
+          "externalId": "sim_moyasar_01a167b4a44370dd",
+          "status": "paid",
+          "paidAt": "2026-10-23T07:41:17.426Z",
+          "voucherId": "01a167b4-fec8-757c-9d35-52f8769ac772",
+          "createdAt": "2026-10-23T07:40:54.213Z",
+          "lastError": null,
+          "payload": {
+            "lastEvent": {
+              "data": {
+                "id": "pay_r30_ok_575",
+                "amount": 575,
+                "status": "paid",
+                "currency": "SAR",
+                "metadata": {
+                  "tenant_id": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+                  "invoice_id": "01a167af-58e9-745e-8d85-ff1ebfc50712",
+                  "payment_link_id": "01a167b4-a443-70dd-ae9c-4262c3d91aaa"
+                }
+              },
+              "type": "payment_paid"
+            },
+            "paymentId": "pay_r30_ok_575",
+            "simulation": true,
+            "voucherStatus": "posted",
+            "providerStatus": "initiated"
+          }
+        }
+      }
+    },
+    {
+      "label": "replay",
+      "method": "POST",
+      "path": "/payments/webhooks/moyasar?tenant_id=01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+      "mode": "none",
+      "request": {
+        "type": "payment_paid",
+        "secret_token": "r30-webhook-secret",
+        "data": {
+          "id": "pay_r30_ok_575",
+          "status": "paid",
+          "amount": 575,
+          "currency": "SAR",
+          "metadata": {
+            "tenant_id": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+            "payment_link_id": "01a167b4-a443-70dd-ae9c-4262c3d91aaa",
+            "invoice_id": "01a167af-58e9-745e-8d85-ff1ebfc50712"
+          }
+        }
+      },
+      "status": 201,
+      "body": {
+        "accepted": true,
+        "status": "paid",
+        "ignored": "already-paid",
+        "link": {
+          "id": "01a167b4-a443-70dd-ae9c-4262c3d91aaa",
+          "invoiceId": "01a167af-58e9-745e-8d85-ff1ebfc50712",
+          "provider": "moyasar",
+          "label": "ميسر",
+          "amount": "5.7500",
+          "currency": "SAR",
+          "linkUrl": "https://pay.simulation.local/moyasar/sim_moyasar_01a167b4a44370dd",
+          "externalId": "sim_moyasar_01a167b4a44370dd",
+          "status": "paid",
+          "paidAt": "2026-10-23T07:41:17.426Z",
+          "voucherId": "01a167b4-fec8-757c-9d35-52f8769ac772",
+          "createdAt": "2026-10-23T07:40:54.213Z",
+          "lastError": null,
+          "payload": {
+            "lastEvent": {
+              "data": {
+                "id": "pay_r30_ok_575",
+                "amount": 575,
+                "status": "paid",
+                "currency": "SAR",
+                "metadata": {
+                  "tenant_id": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+                  "invoice_id": "01a167af-58e9-745e-8d85-ff1ebfc50712",
+                  "payment_link_id": "01a167b4-a443-70dd-ae9c-4262c3d91aaa"
+                }
+              },
+              "type": "payment_paid"
+            },
+            "paymentId": "pay_r30_ok_575",
+            "simulation": true,
+            "voucherStatus": "posted",
+            "providerStatus": "initiated"
+          }
+        }
+      }
+    },
+    {
+      "label": "second-payment-id",
+      "method": "POST",
+      "path": "/payments/webhooks/moyasar?tenant_id=01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+      "mode": "none",
+      "request": {
+        "type": "payment_paid",
+        "secret_token": "r30-webhook-secret",
+        "data": {
+          "id": "pay_r30_second",
+          "status": "paid",
+          "amount": 575,
+          "currency": "SAR",
+          "metadata": {
+            "tenant_id": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+            "payment_link_id": "01a167b4-a443-70dd-ae9c-4262c3d91aaa",
+            "invoice_id": "01a167af-58e9-745e-8d85-ff1ebfc50712"
+          }
+        }
+      },
+      "status": 201,
+      "body": {
+        "accepted": true,
+        "status": "paid",
+        "ignored": "already-paid",
+        "link": {
+          "id": "01a167b4-a443-70dd-ae9c-4262c3d91aaa",
+          "invoiceId": "01a167af-58e9-745e-8d85-ff1ebfc50712",
+          "provider": "moyasar",
+          "label": "ميسر",
+          "amount": "5.7500",
+          "currency": "SAR",
+          "linkUrl": "https://pay.simulation.local/moyasar/sim_moyasar_01a167b4a44370dd",
+          "externalId": "sim_moyasar_01a167b4a44370dd",
+          "status": "paid",
+          "paidAt": "2026-10-23T07:41:17.426Z",
+          "voucherId": "01a167b4-fec8-757c-9d35-52f8769ac772",
+          "createdAt": "2026-10-23T07:40:54.213Z",
+          "lastError": null,
+          "payload": {
+            "lastEvent": {
+              "data": {
+                "id": "pay_r30_ok_575",
+                "amount": 575,
+                "status": "paid",
+                "currency": "SAR",
+                "metadata": {
+                  "tenant_id": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+                  "invoice_id": "01a167af-58e9-745e-8d85-ff1ebfc50712",
+                  "payment_link_id": "01a167b4-a443-70dd-ae9c-4262c3d91aaa"
+                }
+              },
+              "type": "payment_paid"
+            },
+            "paymentId": "pay_r30_ok_575",
+            "simulation": true,
+            "voucherStatus": "posted",
+            "providerStatus": "initiated"
+          }
+        }
+      }
+    },
+    {
+      "label": "link",
+      "method": "GET",
+      "path": "/payments/links/01a167b4-a443-70dd-ae9c-4262c3d91aaa",
+      "mode": "none",
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Unauthenticated",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "detail": "Missing bearer token",
+        "traceId": "01a167b5-0112-74c8-a7ee-6bcee33c8ea0"
+      }
+    },
+    {
+      "label": "invoice",
+      "method": "GET",
+      "path": "/sales/invoices/01a167af-58e9-745e-8d85-ff1ebfc50712",
+      "mode": "none",
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Unauthenticated",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "detail": "Missing bearer token",
+        "traceId": "01a167b5-0216-7469-9859-1c65e44fae10"
+      }
+    }
+  ]
+}

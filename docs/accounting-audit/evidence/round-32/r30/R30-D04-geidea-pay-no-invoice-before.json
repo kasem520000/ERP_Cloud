@@ -1,0 +1,118 @@
+{
+  "at": "2026-10-23T07:42:58.139Z",
+  "url": "http://127.0.0.1:3001/settings/payment-gateways",
+  "text": "AUDIT-TEST-2026-R24\n\nبوابات الدفع — جيديا · NeoLeap\nع\nEN\n14\nم\nمالك الحساب\nالإعدادات\n/بوابات الدفع\nبوابات الدفع — إعدادات جيديا · NeoLeap\n\nتفعيل البوابة، واختبارها بمبلغٍ رمزي، ثم أخذ الدفع بها من نقطة البيع. كل عملية تُسجَّل في «آخر العمليات»: ما طلبناه، وما أجابت به البوابة، وهل قُيّد المبلغ على الفاتورة.\n\n1 من 2 بوابة مفعّلة\nإعدادات جيديا\nالتفعيل\nتفعيل الدفع عن طريق جيديا\nطباعة ايصال\nSimulation تجريبي\nالمنفذ\nالمبلغ\nيُستخدم في TEST (0.01 افتراضياً)\nعنوان البوابة\nالمعرّف العام (Merchant Key)\nكلمة سرّ الـ API\nالعملة\nرابط الإرجاع\nحفظ\nTEST\nدفع\nادفع الآن\nLogging\nreference: TEST-01a167b6-5963-733b-bdfd-8ecdeb0d8a2a\nstatus: initiated\nresponseCode: 000\nmessage: Success\nNeoLeap\nالتفعيل\nتفعيل NeoLeap\nطباعة إيصال NeoLeap\nSimulation تجريبي\nالمنفذ\nالمبلغ\nالاختبار يخصم 0.50 دائماً بمرجع تجريبي\nعنوان الخدمة (يُشتقّ من المنفذ إن تُرك فارغاً)\nTranportal ID\nToken\nالعملة\nحفظ\nTest\nدفع\nادفع الآن\nLogging\n— لم يُجرَ اختبار بعد —\nآخر العمليات\nتحديث\n\nلا توجد عمليات بعد.",
+  "fields": [
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "value": "on",
+      "checked": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "value": "on",
+      "checked": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "value": "on",
+      "checked": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "0.01"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "https://api.ksamerchant.geidea.net"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "R30-MERCHANT-KEY"
+    },
+    {
+      "tag": "INPUT",
+      "type": "password",
+      "value": "***"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "SAR"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "125.00"
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "value": "on",
+      "checked": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "value": "on",
+      "checked": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "value": "on",
+      "checked": true
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "0.50"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "password",
+      "value": "***"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "SAR"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "125.00"
+    }
+  ]
+}

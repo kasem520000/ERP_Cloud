@@ -1,0 +1,19 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/supplier-portal/rfqs",
+  "request": {
+    "partyId": "01a16790-58ef-7480-a56e-1df58ea70bb4",
+    "title": "R30 — عرض سعر دقيق 50 كجم",
+    "note": "R30 اختبار معزول — طلب عرض سعر"
+  },
+  "body": {
+    "data": {
+      "id": "01a167ba-ff34-773a-8099-3fcf4012a791",
+      "number": "RFQ-000001",
+      "partyId": "01a16790-58ef-7480-a56e-1df58ea70bb4",
+      "title": "R30 — عرض سعر دقيق 50 كجم",
+      "status": "open"
+    }
+  }
+}

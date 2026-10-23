@@ -1,0 +1,35 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/payment-gateways/geidea/sale",
+  "request": {
+    "amount": "125.00"
+  },
+  "body": {
+    "transaction": {
+      "id": "01a167b6-a52b-767f-a38c-220d4a6f3d33",
+      "provider": "geidea",
+      "reference": "ECR-01a167b6-a529-7699-b3dd-178182503d4c",
+      "sessionId": "SIM-71655aaf26aa",
+      "invoiceId": null,
+      "branchId": null,
+      "amount": "125.0000",
+      "currency": "SAR",
+      "status": "initiated",
+      "responseCode": "000",
+      "detailedResponseCode": "000",
+      "message": "Success",
+      "approvalCode": null,
+      "rrn": null,
+      "stan": null,
+      "cardScheme": null,
+      "panMasked": null,
+      "transactionType": "Pay",
+      "checkoutUrl": null,
+      "simulation": true,
+      "settled": false,
+      "createdAt": "2026-10-23T07:43:05.515Z"
+    },
+    "settled": false
+  }
+}

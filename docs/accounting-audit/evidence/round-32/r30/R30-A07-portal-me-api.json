@@ -1,0 +1,21 @@
+{
+  "party": {
+    "id": "01a16791-b987-7499-9aea-621f9b2a1f7c",
+    "code": "000001",
+    "name": "بقالة R29 (آجل)",
+    "taxNo": null,
+    "phone": "0500000029",
+    "email": null,
+    "creditLimit": "100.0000"
+  },
+  "company": {
+    "nameAr": "AUDIT-TEST-2026-R24",
+    "nameEn": "Demo Trading Co.",
+    "taxNo": "300000000000003",
+    "email": "info@demo.test",
+    "phones": [
+      "+966500000000"
+    ]
+  },
+  "balance": "11.0400"
+}

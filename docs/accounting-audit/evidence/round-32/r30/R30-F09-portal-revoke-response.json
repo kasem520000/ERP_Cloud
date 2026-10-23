@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "method": "DELETE",
+  "url": "http://127.0.0.1:3001/api/v1/portal-access/01a167ad-0f21-76fa-af3d-c8ce9111ec67",
+  "request": null,
+  "body": {
+    "data": {
+      "id": "01a167ad-0f21-76fa-af3d-c8ce9111ec67",
+      "revoked": true
+    }
+  }
+}

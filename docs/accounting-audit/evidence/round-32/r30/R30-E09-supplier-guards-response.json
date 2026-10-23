@@ -1,0 +1,124 @@
+{
+  "sequence": true,
+  "mode": "supplier",
+  "results": [
+    {
+      "label": "other-doc",
+      "method": "GET",
+      "path": "/supplier-portal/invoices/01a16799-fe77-7235-af0b-2eb71c573546",
+      "mode": "supplier",
+      "status": 404,
+      "body": {
+        "type": "about:blank",
+        "title": "Not found",
+        "status": 404,
+        "code": "NOT_FOUND",
+        "detail": "المستند غير موجود",
+        "traceId": "01a167bc-53aa-76db-9ab7-15d59c6802ca"
+      }
+    },
+    {
+      "label": "own-pi",
+      "method": "GET",
+      "path": "/supplier-portal/invoices/01a16794-6953-701a-a57c-cf2efd9765e6",
+      "mode": "supplier",
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "01a16794-6953-701a-a57c-cf2efd9765e6",
+          "number": "PI-000001",
+          "status": "posted",
+          "currency": "SAR",
+          "total": "230.0000"
+        }
+      }
+    },
+    {
+      "label": "staff-route",
+      "method": "GET",
+      "path": "/purchases/invoices?limit=5",
+      "mode": "supplier",
+      "status": 404,
+      "body": {
+        "type": "about:blank",
+        "title": "Not found",
+        "status": 404,
+        "code": "NOT_FOUND",
+        "detail": "Cannot GET /api/v1/purchases/invoices?limit=5",
+        "traceId": "01a167bc-57c2-76ee-885e-3b18166e4b4a"
+      }
+    },
+    {
+      "label": "parties",
+      "method": "GET",
+      "path": "/parties?limit=5",
+      "mode": "supplier",
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Unauthenticated",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "detail": "Access token is invalid or expired",
+        "traceId": "01a167bc-57c9-76db-a6f1-55ebbb222e15"
+      }
+    },
+    {
+      "label": "respond-again",
+      "method": "POST",
+      "path": "/supplier-portal/quotations/01a167ba-ff34-773a-8099-3fcf4012a791/respond",
+      "mode": "supplier",
+      "request": {
+        "price": "180",
+        "note": "second reply"
+      },
+      "status": 409,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 409,
+        "code": "RFQ_CLOSED",
+        "detail": "تم الرد على هذا الطلب مسبقاً",
+        "traceId": "01a167bc-59c6-711c-abc8-9ad31759e8f8"
+      }
+    },
+    {
+      "label": "upload-negative",
+      "method": "POST",
+      "path": "/supplier-portal/invoices",
+      "mode": "supplier",
+      "request": {
+        "referenceNo": "SUP-R30-NEG",
+        "declaredTotal": "-5"
+      },
+      "status": 422,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 422,
+        "code": "DECLARED_TOTAL_INVALID",
+        "detail": "إجمالي الفاتورة يجب أن يكون أكبر من صفر",
+        "traceId": "01a167bc-5bc7-75ad-8069-dceaad074953"
+      }
+    },
+    {
+      "label": "upload-dup-ref",
+      "method": "POST",
+      "path": "/supplier-portal/invoices",
+      "mode": "supplier",
+      "request": {
+        "referenceNo": "SUP-R30-001",
+        "declaredTotal": "115"
+      },
+      "status": 409,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 409,
+        "code": "SUPPLIER_INVOICE_REFERENCE_DUPLICATE",
+        "detail": "تم رفع فاتورة بهذا المرجع مسبقاً لهذا المورد",
+        "traceId": "01a167bc-5dc4-728e-a1e1-1b66b45055a1"
+      }
+    }
+  ]
+}

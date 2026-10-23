@@ -1,0 +1,18 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/parties/01a16791-b987-7499-9aea-621f9b2a1f7c/portal-access",
+  "request": {
+    "email": "customer@r30.test",
+    "fullName": "أحمد — بقالة R29"
+  },
+  "body": {
+    "data": {
+      "id": "01a167ad-0f21-76fa-af3d-c8ce9111ec67",
+      "partyId": "01a16791-b987-7499-9aea-621f9b2a1f7c",
+      "email": "customer@r30.test",
+      "status": "active",
+      "temporaryPassword": "GESb2McwpbBoT5#7"
+    }
+  }
+}

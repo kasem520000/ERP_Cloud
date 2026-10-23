@@ -1,0 +1,55 @@
+{
+  "lines": [
+    {
+      "day": "2026-10-23",
+      "doc_type": "invoice",
+      "number": "SI-000002",
+      "description": "فاتورة مبيعات",
+      "debit": "86.2500",
+      "credit": "0",
+      "document_id": "01a16799-fe77-7235-af0b-2eb71c573546",
+      "running": "86.2500"
+    },
+    {
+      "day": "2026-10-23",
+      "doc_type": "invoice",
+      "number": "SI-000004",
+      "description": "فاتورة مبيعات",
+      "debit": "11.0400",
+      "credit": "0",
+      "document_id": "01a1679b-f4d2-73c2-aa41-907449bffa9f",
+      "running": "97.2900"
+    },
+    {
+      "day": "2026-10-23",
+      "doc_type": "receipt",
+      "number": "RV-000001",
+      "description": "سند قبض",
+      "debit": "0",
+      "credit": "50.0000",
+      "document_id": "01a1679c-bf4e-77dd-aaa7-105cec3febd1",
+      "running": "47.2900"
+    },
+    {
+      "day": "2026-10-23",
+      "doc_type": "receipt",
+      "number": "RV-000002",
+      "description": "سند قبض",
+      "debit": "0",
+      "credit": "20.0000",
+      "document_id": "01a1679d-3c7f-76dd-9ef5-56661cf40dd2",
+      "running": "27.2900"
+    },
+    {
+      "day": "2026-10-23",
+      "doc_type": "receipt",
+      "number": "RV-000003",
+      "description": "سند قبض",
+      "debit": "0",
+      "credit": "16.2500",
+      "document_id": "01a1679d-9dbf-729d-abc4-5d7c6fff8eba",
+      "running": "11.0400"
+    }
+  ],
+  "closing": "11.0400"
+}
