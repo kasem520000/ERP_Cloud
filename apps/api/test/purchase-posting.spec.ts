@@ -24,6 +24,8 @@ describe('purchase posting engine', () => {
   let serviceItemId = '';
   let supplierId = '';
   let expenseAccountId = '';
+  /** ACC-021 (R33): the landed receipt — supplier returns must name the posted invoice they return against. */
+  let landedReceiptId = '';
 
   const data = (body: Record<string, unknown>): Record<string, unknown> =>
     (body.data ?? body) as Record<string, unknown>;
@@ -185,6 +187,7 @@ describe('purchase posting engine', () => {
 
     const posted = await api(ctx.server, 'post', `/api/v1/purchase-invoices/${draft.id}/post`, { token: actor.token, body: {} });
     expect(posted.status).toBe(201);
+    landedReceiptId = draft.id;
     const invoice = data(posted.body) as { number: string; total: string; additionalCostTotal: string };
     expect(invoice.number).toMatch(/^PI-\d{6}$/);
     expect(invoice.additionalCostTotal).toBe('150.0000');
@@ -271,7 +274,8 @@ describe('purchase posting engine', () => {
 
   it('returns relieve at average with the drift in COGS', async () => {
     // Average is 108 from the landed receipt; the supplier credits 100/unit.
-    const created = await api(ctx.server, 'post', '/api/v1/purchase-invoices', {
+    // ACC-021 (R33): a return without its invoice is refused by the tenant policy (default on)…
+    const unreferenced = await api(ctx.server, 'post', '/api/v1/purchase-invoices', {
       token: actor.token,
       body: {
         branchId,
@@ -281,6 +285,21 @@ describe('purchase posting engine', () => {
         lines: [{ itemId, quantity: '4', unitPrice: '100', taxRate: '15' }],
       },
     });
+    expect(unreferenced.status).toBe(422);
+    expect(unreferenced.body.code).toBe('PURCHASE_RETURN_REFERENCE_REQUIRED');
+    // …and one that names the landed receipt goes through.
+    const created = await api(ctx.server, 'post', '/api/v1/purchase-invoices', {
+      token: actor.token,
+      body: {
+        branchId,
+        warehouseId,
+        partyId: supplierId,
+        kind: 'purchase_return',
+        referenceInvoiceId: landedReceiptId,
+        lines: [{ itemId, quantity: '4', unitPrice: '100', taxRate: '15' }],
+      },
+    });
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
     const draft = data(created.body) as { id: string };
     const posted = await api(ctx.server, 'post', `/api/v1/purchase-invoices/${draft.id}/post`, { token: actor.token, body: {} });
     expect(posted.status).toBe(201);

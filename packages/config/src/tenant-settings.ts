@@ -67,6 +67,14 @@ export const tenantSettingsRegistry: readonly TenantSettingDefinition[] = [
     '#0f172a',
   ),
 
+  define(
+    'purchases.require_return_reference',
+    'purchases',
+    'ACC-021 (R33): a supplier return must name the posted purchase invoice it returns against, so the quantity/price caps and the void guard apply. Set false to allow unreferenced returns (goods bought before go-live).',
+    z.boolean(),
+    true,
+  ),
+
   // --- Invoicing / money --------------------------------------------------------
   define(
     'invoice.number_prefix',

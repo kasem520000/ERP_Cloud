@@ -40,6 +40,31 @@ import { SERIAL_MESSAGES, decideSerial, type SerialLookup } from '../../../../li
 import { useSession } from '../../../../lib/session';
 import { useQuery } from '../../../../lib/use-query';
 
+type PurchaseInvoiceSummary = {
+  id: string;
+  number?: string | null;
+  kind?: string | null;
+  status: string;
+  partyId: string;
+  total?: string | null;
+  supplierReferenceNo: string | null;
+};
+type PurchaseInvoiceDetail = {
+  partyId?: string | null;
+  branchId?: string | null;
+  warehouseId?: string | null;
+  priceIncludesVat?: boolean | null;
+  lines?: Array<{
+    itemId?: string | null;
+    description?: string | null;
+    quantity?: string | null;
+    unitPrice?: string | null;
+    discountRate?: string | null;
+    taxRate?: string | null;
+    taxGroupId?: string | null;
+  }>;
+};
+
 export default function NewPurchaseInvoicePage() {
   const router = useRouter();
   const { can } = useSession();
@@ -53,10 +78,7 @@ export default function NewPurchaseInvoicePage() {
    * الديسكتوب **ينبّه ولا يمنع**، والسحابة لا تفرض قيداً على تكرار المرجع — فالتحذير هنا
    * للإعلام فقط، تماماً كما في النافذة.
    */
-  const invoices = useQuery<{ supplierReferenceNo: string | null }[]>(
-    () => apiList('/purchase-invoices'),
-    [],
-  );
+  const invoices = useQuery<PurchaseInvoiceSummary[]>(() => apiList('/purchase-invoices'), []);
   /** R9 — مركز التكلفة: قائمة الرأس كما في `frmInvPurch.xaml` L467. */
   const costCenters = useQuery<CostCenter[]>(() => listCostCenters(), []);
 
@@ -64,6 +86,12 @@ export default function NewPurchaseInvoicePage() {
   const [warehouseId, setWarehouseId] = useState('');
   const [partyId, setPartyId] = useState('');
   const [kind, setKind] = useState<'purchase' | 'purchase_return'>('purchase');
+  /**
+   * ACC-021 (R33) — مردود المشتريات يُردّ على فاتورة شراء مرحَّلة بعينها (`referenceInvoiceId`):
+   * بها يعرف الخادم سقف الكمية والسعر (ACC-022/124) ويصدّ إلغاء الفاتورة ما دام عليها مردود.
+   * اختيار الفاتورة يملأ المورد والمستودع والأصناف بكمياتها المشتراة ليُنقَص منها ما يُردّ.
+   */
+  const [referenceInvoiceId, setReferenceInvoiceId] = useState('');
   const [supplierRef, setSupplierRef] = useState('');
   const [costCenterId, setCostCenterId] = useState('');
   const [supplierRefDate, setSupplierRefDate] = useState(today());
@@ -93,6 +121,39 @@ export default function NewPurchaseInvoicePage() {
   const duplicateRef =
     supplierRef.trim().length > 0 &&
     (invoices.data ?? []).some((row) => (row.supplierReferenceNo ?? '').trim() === supplierRef.trim());
+  const referenceCandidates = (invoices.data ?? []).filter(
+    (row) => row.status === 'posted' && (row.kind ?? 'purchase') === 'purchase' && (!partyId || row.partyId === partyId),
+  );
+  const referenceMissing = kind === 'purchase_return' && !referenceInvoiceId;
+  const supplierNameOf = (id: string) => {
+    const party = supplierRows.find((row) => row.id === id);
+    return party ? partyLabel(party) : '—';
+  };
+
+  async function pickReference(id: string) {
+    setReferenceInvoiceId(id);
+    setNotice(undefined);
+    if (!id) return;
+    try {
+      const doc = await apiData<PurchaseInvoiceDetail>(`/purchase-invoices/${id}`);
+      if (doc.partyId) setPartyId(doc.partyId);
+      if (doc.branchId) setBranchId(doc.branchId);
+      if (doc.warehouseId) setWarehouseId(doc.warehouseId);
+      setIncludesVat(Boolean(doc.priceIncludesVat));
+      const drafted = (doc.lines ?? []).map((line) => ({
+        ...emptyLine(line.taxRate != null ? String(Number(line.taxRate)) : '15'),
+        itemId: line.itemId ?? '',
+        description: line.description ?? '',
+        quantityText: String(Number(line.quantity ?? 0)),
+        unitPriceText: String(Number(line.unitPrice ?? 0)),
+        discountRateText: line.discountRate != null && Number(line.discountRate) > 0 ? String(Number(line.discountRate)) : '',
+        taxGroupId: line.taxGroupId ?? '',
+      }));
+      if (drafted.length) setLines(drafted);
+    } catch (error) {
+      setNotice({ kind: 'warn', text: apiErrorText(error) });
+    }
+  }
 
   /**
    * «💾 حفظ» L1428 و«🖨️💾 حفظ مع طباعة» L1424 — زرّا `frmInvPurch.xaml` (وبترتيب
@@ -151,11 +212,18 @@ export default function NewPurchaseInvoicePage() {
     try {
       if (filledLines(lines).length === 0)
         throw new ApiError(422, 'VALIDATION_FAILED', 'لا يمكن حفظ الفاتورة بدون أصناف.');
+      if (referenceMissing)
+        throw new ApiError(
+          422,
+          'PURCHASE_RETURN_REFERENCE_REQUIRED',
+          'اختر فاتورة الشراء المرحَّلة التي يُردّ عليها المردود أولاً.',
+        );
       const invoice = await apiPost<{ id: string }>('/purchase-invoices', {
         branchId: effectiveBranch,
         warehouseId: effectiveWarehouse || undefined,
         partyId: effectivePartyId,
         kind,
+        referenceInvoiceId: kind === 'purchase_return' ? referenceInvoiceId : undefined,
         supplierReferenceNo: supplierRef.trim() || undefined,
         supplierReferenceDate: supplierRefDate || undefined,
         priceIncludesVat: includesVat,
@@ -253,12 +321,38 @@ export default function NewPurchaseInvoicePage() {
                 <select
                   className="input"
                   value={kind}
-                  onChange={(event) => setKind(event.target.value as 'purchase' | 'purchase_return')}
+                  onChange={(event) => {
+                    const next = event.target.value as 'purchase' | 'purchase_return';
+                    setKind(next);
+                    if (next === 'purchase') setReferenceInvoiceId('');
+                  }}
                 >
                   <option value="purchase">فاتورة مشتريات</option>
                   <option value="purchase_return">مردود مشتريات</option>
                 </select>
               </label>
+              {kind === 'purchase_return' && (
+                <label className="field wide">
+                  <span>الفاتورة المرجعية (مشتريات مرحَّلة يُردّ عليها) *</span>
+                  <select
+                    className="input"
+                    value={referenceInvoiceId}
+                    onChange={(event) => void pickReference(event.target.value)}
+                    required
+                  >
+                    <option value="">— اختر فاتورة الشراء —</option>
+                    {referenceCandidates.map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {row.number ?? row.id} — {supplierNameOf(row.partyId)} — {Number(row.total ?? 0).toFixed(2)}
+                      </option>
+                    ))}
+                  </select>
+                  <small className="muted">
+                    يملأ المورد والمستودع والأصناف من الفاتورة؛ عدّل الكميات إلى ما يُردّ فعلاً. الخادم يرفض مردوداً بلا
+                    فاتورة مرجعية (سياسة <code>purchases.require_return_reference</code>) ويحدّ الكمية والسعر بالمشتراة.
+                  </small>
+                </label>
+              )}
             </div>
           </section>
           <section className="form-section">

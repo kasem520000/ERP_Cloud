@@ -257,8 +257,9 @@ describe('التقارير — frmRptItems* · تقارير الأصناف ال�
       lines: [{ itemId: buoyId, quantity: '5', unitPrice: '100', taxRate: '15' }],
     });
     // 📥 شراء ومردود شراء — `OperType = 2` in the same window.
-    await createPurchase({ lines: [{ itemId: fuelId, quantity: '20', unitPrice: '60', taxRate: '15' }] });
-    await createPurchase({ kind: 'purchase_return', lines: [{ itemId: fuelId, quantity: '5', unitPrice: '60', taxRate: '15' }] });
+    const fuelPurchase = await createPurchase({ lines: [{ itemId: fuelId, quantity: '20', unitPrice: '60', taxRate: '15' }] });
+    // ACC-021 (R33): the return names the purchase it returns against.
+    await createPurchase({ kind: 'purchase_return', referenceInvoiceId: fuelPurchase.id, lines: [{ itemId: fuelId, quantity: '5', unitPrice: '60', taxRate: '15' }] });
   };
   let seeded = false;
   let saleInvoiceId = '';

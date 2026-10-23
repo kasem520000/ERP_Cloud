@@ -206,6 +206,39 @@ export class PurchasesService {
       const [supplier] = await tx.select().from(parties).where(and(eq(parties.tenantId, tenantId), eq(parties.id, resolvedPartyId)));
       if (!supplier || !['supplier', 'both'].includes(supplier.kind)) throw new DomainError('PURCHASE_SUPPLIER_REQUIRED', 'Purchase invoices require a supplier party', 422);
 
+      // ACC-021 (R33): a supplier return without its invoice escapes the quantity/price caps (ACC-022/124)
+      // and the void guard (`PURCHASE_VOID_HAS_RETURNS`) — the tenant policy `purchases.require_return_reference`
+      // (default true) refuses it; set the policy to false for goods bought before go-live.
+      if (input.kind === 'purchase_return' && !input.referenceInvoiceId && (await this.requireReturnReference(tx, tenantId))) {
+        throw new DomainError(
+          'PURCHASE_RETURN_REFERENCE_REQUIRED',
+          'مردود المشتريات يجب أن يرتبط بفاتورة الشراء المرحَّلة التي يُردّ عليها (referenceInvoiceId) — أو عطّل سياسة purchases.require_return_reference',
+          422,
+          { field: 'referenceInvoiceId' },
+        );
+      }
+      if (input.kind === 'purchase_return' && input.referenceInvoiceId) {
+        const [reference] = await tx
+          .select({ id: purchaseInvoices.id, kind: purchaseInvoices.kind, status: purchaseInvoices.status, partyId: purchaseInvoices.partyId })
+          .from(purchaseInvoices)
+          .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, input.referenceInvoiceId)));
+        if (!reference || reference.kind !== 'purchase' || reference.status !== 'posted') {
+          throw new DomainError(
+            'PURCHASE_RETURN_REFERENCE_INVALID',
+            'الفاتورة المرجعية للمردود يجب أن تكون فاتورة مشتريات مرحَّلة',
+            422,
+            { field: 'referenceInvoiceId' },
+          );
+        }
+        if (reference.partyId !== resolvedPartyId) {
+          throw new DomainError(
+            'PURCHASE_RETURN_SUPPLIER_MISMATCH',
+            'مورد المردود يجب أن يكون مورد الفاتورة المرجعية نفسه',
+            422,
+            { field: 'partyId', referencePartyId: reference.partyId },
+          );
+        }
+      }
       // ACC-022 & ACC-124: التحقق من سقف كمية وسعر مرتجع المشتريات عند الإنشاء
       if (input.kind === 'purchase_return' && input.referenceInvoiceId) {
         const refLines = await tx
@@ -419,6 +452,19 @@ export class PurchasesService {
   /** Called only by the approval completion event; it cannot open a second chain. */
   async postApproved(tenantId: string, id: string, posting: PurchasePostingInput = {}) {
     return this.postWithoutApproval(tenantId, id, posting);
+  }
+
+  /** ACC-021 (R33): tenant policy `purchases.require_return_reference` — default true when unset. */
+  private async requireReturnReference(tx: DrizzleTx, tenantId: string): Promise<boolean> {
+    const rows = (await tx.execute(sql`
+      SELECT value FROM tenant_settings
+      WHERE tenant_id = ${tenantId}::uuid AND key = 'purchases.require_return_reference'
+      LIMIT 1
+    `)) as unknown as { rows?: Array<{ value: unknown }> } | Array<{ value: unknown }>;
+    const list = Array.isArray(rows) ? rows : (rows.rows ?? []);
+    if (!list.length) return true;
+    const val = list[0]?.value;
+    return !(val === false || val === 'false' || val === 0 || val === '0');
   }
 
   private async postWithoutApproval(tenantId: string, id: string, posting: PurchasePostingInput = {}) {
