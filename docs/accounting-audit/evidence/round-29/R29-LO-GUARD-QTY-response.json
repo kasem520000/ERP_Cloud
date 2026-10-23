@@ -1,0 +1,28 @@
+{
+  "status": 422,
+  "method": "POST",
+  "url": "http://127.0.0.1:3005/api/v1/van-sales/load-orders",
+  "request": {
+    "salesmanId": "01a16504-1458-7735-9863-86d92c9f8c45",
+    "loadedQty": "999.0000",
+    "itemId": "01a16655-598e-767a-8ba7-668d7113e741",
+    "productionBatchNo": "BATCH-R29-01",
+    "vanWarehouseId": "01a16504-144a-729a-86bc-9e43bf582a10",
+    "notes": "R29 حارس الكمية",
+    "idempotencyKey": "van-load-order:50bbd5b13df789cf:71592a148eff498f"
+  },
+  "body": {
+    "type": "about:blank",
+    "title": "Validation failed",
+    "status": 422,
+    "code": "VALIDATION_FAILED",
+    "detail": "الرصيد الرسمي المتوفر في المستودع الرئيسي (50.00) لا يكفي لتوريد (999.00) — سجّل الإنتاج أولًا أو خفّض الكمية",
+    "traceId": "01a1665f-676b-71cc-9e8e-1b9447686ba3",
+    "errors": [
+      {
+        "field": "loadedQty",
+        "available": "50.0000"
+      }
+    ]
+  }
+}
