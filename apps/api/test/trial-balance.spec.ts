@@ -158,8 +158,13 @@ describe('ميزان المراجعة — frmRptBalances', () => {
     const totals = body.totals as Record<string, string | boolean>;
     expect(amt(totals.debit)).toBe('1570.0000');
     expect(amt(totals.credit)).toBe('1570.0000');
-    // Every entry is balanced, so the gross movement balances — that is what a ميزان proves.
-    expect(totals.balanced).toBe(true);
+    // Every entry is balanced, so the gross movement balances (1570 / 1570) — but ACC-139 (R28):
+    // the ميزان is declared balanced only when the closing columns agree too. The fixture's
+    // one-sided opening balance (البنك 500 with no counterpart) leaves closing 1700 / 1200, so the
+    // window must print «الرصيد: 500 مدين» and NOT the ✅ — a silent ✅ here was the defect.
+    expect(totals.balanced, JSON.stringify(totals)).toBe(false);
+    expect(amt(totals.balance)).toBe('500.0000');
+    expect(totals.status).toBe('مدين');
   });
 
   it('2. «من تاريخ» — رصيد افتتاحي وحركة ورصيد ختامي', async () => {
@@ -192,7 +197,8 @@ describe('ميزان المراجعة — frmRptBalances', () => {
     expect(amt(totals.openingCredit)).toBe('1000.0000');
     expect(amt(totals.debit)).toBe('570.0000');
     expect(amt(totals.credit)).toBe('570.0000');
-    expect(totals.balanced).toBe(true);
+    // ACC-139: opening 1500 / 1000 is one-sided ⇒ the balance is NOT declared ✅ (see test 1).
+    expect(totals.balanced).toBe(false);
     // الرصيد / الحالة — the number the window prints under the grid.
     // 830 نقدية + 370 مصروفات + 500 البنك = 1700 مدين، مقابل 1200 إيرادات دائن.
     expect(amt(totals.closingDebit)).toBe('1700.0000');

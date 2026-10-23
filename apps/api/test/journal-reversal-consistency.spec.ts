@@ -340,8 +340,19 @@ describe('Journal reversal consistency — العكس لا يُنحرف المي
     )!;
     expect(money(mirrorSales.debit)).toBe(money(originalSales.credit));
     expect(money(mirrorSales.credit)).toBe(money(originalSales.debit));
-    // الطرف على السطر: المرآة التي تسقطه تُبقي الدين في كشف حساب العميل.
-    expect(mirror.party_id).toBe(originalSales.party_id);
+    // الطرف على السطر: المرآة التي تسقطه تُبقي الدين في كشف حساب العميل — يُقارَن سطرٌ بسطره
+    // (حساب الذمم بحساب الذمم) لا أول سطر في المرآة بسطر الإيراد (الذي لا طرف عليه أصلاً).
+    const originalLines = entries.filter((row) => row.id === original.id);
+    const mirrorLines = entries.filter((row) => row.id === mirror.id);
+    expect(mirrorLines).toHaveLength(originalLines.length);
+    for (const line of originalLines) {
+      const twin = mirrorLines.find(
+        (row) => row.account_id === line.account_id && money(row.debit) === money(line.credit) && money(row.credit) === money(line.debit),
+      );
+      expect(twin, `mirror line for account ${line.account_id}`).toBeDefined();
+      expect(twin!.party_id).toBe(line.party_id);
+    }
+    expect(originalLines.some((row) => row.party_id)).toBe(true); // ‏الذمم تحمل العميل
 
     // 4) سجلّ القيود: الأصل «لاغي» لأن مرآة تشير إليه — لا لأن حالته مُسحت.
     expect(await registerClass(original.id)).toBe('cancelled');

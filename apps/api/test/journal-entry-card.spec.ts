@@ -85,7 +85,13 @@ describe('Journal entry card — إنشاء قيد يومية', () => {
     });
     expect(fiscal.status).toBe(201);
     const periods = await api(ctx.server, 'get', '/api/v1/fiscal-periods', { token: actor.token });
-    periodId = (data(periods.body) as Array<{ id: string; status: string }>).find((row) => row.status === 'open')!.id;
+    // ACC-024/025 guard: the entry date must fall inside the selected period — pick the open
+    // period that contains today's date, not merely the first open one in the list.
+    const day = today();
+    periodId = (data(periods.body) as Array<{ id: string; status: string; startDate?: string; endDate?: string }>).find(
+      (row) => row.status === 'open' && String(row.startDate ?? '').slice(0, 10) <= day && day <= String(row.endDate ?? '').slice(0, 10),
+    )!.id;
+    expect(periodId, 'an open period containing today').toBeTruthy();
 
     const branch = await api(ctx.server, 'post', '/api/v1/branches', {
       token: actor.token,
@@ -125,7 +131,7 @@ describe('Journal entry card — إنشاء قيد يومية', () => {
         { accountId: capitalId, credit: '100' },
       ],
     });
-    expect(posted.status).toBeLessThan(300);
+    expect(posted.status, JSON.stringify(posted.body)).toBeLessThan(300);
     const id = data(posted.body).id as string;
 
     const stored = data((await read(id)).body);
