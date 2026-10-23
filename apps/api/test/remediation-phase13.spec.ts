@@ -419,7 +419,15 @@ describe('Remediation Phase 13 — Negative stock setting, sales line validation
     expect(actionForMethod('POST', postInvoice)).toBe('update.post');
   });
 
-  it('UI-042: Stock voucher draft creation sets totalCost to 0.0000 for issue vouchers until posted', async () => {
+  it('UI-042: Stock voucher draft for an issue is valued indicatively at the moving average (R33), never at the card price', async () => {
+    // R33 (UI-021/UI-042 follow-up): the phase-13 fix blanked the draft (totalCost 0) so the wrong
+    // purchase-price figure disappeared; R33 goes one step further and shows the figure the posting
+    // will use — the warehouse moving average — so the operator reviews the real value before approving.
+    const levels = await req('get', `/api/v1/inventory/levels?warehouse_id=${warehouse1Id}&item_id=${itemId}`);
+    expect(levels.status).toBe(200);
+    const level = (data(levels.body) ?? []).find((b: any) => b.itemId === itemId);
+    const average = new Decimal(level?.averageCost ?? level?.average_cost ?? 0);
+    expect(average.gt(0)).toBe(true);
     const draftVoucher = await req('post', '/api/v1/inventory/vouchers', {
       branchId: branch1Id,
       warehouseId: warehouse1Id,
@@ -431,7 +439,8 @@ describe('Remediation Phase 13 — Negative stock setting, sales line validation
     expect(draftVoucher.status).toBe(201);
     const voucher = data(draftVoucher.body);
     expect(voucher.status).toBe('draft');
-    // Draft issue vouchers have zero totalCost until posted
-    expect(new Decimal(voucher.totalCost).toFixed(4)).toBe('0.0000');
+    expect(new Decimal(voucher.totalCost).toFixed(4)).toBe(average.toFixed(4));
+    expect(new Decimal(voucher.lines[0].unitCost).toFixed(4)).toBe(average.toFixed(4));
+    expect(new Decimal(voucher.lines[0].lineCost).toFixed(4)).toBe(average.toFixed(4));
   });
 });

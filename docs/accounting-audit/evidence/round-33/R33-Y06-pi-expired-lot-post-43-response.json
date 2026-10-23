@@ -1,0 +1,24 @@
+{
+  "id": "R33-Y06-pi-expired-lot-post-43",
+  "at": "2026-10-23T20:49:36.213Z",
+  "method": "POST",
+  "path": "/purchase-invoices/01a16a86-b7c5-77f8-aa35-94a00b1d86f7/post",
+  "status": 422,
+  "request": {},
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "LOT_EXPIRED",
+    "detail": "الدفعة L7X-43 منتهية الصلاحية (2026-01-31) — لا تُستلم بضاعة منتهية إلى المخزون",
+    "traceId": "01a16a86-b7d5-73cc-9e0c-4708ea1bcbca",
+    "errors": [
+      {
+        "field": "expiryDate",
+        "expiryDate": "2026-01-31",
+        "lotNo": "L7X-43",
+        "mode": "receipt"
+      }
+    ]
+  }
+}

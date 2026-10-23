@@ -1,0 +1,57 @@
+{
+  "id": "R33-Y09-adjustment-draft-43",
+  "at": "2026-10-23T20:49:58.613Z",
+  "method": "POST",
+  "path": "/inventory/adjustments",
+  "status": 201,
+  "request": {
+    "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+    "warehouseId": "01a16a85-7d3b-703a-934b-daeedd7a2267",
+    "reason": "R33 Y09 جرد تجريبي",
+    "lines": [
+      {
+        "itemId": "01a16a86-4d43-7605-8f5d-54ea5b15b85f",
+        "countedQty": "4"
+      }
+    ]
+  },
+  "response": {
+    "id": "01a16a87-125c-7146-9daf-1222a5545a94",
+    "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+    "warehouseId": "01a16a85-7d3b-703a-934b-daeedd7a2267",
+    "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+    "number": "ADJ-000001",
+    "status": "draft",
+    "reason": "R33 Y09 جرد تجريبي",
+    "approvedAt": null,
+    "approvedBy": null,
+    "journalEntryId": null,
+    "createdAt": "2026-10-23T20:49:59.389Z",
+    "createdBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f",
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1,
+    "legacySource": null,
+    "legacyId": null,
+    "lines": [
+      {
+        "adjustmentId": "01a16a87-125c-7146-9daf-1222a5545a94",
+        "lineNo": 1,
+        "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+        "itemId": "01a16a86-4d43-7605-8f5d-54ea5b15b85f",
+        "expectedQty": "5.0000",
+        "countedQty": "4.0000",
+        "unitId": null,
+        "unitCost": "10.0000",
+        "varianceQty": "-1.0000",
+        "varianceValue": "10.0000",
+        "lotId": null,
+        "batchNo": null,
+        "productionDate": null,
+        "expiryDate": null,
+        "serialNos": [],
+        "note": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "R33-Y11-bom-43",
+  "at": "2026-10-23T20:50:04.779Z",
+  "method": "POST",
+  "path": "/manufacturing/boms",
+  "status": 201,
+  "request": {
+    "productItemId": "01a16a86-224c-768d-82e2-ace8e13650d5",
+    "name": "وصفة Y11 43",
+    "lines": [
+      {
+        "componentItemId": "01a16a86-4d43-7605-8f5d-54ea5b15b85f",
+        "qty": "1"
+      }
+    ]
+  },
+  "response": {
+    "data": {
+      "id": "01a16a87-2a73-730e-946a-6e3299683188",
+      "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+      "productItemId": "01a16a86-224c-768d-82e2-ace8e13650d5",
+      "name": "وصفة Y11 43",
+      "version": 1,
+      "isActive": true,
+      "createdAt": "2026-10-23T20:50:05.545Z",
+      "createdBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f",
+      "updatedAt": null,
+      "updatedBy": null,
+      "lines": [
+        {
+          "id": "01a16a87-2a74-733d-9048-b18e4b75c2d3",
+          "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+          "bomId": "01a16a87-2a73-730e-946a-6e3299683188",
+          "componentItemId": "01a16a86-4d43-7605-8f5d-54ea5b15b85f",
+          "qty": "1.0000",
+          "unitId": null,
+          "scrapPercent": "0.0000"
+        }
+      ]
+    }
+  }
+}

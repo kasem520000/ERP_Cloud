@@ -1,0 +1,51 @@
+{
+  "id": "R33-Y08-stock-out-over-post-policy-43",
+  "at": "2026-10-23T20:49:53.740Z",
+  "method": "POST",
+  "path": "/inventory/vouchers/01a16a86-f3ae-7268-a994-cd42a38df959/post",
+  "status": 201,
+  "request": {},
+  "response": {
+    "id": "01a16a86-f3ae-7268-a994-cd42a38df959",
+    "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+    "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+    "warehouseId": "01a16a85-7d3b-703a-934b-daeedd7a2267",
+    "kind": "stock_out",
+    "number": "SOU-000001",
+    "status": "posted",
+    "voucherDate": "2026-10-23",
+    "reason": "R33 Y08 إخراج فوق الرصيد",
+    "counterAccountId": null,
+    "notes": null,
+    "journalEntryId": "01a16a86-ff5f-715f-98e6-012cf1abfcb1",
+    "totalCost": "36.7500",
+    "postedAt": "2026-10-23T20:49:54.530Z",
+    "voidedAt": null,
+    "createdAt": "2026-10-23T20:49:51.535Z",
+    "createdBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f",
+    "updatedAt": "2026-10-23T20:49:54.530Z",
+    "updatedBy": null,
+    "version": 1,
+    "legacySource": null,
+    "legacyId": null,
+    "lines": [
+      {
+        "voucherId": "01a16a86-f3ae-7268-a994-cd42a38df959",
+        "lineNo": 1,
+        "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+        "itemId": "01a16a86-4d43-7605-8f5d-54ea5b15b85f",
+        "qty": "3.0000",
+        "unitId": null,
+        "unitCost": "12.2500",
+        "lineCost": "36.7500",
+        "lotId": null,
+        "batchNo": null,
+        "productionDate": null,
+        "expiryDate": null,
+        "serialId": null,
+        "serialNos": [],
+        "note": null
+      }
+    ]
+  }
+}

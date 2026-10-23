@@ -1,0 +1,16 @@
+{
+  "id": "R33-Y12-transfer-send-43",
+  "at": "2026-10-23T20:50:09.533Z",
+  "method": "POST",
+  "path": "/inventory/transfers/01a16a87-39f2-74aa-afcb-0d440d760a8c/send",
+  "status": 201,
+  "request": {},
+  "response": {
+    "transferId": "01a16a87-39f2-74aa-afcb-0d440d760a8c",
+    "number": "TR-000001",
+    "status": "in_transit",
+    "value": "15.7143",
+    "journalEntryId": "01a16a87-3d16-76bd-8392-e05386583107",
+    "lines": 1
+  }
+}

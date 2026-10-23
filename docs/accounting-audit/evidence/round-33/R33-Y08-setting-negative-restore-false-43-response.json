@@ -1,0 +1,16 @@
+{
+  "id": "R33-Y08-setting-negative-restore-false-43",
+  "at": "2026-10-23T20:49:56.205Z",
+  "method": "PUT",
+  "path": "/settings/allow_negative_stock",
+  "status": 200,
+  "request": {
+    "value": false
+  },
+  "response": {
+    "data": {
+      "key": "allow_negative_stock",
+      "value": false
+    }
+  }
+}

@@ -5,6 +5,7 @@ import { OrgProvisioningService } from '../src/modules/organization/provisioning
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
+import { withOwnerClient } from '@erp/testing';
 
 /**
  * Phase 10 part four — 📚 تقارير المخزون والأرقام التسلسلية: seven windows, eight reports.
@@ -283,10 +284,16 @@ describe('التقارير — frmRptInventory · frmRptItems* · frmRptSerial* 
       const lot = await post('/inventory/lots', { itemId: lotItemId, lotNo, expiryDate });
       expect(lot.status).toBe(201);
       await postVoucher('stock_in', [{ itemId: lotItemId, qty, unitCost: '20', lotId: data(lot.body).id }], 'استلام دفعة');
+      return String(data(lot.body).id);
     };
     await makeLot('LOT-SOON', iso(10), '12');
     await makeLot('LOT-LATER', iso(400), '5');
-    await makeLot('LOT-PAST', iso(-5), '3');
+    // ACC-071 (R33 — P-M13): a lot cannot be *registered* or *received* once expired, so the
+    // «expired while on the shelf» fixture is received in date and then ages past its expiry.
+    const pastLotId = await makeLot('LOT-PAST', iso(5), '3');
+    await withOwnerClient(ctx.db.ownerUrl, (client) =>
+      client.query('UPDATE item_lots SET expiry_date = $1 WHERE id = $2', [iso(-5), pastLotId]),
+    );
 
     // 🔢 three serial numbers, each with one movement on the ledger.
     // ACC-132 (R33 triage): a serial bound to a warehouse needs stock there to cover it

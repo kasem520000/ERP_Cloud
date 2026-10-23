@@ -1,0 +1,19 @@
+{
+  "id": "R33-Y07-serials-generate-43",
+  "at": "2026-10-23T20:49:46.776Z",
+  "method": "POST",
+  "path": "/inventory/serials/generate",
+  "status": 201,
+  "request": {
+    "itemId": "01a16a86-5379-74aa-9442-d1f5ffcb1550",
+    "prefix": "G7-43-",
+    "count": 2
+  },
+  "response": {
+    "count": 2,
+    "serialNos": [
+      "G7-43-0001",
+      "G7-43-0002"
+    ]
+  }
+}

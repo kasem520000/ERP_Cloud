@@ -1,0 +1,22 @@
+{
+  "id": "R33-Y01-return-4-post-43",
+  "at": "2026-10-23T20:49:14.579Z",
+  "method": "POST",
+  "path": "/purchase-invoices/undefined/post",
+  "status": 400,
+  "request": {},
+  "response": {
+    "type": "about:blank",
+    "title": "Identifier is not a valid UUID",
+    "status": 400,
+    "code": "INVALID_ID",
+    "detail": "The identifier \"id\" is not a valid UUID",
+    "traceId": "01a16a86-6354-724d-8fd8-9d0811441b75",
+    "errors": [
+      {
+        "field": "id",
+        "message": "Expected a UUID"
+      }
+    ]
+  }
+}

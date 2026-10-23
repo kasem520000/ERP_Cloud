@@ -1,0 +1,19 @@
+{
+  "id": "R33-Y10-bin-free-code-43",
+  "at": "2026-10-23T20:49:59.398Z",
+  "method": "POST",
+  "path": "/inventory/bins",
+  "status": 422,
+  "request": {
+    "warehouseId": "01a16a85-7d3b-703a-934b-daeedd7a2267",
+    "code": "X"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Bin code must look like A-01-01",
+    "status": 422,
+    "code": "BIN_CODE_INVALID",
+    "detail": "Bin code must look like A-01-01",
+    "traceId": "01a16a87-1267-762b-95f6-11d7373114fb"
+  }
+}

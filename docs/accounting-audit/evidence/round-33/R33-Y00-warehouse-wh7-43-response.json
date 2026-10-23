@@ -1,0 +1,27 @@
+{
+  "id": "R33-Y00-warehouse-wh7-43",
+  "at": "2026-10-23T20:49:11.318Z",
+  "method": "POST",
+  "path": "/warehouses",
+  "status": 201,
+  "request": {
+    "branchId": "01a16a86-5692-741f-b1f3-a7f8544d2faa",
+    "code": "WH7-43",
+    "name": "مستودع Y7 43",
+    "isActive": true
+  },
+  "response": {
+    "data": {
+      "id": "01a16a86-59f8-730c-abda-e6e137b5f2bb",
+      "branchId": "01a16a86-5692-741f-b1f3-a7f8544d2faa",
+      "code": "WH7-43",
+      "name": "مستودع Y7 43",
+      "inventoryAccountId": null,
+      "isDefault": false,
+      "isActive": true,
+      "version": 1,
+      "createdAt": "2026-10-23T20:49:12.171Z",
+      "updatedAt": null
+    }
+  }
+}

@@ -1,0 +1,705 @@
+[
+  {
+    "id": "Y00a",
+    "title": "fixtures: items P7/L7/S7, branch BR7, warehouse WH7",
+    "expected": [
+      true,
+      true,
+      true,
+      201,
+      201
+    ],
+    "actual": [
+      true,
+      true,
+      true,
+      201,
+      201
+    ],
+    "ok": true,
+    "note": " "
+  },
+  {
+    "id": "Y01a",
+    "title": "PI1 3 × 10 + 15 % = 34.50 posted; MAIN P7 = 3 @ 10",
+    "expected": [
+      201,
+      201,
+      "3.0000",
+      "10.0000"
+    ],
+    "actual": [
+      201,
+      201,
+      "3.0000",
+      "10.0000"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "Y01b",
+    "title": "ACC-022 returning 4 of a 3-unit invoice → 422 PURCHASE_RETURN_QTY_EXCEEDED (at creation or posting)",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "422:PURCHASE_RETURN_QTY_EXCEEDED / 400:INVALID_ID"
+  },
+  {
+    "id": "Y01c",
+    "title": "ACC-124 returning at 12 what was bought at 10 → 422 PURCHASE_RETURN_PRICE_EXCEEDED",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "422:PURCHASE_RETURN_PRICE_EXCEEDED / 400:INVALID_ID"
+  },
+  {
+    "id": "Y01d",
+    "title": "a valid return 1 × 10 posts: AP +11.50 (debit), inventory −10.00, MAIN P7 = 2",
+    "expected": [
+      201,
+      201,
+      "-253.00",
+      "220.00",
+      "2.0000"
+    ],
+    "actual": [
+      201,
+      201,
+      "-253.00",
+      "220.00",
+      "2.0000"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "Y01e",
+    "title": "ACC-142 the return journal tags the supplier on the payable leg only",
+    "expected": [
+      "22111001"
+    ],
+    "actual": [
+      "22111001"
+    ],
+    "ok": true
+  },
+  {
+    "id": "Y01f",
+    "title": "ACC-142 the purchase journal tags the supplier on the payable leg only (not inventory / VAT)",
+    "expected": [
+      "22111001"
+    ],
+    "actual": [
+      "22111001"
+    ],
+    "ok": true
+  },
+  {
+    "id": "Y02a",
+    "title": "PI2 2 × 16 posted → MAIN P7 = 4 @ 13.00 (average of 2 × 10 + 2 × 16)",
+    "expected": [
+      201,
+      "4.0000",
+      "13.0000"
+    ],
+    "actual": [
+      201,
+      "4.0000",
+      "13.0000"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "Y02b",
+    "title": "ACC-020 (policy, REMEDIATION §4) return 1 @ 16 while the average is 13: AP debited 18.40, VAT 2.40, inventory credited at the average 13.00 and the 3.00 price difference credited to 3200004 (cost of sales) — no stock value drift",
+    "expected": [
+      201,
+      "18.4000",
+      "2.4000",
+      "13.0000",
+      "3200004",
+      "3.0000",
+      "-3.00",
+      "13.0000"
+    ],
+    "actual": [
+      201,
+      "18.4000",
+      "2.4000",
+      "13.0000",
+      "3200004",
+      "3.0000",
+      "-3.00",
+      "13.0000"
+    ],
+    "ok": true,
+    "note": "[{\"code\":\"1270001\",\"debit\":\"0.0000\",\"credit\":\"13.0000\",\"party\":null},{\"code\":\"22111001\",\"debit\":\"18.4000\",\"credit\":\"0.0000\",\"party\":\"01a16a85-7d48-76df-9259-580a9fab43df\"},{\"code\":\"2222001\",\"debit\":\"0.0000\",\"credit\":\"2.4000\",\"party\":null},{\"code\":\"3200004\",\"debit\":\"0.0000\",\"credit\":\"3.0000\",\"party\":null}]"
+  },
+  {
+    "id": "Y03a",
+    "title": "ACC-030 purchase post ×2 concurrently → no 500 (201 + 409, or an idempotent 201 for the already-posted document), one journal, one stock movement",
+    "expected": [
+      true,
+      true,
+      1,
+      1
+    ],
+    "actual": [
+      true,
+      true,
+      1,
+      1
+    ],
+    "ok": true,
+    "note": "409:PURCHASE_INVOICE_INVALID_STATUS,201:"
+  },
+  {
+    "id": "Y03b",
+    "title": "ACC-030 sales post ×2 concurrently → no 500 (201 + 409, or an idempotent 201), one journal, one stock movement",
+    "expected": [
+      true,
+      true,
+      1,
+      1
+    ],
+    "actual": [
+      true,
+      true,
+      1,
+      1
+    ],
+    "ok": true,
+    "note": "201:,409:SALES_INVOICE_INVALID_STATUS"
+  },
+  {
+    "id": "Y04a",
+    "title": "ACC-036 production complete ×2 concurrently → {201, 409} and the output received once",
+    "expected": [
+      201,
+      [
+        201,
+        409
+      ],
+      1
+    ],
+    "actual": [
+      201,
+      [
+        201,
+        409
+      ],
+      1
+    ],
+    "ok": true,
+    "note": " PRODUCTION_ORDER_INVALID_STATUS,"
+  },
+  {
+    "id": "Y05a",
+    "title": "SI5: 2 × 20 − 10 % line = 36, − 2 header = 34, + VAT 5.10 = 39.10",
+    "expected": [
+      201,
+      "39.10",
+      "5.10"
+    ],
+    "actual": [
+      201,
+      "39.10",
+      "5.10"
+    ],
+    "ok": true
+  },
+  {
+    "id": "Y05b",
+    "title": "ACC-063 returning one of the two units carries its share of the header discount: 17.00 + 2.55 = 19.55 (was 20.70; before the R33 fix 19.48)",
+    "expected": [
+      201,
+      "19.55",
+      "2.55"
+    ],
+    "actual": [
+      201,
+      "19.55",
+      "2.55"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "Y06a",
+    "title": "ACC-071 (P-M13) a lot with a past expiry date is refused (422 LOT_EXPIRED) while a valid lot is created",
+    "expected": [
+      201,
+      422,
+      "LOT_EXPIRED"
+    ],
+    "actual": [
+      201,
+      422,
+      "LOT_EXPIRED"
+    ],
+    "ok": true
+  },
+  {
+    "id": "Y06b",
+    "title": "ACC-071 purchase of 3 on lot L7A → the stock movement carries lot_id",
+    "expected": [
+      201,
+      1,
+      true
+    ],
+    "actual": [
+      201,
+      1,
+      true
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "Y06c",
+    "title": "ACC-066 selling from an unknown lot is refused (LOT_NOT_FOUND) and no lot is invented",
+    "expected": [
+      true,
+      true,
+      false
+    ],
+    "actual": [
+      true,
+      true,
+      false
+    ],
+    "ok": true,
+    "note": "201: / 422:LOT_NOT_FOUND"
+  },
+  {
+    "id": "Y06d",
+    "title": "ACC-067/071 the sale from L7A posts and its outgoing movement carries the lot",
+    "expected": [
+      201,
+      1,
+      "01a16a86-9f79-7249-9d29-7e95bf354b3a"
+    ],
+    "actual": [
+      201,
+      1,
+      "01a16a86-9f79-7249-9d29-7e95bf354b3a"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "Y06e",
+    "title": "ACC-071 (P-M13) an existing expired lot: purchase receipt refused, sale refused — both LOT_EXPIRED; a line naming a *new* batch with a past expiry is refused too; no stock on the expired lot",
+    "expected": [
+      true,
+      true,
+      true,
+      false
+    ],
+    "actual": [
+      true,
+      true,
+      true,
+      false
+    ],
+    "ok": true,
+    "note": "receipt 201:/422:LOT_EXPIRED issue 201:/422:LOT_EXPIRED new 201:/422:LOT_EXPIRED"
+  },
+  {
+    "id": "Y07a",
+    "title": "ACC-128 buying 2 serial-tracked units without numbers → 422 INVENTORY_SERIAL_REQUIRED",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201: / 422:INVENTORY_SERIAL_REQUIRED"
+  },
+  {
+    "id": "Y07b",
+    "title": "purchase with 2 serial numbers posts; both numbers available; movement carries serial ids",
+    "expected": [
+      201,
+      [
+        "available",
+        "available"
+      ],
+      true
+    ],
+    "actual": [
+      201,
+      [
+        "available",
+        "available"
+      ],
+      true
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "Y07c",
+    "title": "ACC-128 selling a serial-tracked unit without its number → 422 INVENTORY_SERIAL_REQUIRED",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201: / 422:INVENTORY_SERIAL_REQUIRED"
+  },
+  {
+    "id": "Y07d",
+    "title": "ACC-133 the sale of S7-0001 posts, the number becomes sold and the outgoing movement carries its serial_id",
+    "expected": [
+      201,
+      "sold",
+      1,
+      "01a16a86-d3ef-732c-bbf1-4138555d2de8"
+    ],
+    "actual": [
+      201,
+      "sold",
+      1,
+      "01a16a86-d3ef-732c-bbf1-4138555d2de8"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "Y07e",
+    "title": "UI-044 generated numbers are padded to at least 4 digits",
+    "expected": [
+      201,
+      [
+        "G7-43-0001",
+        "G7-43-0002"
+      ]
+    ],
+    "actual": [
+      201,
+      [
+        "G7-43-0001",
+        "G7-43-0002"
+      ]
+    ],
+    "ok": true,
+    "note": "{\"count\":2,\"serialNos\":[\"G7-43-0001\",\"G7-43-0002\"]}"
+  },
+  {
+    "id": "Y07f",
+    "title": "UI-045 after the sales return the number is back in stock and flagged returned",
+    "expected": [
+      201,
+      "available",
+      true
+    ],
+    "actual": [
+      201,
+      "available",
+      true
+    ],
+    "ok": true,
+    "note": "{\"id\":\"01a16a86-d3ef-732c-bbf1-4138555d2de8\",\"tenantId\":\"01a16a85-7afb-710e-94c5-718cb1afc4ba\",\"itemId\":\"01a16a86-5379-74aa-9442-d1f5ffcb1550\",\"serialNo\":\"S7-43"
+  },
+  {
+    "id": "Y08a",
+    "title": "UI-021/042 the stock-out draft line is valued indicatively at the warehouse moving average, not the card purchase price (10)",
+    "expected": [
+      201,
+      "12.2500",
+      true
+    ],
+    "actual": [
+      201,
+      "12.2500",
+      true
+    ],
+    "ok": true,
+    "note": "{\"voucherId\":\"01a16a86-f3ae-7268-a994-cd42a38df959\",\"lineNo\":1,\"tenantId\":\"01a16a85-7afb-710e-94c5-718cb1afc4ba\",\"itemId\":\"01a16a86-4d43-7605-8f5d-54ea5b15b85f\""
+  },
+  {
+    "id": "Y08b",
+    "title": "posting without override → 422 STOCK_INSUFFICIENT",
+    "expected": [
+      422,
+      "STOCK_INSUFFICIENT"
+    ],
+    "actual": [
+      422,
+      "STOCK_INSUFFICIENT"
+    ],
+    "ok": true
+  },
+  {
+    "id": "Y08c",
+    "title": "ACC-115 allow_negative_stock=false: the per-document override is refused (422 NEGATIVE_STOCK_FORBIDDEN_BY_POLICY) — the policy governs",
+    "expected": [
+      200,
+      422,
+      "NEGATIVE_STOCK_FORBIDDEN_BY_POLICY",
+      "1.0000"
+    ],
+    "actual": [
+      200,
+      422,
+      "NEGATIVE_STOCK_FORBIDDEN_BY_POLICY",
+      "1.0000"
+    ],
+    "ok": true
+  },
+  {
+    "id": "Y08d",
+    "title": "ACC-107 allow_negative_stock=true: the same voucher posts without any flag → MAIN P7 = −2",
+    "expected": [
+      200,
+      201,
+      "-2.0000"
+    ],
+    "actual": [
+      200,
+      201,
+      "-2.0000"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "Y08e",
+    "title": "ACC-113 the stock-out journal credits inventory by exactly the balance delta (value before − value after)",
+    "expected": "36.7500",
+    "actual": "36.7500",
+    "ok": true,
+    "note": "[{\"code\":\"1270001\",\"debit\":\"0.0000\",\"credit\":\"36.7500\",\"party\":null},{\"code\":\"3121004\",\"debit\":\"36.7500\",\"credit\":\"0.0000\",\"party\":null}]"
+  },
+  {
+    "id": "Y08f",
+    "title": "ACC-116 buying 2 × 12 back to zero → quantity 0 with value 0 and average 0 (no ghost value)",
+    "expected": [
+      201,
+      "0.0000",
+      "0.0000",
+      "0.0000"
+    ],
+    "actual": [
+      201,
+      "0.0000",
+      "0.0000",
+      "0.0000"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "Y08g",
+    "title": "ACC-116/113 Σ stock_balances.value = GL 1270001 after the negative episode (the correction was booked, not left on the balance)",
+    "expected": "420.00",
+    "actual": "420.00",
+    "ok": true,
+    "note": "GL=420.0000 stock=420.0000"
+  },
+  {
+    "id": "Y08h",
+    "title": "ACC-116 (P-M14) the 2 owed units were charged at the provisional average but cost 12: a negative-stock cost correction JE Dr 1270001 / Cr 3200004 for the difference is posted with the receipt, and the movement records it",
+    "expected": [
+      1,
+      "posted",
+      [
+        {
+          "code": "1270001",
+          "debit": "0.5000",
+          "credit": "0.0000"
+        },
+        {
+          "code": "3200004",
+          "debit": "0.0000",
+          "credit": "0.5000"
+        }
+      ],
+      "-0.5000",
+      "12.2500"
+    ],
+    "actual": [
+      1,
+      "posted",
+      [
+        {
+          "code": "1270001",
+          "debit": "0.5000",
+          "credit": "0.0000"
+        },
+        {
+          "code": "3200004",
+          "debit": "0.0000",
+          "credit": "0.5000"
+        }
+      ],
+      "-0.5000",
+      "12.2500"
+    ],
+    "ok": true
+  },
+  {
+    "id": "Y08i",
+    "title": "ACC-116 the next receipt (5 × 10) averages cleanly at 10.00 — nothing leaked from the negative episode",
+    "expected": [
+      "5.0000",
+      "10.0000"
+    ],
+    "actual": [
+      "5.0000",
+      "10.0000"
+    ],
+    "ok": true
+  },
+  {
+    "id": "Y09a",
+    "title": "UI-009/028 the draft line shows expected = book quantity, variance −1 and a non-zero value",
+    "expected": [
+      201,
+      "5.0000",
+      "-1.0000",
+      true
+    ],
+    "actual": [
+      201,
+      "5.0000",
+      "-1.0000",
+      true
+    ],
+    "ok": true,
+    "note": "{\"adjustmentId\":\"01a16a87-125c-7146-9daf-1222a5545a94\",\"lineNo\":1,\"tenantId\":\"01a16a85-7afb-710e-94c5-718cb1afc4ba\",\"itemId\":\"01a16a86-4d43-7605-8f5d-54ea5b15b85f\",\"expectedQty\":\"5.0000\",\"countedQty\":\"4.0000\",\"unitId\":nu"
+  },
+  {
+    "id": "Y10a",
+    "title": "UI-043 free code «X» → 422; «A-RUN-01» → 201",
+    "expected": [
+      422,
+      201
+    ],
+    "actual": [
+      422,
+      201
+    ],
+    "ok": true,
+    "note": "BIN_CODE_INVALID "
+  },
+  {
+    "id": "Y10b",
+    "title": "ACC-130 putting away more than the warehouse holds → 422 BIN_RECEIVE_EXCEEDS_STOCK",
+    "expected": [
+      422,
+      "BIN_RECEIVE_EXCEEDS_STOCK"
+    ],
+    "actual": [
+      422,
+      "BIN_RECEIVE_EXCEEDS_STOCK"
+    ],
+    "ok": true
+  },
+  {
+    "id": "Y10c",
+    "title": "ACC-130/131 putting 2 units on the shelf (even with a bogus cost 100): bin = 2, warehouse quantity/value/average unchanged, no stock movement, GL unchanged",
+    "expected": [
+      201,
+      "2.0000",
+      "5.0000",
+      "50.0000",
+      "10.0000",
+      10,
+      "470.00"
+    ],
+    "actual": [
+      201,
+      "2.0000",
+      "5.0000",
+      "50.0000",
+      "10.0000",
+      10,
+      "470.00"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "Y10d",
+    "title": "ACC-130 the cap counts what is already on bins (warehouse − binned)",
+    "expected": [
+      422,
+      "BIN_RECEIVE_EXCEEDS_STOCK"
+    ],
+    "actual": [
+      422,
+      "BIN_RECEIVE_EXCEEDS_STOCK"
+    ],
+    "ok": true
+  },
+  {
+    "id": "Y10e",
+    "title": "ACC-130 picking 1 and counting 0 on the bin: bin 0, variance −1 reported for a stock adjustment, warehouse still unchanged",
+    "expected": [
+      201,
+      201,
+      "0.0000",
+      "-1.0000",
+      "inventory.adjustments",
+      "5.0000",
+      10
+    ],
+    "actual": [
+      201,
+      201,
+      "0.0000",
+      "-1.0000",
+      "inventory.adjustments",
+      "5.0000",
+      10
+    ],
+    "ok": true,
+    "note": " "
+  },
+  {
+    "id": "Y11a",
+    "title": "ACC-129 the planned cost read after a purchase that moved the average equals the planned cost at creation",
+    "expected": [
+      201,
+      true,
+      "10.0000"
+    ],
+    "actual": [
+      201,
+      true,
+      "10.0000"
+    ],
+    "ok": true,
+    "note": "  avg now 15.7143"
+  },
+  {
+    "id": "Y12a",
+    "title": "ACC-112 transfer MAIN → WH7 (branch BR7): send entry on the source branch, receipt entry on the destination branch",
+    "expected": [
+      201,
+      201,
+      201,
+      "01a16a85-7d39-755d-8aa3-77466286d257",
+      "01a16a86-5692-741f-b1f3-a7f8544d2faa"
+    ],
+    "actual": [
+      201,
+      201,
+      201,
+      "01a16a85-7d39-755d-8aa3-77466286d257",
+      "01a16a86-5692-741f-b1f3-a7f8544d2faa"
+    ],
+    "ok": true,
+    "note": "  entries=stock_transfer,stock_transfer_receipt"
+  },
+  {
+    "id": "Y12b",
+    "title": "WH7 now holds the unit at the sending average",
+    "expected": [
+      "1.0000"
+    ],
+    "actual": [
+      "1.0000"
+    ],
+    "ok": true
+  }
+]

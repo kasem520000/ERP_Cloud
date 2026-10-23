@@ -1,0 +1,43 @@
+{
+  "id": "R33-Y01-return-1-at-12-43",
+  "at": "2026-10-23T20:49:15.372Z",
+  "method": "POST",
+  "path": "/purchase-invoices",
+  "status": 422,
+  "request": {
+    "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+    "warehouseId": "01a16a85-7d3b-703a-934b-daeedd7a2267",
+    "partyId": "01a16a85-7d48-76df-9259-580a9fab43df",
+    "kind": "purchase_return",
+    "supplierReferenceNo": "R33-Y01-return-1-at-12-43",
+    "supplierReferenceDate": "2026-10-23",
+    "priceIncludesVat": false,
+    "autoPost": false,
+    "lines": [
+      {
+        "itemId": "01a16a86-4d43-7605-8f5d-54ea5b15b85f",
+        "quantity": "1",
+        "unitPrice": "12",
+        "discountRate": "0",
+        "taxRate": "15",
+        "taxGroupId": "01a16a85-7da0-71ee-8bbe-e1341879ad4a"
+      }
+    ],
+    "referenceInvoiceId": "01a16a86-5d18-731c-95ac-e189c2cf8bba"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Return unit price cannot exceed original purchase price",
+    "status": 422,
+    "code": "PURCHASE_RETURN_PRICE_EXCEEDED",
+    "detail": "Return unit price cannot exceed original purchase price",
+    "traceId": "01a16a86-666d-77c0-96fc-37e58ed1ffc0",
+    "errors": [
+      {
+        "itemId": "01a16a86-4d43-7605-8f5d-54ea5b15b85f",
+        "returnPrice": "12",
+        "originalPrice": "10.0000"
+      }
+    ]
+  }
+}

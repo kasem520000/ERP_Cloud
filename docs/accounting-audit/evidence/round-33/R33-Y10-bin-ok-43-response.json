@@ -1,0 +1,32 @@
+{
+  "id": "R33-Y10-bin-ok-43",
+  "at": "2026-10-23T20:50:00.179Z",
+  "method": "POST",
+  "path": "/inventory/bins",
+  "status": 201,
+  "request": {
+    "warehouseId": "01a16a85-7d3b-703a-934b-daeedd7a2267",
+    "code": "A-43-01",
+    "zone": "A",
+    "aisle": "43",
+    "rack": "01"
+  },
+  "response": {
+    "data": {
+      "id": "01a16a87-187e-737f-bfea-2a4ca8b15faf",
+      "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+      "warehouseId": "01a16a85-7d3b-703a-934b-daeedd7a2267",
+      "code": "A-43-01",
+      "zone": "A",
+      "aisle": "43",
+      "rack": "01",
+      "level": null,
+      "isActive": true,
+      "createdAt": "2026-10-23T20:50:00.956Z",
+      "createdBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f",
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1
+    }
+  }
+}
