@@ -1796,7 +1796,7 @@ export class HrmService implements OnModuleInit {
       // ACC-053: التحقق من قفل فترة الرواتب
       await this.accounting.assertModuleUnlocked(tx, tenantId, periodId, 'payroll');
       /**
-       * R33 (ACC-176): the accrual is dated inside the run's own fiscal period. A November payroll
+       * R33 (ACC-179): the accrual is dated inside the run's own fiscal period. A November payroll
        * posted on an October (or December) business day used to carry today's date and was
        * rejected by the period/date guard (`FISCAL_PERIOD_DATE_MISMATCH`) — the expense belongs
        * to the month it was earned in, so the date is clamped to [period start, period end].

@@ -63,10 +63,10 @@ async function acct(codeStr) { return (await L.one(`select id from accounts wher
   for (const e of emps) empBefore[e.id] = e.code ? await gl(e.code) : '0.0000';
   const exp0 = await gl('3122001');
   const post = await L.api('R33-M03-payroll-post-empty', 'POST', `/hrm/payroll/runs/${runId}/post`, {});
-  check('M03', 'ACC-170/176 post with empty body (accrual dated inside the run period) → 201', 201, post.status, `${code(post) || ''} ${JSON.stringify(post.body && post.body.detail || '').slice(0, 200)}`);
+  check('M03', 'ACC-170/179 post with empty body (accrual dated inside the run period) → 201', 201, post.status, `${code(post) || ''} ${JSON.stringify(post.body && post.body.detail || '').slice(0, 200)}`);
   const runRow = await L.one(`select status, journal_entry_id, voucher_id from payroll_runs where id = $1`, [runId]);
   const jeHead = runRow && runRow.journal_entry_id ? await L.one(`select number, date::text, fiscal_period_id from journal_entries where id = $1`, [runRow.journal_entry_id]) : null;
-  check('M03a', `ACC-176 accrual journal dated inside ${YM} and in its fiscal period`, [true, PERIOD_M], [Boolean(jeHead && jeHead.date >= YM_START && jeHead.date <= YM_END), jeHead && jeHead.fiscal_period_id], jeHead && `${jeHead.number} ${jeHead.date}`);
+  check('M03a', `ACC-179 accrual journal dated inside ${YM} and in its fiscal period`, [true, PERIOD_M], [Boolean(jeHead && jeHead.date >= YM_START && jeHead.date <= YM_END), jeHead && jeHead.fiscal_period_id], jeHead && `${jeHead.number} ${jeHead.date}`);
   const jeLines = runRow && runRow.journal_entry_id ? await linesOf(runRow.journal_entry_id) : [];
   check('M03b', 'ACC-170 every journal line is on a postable leaf account', true, jeLines.length > 0 && jeLines.every((l) => l.is_postable === true), JSON.stringify(jeLines.map((l) => [l.code, l.debit, l.credit])));
   check('M03c', 'ACC-170 no line on 3122 / 224 (summary accounts)', 0, jeLines.filter((l) => l.code === '3122' || l.code === '224').length);
