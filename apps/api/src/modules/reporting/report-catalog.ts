@@ -3280,7 +3280,7 @@ const definitions: ReportDefinition[] = [
     key: 'ar-aging',
     titleAr: 'أعمار ديون العملاء',
     group: 'accounting',
-    hintAr: 'المتبقي على كل فاتورة مبيعات مرحّلة موزّعاً على شرائح العمر، والمردودات/الدفعات غير المطبّقة في عمود مستقل؛ الإجمالي = رصيد العميل في الأستاذ حتى التاريخ.',
+    hintAr: 'المتبقي على كل فاتورة مبيعات مرحّلة موزّعاً على شرائح العمر، والمردودات/الدفعات غير المطبّقة في عمود مستقل؛ الإجمالي = رصيد العميل على حساب رقابة المدينين حتى التاريخ (المحتجزات لدى العملاء غير مستحقة بعد فلا تدخل الأعمار — تظهر في كشف الحساب وأرصدة العملاء).',
     params: [BRANCH, PERIOD[0]!, PERIOD[1]!],
     columns: [text('party', 'العميل'), money('bucket_0_30', '0-30 يوم'), money('bucket_31_60', '31-60'), money('bucket_61_90', '61-90'), money('bucket_90_plus', 'أكثر من 90'), money('unapplied', 'أرصدة دائنة غير مطبّقة'), money('due', 'الإجمالي')],
     totals: ['bucket_0_30', 'bucket_31_60', 'bucket_61_90', 'bucket_90_plus', 'unapplied', 'due'],
@@ -4219,11 +4219,14 @@ const definitions: ReportDefinition[] = [
           AND ${eqIf(sql`jel.salesman_id`, f.salesmanId)}
         GROUP BY jel.account_id
       ), base AS (
+        /* R33 ACC-195 — no per-row rounding: the ledger carries four decimals, and a balances
+           report rounded line by line footed 253,012.93 against 253,012.94 on the audit tenant
+           (a net of 0.01 out of thin air). Rows keep the ledger precision; the screen formats. */
         SELECT acc.code, acc.name_ar AS account,
-               round(m.od, 2) AS opening_debit, round(m.oc, 2) AS opening_credit,
-               round(m.md, 2) AS move_debit, round(m.mc, 2) AS move_credit,
-               round(greatest(m.md - m.mc, 0), 2) AS bal_debit,
-               round(greatest(m.mc - m.md, 0), 2) AS bal_credit
+               m.od AS opening_debit, m.oc AS opening_credit,
+               m.md AS move_debit, m.mc AS move_credit,
+               greatest(m.md - m.mc, 0) AS bal_debit,
+               greatest(m.mc - m.md, 0) AS bal_credit
         FROM movement m
         JOIN accounts acc ON acc.id = m.account_id
         WHERE acc.tenant_id = ${tenantId} AND acc.deleted_at IS NULL AND ${accountSubtree(tenantId, f.accountId)}
@@ -4235,7 +4238,7 @@ const definitions: ReportDefinition[] = [
       )
       SELECT code, account, opening_debit::text, opening_credit::text, move_debit::text, move_credit::text,
              bal_debit::text, bal_credit::text,
-             round(final_debit, 2)::text AS final_debit, round(final_credit, 2)::text AS final_credit,
+             final_debit::text, final_credit::text,
              CASE WHEN row_number() OVER (ORDER BY code) = 1
                   THEN greatest(sum(final_debit) OVER () - sum(final_credit) OVER (), 0)::text ELSE '0' END AS s_net_debit,
              CASE WHEN row_number() OVER (ORDER BY code) = 1
