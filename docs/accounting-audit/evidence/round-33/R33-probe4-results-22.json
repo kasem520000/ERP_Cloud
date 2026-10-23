@@ -1,0 +1,114 @@
+[
+  {
+    "id": "U10",
+    "title": "neoleap gateway saved in simulation mode",
+    "expected": [
+      true,
+      true
+    ],
+    "actual": [
+      true,
+      true
+    ],
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "U11",
+    "title": "cash-customer SI (no party) 10 + VAT = 11.50 posted, unpaid",
+    "expected": [
+      true,
+      null,
+      "11.5000",
+      "0.0000",
+      "unpaid"
+    ],
+    "actual": [
+      true,
+      null,
+      "11.5000",
+      "0.0000",
+      "unpaid"
+    ],
+    "ok": true,
+    "note": "  SI-000003"
+  },
+  {
+    "id": "U12",
+    "title": "ACC-180 simulated card sale → approved and settled:true",
+    "expected": [
+      true,
+      "approved",
+      true
+    ],
+    "actual": [
+      true,
+      "approved",
+      true
+    ],
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "U13",
+    "title": "ACC-180 invoice marked paid: paid_total 11.50 / payment_status paid (was 0 / unpaid)",
+    "expected": [
+      "11.5000",
+      "paid"
+    ],
+    "actual": [
+      "11.5000",
+      "paid"
+    ],
+    "ok": true
+  },
+  {
+    "id": "U14",
+    "title": "ACC-164/180 exactly one voucher + one journal entry for the collection",
+    "expected": [
+      1,
+      1
+    ],
+    "actual": [
+      1,
+      1
+    ],
+    "ok": true
+  },
+  {
+    "id": "U15",
+    "title": "voucher posted for 11.50 with no party, and its journal is balanced on two postable sides",
+    "expected": [
+      true,
+      "11.5000",
+      null,
+      true
+    ],
+    "actual": [
+      true,
+      "11.5000",
+      null,
+      true
+    ],
+    "ok": true,
+    "note": "1221001 11.5000/0.0000 ; 12310001 0.0000/11.5000"
+  },
+  {
+    "id": "U16",
+    "title": "refresh does not pay twice: paid_total unchanged, no new voucher/JE",
+    "expected": [
+      true,
+      "11.5000",
+      0,
+      0
+    ],
+    "actual": [
+      true,
+      "11.5000",
+      0,
+      0
+    ],
+    "ok": true,
+    "note": null
+  }
+]

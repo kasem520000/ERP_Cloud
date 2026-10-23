@@ -1,0 +1,30 @@
+{
+  "id": "R33-U10-gateway-config-21",
+  "at": "2026-10-23T18:40:33.442Z",
+  "method": "PUT",
+  "path": "/payment-gateways/neoleap",
+  "status": 200,
+  "request": {
+    "active": true,
+    "simulation": true,
+    "port": 9090,
+    "merchantSecret": "***",
+    "currency": "SAR"
+  },
+  "response": {
+    "provider": "neoleap",
+    "labelAr": "NeoLeap",
+    "active": true,
+    "printReceipt": false,
+    "port": 9090,
+    "baseUrl": "http://127.0.0.1:9090",
+    "currency": "SAR",
+    "merchantKey": "R33-TRANPORTAL",
+    "hasSecret": "***",
+    "secretMasked": "***",
+    "callbackUrl": "",
+    "simulation": true,
+    "lastTest": null,
+    "updatedAt": "2026-10-23T18:40:34.217Z"
+  }
+}

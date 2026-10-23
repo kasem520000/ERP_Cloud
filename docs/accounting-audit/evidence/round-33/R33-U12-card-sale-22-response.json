@@ -1,0 +1,40 @@
+{
+  "id": "R33-U12-card-sale-22",
+  "at": "2026-10-23T18:40:59.433Z",
+  "method": "POST",
+  "path": "/payment-gateways/neoleap/sale",
+  "status": 201,
+  "request": {
+    "amount": "11.50",
+    "invoiceId": "01a16a10-f4c8-77ae-b429-4b777fdf49b9",
+    "branchId": "01a169f7-62ec-77ff-a049-07df41446dca",
+    "reference": "ECR-R33-22"
+  },
+  "response": {
+    "transaction": {
+      "id": "01a16a10-fb04-76c4-b8a5-25a5dcaf1c89",
+      "provider": "neoleap",
+      "reference": "ECR-R33-22",
+      "sessionId": "SIM-a4a700664500",
+      "invoiceId": "01a16a10-f4c8-77ae-b429-4b777fdf49b9",
+      "branchId": "01a169f7-62ec-77ff-a049-07df41446dca",
+      "amount": "11.5000",
+      "currency": "SAR",
+      "status": "approved",
+      "responseCode": "00",
+      "detailedResponseCode": "00",
+      "message": "Approved",
+      "approvalCode": "040700",
+      "rrn": "664500161171",
+      "stan": "120522",
+      "cardScheme": "MADA",
+      "panMasked": "****4242",
+      "transactionType": "SALE",
+      "checkoutUrl": null,
+      "simulation": true,
+      "settled": true,
+      "createdAt": "2026-10-23T18:41:00.164Z"
+    },
+    "settled": true
+  }
+}
