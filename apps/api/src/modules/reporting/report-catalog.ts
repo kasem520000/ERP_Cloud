@@ -3106,24 +3106,46 @@ const definitions: ReportDefinition[] = [
     params: [...PERIOD, BRANCH],
     columns: [text('bucket', 'البند'), money('base', 'الوعاء'), money('vat', 'الضريبة')],
     totals: ['vat'],
+    /*
+     * ACC-119 (R33): «خاضعة» تعني أن المستند حمل ضريبة فعلاً (tax_total <> 0) — المستندات بلا ضريبة
+     * (نسبة صفرية/معفاة) تُعرض في بند مستقل بوعائها فقط، تماماً كما يصنّفها الإقرار الدوري
+     * (`vat-return-period`)؛ قبل ذلك كان الوعاء هنا يضمّها فيختلف التقريران. وضريبة الإشعارات تُشتق من
+     * نسبة ضريبة فاتورتها (tax_total ÷ total) لا من 15 % ثابتة.
+     */
     build: (tenantId, f) => sql`
       SELECT 'مبيعات خاضعة' AS bucket, coalesce(sum(si.subtotal), 0)::text AS base, coalesce(sum(si.tax_total), 0)::text AS vat
-      FROM sales_invoices si WHERE ${salesScope(tenantId, f, 'sale')}
+      FROM sales_invoices si WHERE ${salesScope(tenantId, f, 'sale')} AND si.tax_total <> 0
+      UNION ALL
+      SELECT 'مبيعات بنسبة صفرية / معفاة (بلا ضريبة)', coalesce(sum(CASE WHEN si.kind = 'sale' THEN si.subtotal ELSE -si.subtotal END), 0)::text, '0'
+      FROM sales_invoices si WHERE si.tenant_id = ${tenantId} AND si.kind IN ('sale', 'sale_return') AND si.status = 'posted' AND si.tax_total = 0
+        AND ${onDate(sql`si.posted_at::date`, f.from, f.to)} AND ${eqIf(sql`si.branch_id`, f.branchId)} AND ${eqIf(sql`si.party_id`, f.partyId)}
       UNION ALL
       SELECT 'مردود مبيعات', (-coalesce(sum(si.subtotal), 0))::text, (-coalesce(sum(si.tax_total), 0))::text
-      FROM sales_invoices si WHERE ${salesScope(tenantId, f, 'sale_return')}
+      FROM sales_invoices si WHERE ${salesScope(tenantId, f, 'sale_return')} AND si.tax_total <> 0
       UNION ALL
-      SELECT 'إشعار دائن مبيعات', (-coalesce(sum(round(san.amount / 1.15, 4)), 0))::text, (-coalesce(sum(round(san.amount - san.amount / 1.15, 4)), 0))::text
-      FROM sales_adjustment_notes san WHERE san.tenant_id = ${tenantId} AND san.status = 'posted' AND san.kind = 'credit'
+      SELECT 'إشعار دائن مبيعات',
+             (-coalesce(sum(round(san.amount - san.amount * coalesce(si.tax_total / nullif(si.total, 0), 0), 2)), 0))::text,
+             (-coalesce(sum(round(san.amount * coalesce(si.tax_total / nullif(si.total, 0), 0), 2)), 0))::text
+      FROM sales_adjustment_notes san LEFT JOIN sales_invoices si ON si.id = san.invoice_id
+      WHERE san.tenant_id = ${tenantId} AND san.status = 'posted' AND san.kind = 'credit'
+        AND ${onDate(sql`coalesce(san.posted_at::date, san.created_at::date)`, f.from, f.to)} AND ${eqIf(sql`san.branch_id`, f.branchId)}
       UNION ALL
       SELECT 'مشتريات خاضعة', coalesce(sum(pi.subtotal), 0)::text, (-coalesce(sum(pi.tax_total), 0))::text
-      FROM purchase_invoices pi WHERE ${purchaseScope(tenantId, f, 'purchase')}
+      FROM purchase_invoices pi WHERE ${purchaseScope(tenantId, f, 'purchase')} AND pi.tax_total <> 0
+      UNION ALL
+      SELECT 'مشتريات بلا ضريبة', coalesce(sum(CASE WHEN pi.kind = 'purchase' THEN pi.subtotal ELSE -pi.subtotal END), 0)::text, '0'
+      FROM purchase_invoices pi WHERE pi.tenant_id = ${tenantId} AND pi.kind IN ('purchase', 'purchase_return') AND pi.status = 'posted' AND pi.tax_total = 0
+        AND ${onDate(sql`pi.posted_at::date`, f.from, f.to)} AND ${eqIf(sql`pi.branch_id`, f.branchId)}
       UNION ALL
       SELECT 'مردود مشتريات', (-coalesce(sum(pi.subtotal), 0))::text, coalesce(sum(pi.tax_total), 0)::text
-      FROM purchase_invoices pi WHERE ${purchaseScope(tenantId, f, 'purchase_return')}
+      FROM purchase_invoices pi WHERE ${purchaseScope(tenantId, f, 'purchase_return')} AND pi.tax_total <> 0
       UNION ALL
-      SELECT 'إشعار مدين مشتريات', (-coalesce(sum(round(pan.amount / 1.15, 4)), 0))::text, coalesce(sum(round(pan.amount - pan.amount / 1.15, 4)), 0)::text
-      FROM purchase_adjustment_notes pan WHERE pan.tenant_id = ${tenantId} AND pan.status = 'posted' AND pan.kind = 'debit'`,
+      SELECT 'إشعار مدين مشتريات',
+             (-coalesce(sum(round(pan.amount - pan.amount * coalesce(pi.tax_total / nullif(pi.total, 0), 0), 2)), 0))::text,
+             coalesce(sum(round(pan.amount * coalesce(pi.tax_total / nullif(pi.total, 0), 0), 2)), 0)::text
+      FROM purchase_adjustment_notes pan LEFT JOIN purchase_invoices pi ON pi.id = pan.invoice_id
+      WHERE pan.tenant_id = ${tenantId} AND pan.status = 'posted' AND pan.kind = 'debit'
+        AND ${onDate(sql`coalesce(pan.posted_at::date, pan.created_at::date)`, f.from, f.to)} AND ${eqIf(sql`pan.branch_id`, f.branchId)}`,
   },
   {
     key: 'ar-aging',

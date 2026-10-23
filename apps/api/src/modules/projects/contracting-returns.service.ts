@@ -15,6 +15,7 @@ import {
 } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
+import { AccountingService } from '../accounting/accounting.service.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { SequencesService } from '../platform-services/index.js';
 import { SalesService } from '../sales/sales.service.js';
@@ -52,6 +53,7 @@ export class ContractingReturnsService {
     private readonly sequences: SequencesService,
     private readonly projectsService: ProjectsService,
     private readonly sales: SalesService,
+    private readonly accounting: AccountingService,
   ) {}
 
   async list(tenantId: string, filters: { projectId?: string; billId?: string; status?: string } = {}) {
@@ -181,15 +183,47 @@ export class ContractingReturnsService {
     if (document.status !== 'draft') throw new DomainError('CONTRACTING_RETURN_INVALID_STATUS', 'Only a draft return can be posted', 409);
 
     const bill = await withTenantTx(this.database.db, tenantId, (tx) => this.loadBill(tx, tenantId, document.billId));
+    const branchId = document.branchId ?? bill.branchId ?? '';
+    // ACC-065 (R33): posting a contracting return must reach the ledger — before, it only rewound
+    // `boq_terms.previously_billed` and left a *draft* credit note (no number, no journal, AR unchanged,
+    // retention untouched). Now:
+    //   1. the credit note for the net value is created AND posted (SCN-number, Dr returns / Cr AR);
+    //   2. the retained share of the returned work is reversed as well — Dr revenue / Cr the account that
+    //      holds the bill's retention (the dedicated retention account when the bill was posted with one,
+    //      otherwise AR) — and the bill's `retention_value` drops by the same amount so a later release
+    //      pays out the right figure.
     let creditNoteId: string | undefined;
+    let retentionEntryId: string | undefined;
     if (bill.invoiceId && dec(document.netValue).gt(0)) {
       const note = await this.sales.createAdjustmentNote(tenantId, bill.invoiceId, {
-        branchId: document.branchId ?? bill.branchId ?? '',
+        branchId,
         kind: 'credit',
         reason: `مرتجع مقاولات ${document.number}: ${document.reason}`,
         amount: dec(document.netValue).toFixed(2),
       });
       creditNoteId = note?.id;
+      if (creditNoteId) await this.sales.postAdjustmentNote(tenantId, creditNoteId);
+    }
+    if (bill.invoiceId && dec(document.retentionValue).gt(0)) {
+      const legs = await withTenantTx(this.database.db, tenantId, (tx) => this.billJournalLegs(tx, tenantId, bill.invoiceId!));
+      if (legs.revenueAccountId && legs.retentionAccountId) {
+        const [project] = await withTenantTx(this.database.db, tenantId, (tx) =>
+          tx.select({ partyId: projects.partyId, costCenterId: projects.costCenterId }).from(projects).where(and(eq(projects.tenantId, tenantId), eq(projects.id, document.projectId))).limit(1),
+        );
+        const entry = await this.accounting.postJournal(tenantId, {
+          branchId: branchId || undefined,
+          date: document.returnDate ?? today(),
+          description: `عكس محتجز مرتجع مقاولات ${document.number} على مستخلص ${bill.number ?? bill.id}`,
+          sourceType: 'contracting_return',
+          sourceId: document.id,
+          idempotencyKey: `contracting-return-retention:${document.id}`,
+          lines: [
+            { accountId: legs.revenueAccountId, debit: dec(document.retentionValue).toFixed(4), costCenterId: project?.costCenterId ?? undefined, description: `عكس إيراد الجزء المحتجز من المرتجع ${document.number}` },
+            { accountId: legs.retentionAccountId, credit: dec(document.retentionValue).toFixed(4), partyId: project?.partyId ?? undefined, costCenterId: project?.costCenterId ?? undefined, description: `تخفيض محتجز مستخلص ${bill.number ?? bill.id}` },
+          ],
+        });
+        retentionEntryId = (entry as { id?: string } | undefined)?.id;
+      }
     }
 
     return withTenantTx(this.database.db, tenantId, async (tx) => {
@@ -199,11 +233,32 @@ export class ContractingReturnsService {
           .set({ previouslyBilled: sql`GREATEST(${boqTerms.previouslyBilled} - ${line.returnValue}, 0)`, updatedAt: new Date() })
           .where(and(eq(boqTerms.tenantId, tenantId), eq(boqTerms.id, line.termId)));
       }
+      if (dec(document.retentionValue).gt(0)) {
+        await tx.update(progressBills)
+          .set({ retentionValue: sql`GREATEST(${progressBills.retentionValue} - ${dec(document.retentionValue).toFixed(4)}::numeric, 0)`, updatedAt: new Date() })
+          .where(and(eq(progressBills.tenantId, tenantId), eq(progressBills.id, bill.id)));
+      }
       await tx.update(contractingReturns)
         .set({ status: 'posted', postedAt: new Date(), creditNoteId, updatedAt: new Date(), updatedBy: tryGetAuthContext()?.userId })
         .where(and(eq(contractingReturns.tenantId, tenantId), eq(contractingReturns.id, id)));
-      return this.load(tx, tenantId, id);
+      const loaded = await this.load(tx, tenantId, id);
+      return { ...loaded, retentionJournalEntryId: retentionEntryId ?? null };
     });
+  }
+
+  /** The revenue and retention accounts the bill's own posting used (by the line descriptions `postBill` writes). */
+  private async billJournalLegs(tx: DrizzleTx, tenantId: string, invoiceId: string) {
+    const result = (await tx.execute(sql`
+      SELECT l.account_id, l.description, l.debit::text AS debit, l.credit::text AS credit
+      FROM journal_entry_lines l
+      JOIN journal_entries e ON e.id = l.entry_id
+      WHERE l.tenant_id = ${tenantId}::uuid AND e.source_id = ${invoiceId}::uuid AND e.status = 'posted'
+      ORDER BY e.created_at ASC, l.line_no ASC
+    `)) as unknown as { rows?: Array<{ account_id: string; description: string | null; debit: string; credit: string }> };
+    const rows = Array.isArray(result) ? (result as Array<{ account_id: string; description: string | null; debit: string; credit: string }>) : (result.rows ?? []);
+    const revenue = rows.find((r) => (r.description ?? '').startsWith('إيراد مستخلص')) ?? rows.find((r) => dec(r.credit).gt(0));
+    const retention = rows.find((r) => (r.description ?? '').startsWith('محتجز مستخلص')) ?? rows.find((r) => (r.description ?? '').startsWith('مستخلص أعمال'));
+    return { revenueAccountId: revenue?.account_id, retentionAccountId: retention?.account_id };
   }
 
   async cancel(tenantId: string, id: string) {

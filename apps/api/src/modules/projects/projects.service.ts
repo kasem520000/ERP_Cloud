@@ -343,6 +343,18 @@ export class ProjectsService {
       revenueAccountId = revenueAccountId ?? revAcc?.id;
     }
 
+    // ACC-056 (R33 — P-M18): the retained share is a receivable of its own kind; booking it on the customers'
+    // control account hid it from the ledger and from ageing. When the bill retains money and no retention
+    // account can be resolved (explicit `retentionReceivableAccountId`, or a postable asset account coded
+    // 1232* / named «محتجز…»), the posting is refused instead of silently merging it into AR.
+    if (new Decimal(bill.retentionValue).gt(0) && !retentionAccountId) {
+      throw new DomainError(
+        'RETENTION_ACCOUNT_REQUIRED',
+        'لا يوجد حساب «محتجزات لدى العملاء» (1232*) في الدليل — أنشئه أو مرّر retentionReceivableAccountId قبل ترحيل مستخلص يحتجز مبلغاً',
+        422,
+        { retentionValue: bill.retentionValue },
+      );
+    }
     const targetRetentionAccount = retentionAccountId ?? receivableAccountId;
 
     // ACC-056 & ACC-059: أسطر القيد مع وسم مركز التكلفة وفصل حساب المحتجز

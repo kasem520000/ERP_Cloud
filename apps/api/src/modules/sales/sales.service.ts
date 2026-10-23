@@ -2534,8 +2534,13 @@ export class SalesService {
 
           if (receivableAccountId && salesReturnAccountId && vatOutputAccountId) {
             const today = new Date().toISOString().slice(0, 10);
-            const base = money(note.amount).div('1.15').toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
-            const vat = money(note.amount).minus(base);
+            // ACC-065 follow-up (R33): the VAT share of a note follows the *source invoice* (tax_total ÷ total),
+            // not a hard-wired 15 % — a note on a zero-rated/exempt invoice (progress bills, exports) carries no
+            // VAT, and a 5 % invoice carries 5 %. Money is kept in halalas (P-M17).
+            const invTotal = money(inv.total);
+            const vatRatio = invTotal.gt(0) ? money(inv.taxTotal).div(invTotal) : new Decimal(0);
+            const vat = money(note.amount).mul(vatRatio).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+            const base = money(note.amount).minus(vat);
 
             const lines =
               note.kind === 'credit'
