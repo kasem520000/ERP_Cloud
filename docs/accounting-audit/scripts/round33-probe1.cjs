@@ -189,10 +189,16 @@ async function entriesFor(sourceType, sourceId) {
   const adj0 = await gl('3121004');
   const appr = await L.api('R33-L06-approve-closing', 'POST', `/van-sales/load-orders/${loId}/approve-closing`, { returnedQty: '7.0000', damagedQty: '0.0000', collectedCash: '11.5000', actualRemainingQty: '0.0000', damageInspected: false, salaryDeductionApproved: false, notes: 'R33 اعتماد بلا تحميل العجز على المندوب', settleStockAdjustment: true, surplusAcknowledged: false });
   check('L06', 'approve closing → 201/200', true, appr.status === 201 || appr.status === 200, `${appr.status} ${code(appr) || ''} ${JSON.stringify(appr.body && appr.body.detail || '').slice(0, 200)}`);
-  const wo = await entriesFor('van_shortage_writeoff', loId);
-  const woTx = await L.one(`select qty, unit_cost, total_cost from inventory_transactions where doc_type = 'van_shortage_writeoff' and doc_id = $1 order by occurred_at desc limit 1`, [loId]);
+  // ACC-168 (root-cause fix): NO separate `van_shortage_writeoff` movement any more — the official count
+  // document opened by the approval is the ONE stock movement, and the inventory engine posts its journal
+  // (Dr 3121004 / Cr 1270001) in the same transaction when it is settled.
+  const woLegacy = await L.db(`select id from inventory_transactions where doc_type = 'van_shortage_writeoff' and doc_id = $1`, [loId]);
+  check('L06a', 'ACC-168 no separate van_shortage_writeoff movement at approval (count document carries the variance)', 0, woLegacy.length);
+  const loAdj = await L.one(`select stock_adjustment_id::text as adj from van_load_orders where id = $1`, [loId]);
+  const woTx = await L.one(`select qty, unit_cost, total_cost from inventory_transactions where doc_type = 'stock_adjustment' and doc_id = $1 and direction = 'out' order by occurred_at desc limit 1`, [loAdj && loAdj.adj]);
   const woVal = n4(woTx && woTx.total_cost);
-  check('L06b', 'ACC-168 write-off journal Dr 3121004 / Cr 1270001 = stock movement value (1 kg at van average)', [['1270001', '0.0000', woVal], ['3121004', woVal, '0.0000']], wo.map((l) => [l.code, n4(l.debit), n4(l.credit)]), `${wo[0] && wo[0].number} qty=${woTx && woTx.qty} unit=${woTx && woTx.unit_cost}`);
+  const wo = await entriesFor('stock_adjustment', loAdj && loAdj.adj);
+  check('L06b', 'ACC-168 count-document journal Dr 3121004 / Cr 1270001 = its stock movement value (1 kg at van average)', [['1270001', '0.0000', woVal], ['3121004', woVal, '0.0000']], wo.map((l) => [l.code, n4(l.debit), n4(l.credit)]), `${wo[0] && wo[0].number} adj=${loAdj && loAdj.adj} qty=${woTx && woTx.qty} unit=${woTx && woTx.unit_cost}`);
   const van3 = await stockOf(BREAD, VAN1);
   check('L06c', 'VAN-1 after approve + count settlement = 0 (legacy ghost kilo written down by the count)', '0.0000', van3.q, `base was ${van0.q}`);
   const adjJe = await L.db(`select e.number, e.source_type, a.code, l.debit::text, l.credit::text from journal_entries e join journal_entry_lines l on l.entry_id = e.id join accounts a on a.id = l.account_id where e.source_type in ('stock_adjustment','van_count','stock_count') and e.created_at > now() - interval '2 minutes' order by e.number, a.code`);
@@ -227,16 +233,19 @@ async function entriesFor(sourceType, sourceId) {
   // the seed rep may have no employee account yet (seed 10) — the approve auto-creates it (ACC-166)
   const empAfter = await L.one(`select e.id, e.employee_account_id, a.code from salesmen s join employees e on e.id = s.employee_id left join accounts a on a.id = e.employee_account_id where s.id = $1`, [SALESMAN]);
   if (!(emp && emp.code)) console.log('   rep 1 employee account auto-created by the approve:', empAfter && empAfter.code);
-  const wo2 = await entriesFor('van_shortage_writeoff', lo2Id);
+  const lo2Adj = await L.one(`select stock_adjustment_id::text as adj from van_load_orders where id = $1`, [lo2Id]);
+  const wo2 = await entriesFor('stock_adjustment', lo2Adj && lo2Adj.adj);
   const ch2 = await entriesFor('van_shortage_charge', lo2Id);
-  const wo2Tx = await L.one(`select total_cost from inventory_transactions where doc_type = 'van_shortage_writeoff' and doc_id = $1 order by occurred_at desc limit 1`, [lo2Id]);
+  const wo2Legacy = await L.db(`select id from inventory_transactions where doc_type = 'van_shortage_writeoff' and doc_id = $1`, [lo2Id]);
+  check('L10a', 'ACC-168 no separate van_shortage_writeoff movement for custody 2 either', 0, wo2Legacy.length);
+  const wo2Tx = await L.one(`select total_cost from inventory_transactions where doc_type = 'stock_adjustment' and doc_id = $1 and direction = 'out' order by occurred_at desc limit 1`, [lo2Adj && lo2Adj.adj]);
   const wo2Val = n4(wo2Tx && wo2Tx.total_cost);
   const lo2Final = await L.one(`select shortage_qty, shortage_value, unit_cost, status, shortage_policy_status from van_load_orders where id = $1`, [lo2Id]);
   const chVal = n4(lo2Final.shortage_value);
-  check('L10b', 'ACC-168 write-off journal exists for custody 2 (Dr 3121004 / Cr 1270001 at stock value)', [['1270001', '0.0000', wo2Val], ['3121004', wo2Val, '0.0000']], wo2.map((l) => [l.code, n4(l.debit), n4(l.credit)]));
+  check('L10b', 'ACC-168 count-document journal for custody 2 (Dr 3121004 / Cr 1270001 at stock value)', [['1270001', '0.0000', wo2Val], ['3121004', wo2Val, '0.0000']], wo2.map((l) => [l.code, n4(l.debit), n4(l.credit)]));
   check('L10c', 'ACC-152 charge journal Dr employee account / Cr 3121004 (not 1270001) at the policy value', [[empAfter && empAfter.code, chVal, '0.0000'], ['3121004', '0.0000', chVal]], ch2.map((l) => [l.code, n4(l.debit), n4(l.credit)]), `${ch2[0] && ch2[0].number} ${lo2Final.status}/${lo2Final.shortage_policy_status}`);
-  check('L10d', 'ACC-152 inventory relieved exactly once (by the write-off value only)', n4(Number(inv0) - Number(wo2Val)), await gl('1270001'));
-  check('L10e', 'ACC-152 loss account moves only by (write-off − charge)', n4(Number(adjB) + Number(wo2Val) - Number(chVal)), await gl('3121004'));
+  check('L10d', 'ACC-152 inventory relieved exactly once (by the count-document value only)', n4(Number(inv0) - Number(wo2Val)), await gl('1270001'));
+  check('L10e', 'ACC-152 loss account moves only by (count-document loss − charge)', n4(Number(adjB) + Number(wo2Val) - Number(chVal)), await gl('3121004'));
   if (empAfter && empAfter.code) check('L10f', 'employee account + charge', n4(Number(empBal0 || 0) + Number(chVal)), await gl(empAfter.code));
   L.snapshot(`R33-DB-${RUN}-005-after-L10`);
 

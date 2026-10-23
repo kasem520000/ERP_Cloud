@@ -437,11 +437,11 @@ describe('Van Sales — stock & custody settlement against the official ledger',
     const adjustment = await adjustmentRow(row.stock_adjustment_id!);
     expect(adjustment.status).toBe('draft');
     expect(Number(adjustment.counted_qty)).toBeCloseTo(0.5, 4);
-    // ⚠️ المحرك الرسمي يكتب `expected_qty` لحظة الترحيل لا لحظة الإنشاء (`createAdjustment`
-    //    يضع expectedQty: '0'): فالمسودة تحمل العدّ وحده، ودليل الفرق قبل التفويض يبقى على
-    //    أمر التحميل وفي سبب المستند — وهذا ما يُظهره التقرير للمحاسب قبل أن يفوّض.
-    expect(Number(adjustment.expected_qty)).toBe(0);
-    expect(adjustment.variance_qty === null || Number(adjustment.variance_qty) === 0).toBe(true);
+    // المحرك الرسمي يكتب `expected_qty` من رصيد السيارة لحظة إنشاء المسودة (1.00) ويحسب الفرق
+    // (−0.50) — فالمسودة تُظهر للمحاسب الفرقَ قبل أن يفوّض، ويُعاد قياسُه على الرصيد لحظة
+    // الترحيل (والسيارة مجمَّدة بينهما: `VAN_WAREHOUSE_UNDER_SETTLEMENT`).
+    expect(Number(adjustment.expected_qty)).toBeCloseTo(1, 4);
+    expect(Number(adjustment.variance_qty)).toBeCloseTo(-0.5, 4);
     expect(adjustment.reason).toContain('المتوقع 1.00 مقابل الفعلي 0.50');
 
     // 1) الكمية لم تُسوَّ بعد: رصيد السيارة ما زال 1 كجم (0.5 موجود + 0.5 مفقود).
@@ -475,7 +475,8 @@ describe('Van Sales — stock & custody settlement against the official ledger',
       }).loadOrders.find((order) => order.id === loadOrderId) ?? {}
     ) as Record<string, unknown>;
     expect(Number(shownOrder.countVarianceCostValue)).toBeCloseTo(2, 2);
-    expect(shownOrder.countDocumentVarianceValue).toBeNull();
+    // مستند الجرد (مسودة) يحمل فرقه منذ إنشائه (0.5 × 4.00) — الرقمان متطابقان قبل الترحيل.
+    expect(Number(shownOrder.countDocumentVarianceValue)).toBeCloseTo(2, 2);
     expect(shownOrder.awaitingStockSettlement).toBe(true);
     // الملاحظة تُسمّي سبب المنع: مستند الجرد ما زال مسودة ويلزم تفويض بترحيله.
     expect(String(shownOrder.stockSettlementNote)).toContain('بانتظار تسوية المخزون');

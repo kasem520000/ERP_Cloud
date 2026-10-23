@@ -1670,7 +1670,11 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     expect(noFlagRow.shortage_policy_status).toBe('policy_configured');
     expect(await chargeEntryCount(noFlag.id)).toBe(0);
 
-    // ── الخطوة 7: علمٌ صريح وموظفٌ بلا حساب ⇒ 422 ولا يمرّ الاعتماد ───────────────────
+    // ── الخطوة 7: علمٌ صريح وموظفٌ بلا حساب ⇒ يُنشأ حسابُه القياسي تحت «2241» ويُحمَّل عليه ──
+    // ACC-085 / ACC-166 (R32→R33 policy): the employee's ledger account is the SAME standard
+    // sub-account HRM creates (next «2241nnnn» under the employees root, postable, with level and
+    // path), so the approval is not refused for a missing bookkeeping artefact — it creates it and
+    // the charge lands on it. A rep with no employee card at all is still refused (step 6 above).
     const noAccount = await runClosing({
       salesmanId, // ‏المندوب الأول: بطاقته قائمة وحسابه في الدليل غير موجود
       vanWarehouseId,
@@ -1686,31 +1690,36 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
         settleStockAdjustment: true,
       },
     });
-    expect(noAccount.approve.status, JSON.stringify(noAccount.approve.body).slice(0, 400)).toBe(422);
-    expect(noAccount.approve.body.code).toBe('VAN_SHORTAGE_EMPLOYEE_ACCOUNT_REQUIRED');
-    const refusedRow = await readChargeRow(noAccount.id);
-    expect(refusedRow.status).toBe('pending_closing'); // ‏لم تُكتب نصف حالة
-    expect(refusedRow.entry_id).toBeNull();
-    expect(await chargeEntryCount(noAccount.id)).toBe(0);
-    // والرفض ليس طريقاً مسدوداً: بلا علم التحميل يُعتمد الأمر نفسه ويُسوَّى مخزونه.
-    const recovered = await api(
-      ctx.server,
-      'post',
-      `/api/v1/van-sales/load-orders/${noAccount.id}/approve-closing`,
-      {
-        token: accountant.token,
-        body: {
-          damageInspected: true,
-          salaryDeductionApproved: false,
-          remainingAction: 'carry_over',
-          settleStockAdjustment: true,
-        },
-      },
-    );
-    expect(recovered.status, JSON.stringify(recovered.body).slice(0, 400)).toBe(201);
-    expect((await readChargeRow(noAccount.id)).entry_id).toBeNull();
+    expect(noAccount.approve.status, JSON.stringify(noAccount.approve.body).slice(0, 400)).toBe(201);
+    const createdAccountRow = await readChargeRow(noAccount.id);
+    expect(createdAccountRow.entry_id).toBeTruthy();
+    expect(await chargeEntryCount(noAccount.id)).toBe(1);
+    const autoAccount = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT a.code, a.is_postable, a.level, a.path::text AS path, p.code AS parent_code,
+               (SELECT l.debit::text FROM journal_entry_lines l
+                 WHERE l.entry_id = ${createdAccountRow.entry_id}::uuid AND l.account_id = a.id LIMIT 1) AS charged
+        FROM employees e
+        JOIN accounts a ON a.id = e.employee_account_id
+        JOIN accounts p ON p.id = a.parent_id
+        WHERE e.tenant_id = ${owner.tenantId}::uuid
+          AND e.id = (SELECT employee_id FROM salesmen WHERE id = ${salesmanId}::uuid AND tenant_id = ${owner.tenantId}::uuid)
+      `);
+      return (rows as { rows: Array<Record<string, string | boolean | number>> }).rows[0];
+    });
+    expect(autoAccount, 'the employee now owns a ledger account').toBeDefined();
+    expect(String(autoAccount!.code).startsWith('2241')).toBe(true);
+    expect(autoAccount!.parent_code).toBe('2241');
+    expect(autoAccount!.is_postable).toBe(true);
+    expect(Number(autoAccount!.level)).toBeGreaterThan(0);
+    expect(String(autoAccount!.path)).not.toHaveLength(0);
+    // ‏والقيد مدينٌ على هذا الحساب بقيمة العجز المعتمدة.
+    expect(Number(autoAccount!.charged)).toBeCloseTo(Number(createdAccountRow.amount), 4);
 
-    // ── الخطوة 8: الحساب الدائن غير مربوط على مستوى الفرع ⇒ 422 (بلا قيد) ─────────────
+    // ── الخطوة 8: ملف فرعٍ لنوع «van_shortage_charge» بلا حسابٍ دائن ⇒ الدائن يسقط على حساب
+    // تسوية المخزون من ملف «stock_voucher» (ACC-152, R32→R33): هو الحساب نفسه الذي يُحمَّل عليه
+    // فقدُ مستند الجرد عند ترحيله، فإعادةُ تصنيف الفقد على الموظف تُقيَّد عليه لا على المخزون
+    // (الذي يُخفَّض مرةً واحدة بمستند الجرد). لا رفضٌ لغياب مفتاحٍ له بديلٌ مُعرَّف.
     const incompleteProfileId = newId();
     const salesAccountId = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
       const rows = await tx.execute(sql`
@@ -1720,7 +1729,7 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
       return (rows as { rows: Array<{ id: string }> }).rows[0]?.id ?? '';
     });
     await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
-      // ملف فرعٍ لهذا النوع وحده، بمفتاحٍ واحد: يتقدّم على العام `*` فيحجب الحساب الدائن.
+      // ملف فرعٍ لهذا النوع وحده، بمفتاحٍ واحد لا علاقة له بالعجز: يتقدّم على العام `*`.
       await tx.execute(sql`
         INSERT INTO branch_posting_profiles (id, tenant_id, branch_id, doc_type, mapping)
         VALUES (${incompleteProfileId}::uuid, ${owner.tenantId}::uuid, ${branchId}::uuid,
@@ -1728,6 +1737,14 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
                 ${JSON.stringify({ version: 1, salesAccountId })}::jsonb)
       `);
     });
+    const dedicatedAccountId = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT id::text FROM accounts
+        WHERE tenant_id = ${owner.tenantId}::uuid AND code = '3121004' LIMIT 1
+      `);
+      return (rows as { rows: Array<{ id: string }> }).rows[0]?.id ?? '';
+    });
+    expect(dedicatedAccountId, 'the seeded inventory-adjustment account must exist').toBeTruthy();
 
     const unmapped = await runClosing({
       salesmanId: chargeSalesmanId,
@@ -1744,44 +1761,10 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
         settleStockAdjustment: true,
       },
     });
-    expect(unmapped.approve.status, JSON.stringify(unmapped.approve.body).slice(0, 400)).toBe(422);
-    expect(unmapped.approve.body.code).toBe('VAN_SHORTAGE_ACCOUNTS_INCOMPLETE');
-    expect((await readChargeRow(unmapped.id)).status).toBe('pending_closing');
-    expect(await chargeEntryCount(unmapped.id)).toBe(0);
+    expect(unmapped.approve.status, JSON.stringify(unmapped.approve.body).slice(0, 400)).toBe(201);
+    expect(await chargeEntryCount(unmapped.id)).toBe(1);
 
-    // ── الخطوة 9: إكمال الربط بالمفتاح المخصّص ⇒ الاعتماد يمرّ ويُرحَّل قيدٌ واحد ──────
-    const dedicatedAccountId = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
-      const rows = await tx.execute(sql`
-        SELECT id::text FROM accounts
-        WHERE tenant_id = ${owner.tenantId}::uuid AND code = '3121004' LIMIT 1
-      `);
-      return (rows as { rows: Array<{ id: string }> }).rows[0]?.id ?? '';
-    });
-    expect(dedicatedAccountId, 'the seeded inventory-adjustment account must exist').toBeTruthy();
-    await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
-      await tx.execute(sql`
-        UPDATE branch_posting_profiles
-        SET mapping = mapping || ${JSON.stringify({ shortageChargeAccountId: dedicatedAccountId })}::jsonb
-        WHERE id = ${incompleteProfileId}::uuid
-      `);
-    });
-
-    const charged = await api(
-      ctx.server,
-      'post',
-      `/api/v1/van-sales/load-orders/${unmapped.id}/approve-closing`,
-      {
-        token: accountant.token,
-        body: {
-          damageInspected: true,
-          salaryDeductionApproved: true,
-          remainingAction: 'carry_over',
-          settleStockAdjustment: true,
-        },
-      },
-    );
-    expect(charged.status, JSON.stringify(charged.body).slice(0, 500)).toBe(201);
-
+    // ── الخطوة 9: قيدٌ واحد متوازن — مدينٌ حسابُ الموظف، دائنٌ حسابُ تسوية المخزون ─────────
     const chargedRow = await readChargeRow(unmapped.id);
     expect(chargedRow.salary_deduction_approved).toBe(true);
     expect(chargedRow.shortage_qty).toBe('2.0000');

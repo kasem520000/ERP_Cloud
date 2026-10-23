@@ -2701,6 +2701,32 @@ export class VanSalesService {
     let linkedManufacturingOrderId: string | null = null;
     let resolvedUnitCostFromOrder: Decimal | null = null;
 
+    /**
+     * 🏷️ ACC-178 (R33): رقمُ الدفعة يُحسم **قبل** الأمر الرسمي ويُمرَّر إليه رقمَ لوت الناتج.
+     *
+     * كان الرقم يُخصَّص بعد الأمر (داخل معاملة الدفعة) بينما يستلم الأمرُ الرسمي الناتجَ في لوتٍ
+     * يرقّمه بنفسه حين لا يُرسل المستخدم `batchNo` — فتحمل `factory_production_batches.batch_no`
+     * رقماً (`PROD-<اليوم>-0001`) غير رقم `item_lots.lot_no` للكمية نفسها، وكلُّ صرفٍ لاحق بالرقم
+     * (تحميل/بيع المندوب، ‎`mode: 'issue'`) يُرفض بـ`LOT_NOT_FOUND` مع أنّ الكمية موجودة. رقمٌ واحد
+     * لكميةٍ واحدة: ما تطبعه بطاقة الدفعة هو ما يقرؤه تقرير الصلاحية والجرد والصرف.
+     */
+    const explicitBatchNo = String(body.batchNo ?? '').trim();
+    const { branchId: resolvedBatchBranchId, allocatedBatchNo } = await withTenantTx(
+      this.database.db,
+      tenantId,
+      async (tx) => {
+        const branchId = await this.resolveDefaultBranchIdInTx(tx, tenantId, body.branchId ?? null, warehouseId);
+        if (explicitBatchNo) return { branchId, allocatedBatchNo: explicitBatchNo };
+        const datePart = productionDate.replace(/-/g, '');
+        const seq = await this.sequences.next(
+          { tenantId, branchId: branchId ?? undefined, docType: 'factory_production_batch' },
+          tx,
+          { prefix: `PROD-${datePart}-`, padding: 4 },
+        );
+        return { branchId, allocatedBatchNo: seq.display };
+      },
+    );
+
     // Official manufacturing/production order integration (executed before opening inner tx)
     if (bomId && warehouseId) {
       const mfgOrder = await this.wmsBom.createOrder(tenantId, {
@@ -2713,7 +2739,7 @@ export class VanSalesService {
           qty: producedQty.toFixed(4),
           // 🏷️ دفعة المخبز هي دفعة الناتج (اللوت): صنفٌ يُتتبَّع بالدفعات لا يستلمه المخزون
           // بلا `lot_id`، والأمر الرسمي هو من يسجّل الحركة هنا.
-          outputLot: { lotNo: String(body.batchNo ?? '').trim() || null, productionDate },
+          outputLot: { lotNo: allocatedBatchNo, productionDate },
         });
         if (producedOrder) {
           linkedManufacturingOrderId = producedOrder.id;
@@ -2731,7 +2757,7 @@ export class VanSalesService {
         notes: body.notes,
       });
       const completedOrder = await this.productionOrders.complete(tenantId, prodOrder.id, {
-        outputLot: { lotNo: String(body.batchNo ?? '').trim() || null, productionDate },
+        outputLot: { lotNo: allocatedBatchNo, productionDate },
       });
       linkedProductionOrderId = completedOrder.id;
       if (completedOrder.unitCost) {
@@ -2775,21 +2801,9 @@ export class VanSalesService {
       const unitCost = resolvedUnitCost;
       const totalCost = producedQty.mul(unitCost);
 
-      const datePart = productionDate.replace(/-/g, '');
-      const branchId = await this.resolveDefaultBranchIdInTx(tx, tenantId, body.branchId ?? null, warehouseId);
-      const allocatedBatchNo =
-        String(body.batchNo ?? '').trim() ||
-        (
-          await this.sequences.next(
-            {
-              tenantId,
-              branchId: branchId ?? undefined,
-              docType: 'factory_production_batch',
-            },
-            tx,
-            { prefix: `PROD-${datePart}-`, padding: 4 },
-          )
-        ).display;
+      // ACC-178: the number was allocated before the official order (see above) — the same one
+      // the produced lot carries.
+      const branchId = resolvedBatchBranchId;
 
       const itemName = itemRow?.name_ar ? str(itemRow.name_ar) : String(body.itemName ?? '').trim();
       const batchId = newId();
@@ -5912,88 +5926,17 @@ export class VanSalesService {
       }
 
       /**
-       * ACC-168 (R32): the shortage leaves the van stock here, so the ledger must lose the same
-       * value at the same moment — Dr تسوية/فقد المخزون / Cr المخزون at COST — whether or not the
-       * accountant also charges the rep. Without this entry the inventory account kept kilograms
-       * that `stock_balances` no longer had (GL − stock = 6.00 on seed 9). The charge-to-employee
-       * entry below then only RECLASSIFIES the loss (Dr employee / Cr loss), never the inventory.
+       * ACC-168 (R33, root cause): the custody shortage is NOT written off here. Whenever the count
+       * differs from the official van balance the approval opens the official count document
+       * (`createAdjustment`, draft) and the custody goes `pending_stock_settlement`; posting that
+       * document at «استكمال تسوية المخزون» is the ONE stock movement for the shortage, and the
+       * inventory engine writes its journal (Dr تسوية المخزون / Cr المخزون) in the same transaction.
+       * The former `van_shortage_writeoff` movement at approval (a) left `stock_balances` below the
+       * ledger when no charge was approved (R32: GL − stock = 6.00) and (b) pre-empted the count
+       * document, which then measured the already-reduced balance and booked a phantom surplus
+       * (ADJ-000002 on seed 9). The charge-to-employee entry below only RECLASSIFIES the loss
+       * (Dr employee / Cr loss account) and never touches inventory.
        */
-      let shortageWriteoffValue = new Decimal(0);
-      if (!isResume && shortageQty.gt(0) && vanWarehouseId && itemId) {
-        const shortMoves = await this.inventory.recordInTx(
-          tx,
-          tenantId,
-          [
-            {
-              itemId,
-              warehouseId: vanWarehouseId,
-              qty: shortageQty.toFixed(4),
-              unitCost: batchUnitCost.toFixed(4),
-              direction: 'out',
-              docType: 'van_shortage_writeoff',
-              docId: loadOrderId,
-              lineId: newId(),
-              lotId: countLotId ?? undefined,
-            },
-          ],
-          { allowNegative: true },
-        );
-        const shortTxId = shortMoves.transactionIds[0] ?? null;
-        const shortTxRow = shortTxId
-          ? first(
-              await tx.execute(sql`
-                SELECT total_cost::text FROM inventory_transactions
-                WHERE id = ${shortTxId}::uuid AND tenant_id = ${tenantId}::uuid
-                LIMIT 1
-              `),
-            )
-          : undefined;
-        shortageWriteoffValue = shortTxRow ? dec(shortTxRow.total_cost) : shortageQty.mul(batchUnitCost);
-        const shortBranchId = await this.resolveDefaultBranchIdInTx(
-          tx,
-          tenantId,
-          loadOrder.branch_id ? str(loadOrder.branch_id) : null,
-          warehouseId,
-        );
-        const shortStockProfile = shortBranchId
-          ? await this.resolvePostingProfileOrNullInTx(tx, tenantId, shortBranchId, 'stock_voucher')
-          : null;
-        const shortInventoryAccountId = shortStockProfile?.inventoryAccountId ?? null;
-        const shortLossAccountId = shortStockProfile?.inventoryAdjustmentAccountId ?? null;
-        if (!shortBranchId || !shortInventoryAccountId || !shortLossAccountId) {
-          throw new DomainError(
-            'VAN_SHORTAGE_ACCOUNTS_INCOMPLETE',
-            'لا يمكن إخراج عجز العهدة من المخزون بلا قيد: اربط حسابَي «المخزون» و«تسوية المخزون» في ملف ترحيل سندات المخزون للفرع أولاً',
-            422,
-            { field: 'inventoryAdjustmentAccountId' },
-          );
-        }
-        if (shortageWriteoffValue.gt(0)) {
-          const today = new Date().toISOString().slice(0, 10);
-          const fiscalPeriodId = await this.accounting.openPeriodForDateInTx(tx, tenantId, today);
-          await this.accounting.postJournalInTx(tx, tenantId, {
-            branchId: shortBranchId,
-            fiscalPeriodId,
-            date: today,
-            description: `إثبات عجز عهدة عند اعتماد الإقفال — ${str(loadOrder.number)}`,
-            lines: [
-              {
-                accountId: shortLossAccountId,
-                debit: shortageWriteoffValue.toFixed(4),
-                description: `عجز عهدة ${shortageQty.toFixed(2)} بالتكلفة — بانتظار قرار التحميل على المندوب`,
-              },
-              {
-                accountId: shortInventoryAccountId,
-                credit: shortageWriteoffValue.toFixed(4),
-                description: 'إخراج عجز العهدة من مخزون سيارة المندوب',
-              },
-            ],
-            sourceType: 'van_shortage_writeoff',
-            sourceId: loadOrderId,
-            idempotencyKey: `van-shortage-writeoff:${loadOrderId}`,
-          });
-        }
-      }
 
       /**
        * 🧾 عجز العهدة المحمَّل على المندوب — الشريحة 4.

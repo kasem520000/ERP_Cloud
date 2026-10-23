@@ -511,7 +511,9 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
       expect(lines[1]!.metadata.bonusReason).toBe('بونص ترويجي متفق عليه مع العميل');
     });
 
-    // 8. Stage 1: Rep submits end-of-day shift closing with 25 kg damaged -> 5 kg shortage (32.50 SAR)
+    // 8. Stage 1: Rep submits end-of-day shift closing with 25 kg damaged -> 5 kg shortage valued AT COST
+    //    (5 × 3.80 = 19.00 SAR — owner decision ACC-084: the custody shortage is valued at the batch unit
+    //    cost unless the tenant policy says `selling_price`; 6.50 is the sale price, not the loss).
     const submitClosingRes = await api(
       ctx.server,
       'post',
@@ -539,7 +541,7 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
     ).loadOrders.find((l) => l.id === loadOrderId)!;
     expect(pendingOrder.status).toBe('pending_closing');
     expect(Number(pendingOrder.shortageQty)).toBe(5);
-    expect(Number(pendingOrder.shortageValue)).toBe(32.5);
+    expect(Number(pendingOrder.shortageValue)).toBe(19);
 
     // 9. Phase 4 RBAC & Segregation of Duties: Rep cannot call approve-closing (403 Forbidden)
     const repApproveDenied = await api(
@@ -574,6 +576,13 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
     expect(uninspectedDenied.status).toBe(422);
 
     // 11. Stage 2: Accountant inspects damaged goods, approves salary deduction & zeroes out custody
+    //     ACC-084: charging the rep needs an explicit tenant valuation policy first (otherwise 422
+    //     VAN_SHORTAGE_POLICY_UNCONFIGURED) — the accountant sets «at cost» through the official endpoint.
+    const policyRes = await api(ctx.server, 'put', '/api/v1/van-sales/policy', {
+      token: accountantActor.token,
+      body: { shortageValuationBasis: 'unit_cost' },
+    });
+    expect(policyRes.status, JSON.stringify(policyRes.body)).toBe(200);
     const approveClosingRes = await api(
       ctx.server,
       'post',
