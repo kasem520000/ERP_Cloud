@@ -197,7 +197,9 @@ type VanPeriodTotals = {
 const RETURN_ROW_SQL = sql`d.document_kind = 'return'`;
 const SALE_ROW_SQL = sql`d.document_kind IS DISTINCT FROM 'return'`;
 /** قيمةُ الإشعار الدائن الكاملة — ما يُخصم من ذمّة العميل (= رجل Cr «عميل عام»). */
-const RETURN_CREDIT_SQL = sql`(COALESCE(d.total, 0) + COALESCE(d.tax_total, 0))`;
+// ACC-153/154 (R32): since the return document stores `total` GROSS (subtotal + tax_total), the
+// credit note value is `total` itself; adding `tax_total` again counted the VAT twice (4.54 ≠ 5.29).
+const RETURN_CREDIT_SQL = sql`COALESCE(d.total, 0)`;
 /** تكلفةُ المرتجع من فاتورته الرسمية — انظر التحذيرَ أعلاه عن `unit_cost` المفبركة. */
 const RETURN_OFFICIAL_COST_SQL = sql`COALESCE((
   SELECT SUM(li.cost_total)
@@ -214,7 +216,7 @@ const VAN_MONEY_SQL = {
   /** إجماليُّ المبيعات (شاملُ الضريبة كما في `total`) — صفوفُ البيع وحدها. */
   salesGross: sql`COALESCE(SUM(d.total) FILTER (WHERE ${SALE_ROW_SQL}), 0)::text`,
   /** «مردودات المبيعات» — قيمةُ المرتجعات بلا ضريبة (= رجل Dr في القيد). */
-  returnsNet: sql`COALESCE(SUM(d.total) FILTER (WHERE ${RETURN_ROW_SQL}), 0)::text`,
+  returnsNet: sql`COALESCE(SUM(COALESCE(d.subtotal, d.total)) FILTER (WHERE ${RETURN_ROW_SQL}), 0)::text`,
   /** ضريبةُ المرتجعات المعكوسة (= رجل Dr «ضريبة القيمة المضافة»). */
   returnsVat: sql`COALESCE(SUM(d.tax_total) FILTER (WHERE ${RETURN_ROW_SQL}), 0)::text`,
   /** الإيرادُ الصافي شاملَ الضريبة = ‏`salesGross − returnsNet − returnsVat`. */
@@ -1170,11 +1172,12 @@ export class VanSalesService {
                       WHEN COALESCE(l.received_qty, 0) > 0 THEN l.received_qty
                       ELSE COALESCE(l.loaded_qty, 0)
                     END)
+                   + COALESCE(l.customer_returned_qty, 0)
                    - COALESCE(l.sold_qty, 0) - COALESCE(l.bonus_qty, 0)
                    - COALESCE(l.returned_qty, 0) - COALESCE(l.damaged_qty, 0)
                    - COALESCE(l.shortage_qty, 0)
                  )
-               ) FILTER (WHERE l.status NOT IN ('settled', 'pending_receipt')), 0)::text
+               ) FILTER (WHERE l.status NOT IN ('settled', 'pending_receipt', 'rejected', 'cancelled', 'draft')), 0)::text
                  AS custody_remaining_kg,
                COUNT(*) FILTER (WHERE l.status = 'pending_closing')::int AS pending_closings
         FROM van_load_orders l
@@ -1412,7 +1415,7 @@ export class VanSalesService {
                  l.shortage_charge_amount::text,
                  l.return_inventory_tx_id::text,
                  l.sold_qty::text, l.bonus_qty::text,
-                 l.returned_qty::text, l.damaged_qty::text,
+                 l.returned_qty::text, l.customer_returned_qty::text, l.damaged_qty::text,
                  l.shortage_qty::text, l.shortage_value::text, l.unit_cost::text,
                  (SELECT sal.variance_value::text FROM stock_adjustment_lines sal
                    WHERE sal.adjustment_id = l.stock_adjustment_id
@@ -1858,7 +1861,9 @@ export class VanSalesService {
            * custody is zero even though the warehouse already sent the goods, because they
            * are officially still in transit.
            */
-          const custodyBasis = dec(row.received_qty).gt(0) ? dec(row.received_qty) : loaded;
+          const custodyBasis = (dec(row.received_qty).gt(0) ? dec(row.received_qty) : loaded).plus(
+            Decimal.max(0, dec(row.customer_returned_qty)),
+          );
           const sold = dec(row.sold_qty);
           const bonus = dec(row.bonus_qty);
           const returned = dec(row.returned_qty);
@@ -2176,7 +2181,7 @@ export class VanSalesService {
                  l.production_batch_no, l.warehouse_id::text, l.van_warehouse_id::text,
                  l.stock_transfer_id::text, l.return_transfer_id::text,
                  l.loaded_qty::text, l.received_qty::text, l.sold_qty::text, l.bonus_qty::text,
-                 l.returned_qty::text, l.damaged_qty::text, l.shortage_qty::text,
+                 l.returned_qty::text, l.customer_returned_qty::text, l.damaged_qty::text, l.shortage_qty::text,
                  l.shortage_value::text, l.shortage_policy_status, l.status,
                  (CASE
                     WHEN l.status = 'settled' THEN 0
@@ -2186,6 +2191,7 @@ export class VanSalesService {
                          WHEN COALESCE(l.received_qty, 0) > 0 THEN l.received_qty
                          ELSE COALESCE(l.loaded_qty, 0)
                        END)
+                      + COALESCE(l.customer_returned_qty, 0)
                       - COALESCE(l.sold_qty, 0) - COALESCE(l.bonus_qty, 0)
                       - COALESCE(l.returned_qty, 0) - COALESCE(l.damaged_qty, 0)
                       - COALESCE(l.shortage_qty, 0))
@@ -5295,11 +5301,21 @@ export class VanSalesService {
         );
       }
 
-      const netSold = Decimal.max(0, sold.minus(returnedQty));
-      const accountedQty = netSold.plus(bonus).plus(damagedQty);
+      /**
+       * ACC-167 (R32): the custody equation. `customer_returned_qty` is stock customers handed back
+       * onto the van (it is physically there again); `returnedQty` is what the rep hands back to the
+       * warehouse now. Neither one reduces `sold` — the sale stays a sale, the return is its own
+       * document — so the guard and the shortage are computed on the real physical balance:
+       *   book custody  = loaded − sold − bonus + customerReturned
+       *   expected left = book custody − returnedQty − damagedQty
+       *   shortage      = expected left − physical count (never negative)
+       */
+      const customerReturned = Decimal.max(0, dec(loadOrder.customer_returned_qty));
+      const custodyCeiling = loaded.plus(customerReturned);
+      const accountedQty = sold.plus(bonus).plus(returnedQty).plus(damagedQty);
       /** المتوقع مقابل الفعلي — what the documents say must still be in the van. يُحسب قبل فحص
        * التجاوز لأنّ عددَ المركبة يحتاجه ليشتقّ منه نصيبَ هذا الأمر. */
-      const expectedRemaining = loaded.minus(accountedQty);
+      const expectedRemaining = custodyCeiling.minus(accountedQty);
 
       /**
        * 🚐 عددُ المركبة كلها — إن أُعلن، فنصيبُ هذا الأمر مشتقٌّ منه لا مُعلنٌ بجانبه
@@ -5323,10 +5339,10 @@ export class VanSalesService {
         actualRemainingQty = resolvedCount.orderCount;
       }
 
-      if (accountedQty.plus(actualRemainingQty).gt(loaded)) {
+      if (accountedQty.plus(actualRemainingQty).gt(custodyCeiling)) {
         throw new DomainError(
           errorCodes.VALIDATION_FAILED,
-          `مجموع الكميات (المباع ${sold.toFixed(2)} + البونص ${bonus.toFixed(2)} + المرتجع السليم ${returnedQty.toFixed(2)} + التالف ${damagedQty.toFixed(2)} + المتبقي الفعلي ${actualRemainingQty.toFixed(2)} = ${accountedQty.plus(actualRemainingQty).toFixed(2)} كجم) يتجاوز العهدة المستلمة أصلاً (${loaded.toFixed(2)} كجم). إن كانت الكمية الزائدة موجودة فعلاً في السيارة فأبلغ المحاسب: تسجيل الفائض يتم عند الاعتماد بإقرار صريح، لا من حساب المندوب.`,
+          `مجموع الكميات (المباع ${sold.toFixed(2)} + البونص ${bonus.toFixed(2)} + المرتجع السليم ${returnedQty.toFixed(2)} + التالف ${damagedQty.toFixed(2)} + المتبقي الفعلي ${actualRemainingQty.toFixed(2)} = ${accountedQty.plus(actualRemainingQty).toFixed(2)} كجم) يتجاوز العهدة المستلمة أصلاً (${loaded.toFixed(2)} + مرتجع العملاء ${customerReturned.toFixed(2)} = ${custodyCeiling.toFixed(2)} كجم). إن كانت الكمية الزائدة موجودة فعلاً في السيارة فأبلغ المحاسب: تسجيل الفائض يتم عند الاعتماد بإقرار صريح، لا من حساب المندوب.`,
           422,
           { field: 'actualRemainingQty' },
         );
@@ -5525,10 +5541,20 @@ export class VanSalesService {
         );
       }
 
-      const netSold = Decimal.max(0, sold.minus(returnedQty));
-      const accountedQty = netSold.plus(bonus).plus(damagedQty);
+      /**
+       * ACC-167 (R32): the custody equation. `customer_returned_qty` is stock customers handed back
+       * onto the van (it is physically there again); `returnedQty` is what the rep hands back to the
+       * warehouse now. Neither one reduces `sold` — the sale stays a sale, the return is its own
+       * document — so the guard and the shortage are computed on the real physical balance:
+       *   book custody  = loaded − sold − bonus + customerReturned
+       *   expected left = book custody − returnedQty − damagedQty
+       *   shortage      = expected left − physical count (never negative)
+       */
+      const customerReturned = Decimal.max(0, dec(loadOrder.customer_returned_qty));
+      const custodyCeiling = loaded.plus(customerReturned);
+      const accountedQty = sold.plus(bonus).plus(returnedQty).plus(damagedQty);
       /** المتوقع مقابل الفعلي — the same arithmetic the rep saw when he submitted. */
-      const expectedRemaining = loaded.minus(accountedQty);
+      const expectedRemaining = custodyCeiling.minus(accountedQty);
 
       /**
        * 🚐 عددُ المركبة كلها عند الاعتماد — يُشتقّ **من جديد** من الرصيد الرسمي الحيّ ومن
@@ -5573,17 +5599,15 @@ export class VanSalesService {
        * document and is valued by the inventory engine on the tenant's own accounts.
        */
       const countedTotal = accountedQty.plus(actualRemainingQty);
-      if (countedTotal.gt(loaded)) {
+      if (countedTotal.gt(custodyCeiling)) {
         if (body.surplusAcknowledged !== true) {
           throw new DomainError(
             'VAN_CLOSING_SURPLUS_ACK_REQUIRED',
-            `الجرد الفعلي (${actualRemainingQty.toFixed(2)} كجم) أكبر من المتبقي حسب المستندات (${loaded
-              .minus(accountedQty)
-              .toFixed(2)} كجم) بفائض ${countedTotal.minus(loaded).toFixed(2)} كجم — أكد الإقرار بالفائض (surplusAcknowledged) ليُسجَّل في مستند الجرد الرسمي`,
+            `الجرد الفعلي (${actualRemainingQty.toFixed(2)} كجم) أكبر من المتبقي حسب المستندات (${expectedRemaining.toFixed(2)} كجم) بفائض ${countedTotal.minus(custodyCeiling).toFixed(2)} كجم — أكد الإقرار بالفائض (surplusAcknowledged) ليُسجَّل في مستند الجرد الرسمي`,
             422,
             {
               field: 'surplusAcknowledged',
-              surplusQty: countedTotal.minus(loaded).toFixed(4),
+              surplusQty: countedTotal.minus(custodyCeiling).toFixed(4),
             },
           );
         }
@@ -5827,8 +5851,16 @@ export class VanSalesService {
         }
       }
 
+      /**
+       * ACC-168 (R32): the shortage leaves the van stock here, so the ledger must lose the same
+       * value at the same moment — Dr تسوية/فقد المخزون / Cr المخزون at COST — whether or not the
+       * accountant also charges the rep. Without this entry the inventory account kept kilograms
+       * that `stock_balances` no longer had (GL − stock = 6.00 on seed 9). The charge-to-employee
+       * entry below then only RECLASSIFIES the loss (Dr employee / Cr loss), never the inventory.
+       */
+      let shortageWriteoffValue = new Decimal(0);
       if (!isResume && shortageQty.gt(0) && vanWarehouseId && itemId) {
-        await this.inventory.recordInTx(
+        const shortMoves = await this.inventory.recordInTx(
           tx,
           tenantId,
           [
@@ -5846,6 +5878,61 @@ export class VanSalesService {
           ],
           { allowNegative: true },
         );
+        const shortTxId = shortMoves.transactionIds[0] ?? null;
+        const shortTxRow = shortTxId
+          ? first(
+              await tx.execute(sql`
+                SELECT total_cost::text FROM inventory_transactions
+                WHERE id = ${shortTxId}::uuid AND tenant_id = ${tenantId}::uuid
+                LIMIT 1
+              `),
+            )
+          : undefined;
+        shortageWriteoffValue = shortTxRow ? dec(shortTxRow.total_cost) : shortageQty.mul(batchUnitCost);
+        const shortBranchId = await this.resolveDefaultBranchIdInTx(
+          tx,
+          tenantId,
+          loadOrder.branch_id ? str(loadOrder.branch_id) : null,
+          warehouseId,
+        );
+        const shortStockProfile = shortBranchId
+          ? await this.resolvePostingProfileOrNullInTx(tx, tenantId, shortBranchId, 'stock_voucher')
+          : null;
+        const shortInventoryAccountId = shortStockProfile?.inventoryAccountId ?? null;
+        const shortLossAccountId = shortStockProfile?.inventoryAdjustmentAccountId ?? null;
+        if (!shortBranchId || !shortInventoryAccountId || !shortLossAccountId) {
+          throw new DomainError(
+            'VAN_SHORTAGE_ACCOUNTS_INCOMPLETE',
+            'لا يمكن إخراج عجز العهدة من المخزون بلا قيد: اربط حسابَي «المخزون» و«تسوية المخزون» في ملف ترحيل سندات المخزون للفرع أولاً',
+            422,
+            { field: 'inventoryAdjustmentAccountId' },
+          );
+        }
+        if (shortageWriteoffValue.gt(0)) {
+          const today = new Date().toISOString().slice(0, 10);
+          const fiscalPeriodId = await this.accounting.openPeriodForDateInTx(tx, tenantId, today);
+          await this.accounting.postJournalInTx(tx, tenantId, {
+            branchId: shortBranchId,
+            fiscalPeriodId,
+            date: today,
+            description: `إثبات عجز عهدة عند اعتماد الإقفال — ${str(loadOrder.number)}`,
+            lines: [
+              {
+                accountId: shortLossAccountId,
+                debit: shortageWriteoffValue.toFixed(4),
+                description: `عجز عهدة ${shortageQty.toFixed(2)} بالتكلفة — بانتظار قرار التحميل على المندوب`,
+              },
+              {
+                accountId: shortInventoryAccountId,
+                credit: shortageWriteoffValue.toFixed(4),
+                description: 'إخراج عجز العهدة من مخزون سيارة المندوب',
+              },
+            ],
+            sourceType: 'van_shortage_writeoff',
+            sourceId: loadOrderId,
+            idempotencyKey: `van-shortage-writeoff:${loadOrderId}`,
+          });
+        }
       }
 
       /**
@@ -5915,7 +6002,7 @@ export class VanSalesService {
           // ACC-085: إنشاء حساب الموظف تلقائياً في دليل الحسابات إن لم يكن موجوداً
           const rootRow = first(
             await tx.execute(sql`
-              SELECT id::text, type, normal_balance
+              SELECT id::text, type, normal_balance, level, path::text AS path
               FROM accounts
               WHERE tenant_id = ${tenantId}::uuid AND code = '2241' AND deleted_at IS NULL
               LIMIT 1
@@ -5935,10 +6022,15 @@ export class VanSalesService {
             }
             const newCode = `2241${String(maxSuffix + 1).padStart(4, '0')}`;
             const newAccountId = newId();
+            // ACC-166 (R32): the chart keeps a materialised `path`/`level` per account (NOT NULL);
+            // the previous INSERT omitted them and the whole approval died with a 500.
+            const rootLevel = Number(rootRow.level ?? 0);
+            const rootPath = str(rootRow.path || rootRow.id);
             await tx.execute(sql`
-              INSERT INTO accounts (id, tenant_id, code, name_ar, type, normal_balance, parent_id, is_postable)
+              INSERT INTO accounts (id, tenant_id, code, name_ar, type, normal_balance, parent_id, is_postable, level, path)
               VALUES (${newAccountId}::uuid, ${tenantId}::uuid, ${newCode}, ${str(chargeEmployee.name)},
-                      ${str(rootRow.type)}, ${str(rootRow.normal_balance || 'credit')}, ${str(rootRow.id)}::uuid, true)
+                      ${str(rootRow.type)}, ${str(rootRow.normal_balance || 'credit')}, ${str(rootRow.id)}::uuid, true,
+                      ${rootLevel + 1}, ${`${rootPath}.${newAccountId}`})
             `);
             await tx.execute(sql`
               UPDATE employees
@@ -5974,11 +6066,14 @@ export class VanSalesService {
               'stock_voucher',
             )
           : null;
+        // ACC-152/168 (R32): the inventory was already relieved by the write-off entry above, so the
+        // charge is a reclassification of the loss onto the employee: Cr the loss/adjustment account
+        // (or a dedicated «عجز محمَّل على الموظفين» account when mapped) — never the inventory account,
+        // which would relieve the stock twice.
         const chargeCreditAccountId =
           chargeProfile?.shortageChargeAccountId ??
-          chargeProfile?.inventoryAccountId ??
-          stockProfileForShortage?.inventoryAccountId ??
           chargeProfile?.inventoryAdjustmentAccountId ??
+          stockProfileForShortage?.inventoryAdjustmentAccountId ??
           null;
         if (!chargeBranchId || !chargeCreditAccountId) {
           throw new DomainError(
@@ -6876,7 +6971,9 @@ export class VanSalesService {
         );
       }
       const received = dec(loadOrder.received_qty);
-      const loaded = received.gt(0) ? received : dec(loadOrder.loaded_qty);
+      const loaded = (received.gt(0) ? received : dec(loadOrder.loaded_qty)).plus(
+        Decimal.max(0, dec(loadOrder.customer_returned_qty)),
+      );
       const accounted = dec(loadOrder.sold_qty)
         .plus(dec(loadOrder.bonus_qty))
         .plus(dec(loadOrder.returned_qty))
@@ -7597,7 +7694,7 @@ export class VanSalesService {
         await tx.execute(sql`
           SELECT l.id::text, l.number, l.load_date::text, l.status,
                  l.loaded_qty::text, l.received_qty::text, l.sold_qty::text, l.bonus_qty::text,
-                 l.returned_qty::text, l.damaged_qty::text, l.shortage_qty::text,
+                 l.returned_qty::text, l.customer_returned_qty::text, l.damaged_qty::text, l.shortage_qty::text,
                  l.shortage_value::text, l.expected_cash::text, l.collected_cash::text,
                  l.actual_remaining_qty::text, l.discrepancy_qty::text, l.discrepancy_notes,
                  l.stock_settlement_status, l.stock_settlement_note, l.remaining_action,
@@ -7697,6 +7794,7 @@ export class VanSalesService {
                         WHEN COALESCE(l.received_qty, 0) > 0 THEN l.received_qty
                         ELSE COALESCE(l.loaded_qty, 0)
                       END)
+                     + COALESCE(l.customer_returned_qty, 0)
                      - COALESCE(l.sold_qty, 0) - COALESCE(l.bonus_qty, 0)
                      - COALESCE(l.returned_qty, 0) - COALESCE(l.damaged_qty, 0)
                      - COALESCE(l.shortage_qty, 0)
@@ -7776,9 +7874,11 @@ export class VanSalesService {
           collectedCash: dec(row.collected_cash).toFixed(4),
           outstandingCash: Decimal.max(0, dec(row.expected_cash).minus(dec(row.collected_cash))).toFixed(4),
           /** المتبقي المتوقع قبل الجرد — ما تقول المستندات إنه يجب أن يبقى في السيارة. */
+          customerReturnedQty: dec(row.customer_returned_qty).toFixed(4),
           expectedRemainingQty: Decimal.max(
             0,
             (dec(row.received_qty).gt(0) ? dec(row.received_qty) : dec(row.loaded_qty))
+              .plus(Decimal.max(0, dec(row.customer_returned_qty)))
               .minus(dec(row.sold_qty))
               .minus(dec(row.bonus_qty))
               .minus(dec(row.returned_qty))
@@ -8172,6 +8272,53 @@ export class VanSalesService {
        * the sales engine restores the stock at the cost it left at and posts the credit
        * note against the same accounts. One mechanism, the official one.
        */
+      /**
+       * ACC-156 (R32): a return against a CASH sale is a cash refund — the money goes back to the
+       * customer from the till the sale was credited to (the same cash location that received it),
+       * so the till sub-ledger, the invoice_payments row and the journal (Cr cash) all move together.
+       * Only a return against a credit sale becomes a credit note on the customer's account.
+       */
+      const isCashSource = str(source.payment_method) === 'cash';
+      let refundLocation: { id: string; account_id: string | null } | undefined;
+      if (isCashSource) {
+        const fromPayment = source.sales_invoice_id
+          ? first(
+              await tx.execute(sql`
+                SELECT cl.id::text, cl.account_id::text
+                FROM invoice_payments ip
+                JOIN cash_locations cl ON cl.id = ip.cash_location_id
+                WHERE ip.tenant_id = ${tenantId}::uuid AND ip.invoice_id = ${str(source.sales_invoice_id)}::uuid
+                  AND ip.cash_location_id IS NOT NULL
+                LIMIT 1
+              `),
+            )
+          : undefined;
+        const fallback =
+          fromPayment ??
+          (branchId
+            ? first(
+                await tx.execute(sql`
+                  SELECT id::text, account_id::text FROM cash_locations
+                  WHERE tenant_id = ${tenantId}::uuid AND branch_id = ${branchId}::uuid
+                    AND kind = 'cash' AND is_active = true AND deleted_at IS NULL
+                  ORDER BY is_default DESC NULLS LAST, created_at ASC
+                  LIMIT 1
+                `),
+              )
+            : undefined);
+        if (fallback?.id && fallback.account_id) {
+          refundLocation = { id: str(fallback.id), account_id: str(fallback.account_id) };
+        }
+      }
+      const returnSettlement =
+        isCashSource && refundLocation
+          ? {
+              settlement: 'cash' as const,
+              settlementAccountId: refundLocation.account_id ?? undefined,
+              settlementCashLocationId: refundLocation.id,
+            }
+          : { settlement: 'credit' as const };
+
       let returnInvoiceId: string | null = null;
       if (branchId && itemId) {
         returnInvoiceId = await this.sales.createInTx(tx, tenantId, {
@@ -8201,7 +8348,7 @@ export class VanSalesService {
           ],
         });
         try {
-          await this.sales.postInTx(tx, tenantId, returnInvoiceId, { settlement: 'credit' });
+          await this.sales.postInTx(tx, tenantId, returnInvoiceId, returnSettlement);
         } catch (error) {
           /**
            * A return whose credit cannot be posted yet (no posting profile mapped for this
@@ -8301,7 +8448,9 @@ export class VanSalesService {
           ${returnTotal.toFixed(4)}::numeric,
           ${str(source.invoice_mode) === 'zatca_tax' ? dec(source.tax_rate).toFixed(2) : '0.00'}::numeric,
           ${returnTax.toFixed(4)}::numeric,
-          ${returnGrossTotal.toFixed(4)}::numeric, 0, ${returnUnitCost.toFixed(4)}::numeric,
+          ${returnGrossTotal.toFixed(4)}::numeric,
+          ${(isCashSource && refundLocation ? returnGrossTotal : new Decimal(0)).toFixed(4)}::numeric,
+          ${returnUnitCost.toFixed(4)}::numeric,
           ${returnInvoiceId}::uuid,
           ${[body.reason?.trim(), body.notes?.trim()].filter(Boolean).join(' — ') || null},
           ${idempotencyKey}, ${userId}::uuid
@@ -8310,11 +8459,15 @@ export class VanSalesService {
 
       /** العهدة — the returned quantity is back in the rep's custody for the shift closing. */
       if (source.load_order_id) {
-        const isCashSale = str(source.payment_method) === 'cash';
-        const cashDeduction = isCashSale ? returnGrossTotal : new Decimal(0);
+        // ACC-153/167 (R32): the goods are physically back on the van, so they are counted in
+        // `customer_returned_qty` (a counter of its own, never in `returned_qty` which is what the
+        // rep hands back to the warehouse at closing). Expected cash drops by the GROSS refund
+        // only when the original sale was cash (a credit-sale return is a credit note, not cash).
+        const cashDeduction = isCashSource && refundLocation ? returnGrossTotal : new Decimal(0);
         await tx.execute(sql`
           UPDATE van_load_orders
           SET expected_cash = GREATEST(0, expected_cash - ${cashDeduction.toFixed(4)}::numeric),
+              customer_returned_qty = COALESCE(customer_returned_qty, 0) + ${returnedQty.toFixed(4)}::numeric,
               updated_at = now()
           WHERE id = ${str(source.load_order_id)}::uuid AND tenant_id = ${tenantId}::uuid
         `);

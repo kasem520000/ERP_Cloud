@@ -2153,6 +2153,26 @@ export class AccountingService {
       }
     }
 
+    // ACC-170 (R32): no journal — manual or system-derived — may land on a header/aggregate account.
+    // Balances on `is_postable = false` nodes never appear in any sub-ledger (the payroll run used
+    // to credit «224 رواتب مستحقة» while the salary payment debited the employee's own leaf).
+    {
+      const lineAccountIds = Array.from(new Set(input.lines.map((line) => line.accountId)));
+      const postableRows = await tx
+        .select({ id: accounts.id, code: accounts.code, isPostable: accounts.isPostable })
+        .from(accounts)
+        .where(and(eq(accounts.tenantId, tenantId), inArray(accounts.id, lineAccountIds)));
+      const blocked = postableRows.filter((row) => row.isPostable === false);
+      if (blocked.length > 0) {
+        throw new DomainError(
+          'ACCOUNT_NOT_POSTABLE',
+          `لا يمكن الترحيل على حساب رئيسي/تجميعي (${blocked.map((row) => row.code).join(', ')}) — اختر حساباً فرعياً قابلاً للترحيل`,
+          422,
+          { field: 'accountId', accounts: blocked.map((row) => row.code) },
+        );
+      }
+    }
+
     const entryId = newId();
     const allocated = await this.sequences.next({ tenantId, branchId: input.branchId, docType: 'journal_entry', fiscalYearId: period.fiscalYearId }, tx, { prefix: 'JE-', padding: 6 });
     /**

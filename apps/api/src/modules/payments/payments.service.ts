@@ -266,6 +266,15 @@ export class PaymentsService {
     const reference = (input.reference ?? '').trim() || `ECR-${newId()}`;
 
     let invoiceId: string | null = null;
+    if (!input.invoiceId && !settings.simulation) {
+      // ACC-165 (R32): a live card charge must belong to a posted sales invoice — money taken
+      // without a document cannot be attributed to any customer or ledger account.
+      throw new DomainError(
+        'PAYMENT_INVOICE_REQUIRED',
+        'لا يمكن تنفيذ عملية شبكة حقيقية بلا فاتورة مبيعات مرحَّلة — أنشئ الفاتورة أولاً.',
+        422,
+      );
+    }
     if (input.invoiceId) {
       invoiceId = String(input.invoiceId);
       const invoice = await this.sales.get(tenantId, invoiceId);
@@ -470,56 +479,59 @@ export class PaymentsService {
       const amountStr = money(row.amount).toFixed(2);
       const idempotencyKey = `card-gw:${row.provider}:${row.reference}`;
 
-      if (chosenCashLoc && targetBranchId) {
-        await this.receipt(tenantId, {
-          idempotencyKey,
-          branchId: targetBranchId,
-          partyId,
-          cashLocationId: chosenCashLoc.id,
-          amount: amountStr,
-          currency: row.currency || invoiceCurrency,
-          invoiceId: row.invoiceId ?? undefined,
-          description: row.invoiceId
-            ? `سند قبض دفع إلكتروني (${PROVIDER_LABELS[row.provider as GatewayProvider] ?? row.provider}) فاتورة ${invoiceNumber}`
-            : `سند قبض دفع إلكتروني (${PROVIDER_LABELS[row.provider as GatewayProvider] ?? row.provider}) غير مخصص — مرجع ${row.reference}`,
-          reference: result.approvalCode ?? result.sessionId ?? row.reference,
-        });
+      // ACC-165 (R32): a card sale that names no invoice has no customer to credit. It must
+      // never land on the receivables control account as an anonymous credit, so it is left
+      // unsettled (visible in the gateway log as «لم تُقيَّد») until an invoice is attached.
+      if (!row.invoiceId) {
+        throw new DomainError(
+          'PAYMENT_INVOICE_REQUIRED',
+          'عملية شبكة بلا فاتورة — لا تُقيَّد في الدفاتر حتى تُربط بفاتورة مبيعات مرحَّلة.',
+          422,
+        );
+      }
+      if (!chosenCashLoc || !targetBranchId) {
+        throw new DomainError('CASH_LOCATION_REQUIRED', 'لا يوجد موقع نقد (بنك/شبكة) لاستقبال مبلغ الشبكة.', 422);
       }
 
-      if (row.invoiceId) {
-        const [inv] = await withTenantTx(this.database.db, tenantId, (tx) =>
-          tx
-            .select({ paidTotal: salesInvoices.paidTotal, total: salesInvoices.total })
-            .from(salesInvoices)
-            .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, row.invoiceId!))),
+      // ACC-164 (R32): the receipt voucher below is THE posting of this card payment. Its
+      // allocation already raises `sales_invoices.paid_total`, writes the party-stamped
+      // journal (Dr bank / Cr receivable) and the payment_allocations row. The old code then
+      // called `sales.addPayment` for the «remaining» balance, which posted a second journal
+      // for every partial card payment. Only the invoice_payments journal row is written here.
+      const voucher = await this.receipt(tenantId, {
+        idempotencyKey,
+        branchId: targetBranchId,
+        partyId,
+        cashLocationId: chosenCashLoc.id,
+        amount: amountStr,
+        currency: row.currency || invoiceCurrency,
+        invoiceId: row.invoiceId,
+        description: `سند قبض دفع إلكتروني (${PROVIDER_LABELS[row.provider as GatewayProvider] ?? row.provider}) فاتورة ${invoiceNumber}`,
+        reference: result.approvalCode ?? result.sessionId ?? row.reference,
+      });
+      if (voucher.status !== 'posted') {
+        throw new DomainError(
+          'PAYMENT_SETTLEMENT_VOUCHER_NOT_POSTED',
+          `سند القبض ${voucher.number ?? voucher.id} لم يُرحَّل — لم تُقيَّد عملية الشبكة.`,
+          409,
         );
-        const remaining = inv ? money(inv.total).minus(inv.paidTotal) : money(0);
-        if (remaining.gt(0)) {
-          await this.sales.addPayment(tenantId, row.invoiceId, {
+      }
+
+      await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .insert(invoicePayments)
+          .values({
+            id: newId(),
+            tenantId,
+            invoiceId: row.invoiceId!,
             method: 'card',
             amount: amountStr,
-            idempotencyKey: row.reference,
+            cashLocationId: chosenCashLoc.id,
             reference: result.approvalCode ?? result.sessionId ?? row.reference,
-            cashLocationId: chosenCashLoc?.id,
-          });
-        } else {
-          await withTenantTx(this.database.db, tenantId, (tx) =>
-            tx
-              .insert(invoicePayments)
-              .values({
-                id: newId(),
-                tenantId,
-                invoiceId: row.invoiceId!,
-                method: 'card',
-                amount: amountStr,
-                cashLocationId: chosenCashLoc?.id ?? null,
-                reference: result.approvalCode ?? result.sessionId ?? row.reference,
-                idempotencyKey: row.reference,
-              })
-              .onConflictDoNothing(),
-          );
-        }
-      }
+            idempotencyKey: row.reference,
+          })
+          .onConflictDoNothing(),
+      );
 
       const [updated] = await withTenantTx(this.database.db, tenantId, (tx) =>
         tx
@@ -590,8 +602,10 @@ export class PaymentsService {
             : [],
         });
       } catch (error) {
+        // ACC-164: a receipt that cannot be posted is a settlement failure, not a silent draft
+        // that a second posting path would then paper over.
         this.logger.warn(`receipt ${voucher.id} stayed draft: ${(error as Error).message}`);
-        return voucher;
+        throw error;
       }
     }
     return voucher;

@@ -1781,26 +1781,22 @@ export class InventoryService {
             costing: 'returnAtOriginalCost',
           });
         } else if (input.mode === 'shortage') {
-          // UI-026: قيد سطر حركة مخزنية للعجز لتمكين تتبع الفاقد من تقرير حركة الصنف ومستندات المخزون
-          await tx.insert(inventoryTransactions).values({
-            id: newId(),
-            tenantId,
+          // UI-026 + ACC-169 (R32): the shortage is a real stock movement out of the receiving
+          // warehouse. It goes through `recordInTx` like every other movement so `stock_balances`
+          // and the valuation move together with the transaction row (a bare INSERT left a ghost
+          // kilogram in the van balance while the ledger had already been relieved).
+          movements.push({
             itemId: line.itemId,
             warehouseId: transfer.toWarehouseId,
-            occurredAt: new Date(),
+            qty: outstanding.toFixed(4),
+            unitId: line.unitId ?? undefined,
+            unitCost: line.unitCost ?? '0',
+            direction: 'out',
             docType: 'stock_transfer_shortage',
             docId: transferId,
             lineId: newId(),
-            direction: 'out',
-            qty: outstanding.toFixed(4),
-            baseQty: outstanding.mul(factor).toFixed(4),
-            unitId: line.unitId ?? null,
-            factor: factor.toFixed(6),
-            unitCost: line.unitCost ?? '0',
-            totalCost: outstanding.mul(factor).mul(new Decimal(line.unitCost ?? '0')).toFixed(4),
-            costing: 'shortage',
-            lotId: line.lotId ?? null,
-            metadata: { reason: input.reason ?? 'عجز في المناقلة' },
+            lotId: line.lotId ?? undefined,
+            costing: 'outAtOriginalCost',
           });
         }
         serialIds.push(...(line.serialIds ?? []));

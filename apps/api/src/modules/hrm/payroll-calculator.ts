@@ -20,7 +20,9 @@ export function calculatePayrollLine(input: PayrollEmployeeInput): PayrollLineRe
   const days = new Decimal(input.daysInMonth ?? 30);
   const unpaid = new Decimal(input.unpaidDays ?? 0);
   const unpaidFactor = Decimal.max(new Decimal(0), days.minus(unpaid)).div(days);
-  const adjustedBase = base.mul(unpaidFactor);
+  // J8 (R32): a prorated salary is money that will be handed over, so it is rounded to the
+  // currency's two decimals here, once, rather than carrying 61.9355 into the cash voucher.
+  const adjustedBase = base.mul(unpaidFactor).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
   const additions = (input.adjustments ?? []).filter((entry) => entry.kind === 'addition').reduce((sum, entry) => sum.plus(new Decimal(entry.valueText)), new Decimal(0));
   const deductions = (input.adjustments ?? []).filter((entry) => entry.kind === 'deduction').reduce((sum, entry) => sum.plus(new Decimal(entry.valueText)), new Decimal(0));
   const gross = adjustedBase.plus(additions);

@@ -344,6 +344,27 @@ export class TreasuryService implements OnModuleInit {
    * ولا مسيّر «مدفوع» بلا سند إن فشل الإدراج.
    */
   async createVoucherInTx(tx: DrizzleTx, tenantId: string, input: VoucherInput) {
+    // ACC-171 (R32): the HTTP body used to reach the SQL layer unchecked, so a missing date or an
+    // unknown payment method surfaced as a 500. Every field the insert depends on is validated here.
+    const VOUCHER_KINDS = ['receipt', 'payment'] as const;
+    const VOUCHER_SUBTYPES = ['customer', 'supplier', 'expense', 'account', 'salary', 'vat', 'other'] as const;
+    const VOUCHER_METHODS = ['cash', 'cheque', 'bank_transfer', 'card'] as const;
+    const invalid = (field: string, message: string) =>
+      new DomainError('VOUCHER_INPUT_INVALID', message, 422, { field });
+    if (!input || typeof input !== 'object') throw invalid('body', 'Voucher body is required');
+    if (!isUuid(String(input.branchId ?? ''))) throw invalid('branchId', 'branchId must be a UUID');
+    if (!isUuid(String(input.cashLocationId ?? ''))) throw invalid('cashLocationId', 'cashLocationId must be a UUID');
+    if (!VOUCHER_KINDS.includes(input.kind)) throw invalid('kind', `kind must be one of ${VOUCHER_KINDS.join(', ')}`);
+    if (!VOUCHER_SUBTYPES.includes(input.subtype))
+      throw invalid('subtype', `subtype must be one of ${VOUCHER_SUBTYPES.join(', ')}`);
+    if (!VOUCHER_METHODS.includes(input.method))
+      throw invalid('method', `method must be one of ${VOUCHER_METHODS.join(', ')} (received ${String(input.method)})`);
+    if (typeof input.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(input.date) || Number.isNaN(Date.parse(input.date)))
+      throw invalid('date', 'date must be a calendar day in YYYY-MM-DD form');
+    if (input.partyId !== undefined && input.partyId !== null && !isUuid(String(input.partyId)))
+      throw invalid('partyId', 'partyId must be a UUID');
+    if (input.counterAccountId !== undefined && input.counterAccountId !== null && !isUuid(String(input.counterAccountId)))
+      throw invalid('counterAccountId', 'counterAccountId must be a UUID');
     const amount = money(input.amount);
     if (!amount.isFinite() || amount.lte(0))
       throw new DomainError('VOUCHER_AMOUNT_INVALID', 'Voucher amount must be positive', 422);
@@ -611,6 +632,8 @@ export class TreasuryService implements OnModuleInit {
             and(
               eq(accounts.tenantId, tenantId),
               eq(accounts.type, 'liability'),
+              // ACC-170: only a postable leaf can carry a salary payable balance.
+              eq(accounts.isPostable, true),
               or(
                 sql`${accounts.code} LIKE '224%'`,
                 sql`${accounts.nameAr} LIKE '%رواتب مستحقة%'`,
@@ -618,6 +641,7 @@ export class TreasuryService implements OnModuleInit {
               isNull(accounts.deletedAt),
             ),
           )
+          .orderBy(asc(accounts.code))
           .limit(1);
         counterAccountId = accrued?.id;
       }

@@ -313,6 +313,8 @@ export const vanLoadOrders = pgTable(
       .default('0'),
     bonusQty: numeric('bonus_qty', { precision: 20, scale: 4 }).notNull().default('0'),
     returnedQty: numeric('returned_qty', { precision: 20, scale: 4 }).notNull().default('0'),
+    /** ACC-153/167: goods customers returned onto the van (physically back in custody). */
+    customerReturnedQty: numeric('customer_returned_qty', { precision: 20, scale: 4 }).notNull().default('0'),
     damagedQty: numeric('damaged_qty', { precision: 18, scale: 4 }).notNull().default('0'),
     shortageQty: numeric('shortage_qty', { precision: 20, scale: 4 }).notNull().default('0'),
     shortageValue: numeric('shortage_value', { precision: 18, scale: 4 }).notNull().default('0'),

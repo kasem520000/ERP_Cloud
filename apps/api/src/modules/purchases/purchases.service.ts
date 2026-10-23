@@ -1,10 +1,11 @@
 /* eslint-disable no-restricted-syntax */
 import { Inject, Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { allocateLandedCost, calculateInvoiceTotals, DomainError, errorCodes, newId } from '@erp/contracts';
 import {
   accounts,
+  cashLocations,
   inventoryTransactions,
   items,
   itemSerials,
@@ -15,6 +16,7 @@ import {
   purchaseInvoiceCosts,
   purchaseInvoiceLines,
   purchaseInvoices,
+  vouchers,
   withTenantTx,
   type DatabaseHandle,
   type DrizzleTx,
@@ -25,6 +27,7 @@ import { getRequestContext } from '../../request-context/request-context.js';
 import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { AccountingService, type JournalLineInput } from '../accounting/accounting.service.js';
+import { TreasuryService } from '../treasury/treasury.service.js';
 import { splitByCostCenter } from '../../common/cost-center-split.js';
 import { InventoryService, type InventoryLine } from '../inventory/inventory.service.js';
 import { PostingProfilesService } from '../organization/posting-profiles/posting-profiles.service.js';
@@ -77,7 +80,7 @@ export type PurchaseInvoiceInput = {
 };
 export type PurchaseCostInput = { costName: string; amount: string; allocationTarget?: 'inventory' | 'expense'; costCenterId?: string; accountId?: string };
 export type PurchasePostingInput = { fiscalPeriodId?: string; journalLines?: JournalLineInput[]; settlement?: 'credit' | 'cash' | 'bank'; settlementAccountId?: string; settlementCashLocationId?: string };
-export type PurchasePaymentInput = { amount: string; idempotencyKey?: string; voucherId?: string; reference?: string };
+export type PurchasePaymentInput = { amount: string; idempotencyKey?: string; voucherId?: string; reference?: string; cashLocationId?: string; method?: 'cash' | 'cheque' | 'bank_transfer' | 'card' };
 
 const money = (value: string) => new Decimal(value);
 
@@ -101,6 +104,7 @@ export class PurchasesService {
     private readonly sequences: SequencesService,
     private readonly profiles: PostingProfilesService,
     private readonly approvals: ApprovalService,
+    private readonly treasury: TreasuryService,
   ) {}
 
   async list(tenantId: string) {
@@ -959,32 +963,60 @@ export class PurchasesService {
       const paidTotal = money(locked.paidTotal).plus(amount);
       // ACC-123: تسامح الهللة (0.01) لتفادي رفض الدفعات المقربة إلى أقرب هللة
       if (paidTotal.gt(money(locked.total).plus('0.01'))) throw new DomainError('PAYMENT_EXCEEDS_DUE', 'Payment exceeds purchase invoice balance', 422);
+      if (!input.voucherId) {
+        /**
+         * ACC-032 (R32): paying a supplier invoice from its screen is a payment voucher, not a bare
+         * journal. The voucher is created and posted in this same transaction with an allocation to
+         * the invoice, so one mechanism writes the PV document, the party-stamped journal
+         * (Dr payable / Cr cash), the cash-location sub-ledger, `paid_total` and the allocation row.
+         */
+        if (!locked.partyId) throw new DomainError('PURCHASE_INVOICE_PARTY_REQUIRED', 'Supplier invoice has no party to pay', 422);
+        const idempotencyKey = input.idempotencyKey ? `purchase-pay:${invoiceId}:${input.idempotencyKey}` : undefined;
+        if (idempotencyKey) {
+          const [existingVoucher] = await tx.select({ id: vouchers.id }).from(vouchers).where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.idempotencyKey, idempotencyKey))).limit(1);
+          if (existingVoucher) {
+            const [existingAllocation] = await tx.select().from(paymentAllocations).where(and(eq(paymentAllocations.tenantId, tenantId), eq(paymentAllocations.voucherId, existingVoucher.id))).limit(1);
+            if (existingAllocation) return existingAllocation;
+          }
+        }
+        let cashLocationId = input.cashLocationId;
+        if (!cashLocationId) {
+          const wantBank = input.method === 'bank_transfer' || input.method === 'card';
+          const [loc] = await tx
+            .select({ id: cashLocations.id })
+            .from(cashLocations)
+            .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.branchId, locked.branchId), eq(cashLocations.isActive, true), isNull(cashLocations.deletedAt), eq(cashLocations.kind, wantBank ? 'bank' : 'cash')))
+            .orderBy(desc(cashLocations.isDefault), asc(cashLocations.createdAt))
+            .limit(1);
+          cashLocationId = loc?.id;
+        }
+        if (!cashLocationId) throw new DomainError('CASH_LOCATION_REQUIRED', 'حدد الصندوق أو البنك الذي يُسدَّد منه (cashLocationId)', 422, { field: 'cashLocationId' });
+        const today = new Date().toISOString().slice(0, 10);
+        const voucher = await this.treasury.createVoucherInTx(tx, tenantId, {
+          branchId: locked.branchId,
+          kind: 'payment',
+          subtype: 'supplier',
+          date: today,
+          partyId: locked.partyId,
+          cashLocationId,
+          method: input.method ?? 'cash',
+          amount: amount.toFixed(4),
+          netAmount: amount.toFixed(4),
+          currency: locked.currency ?? 'SAR',
+          description: `سداد فاتورة مشتريات ${locked.number ?? locked.id}`,
+          referenceNo: input.reference ?? locked.number ?? undefined,
+          idempotencyKey,
+        });
+        await this.treasury.postVoucherInTx(tx, tenantId, voucher.id, {
+          allocations: [{ partyId: locked.partyId, invoiceKind: 'purchase', invoiceId, amount: amount.toFixed(4) }],
+        });
+        const [allocation] = await tx.select().from(paymentAllocations).where(and(eq(paymentAllocations.tenantId, tenantId), eq(paymentAllocations.voucherId, voucher.id))).limit(1);
+        if (!allocation) throw new DomainError('ALLOCATION_FAILED', 'Failed to create allocation', 500);
+        return allocation;
+      }
+
       const [allocation] = await tx.insert(paymentAllocations).values({ id: newId(), tenantId, partyId: locked.partyId, voucherId: input.voucherId, invoiceKind: locked.kind, invoiceId, amount: input.amount }).returning();
       if (!allocation) throw new DomainError('ALLOCATION_FAILED', 'Failed to create allocation', 500);
-
-      // ACC-032: إنشاء قيد GL محاسبي لسداد فاتورة المشتريات
-      if (!input.voucherId && locked.partyId) {
-        const profile = await this.profiles.resolvePostProfileInTx(tx, tenantId, locked.branchId, 'purchase_invoice');
-        const mapping = profile.mapping as unknown as Record<string, string | null | undefined>;
-        const payableAccountId = mapping.payableAccountId;
-        const cashAccountId = mapping.cashAccountId ?? mapping.bankAccountId;
-        if (payableAccountId && cashAccountId) {
-          const today = new Date().toISOString().slice(0, 10);
-          await this.accounting.postJournalInTx(tx, tenantId, {
-            branchId: locked.branchId,
-            fiscalPeriodId: await this.accounting.openPeriodForDateInTx(tx, tenantId, today),
-            date: today,
-            description: `سداد فاتورة مشتريات ${locked.number ?? locked.id}`,
-            lines: [
-              { accountId: payableAccountId, debit: input.amount, partyId: locked.partyId, description: `سداد فاتورة ${locked.number ?? ''}` },
-              { accountId: cashAccountId, credit: input.amount, description: `سداد فاتورة ${locked.number ?? ''}` },
-            ],
-            sourceType: 'purchase_payment',
-            sourceId: allocation.id,
-            idempotencyKey: `purchase-pay-je:${allocation.id}`,
-          });
-        }
-      }
 
       // ACC-123: تسامح الهللة (0.01) عند تحديد حالة السداد لتفادي بقاء الفاتورة مفتوحة
       const remaining = money(locked.total).minus(paidTotal);

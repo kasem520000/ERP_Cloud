@@ -1814,9 +1814,10 @@ export class HrmService implements OnModuleInit {
           .limit(1);
         const branchId = input.branchId ?? defaultBranch?.id ?? '';
 
-        let expenseAccId: string | undefined;
-        let payableAccId: string | undefined;
-
+        // ACC-170 (R32): the derived journal must hit POSTABLE leaves only. The expense side is the
+        // first postable salary-expense leaf (3122001 «راتب أساسي» in the seeded chart); the credit side
+        // is each employee's own account — the same leaf the salary payment later debits, so the
+        // employee's ledger nets to zero once paid (a header such as «224» can never be reconciled).
         const [expenseAcc] = await tx
           .select({ id: accounts.id })
           .from(accounts)
@@ -1824,6 +1825,7 @@ export class HrmService implements OnModuleInit {
             and(
               eq(accounts.tenantId, tenantId),
               eq(accounts.type, 'expense'),
+              eq(accounts.isPostable, true),
               or(
                 sql`${accounts.code} LIKE '3122%'`,
                 sql`${accounts.code} LIKE '511%'`,
@@ -1832,48 +1834,59 @@ export class HrmService implements OnModuleInit {
               isNull(accounts.deletedAt),
             ),
           )
+          .orderBy(asc(accounts.code))
           .limit(1);
-        expenseAccId = expenseAcc?.id;
-
-        const [payableAcc] = await tx
-          .select({ id: accounts.id })
-          .from(accounts)
-          .where(
-            and(
-              eq(accounts.tenantId, tenantId),
-              eq(accounts.type, 'liability'),
-              or(
-                sql`${accounts.code} LIKE '224%'`,
-                sql`${accounts.nameAr} LIKE '%رواتب مستحقة%'`,
-              ),
-              isNull(accounts.deletedAt),
-            ),
-          )
-          .limit(1);
-        payableAccId = payableAcc?.id;
-
-        if (expenseAccId && payableAccId) {
-          const journal = await this.accounting.postJournalInTx(tx, tenantId, {
-            branchId,
-            fiscalPeriodId: periodId,
-            date: businessToday,
-            description: `Payroll ${run.yearMonth}`,
-            lines: [
-              { accountId: expenseAccId, debit: netPayable.toFixed(4), description: `استحقاق رواتب شهر ${run.yearMonth}` },
-              { accountId: payableAccId, credit: netPayable.toFixed(4), description: `رواتب مستحقة شهر ${run.yearMonth}` },
-            ],
-            sourceType: 'payroll_run',
-            sourceId: id,
-            idempotencyKey: `payroll-journal:${id}`,
-          });
-          journalEntryId = journal?.id;
-        } else {
+        const expenseAccId = expenseAcc?.id;
+        if (!expenseAccId) {
           throw new DomainError(
             'PAYROLL_JOURNAL_REQUIRED',
-            'Posting a payroll run requires explicit or resolvable payroll journal accounts',
+            'Posting a payroll run requires a postable salary expense account (e.g. 3122001)',
             422,
           );
         }
+
+        const creditLines: { accountId: string; credit: string; description: string }[] = [];
+        for (const line of runLines) {
+          const net = new Decimal(line.net ?? '0');
+          if (net.lte(0)) continue;
+          const [emp] = await tx
+            .select({ id: employees.id, name: employees.name, branchId: employees.branchId, employeeAccountId: employees.employeeAccountId, salaryPayableAccountId: employees.salaryPayableAccountId })
+            .from(employees)
+            .where(and(eq(employees.tenantId, tenantId), eq(employees.id, line.employeeId)))
+            .limit(1);
+          let accountId = emp?.employeeAccountId ?? emp?.salaryPayableAccountId ?? undefined;
+          if (!accountId && emp) {
+            const created = await this.employeeAccount(tenantId, emp.id, emp.name, emp.branchId, undefined, undefined);
+            accountId = created?.id;
+          }
+          if (!accountId) {
+            throw new DomainError(
+              'PAYROLL_EMPLOYEE_ACCOUNT_REQUIRED',
+              `لا يوجد حساب في دليل الحسابات للموظف ${emp?.name ?? line.employeeId} — لا يمكن ترحيل استحقاق راتبه`,
+              422,
+              { employeeId: line.employeeId },
+            );
+          }
+          creditLines.push({ accountId, credit: net.toFixed(4), description: `راتب مستحق ${emp?.name ?? ''} شهر ${run.yearMonth}`.trim() });
+        }
+        if (creditLines.length === 0) {
+          throw new DomainError('PAYROLL_JOURNAL_REQUIRED', 'Payroll run has no payable lines to post', 422);
+        }
+
+        const journal = await this.accounting.postJournalInTx(tx, tenantId, {
+          branchId,
+          fiscalPeriodId: periodId,
+          date: businessToday,
+          description: `Payroll ${run.yearMonth}`,
+          lines: [
+            { accountId: expenseAccId, debit: netPayable.toFixed(4), description: `استحقاق رواتب شهر ${run.yearMonth}` },
+            ...creditLines,
+          ],
+          sourceType: 'payroll_run',
+          sourceId: id,
+          idempotencyKey: `payroll-journal:${id}`,
+        });
+        journalEntryId = journal?.id;
       }
 
       // ACC-048: تحديث حالة أسطر المسير إلى posted
@@ -1936,35 +1949,7 @@ export class HrmService implements OnModuleInit {
       if (unpaidLines.length === 0) {
         throw new DomainError('SALARY_ALREADY_PAID', 'تم صرف رواتب جميع موظفي هذا المسير من قبل', 409);
       }
-      const payValue = sumLines(unpaidLines.map((line) => line.net));
-      const idempotencyKey = `payroll:${id}`;
-
-      const [existingVoucher] = await tx
-        .select()
-        .from(vouchers)
-        .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.idempotencyKey, idempotencyKey)))
-        .limit(1);
-
       const businessToday = await this.resolveBusinessTodayInTx(tx, tenantId);
-
-      // ACC-040: توجيه سند صرف الرواتب لحساب الرواتب المستحقة (224...) بدلاً من ذمم الموردين
-      let counterAccountId: string | undefined;
-      const [accruedAcc] = await tx
-        .select({ id: accounts.id })
-        .from(accounts)
-        .where(
-          and(
-            eq(accounts.tenantId, tenantId),
-            eq(accounts.type, 'liability'),
-            or(
-              sql`${accounts.code} LIKE '224%'`,
-              sql`${accounts.nameAr} LIKE '%رواتب مستحقة%'`,
-            ),
-            isNull(accounts.deletedAt),
-          ),
-        )
-        .limit(1);
-      counterAccountId = accruedAcc?.id;
 
       let resolvedBranchId: string | undefined = input.branchId || undefined;
       if (!resolvedBranchId && input.cashLocationId) {
@@ -1985,27 +1970,57 @@ export class HrmService implements OnModuleInit {
       }
       if (!resolvedBranchId) throw new DomainError('BRANCH_REQUIRED', 'Branch is required to pay payroll run', 422);
 
-      const voucher =
-        existingVoucher ??
-        (await this.treasury.createVoucherInTx(tx, tenantId, {
-          branchId: resolvedBranchId,
-          kind: 'payment',
-          subtype: 'salary',
-          date: businessToday,
-          cashLocationId: input.cashLocationId,
-          counterAccountId,
-          method: input.method ?? 'cash',
-          amount: payValue,
-          netAmount: payValue,
-          description: `صرف رواتب شهر ${run.yearMonth}`,
-          idempotencyKey,
-        }));
-      if (!voucher) throw new DomainError('INTERNAL', 'Payroll voucher was not created', 500);
-
-      const posted =
-        voucher.status === 'posted'
-          ? voucher
-          : await this.treasury.postVoucherInTx(tx, tenantId, voucher.id, { fiscalPeriodId: input.fiscalPeriodId });
+      // ACC-040 + ACC-170 (R32): one payment voucher per employee, debiting the employee's own
+      // leaf account (the account the accrual credited), never the «224» header. The run keeps
+      // the first voucher id; every voucher carries an idempotency key per (run, employee).
+      let firstVoucherId: string | undefined;
+      for (const line of unpaidLines) {
+        const net = new Decimal(line.net ?? '0');
+        if (net.lte(0)) continue;
+        const [emp] = await tx
+          .select({ id: employees.id, name: employees.name, branchId: employees.branchId, employeeAccountId: employees.employeeAccountId, salaryPayableAccountId: employees.salaryPayableAccountId })
+          .from(employees)
+          .where(and(eq(employees.tenantId, tenantId), eq(employees.id, line.employeeId)))
+          .limit(1);
+        const employeeAccountId = emp?.employeeAccountId ?? emp?.salaryPayableAccountId ?? undefined;
+        if (!employeeAccountId) {
+          throw new DomainError(
+            'SALARY_PAYMENT_EMPLOYEE_ACCOUNT_REQUIRED',
+            `لا يوجد حساب في دليل الحسابات للموظف ${emp?.name ?? line.employeeId}`,
+            422,
+            { employeeId: line.employeeId },
+          );
+        }
+        const idempotencyKey = `payroll:${id}:${line.employeeId}`;
+        const [existingVoucher] = await tx
+          .select()
+          .from(vouchers)
+          .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.idempotencyKey, idempotencyKey)))
+          .limit(1);
+        const voucher =
+          existingVoucher ??
+          (await this.treasury.createVoucherInTx(tx, tenantId, {
+            branchId: resolvedBranchId,
+            kind: 'payment',
+            subtype: 'salary',
+            date: businessToday,
+            cashLocationId: input.cashLocationId,
+            counterAccountId: employeeAccountId,
+            method: input.method ?? 'cash',
+            amount: net.toFixed(4),
+            netAmount: net.toFixed(4),
+            description: `صرف راتب ${emp?.name ?? ''} شهر ${run.yearMonth}`.replace(/\s+/g, ' ').trim(),
+            idempotencyKey,
+          }));
+        if (!voucher) throw new DomainError('INTERNAL', 'Payroll voucher was not created', 500);
+        const posted =
+          voucher.status === 'posted'
+            ? voucher
+            : await this.treasury.postVoucherInTx(tx, tenantId, voucher.id, { fiscalPeriodId: input.fiscalPeriodId });
+        firstVoucherId ??= posted.id;
+      }
+      if (!firstVoucherId) throw new DomainError('SALARY_ALREADY_PAID', 'لا توجد أسطر بصافٍ موجب لصرفها', 409);
+      const posted = { id: firstVoucherId };
 
       // ACC-048: تحديث حالة الأسطر المدفوعة إلى paid
       for (const line of unpaidLines) {
@@ -2045,14 +2060,21 @@ export class HrmService implements OnModuleInit {
         });
       }
 
-      // ACC-047: 2. إبطال سند صرف المسيّر
-      if (current.data.voucherId) {
-        const [vRow] = await tx
-          .select({ id: vouchers.id, status: vouchers.status })
-          .from(vouchers)
-          .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, current.data.voucherId)))
-          .limit(1);
-        if (vRow && vRow.status === 'posted') {
+      // ACC-047: 2. إبطال سندات صرف المسيّر (سند لكل موظف منذ ACC-170، أو السند الموحّد القديم)
+      const runVouchers = await tx
+        .select({ id: vouchers.id, status: vouchers.status })
+        .from(vouchers)
+        .where(
+          and(
+            eq(vouchers.tenantId, tenantId),
+            or(
+              current.data.voucherId ? eq(vouchers.id, current.data.voucherId) : sql`false`,
+              sql`${vouchers.idempotencyKey} LIKE ${`payroll:${id}%`}`,
+            ),
+          ),
+        );
+      for (const vRow of runVouchers) {
+        if (vRow.status === 'posted') {
           await this.treasury.voidVoucherInTx(tx, tenantId, vRow.id, `عكس مسير الرواتب: ${reason}`);
         }
       }
