@@ -3,13 +3,18 @@
 // Run: R32_OUT=docs/accounting-audit/evidence/round-33 node docs/accounting-audit/scripts/round33-probe1.cjs
 const L = require('./round32-lib.cjs');
 const fs = require('fs');
-const S = JSON.parse(fs.readFileSync(L.root + '/docs/accounting-audit/evidence/round-32/h/R30-seed-ids.json'));
-const PERIOD_OCT = '01a16790-5954-74f8-870d-909d680f1c60';
-const VAT15 = '01a16790-5940-715b-ae91-43d89d867eed';
+// Seed ids: R33-seed-ids.json (written by round33-bootstrap.cjs on seed 10) when present, else the
+// seed-9 file of R30/R32 (runs 01–04 of this probe were executed against seed 9).
+const R33_IDS = L.out + '/R33-seed-ids.json';
+const S = fs.existsSync(R33_IDS)
+  ? JSON.parse(fs.readFileSync(R33_IDS))
+  : JSON.parse(fs.readFileSync(L.root + '/docs/accounting-audit/evidence/round-32/h/R30-seed-ids.json'));
+const PERIOD_OCT = S.periodOct || '01a16790-5954-74f8-870d-909d680f1c60';
+const VAT15 = S.vat15 || '01a16790-5940-715b-ae91-43d89d867eed';
 const BREAD = S.bread;
-const FLOUR = '01a16794-1249-762a-9386-1d7b9ff76815';
-const SALESMAN = '01a16790-5979-7429-a92b-ab9b046521a0';
-const VAN1 = '01a16790-5970-7413-98f1-ef40b0565c45';
+const FLOUR = S.flour || '01a16794-1249-762a-9386-1d7b9ff76815';
+const SALESMAN = S.salesman || '01a16790-5979-7429-a92b-ab9b046521a0';
+const VAN1 = S.van1 || '01a16790-5970-7413-98f1-ef40b0565c45';
 const TODAY = new Date().toISOString().slice(0, 10);
 const RUN = process.env.R33_RUN || '01';
 const results = [];
@@ -122,7 +127,7 @@ async function entriesFor(sourceType, sourceId) {
 
   }
   // Production batch so the bread stock exists for the rest of the probe (MAIN)
-  const prod = await L.api('R33-L00-production-batch', 'POST', '/van-sales/production-batches', { itemId: BREAD, productionDate: TODAY, itemName: 'خبز R29', producedQty: '20.0000', scrapQty: '0', batchNo: `BATCH-R33-${RUN}`, supervisorName: 'مشرف R33', notes: 'R33 دفعة اختبار معزولة', components: [{ itemId: FLOUR, qty: '10.0000' }], idempotencyKey: `r33-prod-batch-${RUN}` });
+  const prod = await L.api('R33-L00-production-batch', 'POST', '/van-sales/production-batches', { itemId: BREAD, productionDate: TODAY, itemName: 'خبز R33', producedQty: '20.0000', scrapQty: '0', batchNo: `BATCH-R33-${RUN}`, supervisorName: 'مشرف R33', notes: 'R33 دفعة اختبار معزولة', components: [{ itemId: FLOUR, qty: '10.0000' }], idempotencyKey: `r33-prod-batch-${RUN}` });
   check('L00', 'production batch 20 kg → 201', 201, prod.status, code(prod));
 
   let loId = null, lo2Id = null, docId = null, retRow = null;
@@ -219,6 +224,9 @@ async function entriesFor(sourceType, sourceId) {
   const inv0 = await gl('1270001');
   const appr2 = await L.api('R33-L10-approve-closing-2-charge', 'POST', `/van-sales/load-orders/${lo2Id}/approve-closing`, { returnedQty: '4.0000', damagedQty: '0.0000', collectedCash: '0.0000', actualRemainingQty: '0.0000', damageInspected: false, salaryDeductionApproved: true, notes: 'R33 اعتماد مع تحميل العجز على المندوب', settleStockAdjustment: true, surplusAcknowledged: false });
   check('L10', 'approve with salary deduction → 201/200', true, appr2.status === 201 || appr2.status === 200, `${appr2.status} ${code(appr2) || ''} ${JSON.stringify(appr2.body && appr2.body.detail || '').slice(0, 200)}`);
+  // the seed rep may have no employee account yet (seed 10) — the approve auto-creates it (ACC-166)
+  const empAfter = await L.one(`select e.id, e.employee_account_id, a.code from salesmen s join employees e on e.id = s.employee_id left join accounts a on a.id = e.employee_account_id where s.id = $1`, [SALESMAN]);
+  if (!(emp && emp.code)) console.log('   rep 1 employee account auto-created by the approve:', empAfter && empAfter.code);
   const wo2 = await entriesFor('van_shortage_writeoff', lo2Id);
   const ch2 = await entriesFor('van_shortage_charge', lo2Id);
   const wo2Tx = await L.one(`select total_cost from inventory_transactions where doc_type = 'van_shortage_writeoff' and doc_id = $1 order by occurred_at desc limit 1`, [lo2Id]);
@@ -226,10 +234,10 @@ async function entriesFor(sourceType, sourceId) {
   const lo2Final = await L.one(`select shortage_qty, shortage_value, unit_cost, status, shortage_policy_status from van_load_orders where id = $1`, [lo2Id]);
   const chVal = n4(lo2Final.shortage_value);
   check('L10b', 'ACC-168 write-off journal exists for custody 2 (Dr 3121004 / Cr 1270001 at stock value)', [['1270001', '0.0000', wo2Val], ['3121004', wo2Val, '0.0000']], wo2.map((l) => [l.code, n4(l.debit), n4(l.credit)]));
-  check('L10c', 'ACC-152 charge journal Dr employee account / Cr 3121004 (not 1270001) at the policy value', [[emp && emp.code, chVal, '0.0000'], ['3121004', '0.0000', chVal]], ch2.map((l) => [l.code, n4(l.debit), n4(l.credit)]), `${ch2[0] && ch2[0].number} ${lo2Final.status}/${lo2Final.shortage_policy_status}`);
+  check('L10c', 'ACC-152 charge journal Dr employee account / Cr 3121004 (not 1270001) at the policy value', [[empAfter && empAfter.code, chVal, '0.0000'], ['3121004', '0.0000', chVal]], ch2.map((l) => [l.code, n4(l.debit), n4(l.credit)]), `${ch2[0] && ch2[0].number} ${lo2Final.status}/${lo2Final.shortage_policy_status}`);
   check('L10d', 'ACC-152 inventory relieved exactly once (by the write-off value only)', n4(Number(inv0) - Number(wo2Val)), await gl('1270001'));
   check('L10e', 'ACC-152 loss account moves only by (write-off − charge)', n4(Number(adjB) + Number(wo2Val) - Number(chVal)), await gl('3121004'));
-  if (emp && emp.code) check('L10f', 'employee account + charge', n4(Number(empBal0) + Number(chVal)), await gl(emp.code));
+  if (empAfter && empAfter.code) check('L10f', 'employee account + charge', n4(Number(empBal0 || 0) + Number(chVal)), await gl(empAfter.code));
   L.snapshot(`R33-DB-${RUN}-005-after-L10`);
 
   }

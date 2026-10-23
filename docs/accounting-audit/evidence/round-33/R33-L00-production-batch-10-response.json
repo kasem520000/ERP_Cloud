@@ -1,0 +1,188 @@
+{
+  "id": "R33-L00-production-batch-10",
+  "at": "2026-10-23T13:21:17.506Z",
+  "method": "POST",
+  "path": "/van-sales/production-batches",
+  "status": 201,
+  "request": {
+    "itemId": "01a168eb-6ac0-705d-b87d-5c53a7fb866f",
+    "productionDate": "2026-10-23",
+    "itemName": "خبز R33",
+    "producedQty": "20.0000",
+    "scrapQty": "0",
+    "batchNo": "BATCH-R33-10",
+    "supervisorName": "مشرف R33",
+    "notes": "R33 دفعة اختبار معزولة",
+    "components": [
+      {
+        "itemId": "01a168eb-6764-720b-adae-dc77e7990715",
+        "qty": "10.0000"
+      }
+    ],
+    "idempotencyKey": "r33-prod-batch-10"
+  },
+  "response": {
+    "data": {
+      "policy": {
+        "allowInternalDeliveryWithoutTax": false,
+        "preventSelfApproval": false,
+        "shortageValuationBasis": "unit_cost",
+        "zatcaSeller": {
+          "ready": true,
+          "missingFields": [],
+          "refusalDetail": null
+        }
+      },
+      "officialStock": [
+        {
+          "itemId": "01a168eb-6ac0-705d-b87d-5c53a7fb866f",
+          "itemName": "خبز R33",
+          "sku": "BR-R33",
+          "warehouseId": "01a168e9-e2f9-736a-b5e4-549f06bc50e0",
+          "warehouseName": "المستودع الرئيسي",
+          "warehouseCode": "MAIN",
+          "branchId": "01a168e9-e2f7-738c-aec6-a9a6b487f41d",
+          "quantity": "20.0000",
+          "value": "20.0000",
+          "averageCost": "1.0000"
+        },
+        {
+          "itemId": "01a168eb-6764-720b-adae-dc77e7990715",
+          "itemName": "دقيق R33",
+          "sku": "FL-R33",
+          "warehouseId": "01a168e9-e2f9-736a-b5e4-549f06bc50e0",
+          "warehouseName": "المستودع الرئيسي",
+          "warehouseCode": "MAIN",
+          "branchId": "01a168e9-e2f7-738c-aec6-a9a6b487f41d",
+          "quantity": "90.0000",
+          "value": "180.0000",
+          "averageCost": "2.0000"
+        }
+      ],
+      "mainWarehouseId": "01a168e9-e2f9-736a-b5e4-549f06bc50e0",
+      "postingReadiness": {
+        "branchId": "01a168e9-e2f7-738c-aec6-a9a6b487f41d",
+        "salesInvoice": true,
+        "stockTransfer": true,
+        "receiptVoucher": true,
+        "message": null
+      },
+      "windows": {
+        "productionBatches": {
+          "returned": 1,
+          "total": 1,
+          "limit": 50
+        },
+        "loadOrders": {
+          "returned": 0,
+          "total": 0,
+          "limit": 60
+        },
+        "documents": {
+          "returned": 0,
+          "total": 0,
+          "limit": 120
+        },
+        "movements": {
+          "returned": 1,
+          "total": 1,
+          "limit": 80
+        },
+        "customerPriceHistory": {
+          "returned": 0,
+          "total": 0,
+          "limit": 50
+        }
+      },
+      "summary": {
+        "totalProducedKg": "20.00",
+        "totalScrapKg": "0.00",
+        "mainWarehouseBalanceKg": "20.00",
+        "vanWarehousesBalanceKg": "0.00",
+        "derivedMainWarehouseBalanceKg": "20.00",
+        "vanArithmeticMainWarehouseKg": "20.00",
+        "mainWarehouseOtherMovementsKg": "0.00",
+        "stockLedgerAgrees": true,
+        "inTransitKg": "0.00",
+        "inTransitValueSar": "0.00",
+        "inTransitTransfersCount": 0,
+        "totalProductionCostSar": "20.00",
+        "totalLoadedKg": "0.00",
+        "totalSoldKg": "0.00",
+        "totalBonusKg": "0.00",
+        "totalReturnedKg": "0.00",
+        "totalDamagedKg": "0.00",
+        "totalShortageKg": "0.00",
+        "totalShortageSar": "0.00",
+        "remainingInVansKg": "0.00",
+        "totalZatcaSalesSar": "0.00",
+        "totalInternalSalesSar": "0.00",
+        "totalRevenueSar": "0.00",
+        "totalSalesGrossSar": "0.00",
+        "totalReturnsSar": "0.00",
+        "totalReturnsVatSar": "0.00",
+        "returnDocumentCount": 0,
+        "returnsWithoutCostCount": 0,
+        "totalCollectedCashSar": "0.00",
+        "totalCreditReceivablesSar": "0.00",
+        "totalNetProfitSar": "0.00",
+        "anomalyCount": 0,
+        "pendingClosingsCount": 0,
+        "pendingReceiptsCount": 0,
+        "pendingStockSettlementsCount": 0,
+        "pendingTransitDecisionsCount": 0
+      },
+      "productionBatches": [
+        {
+          "id": "01a168ec-4a06-73cb-8e58-ae39dc484a89",
+          "batchNo": "BATCH-R33-10",
+          "productionDate": "2026-10-23",
+          "itemId": "01a168eb-6ac0-705d-b87d-5c53a7fb866f",
+          "warehouseId": "01a168e9-e2f9-736a-b5e4-549f06bc50e0",
+          "productionOrderId": "01a168ec-49dc-769c-b863-f0656fd5a6e8",
+          "manufacturingOrderId": null,
+          "lotId": "01a168ec-49f5-7462-b8ae-eae023d922a6",
+          "inventoryTransactionId": "01a168ec-49f9-71c7-87bc-185e218ff247",
+          "itemName": "خبز R33",
+          "producedQty": "20.00",
+          "scrapQty": "0.00",
+          "issuedQty": "0.00",
+          "returnedGoodQty": "0.00",
+          "damagedQty": "0.00",
+          "availableWarehouseQty": "20.00",
+          "unitCost": "1.00",
+          "totalCost": "20.00",
+          "costBasis": "manufacturing_order",
+          "scrapValue": "0.00",
+          "scrapCostLoaded": false,
+          "status": "active",
+          "supervisorName": "مشرف R33",
+          "notes": "R33 دفعة اختبار معزولة"
+        }
+      ],
+      "repPerformance": [],
+      "loadOrders": [],
+      "customerPrices": [],
+      "customerPriceHistory": [],
+      "documents": [],
+      "movements": [
+        {
+          "id": "01a168ec-4a08-718e-872d-e33027c8ea77",
+          "movementType": "production_in",
+          "batchNo": "BATCH-R33-10",
+          "qty": "20.00",
+          "unitPrice": "1.00",
+          "amount": "20.00",
+          "reason": "إنتاج يومي جديد وتوريد للمستودع الرئيسي — خبز R33",
+          "inventoryTransactionId": "01a168ec-49f9-71c7-87bc-185e218ff247",
+          "voucherId": null,
+          "salesmanName": "—",
+          "customerName": "—",
+          "actorLabel": "مالك الحساب",
+          "approvedByLabel": "",
+          "createdAt": "2026-10-23 13:21:18.341174+00"
+        }
+      ]
+    }
+  }
+}

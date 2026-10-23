@@ -1,0 +1,20 @@
+{
+  "seed": 10,
+  "tenant": "01a168e9-e14c-70d7-a5d3-dc555976e392",
+  "branch": "01a168e9-e2f7-738c-aec6-a9a6b487f41d",
+  "whMain": "01a168e9-e2f9-736a-b5e4-549f06bc50e0",
+  "safe": "01a168e9-e2fb-748e-8332-c872e4468b7f",
+  "bank": "01a168e9-e2fd-769d-992f-f54aee10c248",
+  "cust": "01a168eb-6de4-742f-b9ba-e42f4d2900b2",
+  "custGen": "01a168e9-e302-74a9-8928-d6ddabd2a7ef",
+  "supp": "01a168e9-e303-73b1-9525-05d31d34fabf",
+  "bread": "01a168eb-6ac0-705d-b87d-5c53a7fb866f",
+  "flour": "01a168eb-6764-720b-adae-dc77e7990715",
+  "pi1": "01a168eb-710a-705e-af7d-d2d7aba79c7c",
+  "vat15": "01a168e9-e352-731c-a476-36e9d34afe4f",
+  "periodOct": "01a168e9-e367-72bd-a5e6-c41143e52afe",
+  "periodNov": "01a168e9-e368-70df-b4c4-94f32e0650f2",
+  "salesman": "01a168e9-e398-7618-8621-33ea806b8d2b",
+  "salesmanEmployee": "01a168e9-e395-73f9-8423-66b5bc307603",
+  "van1": "01a168e9-e38b-75d2-8c4e-dbcf0a654724"
+}

@@ -1,0 +1,43 @@
+{
+  "id": "R33-M01-payroll-preview-11",
+  "at": "2026-10-23T13:24:38.731Z",
+  "method": "POST",
+  "path": "/hrm/payroll/preview",
+  "status": 201,
+  "request": {
+    "yearMonth": "2026-11"
+  },
+  "response": {
+    "data": {
+      "yearMonth": "2026-11",
+      "employeeCount": 2,
+      "netPayable": "200.0000",
+      "lines": [
+        {
+          "employeeId": "01a168ec-7793-772b-9cfb-2491ddeafe23",
+          "employeeName": "R33 مندوب بلا حساب 10",
+          "components": {
+            "basic": "100"
+          },
+          "additions": "0.0000",
+          "deductions": "0.0000",
+          "gross": "100.0000",
+          "net": "100.0000",
+          "unpaidFactor": "1.000000"
+        },
+        {
+          "employeeId": "01a168ef-24c3-71bd-9565-8b28040cce65",
+          "employeeName": "R33 مندوب بلا حساب 11",
+          "components": {
+            "basic": "100"
+          },
+          "additions": "0.0000",
+          "deductions": "0.0000",
+          "gross": "100.0000",
+          "net": "100.0000",
+          "unpaidFactor": "1.000000"
+        }
+      ]
+    }
+  }
+}

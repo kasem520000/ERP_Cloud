@@ -1,0 +1,28 @@
+{
+  "id": "R33-K01-voucher-no-date-11",
+  "at": "2026-10-23T13:24:02.098Z",
+  "method": "POST",
+  "path": "/vouchers",
+  "status": 422,
+  "request": {
+    "branchId": "01a168e9-e2f7-738c-aec6-a9a6b487f41d",
+    "kind": "receipt",
+    "subtype": "other",
+    "cashLocationId": "01a168e9-e2fb-748e-8332-c872e4468b7f",
+    "amount": "1.00",
+    "method": "cash"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "VOUCHER_INPUT_INVALID",
+    "detail": "date must be a calendar day in YYYY-MM-DD form",
+    "traceId": "01a168ee-c9b5-72ae-b3e0-aac7d4990681",
+    "errors": [
+      {
+        "field": "date"
+      }
+    ]
+  }
+}

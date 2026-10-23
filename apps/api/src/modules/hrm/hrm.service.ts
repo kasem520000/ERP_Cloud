@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { alias } from 'drizzle-orm/pg-core';
-import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
 import { DomainError, newId } from '@erp/contracts';
 import {
   accounts,
@@ -29,6 +29,7 @@ import {
   type DatabaseHandle,
   type DrizzleTx,
   type Employee,
+  fiscalPeriods,
 } from '@erp/database';
 
 import { FROM_TO_LABELS_AR, parseDayParam, validateDayFilters } from '../../common/date-param.js';
@@ -1685,6 +1686,9 @@ export class HrmService implements OnModuleInit {
     const id = newId();
     await withTenantTx(this.database.db, tenantId, async (tx) => {
       // ACC-037: منع إنشاء مسيّر مكرر للشهر نفسه بـ 409
+      // ACC-174 (R33): a *reversed* run no longer blocks the month — the partial unique index
+      // `payroll_runs_month_key … where status <> 'reversed'` already allows a fresh run after a
+      // reversal; the service guard used to count the reversed one and lock the month forever.
       const [existing] = await tx
         .select({ id: payrollRuns.id })
         .from(payrollRuns)
@@ -1692,6 +1696,7 @@ export class HrmService implements OnModuleInit {
           and(
             eq(payrollRuns.tenantId, tenantId),
             eq(payrollRuns.yearMonth, input.yearMonth),
+            ne(payrollRuns.status, 'reversed'),
           ),
         )
         .limit(1);
@@ -1749,6 +1754,21 @@ export class HrmService implements OnModuleInit {
    *   • `idempotencyKey` على القيد (`payroll-journal:<id>`) يبقى شبكة أمانٍ إضافية على
    *     الفهرس الفريد، فلا يتكرّر قيد المسيّر نفسه أبداً.
    */
+  /** 📅 Clamp a business day into a fiscal period (R33 — payroll accrual date). */
+  private async clampToPeriodInTx(tx: DrizzleTx, tenantId: string, periodId: string, day: string): Promise<string> {
+    const [period] = await tx
+      .select({ start: fiscalPeriods.startDate, end: fiscalPeriods.endDate })
+      .from(fiscalPeriods)
+      .where(and(eq(fiscalPeriods.tenantId, tenantId), eq(fiscalPeriods.id, periodId)))
+      .limit(1);
+    if (!period) return day;
+    const start = String(period.start).slice(0, 10);
+    const end = String(period.end).slice(0, 10);
+    if (day < start) return start;
+    if (day > end) return end;
+    return day;
+  }
+
   async postRun(tenantId: string, id: string, input: PostRunInput = {}) {
     await this.ensureEnabled(tenantId);
     await withTenantTx(this.database.db, tenantId, async (tx) => {
@@ -1775,6 +1795,13 @@ export class HrmService implements OnModuleInit {
       const periodId = input.fiscalPeriodId ?? run.periodId ?? (await this.accounting.openPeriodForDateInTx(tx, tenantId, businessToday));
       // ACC-053: التحقق من قفل فترة الرواتب
       await this.accounting.assertModuleUnlocked(tx, tenantId, periodId, 'payroll');
+      /**
+       * R33 (ACC-176): the accrual is dated inside the run's own fiscal period. A November payroll
+       * posted on an October (or December) business day used to carry today's date and was
+       * rejected by the period/date guard (`FISCAL_PERIOD_DATE_MISMATCH`) — the expense belongs
+       * to the month it was earned in, so the date is clamped to [period start, period end].
+       */
+      const accrualDate = await this.clampToPeriodInTx(tx, tenantId, periodId, businessToday);
 
       if (input.journalLines?.length) {
         // فحص توازن القيد
@@ -1796,7 +1823,7 @@ export class HrmService implements OnModuleInit {
         const journal = await this.accounting.postJournalInTx(tx, tenantId, {
           branchId: input.branchId ?? defaultBranch?.id ?? '',
           fiscalPeriodId: periodId,
-          date: businessToday,
+          date: accrualDate,
           description: `Payroll ${run.yearMonth}`,
           lines: input.journalLines,
           sourceType: 'payroll_run',
@@ -1876,7 +1903,7 @@ export class HrmService implements OnModuleInit {
         const journal = await this.accounting.postJournalInTx(tx, tenantId, {
           branchId,
           fiscalPeriodId: periodId,
-          date: businessToday,
+          date: accrualDate,
           description: `Payroll ${run.yearMonth}`,
           lines: [
             { accountId: expenseAccId, debit: netPayable.toFixed(4), description: `استحقاق رواتب شهر ${run.yearMonth}` },
@@ -1924,6 +1951,8 @@ export class HrmService implements OnModuleInit {
         .limit(1)
         .for('update');
       if (!run) throw new DomainError('NOT_FOUND', 'Payroll run not found', 404);
+      if (run.status === 'paid')
+        throw new DomainError('SALARY_ALREADY_PAID', 'تم صرف رواتب جميع موظفي هذا المسير من قبل', 409);
       if (run.status !== 'posted')
         throw new DomainError('PAYROLL_RUN_NOT_POSTED', 'Only posted payroll runs can be paid', 409);
 

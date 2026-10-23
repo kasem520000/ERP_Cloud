@@ -1,0 +1,28 @@
+{
+  "id": "R33-K03b-voucher-no-cashloc-11",
+  "at": "2026-10-23T13:24:04.439Z",
+  "method": "POST",
+  "path": "/vouchers",
+  "status": 422,
+  "request": {
+    "branchId": "01a168e9-e2f7-738c-aec6-a9a6b487f41d",
+    "kind": "receipt",
+    "subtype": "other",
+    "amount": "1.00",
+    "date": "2026-10-23",
+    "method": "cash"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "VOUCHER_INPUT_INVALID",
+    "detail": "cashLocationId must be a UUID",
+    "traceId": "01a168ee-d2d8-710a-ae3f-36848b1efe95",
+    "errors": [
+      {
+        "field": "cashLocationId"
+      }
+    ]
+  }
+}

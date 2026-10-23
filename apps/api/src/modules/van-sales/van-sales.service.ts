@@ -1036,7 +1036,7 @@ export class VanSalesService {
       await tx.execute(sql`
         SELECT COALESCE(SUM(
                  CASE
-                   WHEN l.status IN ('rejected', 'cancelled', 'draft') THEN 0
+                   WHEN l.status IN ('rejected', 'cancelled', 'canceled', 'draft') THEN 0
                    WHEN l.received_qty > 0 THEN l.received_qty
                    ELSE l.loaded_qty
                  END
@@ -1153,7 +1153,7 @@ export class VanSalesService {
                COALESCE(MAX(s.name), 'مندوب توزيع') AS salesman_name,
                COALESCE(SUM(
                  CASE
-                   WHEN l.status IN ('rejected', 'cancelled', 'draft') THEN 0
+                   WHEN l.status IN ('rejected', 'cancelled', 'canceled', 'draft') THEN 0
                    WHEN l.received_qty > 0 THEN l.received_qty
                    ELSE l.loaded_qty
                  END
@@ -1177,7 +1177,7 @@ export class VanSalesService {
                    - COALESCE(l.returned_qty, 0) - COALESCE(l.damaged_qty, 0)
                    - COALESCE(l.shortage_qty, 0)
                  )
-               ) FILTER (WHERE l.status NOT IN ('settled', 'pending_receipt', 'rejected', 'cancelled', 'draft')), 0)::text
+               ) FILTER (WHERE l.status NOT IN ('settled', 'pending_receipt', 'rejected', 'cancelled', 'canceled', 'draft')), 0)::text
                  AS custody_remaining_kg,
                COUNT(*) FILTER (WHERE l.status = 'pending_closing')::int AS pending_closings
         FROM van_load_orders l
@@ -1715,10 +1715,31 @@ export class VanSalesService {
       const inTransitValueSar = dec(inTransitRow?.val);
       const inTransitTransfers = Number(inTransitRow?.transfers ?? 0);
 
-      const derivedMainWarehouseBalanceKg = Decimal.max(
-        0,
-        totalProducedKg.minus(totalLoadedKg).plus(totalReturnedKg),
+      /**
+       * ACC-157 (R33): the «derived» balance is now the main warehouse's own movement ledger
+       * (Σ in − Σ out of the produced items in `inventory_transactions`), not the van-sales
+       * arithmetic «production − loads + custody returns». That arithmetic was blind to every
+       * movement that is not a load order — direct sales invoices from the main warehouse,
+       * plain stock transfers, count adjustments — so `stockLedgerAgrees` turned false the moment
+       * the bakery sold a loaf over the counter. The van-sales arithmetic is still reported, and
+       * `mainWarehouseOtherMovementsKg` shows exactly what it misses, so the accountant can see
+       * *why* the two differ instead of being told the stock does not agree.
+       */
+      const mainLedgerRow = first(
+        await tx.execute(sql`
+          SELECT COALESCE(SUM(CASE WHEN t.direction = 'in' THEN t.base_qty ELSE -t.base_qty END), 0)::text AS qty
+          FROM inventory_transactions t
+          WHERE t.tenant_id = ${tenantId}::uuid
+            AND t.warehouse_id = ${mainWarehouseId ?? '00000000-0000-0000-0000-000000000000'}::uuid
+            AND t.item_id IN (
+              SELECT DISTINCT b.item_id FROM factory_production_batches b
+              WHERE b.tenant_id = ${tenantId}::uuid AND b.deleted_at IS NULL AND b.item_id IS NOT NULL
+            )
+        `),
       );
+      const derivedMainWarehouseBalanceKg = dec(mainLedgerRow?.qty);
+      const vanArithmeticMainKg = totalProducedKg.minus(totalLoadedKg).plus(totalReturnedKg);
+      const mainWarehouseOtherMovementsKg = derivedMainWarehouseBalanceKg.minus(vanArithmeticMainKg);
       // ACC-086: المتبقي في السيارات يقرأ الرصيد الدفتري الرسمي لسيارات التوزيع
       const remainingInVansKg = officialVanKg;
 
@@ -1809,6 +1830,8 @@ export class VanSalesService {
           vanWarehousesBalanceKg: officialVanKg.toFixed(2),
           /** الرصيد المشتق من سجلات الإضافة — يُعرض للمقارنة وكشف أي اختلاف. */
           derivedMainWarehouseBalanceKg: derivedMainWarehouseBalanceKg.toFixed(2),
+          vanArithmeticMainWarehouseKg: vanArithmeticMainKg.toFixed(2),
+          mainWarehouseOtherMovementsKg: mainWarehouseOtherMovementsKg.toFixed(2),
           stockLedgerAgrees: officialMainWarehouseKg.eq(derivedMainWarehouseBalanceKg),
           /** 🚚 كمية وقيمة البضاعة التي ما زالت رسمياً على الطريق. */
           inTransitKg: inTransitKg.toFixed(2),

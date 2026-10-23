@@ -1,0 +1,30 @@
+{
+  "id": "R33-B07-neoleap-config",
+  "at": "2026-10-23T13:22:04.385Z",
+  "method": "PUT",
+  "path": "/payment-gateways/neoleap",
+  "status": 200,
+  "request": {
+    "active": true,
+    "simulation": true,
+    "merchantKey": "R33-TRANPORTAL",
+    "merchantSecret": "***",
+    "currency": "SAR"
+  },
+  "response": {
+    "provider": "neoleap",
+    "labelAr": "NeoLeap",
+    "active": true,
+    "printReceipt": false,
+    "port": null,
+    "baseUrl": "",
+    "currency": "SAR",
+    "merchantKey": "R33-TRANPORTAL",
+    "hasSecret": "***",
+    "secretMasked": "***",
+    "callbackUrl": "",
+    "simulation": true,
+    "lastTest": null,
+    "updatedAt": "2026-10-23T13:22:05.033Z"
+  }
+}

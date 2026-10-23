@@ -1781,28 +1781,60 @@ export class InventoryService {
             costing: 'returnAtOriginalCost',
           });
         } else if (input.mode === 'shortage') {
-          // UI-026 + ACC-169 (R32): the shortage is a real stock movement out of the receiving
-          // warehouse. It goes through `recordInTx` like every other movement so `stock_balances`
-          // and the valuation move together with the transaction row (a bare INSERT left a ghost
-          // kilogram in the van balance while the ledger had already been relieved).
-          movements.push({
-            itemId: line.itemId,
-            warehouseId: transfer.toWarehouseId,
-            qty: outstanding.toFixed(4),
-            unitId: line.unitId ?? undefined,
-            unitCost: line.unitCost ?? '0',
-            direction: 'out',
-            docType: 'stock_transfer_shortage',
-            docId: transferId,
-            lineId: newId(),
-            lotId: line.lotId ?? undefined,
-            costing: 'outAtOriginalCost',
-          });
+          /**
+           * UI-026 + ACC-169 (R32/R33): the missing quantity never reached the receiving
+           * warehouse (only the received part was booked by `receiveTransfer`), so the shortage
+           * must not be taken OUT of a balance it was never IN. It is booked as the arrival of the
+           * outstanding quantity immediately followed by its write-off — both through
+           * `recordInTx` — so the movement ledger shows the full sent quantity and the loss, the
+           * warehouse balance nets to zero, and Σ movements = `stock_balances` again. A bare INSERT
+           * of a single `out` row used to leave the ledger one kilogram below the balance.
+           */
+          const shortageCost = line.unitCost ?? '0';
+          movements.push(
+            {
+              itemId: line.itemId,
+              warehouseId: transfer.toWarehouseId,
+              qty: outstanding.toFixed(4),
+              unitId: line.unitId ?? undefined,
+              unitCost: shortageCost,
+              direction: 'in',
+              docType: 'stock_transfer_shortage',
+              docId: transferId,
+              lineId: newId(),
+              lotId: line.lotId ?? undefined,
+              costing: 'inWithCost',
+            },
+            {
+              itemId: line.itemId,
+              warehouseId: transfer.toWarehouseId,
+              qty: outstanding.toFixed(4),
+              unitId: line.unitId ?? undefined,
+              unitCost: shortageCost,
+              direction: 'out',
+              docType: 'stock_transfer_shortage',
+              docId: transferId,
+              lineId: newId(),
+              lotId: line.lotId ?? undefined,
+              costing: 'outAtOriginalCost',
+            },
+          );
         }
         serialIds.push(...(line.serialIds ?? []));
       }
 
       if (movements.length) await this.recordInTx(tx, tenantId, movements, { allowNegative: true });
+      /**
+       * ACC-175 (R33): closing settles the *whole* remainder of the transfer, so the journal
+       * clears exactly what is still sitting on «بضاعة تحت التحويل» — sent value minus the value
+       * already received — instead of quantity × a unit cost rounded to four places. The
+       * difference is a fraction of a halalah per transfer, but it never left the in-transit
+       * account and accumulated there (0.0003 after three transfers on the audit tenant).
+       */
+      const sentValue = await this.valueOfMovements(tx, tenantId, transferId, 'stock_transfer');
+      const receivedValue = await this.valueOfMovements(tx, tenantId, transferId, 'stock_transfer_receipt');
+      const transitRemainder = sentValue.minus(receivedValue);
+      if (transitRemainder.gt(0) && transitRemainder.minus(value).abs().lt('0.01')) value = transitRemainder;
       if (input.mode === 'return' && serialIds.length) {
         await this.transitionSerialsInTx(
           tx,

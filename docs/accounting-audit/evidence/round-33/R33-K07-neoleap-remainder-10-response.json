@@ -1,0 +1,20 @@
+{
+  "id": "R33-K07-neoleap-remainder-10",
+  "at": "2026-10-23T13:21:14.139Z",
+  "method": "POST",
+  "path": "/payment-gateways/neoleap/sale",
+  "status": 404,
+  "request": {
+    "amount": "6.50",
+    "invoiceId": "01a168ec-2fd0-73b2-b863-03f5b54e74da",
+    "reference": "R33-NL-REM-6.50-10"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 404,
+    "code": "PAYMENT_GATEWAY_NOT_CONFIGURED",
+    "detail": "لم تُضبط بوابة NeoLeap — افتح «💳 إعدادات البوابة» واحفظ الإعدادات.",
+    "traceId": "01a168ec-399c-75b4-bcd8-5d150f03d727"
+  }
+}
