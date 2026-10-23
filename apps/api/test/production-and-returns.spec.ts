@@ -58,6 +58,7 @@ describe('production orders and contracting returns', () => {
         'sales.invoice.post',
         'accounting.period.close',
         'sales.adjustment.create',
+        'accounting.account.manage',
       ],
     });
 
@@ -173,6 +174,16 @@ describe('production orders and contracting returns', () => {
     expect(early.status).toBe(409);
     expect(code(early)).toBe('PROGRESS_BILL_INVALID_STATE');
 
+    // R33 P-M18: a bill that withholds retention needs a «محتجزات لدى العملاء» account (1232*); without one the
+    // posting is refused instead of parking the retained share on the AR account.
+    const refused = await api(ctx.server, 'post', `/api/v1/projects/progress-bills/${billId}/post`, { token: actor.token, body: { branchId } });
+    expect(refused.status).toBe(422);
+    expect(code(refused)).toBe('RETENTION_ACCOUNT_REQUIRED');
+    const retentionAccount = await api(ctx.server, 'post', '/api/v1/accounts', {
+      token: actor.token,
+      body: { code: '12320001', nameAr: 'محتجزات لدى العملاء', nameEn: 'Retention receivable', type: 'asset', isPostable: true },
+    });
+    expect(retentionAccount.status, JSON.stringify(retentionAccount.body)).toBe(201);
     const postedBill = await api(ctx.server, 'post', `/api/v1/projects/progress-bills/${billId}/post`, { token: actor.token, body: { branchId } });
     expect(postedBill.status, JSON.stringify(postedBill.body)).toBe(201);
 
@@ -196,7 +207,8 @@ describe('production orders and contracting returns', () => {
 
     const notes = await api(ctx.server, 'get', '/api/v1/sales/adjustment-notes?kind=credit', { token: actor.token });
     const note = ((notes.body.data ?? notes.body) as Array<{ id: string; status: string; amount: string }>).find((row) => row.id === body(postedReturn).creditNoteId);
-    expect(note?.status).toBe('draft');
+    // R33 ACC-065: posting the return posts its credit note too (the ledger reverses the returned work at once).
+    expect(note?.status).toBe('posted');
     expect(Number(note?.amount)).toBe(9000);
 
     // A cancelled return releases the value it was holding for re-billing.

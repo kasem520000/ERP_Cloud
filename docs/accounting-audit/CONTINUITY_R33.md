@@ -11,6 +11,13 @@
 - **vitest الكامل على `02ea39f`:** 534 ملفاً / 2038 اختباراً — **2012 ✓ / 1 ✗ / 25 معلّق** (الأساس `0a9dc57`: 46 ✗)؛ الفشل الوحيد (`ai-help` لقطة التنقل) أُصلح في `b307d21` → المتوقَّع الآن **0 فشل**. فرز الـ38 فشلاً القديم مكتمل (§6).
 - **vitest الكامل على `b307d21`:** 2013 ✓ / 0 ✗ / 25 معلّق (`R33-vitest-full-b307d21.json`) — ثم تبيّن أن الـ25 ملفات محجوبة؛ بعد `d4e48ed` الملفات الثلاثة خضراء (25/25) + 4 اختبارات جديدة → **التشغيل الختامي على `d4e48ed`+: **536 ملفاً / 2042 اختباراً — 2042 ✓ / 0 ✗ / 0 معلّق (exit 0؛ `evidence/round-33/R33-vitest-full-final.json`)****.
 
+### 1.ب — المرحلة 2 (إعادة التحقق الحيّة من الـ153 + الإصلاحات) — **مكتملة في `ROUND_33_RESULTS.md`**
+- probe6 RUN 37 (59/59)، probe7 RUN 43 (43/43)، probe8 RUN 48 (37/37)، probe9 RUN 51 (21/21 + AB02 RUN 49) — 93 معرّفاً FIXED-VERIFIED حياً؛ 38 CODE-VERIFIED؛ 10 بلا تحقق (UI تحتاج متصفحاً: UI-005/006/040/047/048/049/051 + ACC-021، وUI-020/025 تحسينات).
+- إصلاحات الكود: `8a7864f` (ACC-186/187)، `d54bfd4` (ACC-063/071/115/116/129 + UI-021/042)، `b975f6c` (117)، `63052fe` (107/108/041 — P-M17)، `1151344`/`eea7565` (072/060 — P-M16)، `0d8c48d` (056/065/119 — P-M18)، `46054a9` (057/065/140). السياسات §4.14–4.30 في `REMEDIATION_R33.md`.
+- فاحص `round33-probe9.cjs`: يعيد استخدام فرع قائم عند 409 حد الفروع؛ AB02 يُتوقع «skipped» بعد أول تشغيل لأن 12320001 موجود؛ AB07 يقيس «الدخل المعكوس» (مردودات + إيراد) وAB08 يقيس 12320001 نسبياً.
+- **بذرة 15:** DB `pgdata-r33`، tenant `01a16a85-7afb-710e-94c5-718cb1afc4ba`، آخر RUN **51** → التالي 52. الحسابان `1232`/`12320001` موجودان (أنشأهما probe9 RUN 49 عبر API).
+- vitest الكامل على `e2c5a2e` يعمل عند كتابة هذا (`/tmp/vitest-r33-full-e2c5a2e.json`) — انسخ الناتج إلى `evidence/round-33/R33-vitest-full-e2c5a2e.json` وحدّث `ROUND_33_RESULTS.md` §6.
+
 ## 2. البيئة (التهيئة 13 — بذرة 13؛ bootstrap RUN 34) — إعادة البناء عند الحاجة (~4 دقائق)
 1. العلامة أن البيئة أُعيدت تهيئتها: `git log -1` = `54171c6` و`git status` يُظهر `?? docs/accounting-audit/` ولا يوجد `/home/user/.bin` ولا `.env`.
 2. الوصفة: `git fetch origin +refs/heads/arena/0e400dd3-erp-cloud:refs/remotes/origin/arena/0e400dd3-erp-cloud && rm -rf docs/accounting-audit && git reset --hard origin/arena/0e400dd3-erp-cloud` → `mkdir -p /home/user/.bin /home/user/.corepack; COREPACK_HOME=/home/user/.corepack corepack enable --install-directory /home/user/.bin; corepack prepare pnpm@9.15.0 --activate` → `export PATH=/home/user/.bin:$PATH COREPACK_HOME=/home/user/.corepack` → `pnpm install --frozen-lockfile` → `pnpm -r --filter "./packages/*" build` → `node scripts/setup-env.mjs` → `sed -i 's/^DEMO_TENANT_NAME=.*/DEMO_TENANT_NAME=AUDIT-TEST-2026-R24/' .env` (قبل البذرة فيأخذه الـseed) → start_process `DB_LOCAL_PERSIST=true DB_LOCAL_DATA_DIR=/home/user/.pgdata-r33 node scripts/local-db.mjs` → `pnpm db:migrate` (143) → `pnpm db:seed` → `cd apps/api && pnpm build` → start_process `node dist/main.js` → `R33_RUN=NN … round33-bootstrap.cjs`.
@@ -33,7 +40,7 @@
 ## 5. الخطوات التالية المقترحة (بالترتيب)
 1. ~~فرز الـ38 فشلاً القديم~~ ✅ (§6). ~~فاحص حي لـACC-177/178/180~~ ✅ (`round33-probe4.cjs`).
 2. ~~تشغيل vitest كامل على `b307d21`~~ ✅ 2013/0/25 → ~~فرز الـ25 المعلّقة~~ ✅ (3 ملفات محجوبة → ACC-182…185 + fixtures) → التشغيل الختامي على `d4e48ed`+ (النتيجة في §1).
-3. جولة تحقق للـ153 معرّفاً NOT-RETESTED (7 صارت FIXED-VERIFIED-R33 في `ROUND_32_VERDICTS.md`) (أولوية: التصنيع/الأصول/التقارير التفصيلية؛ الخياطة والمقاولات غطّتها اختبارات R33).
+3. ~~جولة تحقق للـ153 معرّفاً NOT-RETESTED~~ ✅ (`ROUND_33_RESULTS.md` §2) — بقي 10 بنود UI بصرية. (7 صارت FIXED-VERIFIED-R33 في `ROUND_32_VERDICTS.md`) (أولوية: التصنيع/الأصول/التقارير التفصيلية؛ الخياطة والمقاولات غطّتها اختبارات R33).
 4. جولة UI (staff + bakery) بلقطات حقيقية للمسارات التي تغيّر سلوك API فيها (الرواتب، المناقلات النقدية، الخياطة، الأرقام التسلسلية).
 5. تنفيذ MF-45 (إلغاء مسودة مسيّر) وMF-46 (مسودة القيد اليدوي — بعد قرار المالك)؛ اقتراح MF جديد: ضريبة التفصيل كإعداد للمستأجر بدل `TAX_RATE` ثابت.
 
