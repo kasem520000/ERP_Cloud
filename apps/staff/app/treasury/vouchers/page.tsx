@@ -142,8 +142,29 @@ function VouchersScreen() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [q, setQ] = useState('');
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(BLANK);
+  /**
+   * UI-020 (R33) — فتح النموذج مملوءاً من شاشة أخرى (التسوية البنكية: سطر رسوم بنكية مُتجاهَل →
+   * «سند مصروف»): `?open=1&subtype=expense&amount=…&date=…&description=…&method=bank_transfer&cashLocationId=…`.
+   * القيم تُقرأ مرة واحدة عند الفتح؛ الحفظ يمرّ بالمسار المعتاد (مسودة ثم ترحيل) بلا أي اختصار.
+   */
+  const prefill = useMemo(() => {
+    if (searchParams.get('open') !== '1') return null;
+    const subtype = searchParams.get('subtype') ?? '';
+    const amount = searchParams.get('amount') ?? '';
+    return {
+      ...BLANK,
+      subtype: subtype || BLANK.subtype,
+      date: searchParams.get('date') || today(),
+      description: searchParams.get('description') ?? '',
+      method: searchParams.get('method') || BLANK.method,
+      cashLocationId: searchParams.get('cashLocationId') ?? '',
+      amountText: amount && Number.isFinite(Number(amount)) ? Math.abs(Number(amount)).toFixed(2) : '',
+      referenceNo: searchParams.get('reference') ?? '',
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [open, setOpen] = useState(prefill !== null);
+  const [form, setForm] = useState(prefill ?? BLANK);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>();
   const [docVoucherId, setDocVoucherId] = useState<string | null>(highlightedId ?? null);

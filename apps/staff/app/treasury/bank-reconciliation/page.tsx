@@ -9,11 +9,11 @@ import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { DocField, DocHead, FilterBar, StatTile, StatTiles } from '../../../components/ui';
 import { apiData, apiDelete, apiErrorText, apiList, apiPost } from '../../../lib/api';
-import { today } from '../../../lib/lookups';
+import { listCashLocations, today, type CashLocation } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
-type BankAccount = { id: string; bankName: string; accountNo: string | null; iban: string | null };
+type BankAccount = { id: string; bankName: string; accountNo: string | null; iban: string | null; accountId?: string | null };
 type BankStatement = {
   id: string;
   bankAccountId: string;
@@ -69,6 +69,31 @@ export default function BankReconciliationPage() {
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger'; text: string }>();
 
   const accounts = useQuery<BankAccount[]>(() => apiList<BankAccount>('/treasury/bank-accounts'), []);
+  /**
+   * UI-020 (R33) — سطر مدين في الكشف لا يقابله مستند (رسوم بنكية، عمولة) لا يُكتفى بتجاهله: زر
+   * «سند مصروف» يفتح شاشة السندات مملوءةً (المبلغ، التاريخ، البيان، تحويل بنكي من موقع النقد
+   * المرتبط بحساب هذا البنك) ليُثبَت المصروف في الأستاذ ثم يُطابَق السطر به. موقع النقد يُستدل
+   * من حساب الأستاذ للبنك (`bank_accounts.account_id` = `cash_locations.account_id`).
+   */
+  const cashLocations = useQuery<CashLocation[]>(() => listCashLocations(), []);
+  const selectedBank = (accounts.data ?? []).find((row) => row.id === bankAccountId);
+  const bankCashLocation = selectedBank?.accountId
+    ? (cashLocations.data ?? []).find((loc) => loc.accountId === selectedBank.accountId)
+    : undefined;
+  const expenseVoucherHref = (row: BankLine) => {
+    const query = new URLSearchParams({
+      kind: 'payment',
+      open: '1',
+      subtype: 'expense',
+      amount: Math.abs(Number(row.amount)).toFixed(2),
+      date: row.txnDate,
+      description: row.description || 'رسوم بنكية',
+      method: 'bank_transfer',
+      reference: row.reference ?? '',
+    });
+    if (bankCashLocation?.id) query.set('cashLocationId', bankCashLocation.id);
+    return `/treasury/vouchers?${query.toString()}`;
+  };
   const statementQuery = useMemo(
     () =>
       bankAccountId
@@ -315,6 +340,15 @@ export default function BankReconciliationPage() {
                           >
                             تجاهل
                           </button>
+                          {Number(row.amount) < 0 && (
+                            <Link
+                              className="btn sm"
+                              href={expenseVoucherHref(row)}
+                              title="رسوم/عمولة بنكية بلا مستند: أنشئ سند مصروف بهذا المبلغ ثم طابق السطر به بدل تجاهله"
+                            >
+                              سند مصروف
+                            </Link>
+                          )}
                         </div>
                       ) : null,
                   },
