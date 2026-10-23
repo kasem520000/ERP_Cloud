@@ -174,12 +174,6 @@ describe('production orders and contracting returns', () => {
     expect(code(early)).toBe('PROGRESS_BILL_INVALID_STATE');
 
     const postedBill = await api(ctx.server, 'post', `/api/v1/projects/progress-bills/${billId}/post`, { token: actor.token, body: { branchId } });
-    const dbgProfile = await api(ctx.server, 'get', `/api/v1/branch-posting-profiles/resolve?branchId=${branchId}&docType=sales_invoice`, { token: actor.token });
-    const dbgAccounts = await api(ctx.server, 'get', '/api/v1/accounts', { token: actor.token });
-    const accs = (dbgAccounts.body.data ?? dbgAccounts.body) as Array<{ id: string; code: string; isPostable?: boolean }>;
-    const byId = new Map(accs.map((a) => [a.id, `${a.code}${a.isPostable === false ? '(G)' : ''}`]));
-    const m = ((dbgProfile.body.data ?? dbgProfile.body) as { mapping?: Record<string, unknown> }).mapping ?? {};
-    console.log('DEBUG profile', dbgProfile.status, JSON.stringify(Object.fromEntries(Object.entries(m).map(([k, v]) => [k, byId.get(String(v)) ?? v]))));
     expect(postedBill.status, JSON.stringify(postedBill.body)).toBe(201);
 
     const tooMuch = await api(ctx.server, 'post', '/api/v1/contracting/returns', { token: actor.token, body: { billId, reason: 'قياس خاطئ', lines: [{ termId, returnValue: '70000' }] } });

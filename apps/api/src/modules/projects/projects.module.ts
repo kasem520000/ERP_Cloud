@@ -12,11 +12,12 @@ import { ContractingReturnsService } from './contracting-returns.service.js';
 import { ContractingService } from './contracting.service.js';
 import { ProjectKanbanController } from './project-kanban.controller.js';
 import { ProjectKanbanService } from './project-kanban.service.js';
+import { OrganizationModule } from '../organization/organization.module.js';
 import { ProjectsController } from './projects.controller.js';
 import { ProjectsService } from './projects.service.js';
 
 @Module({
-  imports: [DatabaseModule, PlatformServicesModule, SalesModule, TreasuryModule, AccountingModule],
+  imports: [DatabaseModule, PlatformServicesModule, SalesModule, TreasuryModule, AccountingModule, OrganizationModule],
   controllers: [ProjectKanbanController, ProjectsController, ContractingController, ContractingReturnsController],
   providers: [ProjectsService, ProjectKanbanService, ContractingService, ContractingReturnsService],
   exports: [ProjectsService, ProjectKanbanService, ContractingService, ContractingReturnsService],

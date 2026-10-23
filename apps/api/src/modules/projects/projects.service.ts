@@ -9,6 +9,7 @@ import { isUniqueViolation } from '../organization/shared/org-support.js';
 import { SequencesService } from '../platform-services/index.js';
 import { SalesService } from '../sales/sales.service.js';
 import { AccountingService } from '../accounting/accounting.service.js';
+import { PostingProfilesService } from '../organization/posting-profiles/posting-profiles.service.js';
 
 import { computeProgressBill } from './progress-bill-calculator.js';
 
@@ -23,6 +24,7 @@ export class ProjectsService {
     private readonly sequences: SequencesService,
     private readonly sales: SalesService,
     private readonly accounting: AccountingService,
+    private readonly profiles: PostingProfilesService,
   ) {}
   async ensureEnabled(tenantId: string) { const [flag] = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(tenantSettings).where(and(eq(tenantSettings.tenantId, tenantId), eq(tenantSettings.key, 'pack.projects'))).limit(1)); if (flag && flag.value !== true && flag.value !== 'true') throw new DomainError('NOT_FOUND', 'Projects pack is disabled for this tenant', 404); }
   async list(tenantId: string) { await this.ensureEnabled(tenantId); return { data: await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(projects).where(and(eq(projects.tenantId, tenantId), isNull(projects.deletedAt))).orderBy(desc(projects.createdAt))) }; }
@@ -261,7 +263,9 @@ export class ProjectsService {
       ],
     });
 
-    // ACC-056: توجيه المحتجز لحساب محتجزات مستقل إن لم يُمرر صراحة
+    // ACC-056: توجيه المحتجز لحساب محتجزات مستقل إن لم يُمرر صراحة.
+    // R33 (ACC-170): الحسابات المستنتجة بالاسم/الكود تُقصر على **القابلة للترحيل** وتُرتَّب بالكود — كان
+    // `LIKE '%محتجز%'` بلا شرط يلتقط حساباً رئيسياً فيُرفض الترحيل (`ACCOUNT_NOT_POSTABLE`).
     let retentionAccountId = input.retentionReceivableAccountId;
     if (!retentionAccountId && new Decimal(bill.retentionValue).gt(0)) {
       const [retAcc] = await withTenantTx(this.database.db, tenantId, (tx) =>
@@ -272,10 +276,12 @@ export class ProjectsService {
             and(
               eq(accounts.tenantId, tenantId),
               eq(accounts.type, 'asset'),
+              eq(accounts.isPostable, true),
               or(sql`${accounts.code} LIKE '1232%'`, sql`${accounts.nameAr} LIKE '%محتجز%'`),
               isNull(accounts.deletedAt),
             ),
           )
+          .orderBy(asc(accounts.code))
           .limit(1),
       );
       if (retAcc) retentionAccountId = retAcc.id;
@@ -285,9 +291,21 @@ export class ProjectsService {
     const fiscalPeriodId =
       input.fiscalPeriodId ?? (await this.accounting.openPeriodForDate(tenantId, today));
 
-    // Resolve receivable and revenue accounts if not provided
+    // Resolve receivable and revenue accounts if not provided.
+    // R33 (ACC-170): the branch posting profile is the source of truth (`receivableAccountId` /
+    // `salesAccountId` — the same accounts a plain sales invoice posts to). The old name/code guess
+    // (`LIKE '%عملاء%'`, `LIKE '%إيراد%'`, no ordering) landed on the «123»/«4» *headers*, which
+    // the ledger now refuses; it survives only as a last resort, restricted to postable leaves.
     let receivableAccountId = input.receivableAccountId;
     let revenueAccountId = input.revenueAccountId;
+    if (!receivableAccountId || !revenueAccountId) {
+      const mapping = await this.profiles
+        .resolvePostProfile(tenantId, branchId, 'sales_invoice')
+        .then((profile) => profile.mapping as unknown as Record<string, string | null | undefined>)
+        .catch(() => ({}) as Record<string, string | null | undefined>);
+      receivableAccountId = receivableAccountId ?? mapping.receivableAccountId ?? undefined;
+      revenueAccountId = revenueAccountId ?? mapping.salesAccountId ?? undefined;
+    }
     if (!receivableAccountId || !revenueAccountId) {
       const [arAcc] = await withTenantTx(this.database.db, tenantId, (tx) =>
         tx
@@ -297,10 +315,12 @@ export class ProjectsService {
             and(
               eq(accounts.tenantId, tenantId),
               eq(accounts.type, 'asset'),
+              eq(accounts.isPostable, true),
               or(sql`${accounts.code} LIKE '1231%'`, sql`${accounts.nameAr} LIKE '%عملاء%'`),
               isNull(accounts.deletedAt),
             ),
           )
+          .orderBy(asc(accounts.code))
           .limit(1),
       );
       const [revAcc] = await withTenantTx(this.database.db, tenantId, (tx) =>
@@ -311,10 +331,12 @@ export class ProjectsService {
             and(
               eq(accounts.tenantId, tenantId),
               eq(accounts.type, 'revenue'),
+              eq(accounts.isPostable, true),
               or(sql`${accounts.code} LIKE '41%'`, sql`${accounts.nameAr} LIKE '%إيراد%'`),
               isNull(accounts.deletedAt),
             ),
           )
+          .orderBy(asc(accounts.code))
           .limit(1),
       );
       receivableAccountId = receivableAccountId ?? arAcc?.id;
