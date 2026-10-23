@@ -524,3 +524,14 @@ R17-manifest.json يفهرس 258 ملفاً (لا يشمل نفسه)، نحو 24
 | Block I (`i/`) | `R32-I01-item`, `R32-I02-item-unit-box`, `R32-I03-stockin-2box`, `R32-I04-stockin-post`, `R32-I05-stockin-void`, `R32-I-results.json` (12 فحصاً) | **ACC-016 مُصلَح** (JE-000045/046) | `R32-DB-I01…I02` |
 | Block J (`j/`) | `R32-J00-resolve-receipt-profile`, `R32-J01-cheque-receipt-create`, `R32-J02-cheque-post-unmapped` (422)، `R32-J03-profile-map-cheques-in-hand`، `R32-J04-cheque-post-mapped`، `R32-J05-cheque-bounce`، `R32-J06-party-statement`، `R32-J07-cheque-bounce-again`، `R32-J08-profile-list/delete`، `R32-J-results.json` (14 فحصاً) | **ACC-010/011 مُصلَحان** (JE-000047/048) | `R32-DB-J01…J02` |
 | سكربتات | `scripts/round32-lib.cjs`, `round32-blockA.cjs`, `round32-blockH.cjs`, `round32-blockI.cjs`, `round32-blockJ.cjs`, `round32-r29-check.py`, `round32-r30-check.py`, `round32-verdicts.py`, `round32-coverage-compare.py` | — | — |
+
+## الجولة 33 — `evidence/round-33/` (≈880 ملفاً، ~265 MB؛ تفصيل المراحل في REMEDIATION_R33.md §1–§2 وCONTINUITY_R33.md)
+| الكتلة | المراحل والأدلة | النتيجة | لقطات DB |
+|---|---|---|---|
+| bootstrap (`round33-bootstrap.cjs`) | `R33-seed-ids.json` (معرّفات المستأجر المعزول لكل بذرة)، `R33-B*-<run>-response.json` | بذرة 10/11/12 (RUN 12…20) | `R33-DB-<run>-00*` |
+| probe1 — Block K/L (`round33-probe1.cjs`) | سداد المشتريات ACC-032 (K01–K09)؛ عهدة المندوبين ACC-152/153/156/166/167/168/172/173/176/178 (L00–L17c) | **68/68** (RUN 18 بذرة 11؛ RUN 23 بذرة 12) | `R33-DB-<run>-000…010` |
+| probe2 — Block M/N/O (`round33-probe2.cjs`) | الرواتب ACC-170/174/179 (M00–M07)؛ البوابة ACC-162 (N02–N04g)؛ الإرجاع والعكس (O00–O02c) | **46/46** (RUN 19) · **42/42** (RUN 23؛ فحوص الموظفين ديناميكية) | `R33-DB-<run>-02*` |
+| probe3 — Block P/Q/R/S/T (`round33-probe3.cjs`) | المطابقة البنكية ACC-035/044/045/064 (P01–P21)؛ ACC-163 (Q)؛ ACC-120 (S)؛ ACC-164/165/171 (R/T) | **48/48** (RUN 18 · RUN 23) | `R33-DB-<run>-020…03*` |
+| probe4 — Block U (`round33-probe4.cjs`) | ACC-178 دفعة بلا `batchNo` → تحميل → بيع (U01–U08)؛ ACC-180 بطاقة على عميل نقدي (U10–U16)؛ ACC-177 ترحيل مستخلص (U20–U26) | **22/22** (RUN 21 + RUN 22) | `R33-DB-21-040…043`, `R33-DB-22-040/042` |
+| vitest | `R33-vitest-full-02ea39f.json` (ملخص التشغيل الكامل: 534 ملفاً، 2012 ✓ / 1 ✗ / 25 معلّق) | الفشل الوحيد أُصلح في `b307d21` | — |
+| سكربتات | `scripts/round33-bootstrap.cjs`, `round33-probe1.cjs`, `round33-probe2.cjs`, `round33-probe3.cjs`, `round33-probe4.cjs` (تعتمد `round32-lib.cjs`) | — | — |
