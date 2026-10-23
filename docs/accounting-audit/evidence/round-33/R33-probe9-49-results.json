@@ -1,0 +1,436 @@
+[
+  {
+    "id": "AA01",
+    "title": "van fixtures: batch 10 kg, load order 6 kg confirmed",
+    "expected": [
+      true,
+      201,
+      true
+    ],
+    "actual": [
+      false,
+      201,
+      true
+    ],
+    "ok": false,
+    "note": "VAN_PRODUCTION_INPUT_REQUIRED   VLO-0001"
+  },
+  {
+    "id": "AA02",
+    "title": "ACC-087 GET /van-sales/load-orders/:id reads one load order (was 404)",
+    "expected": [
+      200,
+      "01a16aba-2dd6-726a-9c18-c9b8ce022afe"
+    ],
+    "actual": [
+      200,
+      "01a16aba-2dd6-726a-9c18-c9b8ce022afe"
+    ],
+    "ok": true,
+    "note": "keys=id,tenant_id,branch_id,warehouse_id,salesman_id,number,load_date,batch_code"
+  },
+  {
+    "id": "AA03",
+    "title": "cash sale 2 kg + credit sale 2 kg → expected_cash 11.50 (the cash sale only)",
+    "expected": [
+      201,
+      201,
+      "11.50"
+    ],
+    "actual": [
+      201,
+      201,
+      "11.50"
+    ],
+    "ok": true,
+    "note": " "
+  },
+  {
+    "id": "AA04",
+    "title": "ACC-078 a return from the CREDIT sale leaves expected_cash at 11.50 (was deducted → phantom surplus) and counts in customer_returned_qty",
+    "expected": [
+      201,
+      "11.50",
+      "1.00"
+    ],
+    "actual": [
+      201,
+      "11.50",
+      "1.00"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "AA05",
+    "title": "ACC-081/154 the return document total is GROSS (5.75) and equals the posted credit note SR total",
+    "expected": [
+      true,
+      true
+    ],
+    "actual": [
+      true,
+      true
+    ],
+    "ok": true,
+    "note": "doc={\"number\":\"VRT-00001\",\"subtotal\":\"5.0000\",\"tax_total\":\"0.7500\",\"total\":\"5.7500\",\"sr_number\":\"SR-000006\",\"sr_total\":\"5.7500\",\"sr_subtotal\":\"5.0000\"}"
+  },
+  {
+    "id": "AA06",
+    "title": "ACC-077 the honest closing (3 returned = physical) is accepted with shortage 0 and cash 11.50 = expected",
+    "expected": [
+      true,
+      true,
+      "0.00",
+      "11.50"
+    ],
+    "actual": [
+      true,
+      true,
+      "0.00",
+      "11.50"
+    ],
+    "ok": true,
+    "note": "201  / 201  status=settled"
+  },
+  {
+    "id": "AA07",
+    "title": "ACC-086 «المتبقي في السيارات» = the van warehouses' book balance (not the order arithmetic)",
+    "expected": [
+      200,
+      true
+    ],
+    "actual": [
+      200,
+      true
+    ],
+    "ok": true,
+    "note": "remaining=0.00 vanBook=0.00 stock_balances=0.0000"
+  },
+  {
+    "id": "AB01",
+    "title": "fixtures: cost centre CC9, project PRJ9 (retention 10 %), BOQ T1 1 × 100, bill 50 % → work 50 / retention 5 / net 45 draft",
+    "expected": [
+      201,
+      201,
+      201,
+      201,
+      "50.00",
+      "5.00",
+      "45.00"
+    ],
+    "actual": [
+      201,
+      201,
+      201,
+      201,
+      "50.00",
+      "5.00",
+      "45.00"
+    ],
+    "ok": true,
+    "note": "T1 PB-000001"
+  },
+  {
+    "id": "AB02",
+    "title": "ACC-056 / P-M18 posting a bill that retains money with no «محتجزات لدى العملاء» account → 422 RETENTION_ACCOUNT_REQUIRED (first run only)",
+    "expected": [
+      422,
+      "RETENTION_ACCOUNT_REQUIRED"
+    ],
+    "actual": [
+      422,
+      "RETENTION_ACCOUNT_REQUIRED"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "AB03",
+    "title": "chart: 1232 (header) + 12320001 (postable) «محتجزات لدى العملاء» created under 123",
+    "expected": [
+      201,
+      201
+    ],
+    "actual": [
+      201,
+      201
+    ],
+    "ok": true,
+    "note": " "
+  },
+  {
+    "id": "AB04",
+    "title": "ACC-056 bill posted: invoice 45, journal Dr AR 45 + Dr 12320001 5 / Cr revenue 50 (retention on its own account, not on AR)",
+    "expected": [
+      201,
+      "posted",
+      "45.00",
+      "45.00",
+      "5.00",
+      "50.00",
+      "45.00",
+      "5.00",
+      "50.00"
+    ],
+    "actual": [
+      201,
+      "posted",
+      "45.00",
+      "45.00",
+      "5.00",
+      "50.00",
+      "45.00",
+      "5.00",
+      "50.00"
+    ],
+    "ok": true,
+    "note": " je=JE-000078 inv=SI-000023"
+  },
+  {
+    "id": "AB05",
+    "title": "ACC-059 every line of the bill journal carries the project cost centre CC9",
+    "expected": [
+      true,
+      3
+    ],
+    "actual": [
+      true,
+      3
+    ],
+    "ok": true,
+    "note": "cc=[[\"12310001\",true],[\"12320001\",true],[\"4100001\",true]]"
+  },
+  {
+    "id": "AB06",
+    "title": "ACC-065 return 10 → net 9 / retention 1; posting it posts the credit note (SCN number, posted) and Cr AR 9 with NO VAT (bill invoice is tax-free)",
+    "expected": [
+      201,
+      "9.00",
+      "1.00",
+      201,
+      "posted",
+      true,
+      "posted",
+      "9.00",
+      true,
+      "9.00"
+    ],
+    "actual": [
+      201,
+      "9.00",
+      "1.00",
+      500,
+      "draft",
+      false,
+      null,
+      null,
+      false,
+      "0.00"
+    ],
+    "ok": false,
+    "note": "INTERNAL note={} je=null"
+  },
+  {
+    "id": "AB07",
+    "title": "ACC-065 the retained share is reversed too: journal Dr revenue 1 / Cr 12320001 1 with CC9; bill retention 5 → 4; term previously_billed 50 → 40; revenue down 10 in total",
+    "expected": [
+      "1.00",
+      "1.00",
+      true,
+      "4.00",
+      "40.00",
+      "10.00"
+    ],
+    "actual": [
+      null,
+      null,
+      false,
+      "5.00",
+      "50.00",
+      "0.00"
+    ],
+    "ok": false,
+    "note": "je=undefined undefined"
+  },
+  {
+    "id": "AB08",
+    "title": "ACC-057 releasing the (reduced) retention: invoice 4, journal Dr AR 4 / Cr 12320001 4, revenue untouched, 12320001 for the customer back to 0",
+    "expected": [
+      201,
+      "4.00",
+      "4.00",
+      "4.00",
+      null,
+      "0.00",
+      "0.00"
+    ],
+    "actual": [
+      422,
+      null,
+      null,
+      null,
+      null,
+      "0.00",
+      "5.00"
+    ],
+    "ok": false,
+    "note": "ACCOUNT_NOT_POSTABLE relInvId= inv=undefined je=null"
+  },
+  {
+    "id": "AC01",
+    "title": "ACC-052 two concurrent syncs of the same offlineId → both 201 (no 500), one queue row, one invoice, both report synced",
+    "expected": [
+      201,
+      201,
+      1,
+      1,
+      [
+        "synced",
+        "synced"
+      ]
+    ],
+    "actual": [
+      201,
+      201,
+      1,
+      1,
+      [
+        "synced",
+        "synced"
+      ]
+    ],
+    "ok": true,
+    "note": "  q=[{\"status\":\"synced\",\"invoice_id\":\"01a16aba-6e9d-75e5-9127-44c9a2e36d79\",\"error_code\":null,\"sequence_no\":1}]"
+  },
+  {
+    "id": "AC02",
+    "title": "ACC-145 re-sending a SYNCED offlineId with another sequenceNo → conflict POS_OFFLINE_ID_SEQUENCE_MISMATCH (not «synced»), still one invoice",
+    "expected": [
+      201,
+      "conflict",
+      "POS_OFFLINE_ID_SEQUENCE_MISMATCH",
+      1
+    ],
+    "actual": [
+      201,
+      "conflict",
+      "POS_OFFLINE_ID_SEQUENCE_MISMATCH",
+      1
+    ],
+    "ok": true,
+    "note": "{\"offlineId\":\"R33-P9-OFF-49-1\",\"sequenceNo\":7,\"status\":\"conflict\",\"errorCode\":\"POS_OFFLINE_ID_SEQUENCE_MISMATCH\",\"message\":\"The same offlineId was submitted with another sequence number\",\"resolution\":"
+  },
+  {
+    "id": "AC03",
+    "title": "ACC-146 a conflict row (stock shortage) that is retried successfully ends synced with error_code cleared",
+    "expected": [
+      201,
+      "conflict",
+      true,
+      201,
+      "synced",
+      null,
+      true
+    ],
+    "actual": [
+      201,
+      "conflict",
+      true,
+      201,
+      "synced",
+      null,
+      true
+    ],
+    "ok": true,
+    "note": "first={\"status\":\"conflict\",\"error_code\":\"STOCK_INSUFFICIENT\"} retry={\"status\":\"synced\",\"error_code\":null,\"invoice_id\":\"01a16aba-786a-72f5-8551-e609d41c84de\"}"
+  },
+  {
+    "id": "AD01",
+    "title": "ACC-091 apply-restore of a fresh backup: tenant_settings restores without error (rows = skipped), no table error, inserted + skipped = rows everywhere, nothing unresolved, 0 inserted",
+    "expected": [
+      201,
+      true,
+      true,
+      [],
+      [],
+      0,
+      0
+    ],
+    "actual": [
+      201,
+      true,
+      true,
+      [],
+      [],
+      0,
+      0
+    ],
+    "ok": true,
+    "note": " tenant_settings={\"rows\":21,\"skipped\":21,\"inserted\":0} tables=74 skippedRows=999 totalRows=999"
+  },
+  {
+    "id": "AE01",
+    "title": "ACC-119 the zero-tax sale (20) sits in «بنسبة صفرية / معفاة» of vat-return — NOT in the taxable base — and both reports agree on it and on the taxed VAT",
+    "expected": [
+      201,
+      200,
+      200,
+      true,
+      true,
+      true,
+      true
+    ],
+    "actual": [
+      201,
+      200,
+      200,
+      true,
+      true,
+      true,
+      true
+    ],
+    "ok": true,
+    "note": " taxable={\"bucket\":\"مبيعات خاضعة\",\"base\":\"589.6400\",\"vat\":\"89.0000\"} zero={\"bucket\":\"مبيعات بنسبة صفرية / معفاة (بلا ضريبة)\",\"base\":\"65.0000\",\"vat\":\"0\"} returns={\"bucket\":\"مردود مبيعات\",\"base\":\"-235.0000\",\"vat\":\"-35.2500\"} line1={\"section\":\"ضريبة القيمة المضافة على المبيعات\",\"line\":\"المبيعات الخاضعة للنسبة الأساسية\",\"net\":\"354.64\",\"vat\":\"53.75\",\"s_net_vat\":\"53.75\"} line5={\"section\":\"ضريبة القيمة المضافة على المبيعات\",\"line\":\"المبيعات المعفاة\",\"net\":\"65.00\",\"vat\":\"0.00\",\"s_net_vat\":\"0.00\"}"
+  },
+  {
+    "id": "AE02",
+    "title": "ACC-140 opening balance 100 appears in the balance sheet (row + «أرصدة افتتاحية» equity line) and the sheet balances; the trial-balance report and the statement show the same 100",
+    "expected": [
+      201,
+      200,
+      "100.00",
+      true,
+      true,
+      200,
+      "100.00",
+      200,
+      true
+    ],
+    "actual": [
+      201,
+      200,
+      "100.00",
+      true,
+      true,
+      200,
+      null,
+      200,
+      false
+    ],
+    "ok": false,
+    "note": " assets=251370.91 liab+eq=251370.91 openingLine=100.0000 tbRow={} stRow={}"
+  },
+  {
+    "id": "AE03",
+    "title": "cleanup: the opening-balance test account is soft-deleted again",
+    "expected": [
+      true
+    ],
+    "actual": [
+      true
+    ],
+    "ok": true,
+    "note": "200 "
+  }
+]

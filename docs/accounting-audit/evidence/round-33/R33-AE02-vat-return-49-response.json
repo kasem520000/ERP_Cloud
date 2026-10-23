@@ -1,0 +1,84 @@
+{
+  "id": "R33-AE02-vat-return-49",
+  "at": "2026-10-23T21:46:13.609Z",
+  "method": "GET",
+  "path": "/reports/vat-return?from=2026-10-23&to=2026-10-23",
+  "status": 200,
+  "response": {
+    "key": "vat-return",
+    "titleAr": "الإقرار الضريبي",
+    "group": "accounting",
+    "hintAr": "ضريبة المخرجات من المبيعات ناقص ضريبة المدخلات من المشتريات.",
+    "chart": null,
+    "params": {
+      "from": "2026-10-23",
+      "to": "2026-10-23"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "bucket",
+        "labelAr": "البند",
+        "type": "text"
+      },
+      {
+        "key": "base",
+        "labelAr": "الوعاء",
+        "type": "money"
+      },
+      {
+        "key": "vat",
+        "labelAr": "الضريبة",
+        "type": "money"
+      }
+    ],
+    "rows": [
+      {
+        "bucket": "مبيعات خاضعة",
+        "base": "589.6400",
+        "vat": "89.0000"
+      },
+      {
+        "bucket": "مبيعات بنسبة صفرية / معفاة (بلا ضريبة)",
+        "base": "65.0000",
+        "vat": "0"
+      },
+      {
+        "bucket": "مردود مبيعات",
+        "base": "-235.0000",
+        "vat": "-35.2500"
+      },
+      {
+        "bucket": "إشعار دائن مبيعات",
+        "base": "0",
+        "vat": "0"
+      },
+      {
+        "bucket": "مشتريات خاضعة",
+        "base": "1128.3600",
+        "vat": "-169.2400"
+      },
+      {
+        "bucket": "مشتريات بلا ضريبة",
+        "base": "0",
+        "vat": "0"
+      },
+      {
+        "bucket": "مردود مشتريات",
+        "base": "-26.0000",
+        "vat": "3.9000"
+      },
+      {
+        "bucket": "إشعار مدين مشتريات",
+        "base": "0",
+        "vat": "0"
+      }
+    ],
+    "totals": {
+      "vat": "-111.59"
+    },
+    "grandTotal": [],
+    "rowCount": 8,
+    "generatedAt": "2026-10-23T21:46:14.386Z"
+  }
+}

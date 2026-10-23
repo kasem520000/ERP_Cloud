@@ -1,0 +1,47 @@
+{
+  "id": "R33-AE03-account-opening-balance-49",
+  "at": "2026-10-23T21:46:15.189Z",
+  "method": "POST",
+  "path": "/accounts",
+  "status": 201,
+  "request": {
+    "code": "1290049",
+    "nameAr": "رصيد افتتاحي اختبار R33 49",
+    "nameEn": "R33 opening 49",
+    "type": "asset",
+    "parentId": "01a16a85-7d4f-75e6-a9c7-7a51fd22b346",
+    "isPostable": true,
+    "openingBalance": "100"
+  },
+  "response": {
+    "data": {
+      "id": "01a16aba-9814-74a6-b887-17be2920fb71",
+      "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+      "code": "1290049",
+      "nameAr": "رصيد افتتاحي اختبار R33 49",
+      "nameEn": "R33 opening 49",
+      "parentId": "01a16a85-7d4f-75e6-a9c7-7a51fd22b346",
+      "level": 2,
+      "path": "01a16a85-7d4a-7271-b49f-4172a95e17f0.01a16a85-7d4f-75e6-a9c7-7a51fd22b346.01a16aba-9814-74a6-b887-17be2920fb71",
+      "type": "asset",
+      "subtype": null,
+      "normalBalance": "debit",
+      "isPostable": true,
+      "allowManual": true,
+      "branchId": null,
+      "currencyCode": null,
+      "openedAt": null,
+      "openingBalance": "100.0000",
+      "costCenterId": null,
+      "createdAt": "2026-10-23T21:46:15.956Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "deletedAt": null,
+      "deletedBy": null,
+      "legacySource": null,
+      "legacyId": null
+    }
+  }
+}

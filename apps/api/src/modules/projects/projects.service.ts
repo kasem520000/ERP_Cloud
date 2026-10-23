@@ -411,6 +411,23 @@ export class ProjectsService {
     return this.getBill(tenantId, billId);
   }
 
+  /** The AR / retention accounts a posted bill actually used (by the line descriptions `postBill` writes). */
+  private async billPostingLegs(tenantId: string, invoiceId: string): Promise<{ receivableAccountId?: string; retentionAccountId?: string }> {
+    const rows = await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const result = (await tx.execute(sql`
+        SELECT l.account_id, l.description
+        FROM journal_entry_lines l
+        JOIN journal_entries e ON e.id = l.entry_id
+        WHERE l.tenant_id = ${tenantId}::uuid AND e.source_id = ${invoiceId}::uuid AND e.status = 'posted' AND l.debit > 0
+        ORDER BY e.created_at ASC, l.line_no ASC
+      `)) as unknown as { rows?: Array<{ account_id: string; description: string | null }> };
+      return Array.isArray(result) ? (result as Array<{ account_id: string; description: string | null }>) : (result.rows ?? []);
+    });
+    const ar = rows.find((r) => (r.description ?? '').startsWith('مستخلص أعمال'));
+    const ret = rows.find((r) => (r.description ?? '').startsWith('محتجز مستخلص'));
+    return { receivableAccountId: ar?.account_id, retentionAccountId: ret?.account_id };
+  }
+
   async releaseRetention(
     tenantId: string,
     billId: string,
@@ -455,37 +472,40 @@ export class ProjectsService {
     let retentionAccountId = input.retentionReceivableAccountId;
 
     if (!receivableAccountId || !retentionAccountId) {
-      const [arAcc] = await withTenantTx(this.database.db, tenantId, (tx) =>
-        tx
-          .select({ id: accounts.id })
-          .from(accounts)
-          .where(
-            and(
-              eq(accounts.tenantId, tenantId),
-              eq(accounts.type, 'asset'),
-              or(sql`${accounts.code} LIKE '1231%'`, sql`${accounts.nameAr} LIKE '%عملاء%'`),
-              isNull(accounts.deletedAt),
-            ),
-          )
-          .limit(1),
-      );
-      const [retAcc] = await withTenantTx(this.database.db, tenantId, (tx) =>
-        tx
-          .select({ id: accounts.id })
-          .from(accounts)
-          .where(
-            and(
-              eq(accounts.tenantId, tenantId),
-              eq(accounts.type, 'asset'),
-              or(sql`${accounts.code} LIKE '1232%'`, sql`${accounts.nameAr} LIKE '%محتجز%'`),
-              isNull(accounts.deletedAt),
-            ),
-          )
-          .limit(1),
-      );
-      receivableAccountId = receivableAccountId ?? arAcc?.id;
-      retentionAccountId = retentionAccountId ?? retAcc?.id ?? receivableAccountId;
+      // ACC-057 / ACC-170 (R33): the release closes the very accounts the bill's own posting opened — read
+      // them from that journal (lines «مستخلص أعمال …» = AR, «محتجز مستخلص …» = retention). The old name/code
+      // guess (`LIKE '%عملاء%'`) landed on the «123» header and the ledger refused it (ACCOUNT_NOT_POSTABLE).
+      const legs: { receivableAccountId?: string; retentionAccountId?: string } = bill.invoiceId ? await this.billPostingLegs(tenantId, bill.invoiceId) : {};
+      if (!receivableAccountId && !legs.receivableAccountId) {
+        const mapping = await this.profiles
+          .resolvePostProfile(tenantId, branchId, 'sales_invoice')
+          .then((profile) => profile.mapping as unknown as Record<string, string | null | undefined>)
+          .catch(() => ({}) as Record<string, string | null | undefined>);
+        legs.receivableAccountId = mapping.receivableAccountId ?? undefined;
+      }
+      const [retAcc] = retentionAccountId || legs.retentionAccountId
+        ? [undefined]
+        : await withTenantTx(this.database.db, tenantId, (tx) =>
+            tx
+              .select({ id: accounts.id })
+              .from(accounts)
+              .where(
+                and(
+                  eq(accounts.tenantId, tenantId),
+                  eq(accounts.type, 'asset'),
+                  eq(accounts.isPostable, true),
+                  or(sql`${accounts.code} LIKE '1232%'`, sql`${accounts.nameAr} LIKE '%محتجز%'`),
+                  isNull(accounts.deletedAt),
+                ),
+              )
+              .orderBy(asc(accounts.code))
+              .limit(1),
+          );
+      receivableAccountId = receivableAccountId ?? legs.receivableAccountId;
+      retentionAccountId = retentionAccountId ?? legs.retentionAccountId ?? retAcc?.id ?? receivableAccountId;
     }
+    if (!receivableAccountId)
+      throw new DomainError('PROFILE_KEY_MISSING', 'لا يمكن تحديد حساب ذمم العميل لإفراج المحتجز — أكمل ملف الترحيل (receivableAccountId) أو مرّر الحساب صراحة', 422, { key: 'receivableAccountId' });
 
     const today = new Date().toISOString().slice(0, 10);
     const fiscalPeriodId =

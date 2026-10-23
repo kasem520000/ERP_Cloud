@@ -2586,7 +2586,8 @@ export class SalesService {
               fiscalPeriodId: await this.accounting.openPeriodForDateInTx(tx, tenantId, today),
               date: today,
               description: `تسوية إشعار ${note.kind === 'credit' ? 'دائن' : 'مدين'} ${allocated.display} على فاتورة ${inv.number ?? inv.id}`,
-              lines,
+              // a zero VAT leg (tax-free invoice) is not a journal line — the ledger refuses an all-zero row
+              lines: lines.filter((l) => money((l as { debit?: string }).debit ?? '0').gt(0) || money((l as { credit?: string }).credit ?? '0').gt(0)),
               sourceType: note.kind === 'credit' ? 'credit_note' : 'debit_note',
               sourceId: id,
               idempotencyKey: `sales-note-je:${id}`,

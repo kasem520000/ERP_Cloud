@@ -1,0 +1,46 @@
+{
+  "id": "R33-AB05-account-12320001-49",
+  "at": "2026-10-23T21:46:00.439Z",
+  "method": "POST",
+  "path": "/accounts",
+  "status": 201,
+  "request": {
+    "code": "12320001",
+    "nameAr": "محتجزات مستخلصات العملاء",
+    "nameEn": "Progress-bill retentions",
+    "type": "asset",
+    "parentId": "01a16aba-5b6c-703c-bf2f-7f0d36fb1121",
+    "isPostable": true
+  },
+  "response": {
+    "data": {
+      "id": "01a16aba-5e7d-74fc-9b47-2e1229e2a9d6",
+      "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+      "code": "12320001",
+      "nameAr": "محتجزات مستخلصات العملاء",
+      "nameEn": "Progress-bill retentions",
+      "parentId": "01a16aba-5b6c-703c-bf2f-7f0d36fb1121",
+      "level": 4,
+      "path": "01a16a85-7d4a-7271-b49f-4172a95e17f0.01a16a85-7d4f-75e6-a9c7-7a51fd22b346.01a16a85-7d5b-733f-98a8-1670cc0261d3.01a16aba-5b6c-703c-bf2f-7f0d36fb1121.01a16aba-5e7d-74fc-9b47-2e1229e2a9d6",
+      "type": "asset",
+      "subtype": null,
+      "normalBalance": "debit",
+      "isPostable": true,
+      "allowManual": true,
+      "branchId": null,
+      "currencyCode": null,
+      "openedAt": null,
+      "openingBalance": "0.0000",
+      "costCenterId": null,
+      "createdAt": "2026-10-23T21:46:01.213Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "deletedAt": null,
+      "deletedBy": null,
+      "legacySource": null,
+      "legacyId": null
+    }
+  }
+}

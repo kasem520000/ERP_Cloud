@@ -1,0 +1,57 @@
+{
+  "id": "R33-AC01-offline-sync-concurrent-a-49",
+  "at": "2026-10-23T21:46:04.541Z",
+  "method": "POST",
+  "path": "/pos/offline-sync",
+  "status": 201,
+  "request": {
+    "deviceId": "R33-P9-DEV-49",
+    "invoices": [
+      {
+        "offlineId": "R33-P9-OFF-49-1",
+        "deviceId": "R33-P9-DEV-49",
+        "sequenceNo": 1,
+        "payload": {
+          "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+          "warehouseId": "01a16a85-7d3b-703a-934b-daeedd7a2267",
+          "cashCustomerName": "عميل أوفلاين R33",
+          "priceIncludesVat": true,
+          "lines": [
+            {
+              "itemId": "01a16a86-224c-768d-82e2-ace8e13650d5",
+              "quantity": "1",
+              "unitPrice": "10",
+              "taxRate": "15"
+            }
+          ],
+          "payment": {
+            "method": "cash",
+            "cashLocationId": "01a16a85-7d3e-728f-be93-07c3575d8d67",
+            "tendered": "10"
+          }
+        }
+      }
+    ]
+  },
+  "response": {
+    "data": {
+      "processed": 1,
+      "synced": 1,
+      "conflicts": 0,
+      "results": [
+        {
+          "offlineId": "R33-P9-OFF-49-1",
+          "sequenceNo": 1,
+          "status": "synced",
+          "invoiceId": "01a16aba-6e9d-75e5-9127-44c9a2e36d79",
+          "number": "SI-000024",
+          "errorCode": null,
+          "message": null,
+          "resolution": {
+            "action": "remove-local-copy"
+          }
+        }
+      ]
+    }
+  }
+}

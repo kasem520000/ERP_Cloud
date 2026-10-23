@@ -2937,15 +2937,29 @@ const definitions: ReportDefinition[] = [
     params: [...PERIOD, BRANCH],
     columns: [text('code', 'رقم الحساب'), text('account', 'الحساب'), money('debit', 'مدين'), money('credit', 'دائن'), money('balance', 'الرصيد')],
     totals: ['debit', 'credit', 'balance'],
+    /*
+     * ACC-140 (R33): the card's 💰 الرصيد الافتتاحي is part of the balance here exactly as it is in
+     * `GET /statements/trial-balance` and in the balance sheet — an account that only has an opening
+     * balance still gets a row, otherwise the three statements disagree by the opening amounts.
+     */
     build: (tenantId, f) => sql`
-      SELECT acc.code, acc.name_ar AS account, sum(jel.debit)::text AS debit, sum(jel.credit)::text AS credit,
-             (sum(jel.debit) - sum(jel.credit))::text AS balance
-      FROM journal_entry_lines jel
-      JOIN journal_entries je ON je.id = jel.entry_id
-      JOIN accounts acc ON acc.id = jel.account_id
-      WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted'
-        AND ${onDate(sql`je.date`, f.from, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
-      GROUP BY acc.code, acc.name_ar ORDER BY acc.code`,
+      SELECT acc.code, acc.name_ar AS account,
+             coalesce(sum(jel.debit), 0)::text AS debit, coalesce(sum(jel.credit), 0)::text AS credit,
+             (coalesce(sum(jel.debit), 0) - coalesce(sum(jel.credit), 0)
+              + CASE WHEN coalesce(acc.normal_balance, CASE WHEN acc.type IN ('asset', 'expense') THEN 'debit' ELSE 'credit' END) = 'credit'
+                     THEN -coalesce(acc.opening_balance, 0) ELSE coalesce(acc.opening_balance, 0) END)::text AS balance
+      FROM accounts acc
+      LEFT JOIN (
+        SELECT jel_sub.account_id, jel_sub.debit, jel_sub.credit
+        FROM journal_entry_lines jel_sub
+        JOIN journal_entries je ON je.id = jel_sub.entry_id
+        WHERE jel_sub.tenant_id = ${tenantId} AND je.status = 'posted'
+          AND ${onDate(sql`je.date`, f.from, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
+      ) jel ON jel.account_id = acc.id
+      WHERE acc.tenant_id = ${tenantId} AND acc.deleted_at IS NULL
+      GROUP BY acc.code, acc.name_ar, acc.type, acc.normal_balance, acc.opening_balance
+      HAVING coalesce(sum(jel.debit), 0) <> 0 OR coalesce(sum(jel.credit), 0) <> 0 OR coalesce(acc.opening_balance, 0) <> 0
+      ORDER BY acc.code`,
   },
   {
     key: 'general-ledger',
