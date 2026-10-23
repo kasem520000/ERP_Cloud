@@ -637,3 +637,20 @@
 | `/settings/invoice-maintenance` (زر «فحص»؛ قراءة) | MAINT-PREVIEW، MAINT-SCREEN | `totalsMismatch 1` إيجابية كاذبة (**ACC-147**) |
 | `/tailoring/invoices` (فاتورة جديدة ×2، إستلام دفعة؛ قراءة) | TI-CREATE-404، TI-CREATE، TI-PAY، TAILORING-SCREEN | 404 بلا حالات (**UI-047**)؛ TI-000001 صافي 210 (**ACC-149**)؛ دفعة بسند مسودة على البنك (**ACC-150/UI-048**) |
 | `/accounting/trial-balance` (قراءة ختامية) | TB-SCREEN | 1160002 1,510؛ المجاميع مختلة 1,500 «مدين» بلا تحذير (**ACC-139**) |
+
+## الشاشات المنفَّذة في R29 (تطبيق المخابز `apps/bakery` :3005 + staff؛ بذرة seed 7 للمستأجر R24؛ الأدلة `evidence/round-29/`)
+| الشاشة (الصفة) | المراحل | النتيجة |
+|---|---|---|
+| bakery `/` نظرة اليوم (مالك؛ قراءة) | LIC-ME، RPT-BAKERY-HOME | 11/11 وحدة مرخّصة ✓؛ بطاقات «محصَّل 207 — سندات مرحّلة» و«في السيارات 4.00» خاطئة (**ACC-151/157**) |
+| bakery `/production` (مالك؛ دفعة + حارسان) | PROD-GUARD-NOINPUT، PROD-GUARD-SCRAP، PROD-BATCH-01، PROD-IDEMP | BATCH-R29-01 50 كجم @1.20 ✓؛ حجب بلا طلب ✓؛ الزر يبقى مفعّلاً (UX) |
+| bakery `/distribution` (مالك؛ 3 أوامر + حارس + رفض + قرار عبور) | LO-GUARD-QTY، LO-01/02/03، REJECT-03، TRANSIT-02 | مناقلات رسمية ✓؛ 999 → 422 ✓؛ عجز عبور JE-000009 ✓ |
+| bakery `/reps` (مالك؛ قراءة) | REPS-API، REPS-SCREEN | بطاقة المندوب: موظف + حساب دخول + VAN-1 ✓ |
+| bakery `/rep` (**مندوب**؛ استلام ×2، 6 مبيعات، تحصيل، مرتجع، قراءة ختامية) | REP-RECEIPT-01/02، SALE-D1…D6، COLLECT-D2-REP، RETURN-D6، CLOSE-01-REP-NOBUTTON، RPT-REP-FINAL | استلام كامل/جزئي ✓؛ حرّاس الائتمان/الخصم/السعر ✓؛ تحصيل بلا سند (**ACC-151**)؛ **لا زر إقفال** (**UI-050**)؛ لا رفض استلام؛ «رصيد رسمي 4 / عهدة 3» (**ACC-152**) |
+| bakery `/sales` (مالك؛ قراءة) | RPT-BAKERY-SALES | 6 مستندات؛ الخصم يظهر في المستند فقط (**ACC-155**)؛ تداخل حقل الملاحظات (UX) |
+| bakery `/collection` (مالك؛ تحصيلان) | COLLECT-D2-SAFE، COLLECT-D2-DEFAULT، RPT-BAKERY-COLLECTION | 20 في الصندوق → RV-000001 ✓؛ الافتراضي 16.25 بلا سند (**ACC-151/UI-052**)؛ VRT-00001 ضمن «الآجلة» (**ACC-156**) |
+| bakery `/custody` (مالك؛ سياسة، تقديم ×2، اعتماد ×3، حجب) | POLICY-SET، CLOSE-01-SUBMIT، APPROVE-01-NOACCT، APPROVE-01، CUSTODY-AFTER-01، CLOSE-02-WHOLE-CLIENTBLOCK، CLOSE-02-SUBMIT، APPROVE-02، CUSTODY-AFTER-02 | 422 بلا حساب موظف ✓؛ عجز دائن 3121004 (**ACC-152**)؛ حجب عدّ المركبة (**UI-051**)؛ `not_required` مع رصيد 2 كجم |
+| bakery `/treasury` (مالك؛ قراءة) | RPT-BAKERY-TREASURY | سند خطّ واحد مرحَّل 20.00 ✓ (صادقة) |
+| bakery `/accounting` (مالك؛ قراءة) | RPT-BAKERY-ACCOUNTING | روابط تسليم جلسة إلى staff ✓ |
+| bakery `/reports` (مالك؛ قراءة + API) | RPT-BAKERY-REPORTS، RPT-VAN-REPORTS | تقرير الخطّ يُطلب بفترة ✓ |
+| staff `/hrm/...` سلفة موظف (مالك) | HRM-ADVANCE | JE-000016 وأنشأت 22410002 ✓؛ الصندوق الفرعي لا يتحرك (ACC-018) |
+| staff `/sales/van`، `/accounting/trial-balance`، `/accounting/income-statement`، `/reports/inventory-valuation`، `/accounting/journal-entries`، `/hrm/.../employee-statement` (قراءة) | RPT-STAFF-VANSALES، RPT-TB، RPT-PL، RPT-INV-VAL، RPT-JE، RPT-EMP-STATEMENT | TB/تقييم = DB ✓؛ قائمة الدخل «حسابات رئيسية» 287.40 (**ACC-120**)؛ `/sales/van` يحذّر من الاختلاف المشتق (**ACC-157**) |

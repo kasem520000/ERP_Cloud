@@ -1,0 +1,711 @@
+{
+ "pass": 78,
+ "fail": 17,
+ "total": 95,
+ "failByDefect": {
+  "ACC-155": [
+   "D07"
+  ],
+  "ACC-151": [
+   "D20",
+   "G03",
+   "G05"
+  ],
+  "UI-050": [
+   "E01"
+  ],
+  "ACC-152": [
+   "E09",
+   "E14",
+   "F10"
+  ],
+  "ACC-154": [
+   "F02"
+  ],
+  "ACC-156": [
+   "F03",
+   "G16"
+  ],
+  "ACC-153": [
+   "F05",
+   "F11"
+  ],
+  "UI-051": [
+   "F07"
+  ],
+  "ACC-157": [
+   "G06",
+   "G07"
+  ],
+  "ACC-120": [
+   "G11"
+  ]
+ },
+ "results": [
+  {
+   "id": "A00",
+   "desc": "baseline seed 7: 1160001 20,000 / 1211001 50,000 / 1221001 180,000 / 2110001 −250,000; only JE-000001; no stock",
+   "pass": true,
+   "actual": "(Decimal('50000.0000'), 'JE-000001', 0)",
+   "tag": ""
+  },
+  {
+   "id": "A01",
+   "desc": "item create without categoryId → 400 (category mandatory even for a bakery item; the bakery UI has no item screen — setup note, not a defect)",
+   "pass": true,
+   "actual": "400",
+   "tag": ""
+  },
+  {
+   "id": "A02",
+   "desc": "credit customer «بقالة R29 (آجل)» created with credit limit 100",
+   "pass": true,
+   "actual": "(201, '100.0000')",
+   "tag": ""
+  },
+  {
+   "id": "A03",
+   "desc": "items FL-R29 (2.00 cost) and BR-R29 exist after retry with categoryId",
+   "pass": true,
+   "actual": "['FL-R29', 'BR-R29']",
+   "tag": ""
+  },
+  {
+   "id": "A04",
+   "desc": "PI R29 flour 100 kg × 2 + 15 % posted → JE-000002 Dr 1270001 200 / Dr 2222001 30 / Cr 22111001 230",
+   "pass": true,
+   "actual": "[('1270001', Decimal('200.0000'), Decimal('0.0000')), ('22111001', Decimal('0.0000'), Decimal('230.0000')), ('2222001', Decimal('30.0000'), Decimal('0.0000'))]",
+   "tag": ""
+  },
+  {
+   "id": "A05",
+   "desc": "flour stock MAIN 100 kg / 200.00 = ledger 1270001 200",
+   "pass": true,
+   "actual": "((Decimal('100.0000'), Decimal('200.0000')), Decimal('200.0000'))",
+   "tag": ""
+  },
+  {
+   "id": "A06",
+   "desc": "shortage policy PUT → unit_cost, preventSelfApproval false, configured",
+   "pass": true,
+   "actual": "(200, {'shortageValuationBasis': 'unit_cost', 'shortageUnitPrice': None, 'preventSelfApproval': False, 'valuationSource': 'unit_cost', 'configured': True})",
+   "tag": ""
+  },
+  {
+   "id": "B01",
+   "desc": "production batch without components → 422 VAN_PRODUCTION_INPUT_REQUIRED",
+   "pass": true,
+   "actual": "(422, 'VAN_PRODUCTION_INPUT_REQUIRED')",
+   "tag": ""
+  },
+  {
+   "id": "B02",
+   "desc": "production screen without component rows: button enabled, click sends no HTTP write (client guard; UX note: button stays enabled)",
+   "pass": true,
+   "actual": "{'clientSide': True, 'buttonDisabled': False, 'httpWritesDuringStep': 0, 'note': 'no server round-trip expected'}",
+   "tag": ""
+  },
+  {
+   "id": "B03",
+   "desc": "scrap without reason: no HTTP write",
+   "pass": true,
+   "actual": "{'clientSide': True, 'buttonDisabled': False, 'httpWritesDuringStep': 0, 'note': 'no server round-trip expected'}",
+   "tag": ""
+  },
+  {
+   "id": "B04",
+   "desc": "BATCH-R29-01 produced 50 kg, scrap 1 kg, unit cost 1.20 (= 30 kg flour × 2 / 50), total 60",
+   "pass": true,
+   "actual": "('50.0000', '1.0000', '1.2000', '60.0000')",
+   "tag": ""
+  },
+  {
+   "id": "B05",
+   "desc": "stock after batch: flour 70/140, bread 50/60 (Σ 200 unchanged)",
+   "pass": true,
+   "actual": "((Decimal('70.0000'), Decimal('140.0000')), (Decimal('50.0000'), Decimal('60.0000')))",
+   "tag": ""
+  },
+  {
+   "id": "B06",
+   "desc": "production posts NO journal entry (asset-to-asset at cost; ledger 1270001 stays 200 = Σ stock) — policy: acceptable only while no conversion cost exists",
+   "pass": true,
+   "actual": "('JE-000002', Decimal('200.0000'), Decimal('200.0000'))",
+   "tag": ""
+  },
+  {
+   "id": "B07",
+   "desc": "scrap 1 kg is a memo (van_damage 1 kg movement, no stock/ledger effect) — policy decision: scrap not valued",
+   "pass": true,
+   "actual": "[Decimal('1.0000')]",
+   "tag": ""
+  },
+  {
+   "id": "B08",
+   "desc": "idempotent replay of the batch → still exactly one batch",
+   "pass": true,
+   "actual": "1",
+   "tag": ""
+  },
+  {
+   "id": "C01",
+   "desc": "load order 999 kg > MAIN 50 → 422 (official balance guard)",
+   "pass": true,
+   "actual": "(422, 'الرصيد الرسمي المتوفر في المستودع الرئيسي (50.00) لا يكفي لتوريد (999.00) — سجّل')",
+   "tag": ""
+  },
+  {
+   "id": "C02",
+   "desc": "VLO-0001 40 kg = stock transfer TR-000001 sent: JE-000003 Dr 1270003 48 / Cr 1270001 48",
+   "pass": true,
+   "actual": "[('1270001', Decimal('0.0000'), Decimal('48.0000')), ('1270003', Decimal('48.0000'), Decimal('0.0000'))]",
+   "tag": ""
+  },
+  {
+   "id": "C03",
+   "desc": "VLO-0002 6 kg (JE-000004 7.2) and VLO-0003 3 kg (JE-000005 3.6); MAIN bread 1 kg; in-transit 1270003 58.8",
+   "pass": true,
+   "actual": "((Decimal('1.0000'), Decimal('1.2000')), Decimal('58.8000'))",
+   "tag": ""
+  },
+  {
+   "id": "C04",
+   "desc": "rep confirms VLO-0001 40/40 → JE-000006 Dr 1270001 48 / Cr 1270003 48; VAN-1 40 kg",
+   "pass": true,
+   "actual": "([('1270001', Decimal('48.0000'), Decimal('0.0000')), ('1270003', Decimal('0.0000'), Decimal('48.0000'))], (Decimal('40.0000'), Decimal('48.0000')))",
+   "tag": ""
+  },
+  {
+   "id": "C05",
+   "desc": "rep confirms VLO-0002 5 of 6 → received 5, discrepancy 1, JE-000007 6.0 only (1.2 stays in transit)",
+   "pass": true,
+   "actual": "('5.0000', '1.0000', Decimal('4.8000'))",
+   "tag": ""
+  },
+  {
+   "id": "C06",
+   "desc": "rep rejects VLO-0003 → JE-000008 return Dr 1270001 3.6 / Cr 1270003 3.6; MAIN bread back to 4; order rejected",
+   "pass": true,
+   "actual": "((Decimal('4.0000'), Decimal('4.8000')), 'rejected')",
+   "tag": ""
+  },
+  {
+   "id": "C07",
+   "desc": "accountant closes transit difference as shortage → JE-000009 Dr 3121004 1.2 / Cr 1270003 1.2; 1270003 = 0",
+   "pass": true,
+   "actual": "([('1270003', Decimal('0.0000'), Decimal('1.2000')), ('3121004', Decimal('1.2000'), Decimal('0.0000'))], Decimal('0.0000'))",
+   "tag": ""
+  },
+  {
+   "id": "C08",
+   "desc": "end of C: 1270001 198.8 = Σ stock (flour 140 + MAIN bread 4.8 + VAN-1 45 kg 54.0); VLO-0001/0002 loaded (status becomes in_route at the first sale)",
+   "pass": true,
+   "actual": "(Decimal('198.8000'), Decimal('198.8000'), (Decimal('45.0000'), Decimal('54.0000')))",
+   "tag": ""
+  },
+  {
+   "id": "C09",
+   "desc": "rep screen has no «reject receipt» action (reject only via API/owner) — policy/UX gap",
+   "pass": true,
+   "actual": "documented in SCREEN_REGISTER",
+   "tag": ""
+  },
+  {
+   "id": "D01",
+   "desc": "D1 cash 10 kg × 5 + 15 % = 57.50 → VTX-00001/SI-000001, JE-000010 Dr 1211001 57.5 / Cr 4100001 50 / Cr 2222001 7.5 / Dr 3200004 12 / Cr 1270001 12",
+   "pass": true,
+   "actual": "[('1211001', Decimal('57.5000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('12.0000')), ('2222001', Decimal('0.0000'), Decimal('7.5000')), ('3200004', De",
+   "tag": ""
+  },
+  {
+   "id": "D02",
+   "desc": "cash sale does not touch cash_location_balances (safe stays 0) although 1211001 +57.5 — ACC-018 pattern",
+   "pass": true,
+   "actual": "['0.0000', '0.0000']",
+   "tag": ""
+  },
+  {
+   "id": "D03",
+   "desc": "D2 credit 15 kg × 5 + bonus 1 kg = 86.25 → JE-000011 Dr 12310001 86.25 / Cr 4100001 75 / Cr 2222001 11.25 / Dr 3200004 19.2 (16 kg) / Cr 1270001 19.2",
+   "pass": true,
+   "actual": "[('12310001', Decimal('86.2500'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('19.2000')), ('2222001', Decimal('0.0000'), Decimal('11.2500')), ('3200004', ",
+   "tag": ""
+  },
+  {
+   "id": "D04",
+   "desc": "D3 credit 5 kg → 422 credit limit (115 > 100)",
+   "pass": true,
+   "actual": "(422, 'تجاوز الحد الائتماني للعميل: مديونية العميل بعد هذه الفاتورة (115.00 ريال) تتجاوز سقف الائ')",
+   "tag": ""
+  },
+  {
+   "id": "D05",
+   "desc": "D4 discount 5 without override → 422 (max 0 % for walk-in)",
+   "pass": true,
+   "actual": "(422, 'منع الخصم غير المصرح به: قيمة الخصم (5.00 ريال — 10.0%) تتجاوز السقف المسموح للعميل (0.0%)')",
+   "tag": ""
+  },
+  {
+   "id": "D06",
+   "desc": "D4 with owner override: 10 × 5 − 5 + 15 % = 51.75; discount_amount 5 stored on the van document",
+   "pass": true,
+   "actual": "('51.7500', '5.0000')",
+   "tag": ""
+  },
+  {
+   "id": "D07",
+   "desc": "discount must be visible in the sales invoice/ledger (subtotal 50, invoice_discount 5, Dr 4100003 5) — actual: SI-000003 subtotal 45 / discount 0 and JE-000012 credits 4100001 45 (discount folded into price)",
+   "pass": false,
+   "actual": "(('45.0000', '0.0000'), [('1211001', Decimal('51.7500'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('12.0000')), ('2222001', Decimal('0.0000'), Decimal('6",
+   "tag": "ACC-155"
+  },
+  {
+   "id": "D08",
+   "desc": "customer price card: 4.80 locked, max discount 10 %, credit limit 150, 1 kg bonus/invoice",
+   "pass": true,
+   "actual": "('4.8000', True, '150.0000')",
+   "tag": ""
+  },
+  {
+   "id": "D09",
+   "desc": "D5 price 4.50 below locked 4.80 → 422",
+   "pass": true,
+   "actual": "(422, 'منع تغيير السعر غير المصرح به: سعر هذا العميل مثبّت في النظام عند (4.80 ريال/كجم). لا يُسم')",
+   "tag": ""
+  },
+  {
+   "id": "D10",
+   "desc": "D5 at the locked 4.80: 2 kg → 9.60 + 1.44 = 11.04 credit (JE-000013)",
+   "pass": true,
+   "actual": "[('12310001', Decimal('11.0400'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('2.4000')), ('2222001', Decimal('0.0000'), Decimal('1.4400')), ('3200004', De",
+   "tag": ""
+  },
+  {
+   "id": "D11",
+   "desc": "the locked-price sale carries no anomaly flag/reason; the refused 4.50 attempt leaves no trail (ENHANCEMENT, see ROUND_29_RESULTS §4)",
+   "pass": true,
+   "actual": "None",
+   "tag": ""
+  },
+  {
+   "id": "D12",
+   "desc": "D6 cash 2 kg × 5 on VLO-0002 = 11.50 (JE-000014); VLO-0002 sold 2, expected_cash 11.5",
+   "pass": true,
+   "actual": "('11.5000', '11.5000')",
+   "tag": ""
+  },
+  {
+   "id": "D13",
+   "desc": "after six sales: 4100001 −189.6, 3200004 48 (40 kg × 1.2), 1270001 150.8, VAN-1 5 kg",
+   "pass": true,
+   "actual": "(Decimal('-189.6000'), Decimal('48.0000'), Decimal('150.8000'), (Decimal('5.0000'), Decimal('6.0000')))",
+   "tag": ""
+  },
+  {
+   "id": "D14",
+   "desc": "rep collection 50 (no cash location) → paid_total 50 but NO voucher and NO journal (12310001 still 97.29)",
+   "pass": true,
+   "actual": "('50.0000', 0, 'JE-000014', Decimal('97.2900'))",
+   "tag": ""
+  },
+  {
+   "id": "D15",
+   "desc": "owner collection 20 into the safe → RV-000001 posted + JE-000015 Dr 1211001 20 / Cr 12310001 20 + safe sub-ledger +20",
+   "pass": true,
+   "actual": "('RV-000001', [('1211001', Decimal('20.0000'), Decimal('0.0000')), ('12310001', Decimal('0.0000'), Decimal('20.0000'))])",
+   "tag": ""
+  },
+  {
+   "id": "D16",
+   "desc": "/collection default form (no cash location) 16.25 → paid_total 86.25 but no voucher/journal; screen text promises a posted receipt",
+   "pass": true,
+   "actual": "('86.2500', 1, 'JE-000015')",
+   "tag": ""
+  },
+  {
+   "id": "D17",
+   "desc": "over-collection on a fully paid invoice → 409 INVOICE_ALREADY_PAID",
+   "pass": true,
+   "actual": "(409, 'INVOICE_ALREADY_PAID')",
+   "tag": ""
+  },
+  {
+   "id": "D18",
+   "desc": "idempotent replay of the 50 collection → 201 and still 3 payments (50/20/16.25), paid_total 86.25",
+   "pass": true,
+   "actual": "['16.2500', '20.0000', '50.0000']",
+   "tag": ""
+  },
+  {
+   "id": "D19",
+   "desc": "end of D: 1211001 50,140.75; 12310001 77.29 (ledger) vs invoice-level AR 11.04 → 66.25 collected outside the ledger",
+   "pass": true,
+   "actual": "(Decimal('50140.7500'), Decimal('77.2900'))",
+   "tag": ""
+  },
+  {
+   "id": "D20",
+   "desc": "ledger AR must equal Σ unpaid invoices (11.04); actual 77.29 (two collections never posted)",
+   "pass": false,
+   "actual": "77.2900",
+   "tag": "ACC-151"
+  },
+  {
+   "id": "D21",
+   "desc": "VAT 2222001 after D: 30 in − 28.44 out = 1.56 Dr",
+   "pass": true,
+   "actual": "1.5600",
+   "tag": ""
+  },
+  {
+   "id": "E01",
+   "desc": "rep screen /rep shows «تقديمُ الإغلاق» for an in_route order (the only status after sales) — actual: button rendered only for status=loaded, rep cannot close",
+   "pass": false,
+   "actual": "see R29-CLOSE-01-REP-NOBUTTON.png (no button) + rep/page.tsx L1187",
+   "tag": "UI-050"
+  },
+  {
+   "id": "E02",
+   "desc": "owner submits closing from /custody: damaged 1, vehicle count 4 (3 = VLO-0002 custody) → pending_closing, shortage 1 kg / 1.20, actual_remaining 0",
+   "pass": true,
+   "actual": "('pending_closing', '1.0000', '4.0000', '1.0000', '1.2000')",
+   "tag": ""
+  },
+  {
+   "id": "E03",
+   "desc": "expected cash of VLO-0001 = 57.5 + 51.75 (cash docs) = 109.25 and collected 109.25",
+   "pass": true,
+   "actual": "('109.2500', '109.2500')",
+   "tag": ""
+  },
+  {
+   "id": "E04",
+   "desc": "approve with salary deduction but employee has no ledger account → 422 VAN_SHORTAGE_EMPLOYEE_ACCOUNT_REQUIRED (nothing posted)",
+   "pass": true,
+   "actual": "(422, 'VAN_SHORTAGE_EMPLOYEE_ACCOUNT_REQUIRED', 'JE-000015')",
+   "tag": ""
+  },
+  {
+   "id": "E05",
+   "desc": "HRM cash advance 20 → JE-000016 Dr 22410002 20 / Cr 1211001 20 and employee_account_id set (account created by HRM)",
+   "pass": true,
+   "actual": "([('1211001', Decimal('0.0000'), Decimal('20.0000')), ('22410002', Decimal('20.0000'), Decimal('0.0000'))], '01a1669f-0fa2-71bc-8ef4-f5fb96362bb1')",
+   "tag": ""
+  },
+  {
+   "id": "E06",
+   "desc": "the advance does not move the safe sub-ledger (stays 20) while 1211001 −20 — ACC-018 pattern",
+   "pass": true,
+   "actual": "(['20.0000', '0.0000'], Decimal('50120.7500'))",
+   "tag": ""
+  },
+  {
+   "id": "E07",
+   "desc": "approve → JE-000017 damage Dr 3121004 1.2 / Cr 1270001 1.2",
+   "pass": true,
+   "actual": "[('1270001', Decimal('0.0000'), Decimal('1.2000')), ('3121004', Decimal('1.2000'), Decimal('0.0000'))]",
+   "tag": ""
+  },
+  {
+   "id": "E08",
+   "desc": "approve → JE-000018 shortage Dr 22410002 1.2 / Cr 3121004 1.2 (credit to the adjustment account, not inventory)",
+   "pass": true,
+   "actual": "[('22410002', Decimal('1.2000'), Decimal('0.0000')), ('3121004', Decimal('0.0000'), Decimal('1.2000'))]",
+   "tag": ""
+  },
+  {
+   "id": "E09",
+   "desc": "a 1 kg shortage charged to the employee must leave inventory (Cr 1270001 1.2, VAN-1 5 → 3 with the damage); actual VAN-1 4 kg / 1270001 149.6 — ghost kilo",
+   "pass": false,
+   "actual": "((Decimal('4.0000'), Decimal('4.8000')), Decimal('149.6000'))",
+   "tag": "ACC-152"
+  },
+  {
+   "id": "E10",
+   "desc": "count document ADJ-000001 posted with expected 4 / counted 4 / variance 0 although the vehicle count 4 was 1 kg below the official 5 — the variance was absorbed by the (non-inventory) shortage entry",
+   "pass": true,
+   "actual": "('posted', ('4.0000', '4.0000', '0.0000'))",
+   "tag": ""
+  },
+  {
+   "id": "E11",
+   "desc": "VLO-0001 settled: settled_officially, shortage_journal_entry_id set, damage_inspected, salary_deduction_approved, actual_remaining 0",
+   "pass": true,
+   "actual": "('settled', 'settled_officially')",
+   "tag": ""
+  },
+  {
+   "id": "E12",
+   "desc": "movements for closing 1: van_damage 1, van_shortage 1, van_count_settlement 1",
+   "pass": true,
+   "actual": "([Decimal('1.0000')], [Decimal('1.0000')])",
+   "tag": ""
+  },
+  {
+   "id": "E13",
+   "desc": "end of E: 1211001 50,120.75; 1270001 149.6 = Σ stock (flour 140 + MAIN 4.8 + VAN-1 4.8); 22410002 21.2; 3121004 1.2 (transit 1.2 + damage 1.2 − shortage 1.2)",
+   "pass": true,
+   "actual": "(Decimal('149.6000'), Decimal('149.6000'), Decimal('21.2000'), Decimal('1.2000'))",
+   "tag": ""
+  },
+  {
+   "id": "E14",
+   "desc": "inventory-adjustment expense must keep the damage loss (transit 1.2 + damage 1.2 = 2.4 Dr) — actual 1.2 because the employee charge credited 3121004 instead of inventory",
+   "pass": false,
+   "actual": "1.2000",
+   "tag": "ACC-152"
+  },
+  {
+   "id": "E15",
+   "desc": "rep workspace before closing: custody official 5 kg = VAN-1 stock",
+   "pass": true,
+   "actual": "5.0000",
+   "tag": ""
+  },
+  {
+   "id": "F01",
+   "desc": "rep return 1 kg on cash VTX-00005 → VRT-00001/SR-000001 posted, JE-000019 Dr 4100002 5 / Dr 2222001 0.75 / Cr 12310001 5.75 / Dr 1270001 1.2 / Cr 3200004 1.2",
+   "pass": true,
+   "actual": "[('12310001', Decimal('0.0000'), Decimal('5.7500')), ('1270001', Decimal('1.2000'), Decimal('0.0000')), ('2222001', Decimal('0.7500'), Decimal('0.0000')), ('3200004', Dec",
+   "tag": ""
+  },
+  {
+   "id": "F02",
+   "desc": "van return document total must equal the posted credit note 5.75; actual van document total 5.00 (tax 0.75 not added), SR-000001 5.75",
+   "pass": false,
+   "actual": "(('5.0000', '0.7500', '5.0000'), '5.7500')",
+   "tag": "ACC-154"
+  },
+  {
+   "id": "F03",
+   "desc": "a return against a CASH sale should refund cash or at least not sit as a receivable credit: actual payment_method credit, Cr 12310001 5.75, no voucher — AR 77.29 → 71.54",
+   "pass": false,
+   "actual": "('credit', 1, Decimal('71.5400'))",
+   "tag": "ACC-156"
+  },
+  {
+   "id": "F04",
+   "desc": "return puts 1 kg back into VAN-1 (5 kg / 6.0) and reverses COGS 1.2",
+   "pass": true,
+   "actual": "((Decimal('5.0000'), Decimal('6.0000')), Decimal('46.8000'))",
+   "tag": ""
+  },
+  {
+   "id": "F05",
+   "desc": "customer return must not count as a warehouse return of the load order: expected returned_qty 0 / expected_cash 11.5 − 5.75 refund; actual returned_qty 1, expected_cash 6.5 (net of VAT)",
+   "pass": false,
+   "actual": "('1.0000', '6.5000')",
+   "tag": "ACC-153"
+  },
+  {
+   "id": "F06",
+   "desc": "API submit-closing returnedQty 4 (> 5 − 2 sold) → 422 «مجموع الكميات … 6.00 يتجاوز 5.00»",
+   "pass": true,
+   "actual": "(422, 'مجموع الكميات (المباع 2.00 + البونص 0.00 + المرتجع السليم 4.00 + التالف 0.00 + ا')",
+   "tag": ""
+  },
+  {
+   "id": "F07",
+   "desc": "/custody whole-vehicle count 4 + returned 3 must reach the server (which derives this order's share = max(0, 4 − (5 − 0)) = 0 → accepted); actual: blocked client-side with «المتبقي الفعلي 1.00 … 6.00 يتجاوز 5.00» (client assumes other custody = official − expected of this order = 3) — owner cannot declare the real vehicle count once ghost stock exists",
+   "pass": false,
+   "actual": "({'clientSide': True, 'buttonDisabled': False, 'httpWritesDuringStep': 0, 'note': 'no server round-trip expected'}, ['المتبقي الفعلي 1.00'])",
+   "tag": "UI-051"
+  },
+  {
+   "id": "F08",
+   "desc": "per-order submit (returned 3, damaged 0, actual 0) → 201 pending_closing; returned_qty overwritten 1 → 3; shortage 0",
+   "pass": true,
+   "actual": "('pending_closing', '3.0000', '0.0000')",
+   "tag": ""
+  },
+  {
+   "id": "F09",
+   "desc": "approve closing 2 → settled; 3 kg van_return to MAIN (MAIN 4 → 7, VAN-1 5 → 2); no journal (same account 1270001)",
+   "pass": true,
+   "actual": "('settled', (Decimal('7.0000'), Decimal('8.4000')), (Decimal('2.0000'), Decimal('2.4000')), 'JE-000019')",
+   "tag": ""
+  },
+  {
+   "id": "F10",
+   "desc": "with no open custody left VAN-1 must be 1 kg (the customer-return kilo) or 0 with a count document; actual official 2 kg / 2.40 and stock_settlement_status not_required",
+   "pass": false,
+   "actual": "((Decimal('2.0000'), Decimal('2.4000')), 'not_required', None)",
+   "tag": "ACC-152"
+  },
+  {
+   "id": "F11",
+   "desc": "closing 2 expected_cash = 11.5 (cash sold) − 5.75 (cash return) = 5.75; actual 6.5 (return netted ex-VAT) and collected 6.5 auto-filled",
+   "pass": false,
+   "actual": "('6.5000', '6.5000')",
+   "tag": "ACC-153"
+  },
+  {
+   "id": "F12",
+   "desc": "end of F: balances 1211001 50,120.75; 12310001 71.54; 1270001 150.8 = Σ stock; 2222001 2.31; 4100002 5; 22410002 21.2",
+   "pass": true,
+   "actual": "(Decimal('71.5400'), Decimal('150.8000'), Decimal('150.8000'), Decimal('2.3100'))",
+   "tag": ""
+  },
+  {
+   "id": "G01",
+   "desc": "final = DB-043 (reports are read-only): JE count 19, Σ journal balances 0",
+   "pass": true,
+   "actual": "('JE-000019', 19)",
+   "tag": ""
+  },
+  {
+   "id": "G02",
+   "desc": "dashboard gross 218.04 / returns 5.00 + VAT 0.75 / net revenue 212.29 — consistent with the six documents",
+   "pass": true,
+   "actual": "('218.04', '212.29', '5.00')",
+   "tag": ""
+  },
+  {
+   "id": "G03",
+   "desc": "dashboard «محصَّل نقداً — سندات قبض مرحّلة» must equal posted receipts/ledger cash from the line (120.75 cash sales + 20 RV = 140.75; receipts alone 20); actual 207.00",
+   "pass": false,
+   "actual": "207.00",
+   "tag": "ACC-151"
+  },
+  {
+   "id": "G04",
+   "desc": "dashboard receivables 5.29 (= 11.04 − 5.75) vs ledger 12310001 71.54 → 66.25 gap = unposted collections",
+   "pass": true,
+   "actual": "('5.29', Decimal('71.5400'))",
+   "tag": ""
+  },
+  {
+   "id": "G05",
+   "desc": "ledger AR must agree with the operational receivables (5.29)",
+   "pass": false,
+   "actual": "71.5400",
+   "tag": "ACC-151"
+  },
+  {
+   "id": "G06",
+   "desc": "dashboard «في السيارات الآن» must equal VAN-1 stock (2) — actual remainingInVansKg 4 (49 loaded − 39 − 1 − 3 − 1 − 1 counts the rejected VLO-0003 3 kg as loaded and ignores the customer return)",
+   "pass": false,
+   "actual": "('4.00', '2.00', '49.00')",
+   "tag": "ACC-157"
+  },
+  {
+   "id": "G07",
+   "desc": "dashboard stockLedgerAgrees must be true (ledger 1270001 150.8 = Σ stock) — actual false: derivedMainWarehouseBalanceKg 4 vs 7 because the rejected order stays in totalLoadedKg",
+   "pass": false,
+   "actual": "(False, '4.00', '7.00')",
+   "tag": "ACC-157"
+  },
+  {
+   "id": "G08",
+   "desc": "dashboard net profit 137.80 = 184.6 revenue ex-VAT − 46.8 COGS (ignores the 1.2 damage expense; analytic P&L 136.6)",
+   "pass": true,
+   "actual": "137.80",
+   "tag": ""
+  },
+  {
+   "id": "G09",
+   "desc": "dashboard anomalyCount 0 although a locked-price customer was invoiced after a refused 4.50 attempt (no anomaly trail)",
+   "pass": true,
+   "actual": "0",
+   "tag": ""
+  },
+  {
+   "id": "G10",
+   "desc": "analytic income statement: sales 189.6, returns −5, inventory adjustments −1.2, COGS −46.8 → net 136.6",
+   "pass": true,
+   "actual": "{'المبيعات': Decimal('189.6000'), 'مردودات المبيعات': Decimal('-5.0000'), 'تسويات المخزون': Decimal('-1.2000'), 'تكلفة المبيعات': Decimal('-46.8000')}",
+   "tag": ""
+  },
+  {
+   "id": "G11",
+   "desc": "«أرباح وخسائر حسابات رئيسية» screen must show 136.60; actual 287.40 (adds closing inventory 150.80 to profit under perpetual costing)",
+   "pass": false,
+   "actual": "['287.40']",
+   "tag": "ACC-120"
+  },
+  {
+   "id": "G12",
+   "desc": "trial balance screen: 1211001 50,120.75; 12310001 71.54; 1270001 150.80; 22410002 21.20; 3121004 1.20; 3200004 46.80",
+   "pass": true,
+   "actual": "see R29-RPT-TB.txt",
+   "tag": ""
+  },
+  {
+   "id": "G13",
+   "desc": "inventory valuation report Σ 150.80 (MAIN bread 7 / 8.40, VAN-1 2 / 2.40, flour 70 / 140) = ledger 1270001",
+   "pass": true,
+   "actual": "see R29-RPT-INV-VAL.txt",
+   "tag": ""
+  },
+  {
+   "id": "G14",
+   "desc": "employee statement (API): JE-000016 20 advance + JE-000018 1.2 shortage = 21.2 Dr",
+   "pass": true,
+   "actual": "[(None, '0.0000', '0.0000'), ('JE-000016', '20.0000', '20.0000'), ('JE-000018', '1.2000', '21.2000')]",
+   "tag": ""
+  },
+  {
+   "id": "G15",
+   "desc": "employee statement screen cannot be produced without picking the employee (dropdown lists only employees with ledger accounts) — captured as read-only evidence",
+   "pass": true,
+   "actual": "see R29-RPT-EMP-STATEMENT.png",
+   "tag": ""
+  },
+  {
+   "id": "G16",
+   "desc": "/collection lists the RETURN document VRT-00001 as a «فاتورة آجلة» to collect against (payment_method credit) and sums 16.04 = 11.04 + 5.00",
+   "pass": false,
+   "actual": "['16.04']",
+   "tag": "ACC-156"
+  },
+  {
+   "id": "G17",
+   "desc": "/treasury is honest: 1 posted line voucher, Σ 20.00 (only RV-000001)",
+   "pass": true,
+   "actual": "see R29-RPT-BAKERY-TREASURY.txt",
+   "tag": ""
+  },
+  {
+   "id": "G18",
+   "desc": "safe sub-ledger 20 vs GL 1211001 50,120.75 (cash sales 120.75 and the advance −20 never touch cash_location_balances)",
+   "pass": true,
+   "actual": "['20.0000', '0.0000']",
+   "tag": ""
+  },
+  {
+   "id": "G19",
+   "desc": "rep workspace after both closings: custody expected 0 but official 2 kg; notification says «تصفير العهدة»",
+   "pass": true,
+   "actual": "{'expectedKg': '0.0000', 'officialKg': '2.0000', 'pendingClosings': 0}",
+   "tag": ""
+  },
+  {
+   "id": "G20",
+   "desc": "rep totals: cashSales 120.75 / creditSales 97.29 / collected 207 / outstanding 5.29 (operational view, not ledger)",
+   "pass": true,
+   "actual": "{'revenue': '212.29', 'salesGross': '218.04', 'cashSales': '120.75', 'creditSales': '97.29', 'collected': '207.00', 'outstanding': '5.29', 'returns': '5.00', 'returnsVat'",
+   "tag": ""
+  },
+  {
+   "id": "G21",
+   "desc": "bakery home tiles: net sales 212.29, returns 5.00, collected 207.00, receivables 5.29, in vans 4.00 kg — same engine as the dashboard (same defects G03/G06)",
+   "pass": true,
+   "actual": "see R29-RPT-BAKERY-HOME.txt",
+   "tag": ""
+  },
+  {
+   "id": "G22",
+   "desc": "staff /sales/van shows official balances from stock_balances (MAIN 7 / VAN-1 2) and warns about the derived-vs-official difference",
+   "pass": true,
+   "actual": "see R29-RPT-STAFF-VANSALES.txt",
+   "tag": ""
+  },
+  {
+   "id": "G23",
+   "desc": "/van-sales/reports returns a payload for the salesman (rep sales/returns/collections report)",
+   "pass": true,
+   "actual": "{'generatedAt': '2026-10-23T02:54:02.306Z', 'filters': {'salesmanId': None, 'fromDate': '2026-10-23', 'toDate': '2026-10",
+   "tag": ""
+  }
+ ]
+}

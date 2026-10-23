@@ -488,3 +488,16 @@ R17-manifest.json يفهرس 258 ملفاً (لا يشمل نفسه)، نحو 24
 | F: تفصيل | TI-CREATE-404 (المحاولة الأولى: نموذج كامل ← 404؛ محفوظة بكل ملفاتها)، `R28-TI-STATUS-SEED.json` (بذر الحالات)، TI-CREATE (شاشة؛ `-before.png` تُظهر الترويسة والصافي 210)، TI-PAY (شاشة «إستلام دفعة» 50)، TI-API (9 طلبات)، TAILORING-SCREEN، VOUCHERS-SCREEN | **ACC-149/150، UI-047/048/049** | DB-024…027 |
 | G: ختام | FINAL-REPORTS (19 طلباً: TB، ميزانية، قائمة دخل، 6 كشوف، مستويات، تقييم، كشفا مركز، عروض، فواتير، قيود، runs، شجرة بأرصدة)، TB-SCREEN، ACCOUNTS/COST-CENTERS/TAILORING/MAINT/OFFERS/OFFLINE-QUEUE/SALES/VOUCHERS-SCREEN | إعادة إنتاج ACC-139/140/130 | DB-028 |
 | تحقق | `R28-check-results.json` (75/27 من 102)، `R28-http-events.jsonl`، سكربتات `round28-main.cjs`/`round28-snapshot.cjs`/`round28-seed-tailoring-statuses.cjs`/`round28-check.py` | — | — |
+
+## الجولة 29 — `evidence/round-29/` (348 ملفاً، ~64 MB؛ تفصيل المراحل في ROUND_29_RESULTS.md §1؛ أدلة المحاولة 1 الضائعة ببيئتها في `evidence/round-29-run1-reset/` بلا تعديل)
+| الكتلة | المراحل والأدلة | النتيجة | لقطات DB |
+|---|---|---|---|
+| خط الأساس | `R29-DB-001-baseline` (seed 7؛ 73 مفتاحاً)، `R29-seed-ids.json`، `R29-LIC-ME.json` | — | DB-001 |
+| A: إعداد وشراء | SETUP (أصناف 400 بلا فئة + عميل)، SETUP-ITEMS، PI-FLOUR-DRAFT/POST (API)، POLICY-SET (شاشة `/custody`؛ `-before.png` مُراجَعة) | JE-000002 ✓ | DB-002…007 |
+| B: إنتاج | PROD-GUARD-NOINPUT (شاشة؛ حجب)، PROD-GUARD-NOINPUT-API (422)، PROD-GUARD-SCRAP (حجب)، PROD-BATCH-01 (شاشة)، PROD-IDEMP | بلا قيد (سياسة) | DB-008…010 |
+| C: تحميل وعبور | LO-GUARD-QTY (شاشة 422)، LO-01/02/03 (شاشة)، REP-RECEIPT-01/02 (شاشة المندوب)، REJECT-03، TRANSIT-02 (شاشة)، LO-LIST | JE-000003…009 ✓ | DB-011…019 |
+| D: مبيعات وتحصيل | SALE-D1-CASH، D2-CREDIT، D3-CREDIT-LIMIT (422)، D4-DISCOUNT-NOOVR (422)/OVR، CUST-PRICE، D5-LOCK-GUARD (422)/D5-FIXED، D6-CASH-LO2 (كلها شاشة `/rep`)، COLLECT-D2-REP (`/rep`)، COLLECT-D2-SAFE/DEFAULT (`/collection`)، COLLECT-OVER-REPLAY (API)، REP-ME-after-sales | **ACC-151/155** | DB-020…033 |
+| E: إقفال 1 | CLOSE-01-REP-NOBUTTON (`/rep` بلا زر)، CLOSE-01-SUBMIT (`/custody`)، APPROVE-01-NOACCT (422)، HRM-ADVANCE (staff)، APPROVE-01، CUSTODY-AFTER-01، LO1-after-approve، REP-ME-before-close1 | **ACC-152/UI-050** | DB-034…038 |
+| F: مرتجع وإقفال 2 | RETURN-D6 (`/rep`)، REP-ME-after-return، CLOSE-02-API-RETURN-ALL (422)، CLOSE-02-WHOLE-CLIENTBLOCK (حجب محلي)، CLOSE-02-SUBMIT (⚠ ماركر قديم — انظر `-review.json`)، APPROVE-02، CUSTODY-AFTER-02، DASHBOARD-after-close2 | **ACC-153/154/156، UI-051** | DB-039…043 |
+| G: تقارير | RPT-BAKERY-{HOME,PRODUCTION,DISTRIBUTION,SALES,COLLECTION,TREASURY,ACCOUNTING,REPORTS}، RPT-REP-FINAL + REP-ME-final، RPT-STAFF-VANSALES، RPT-TB، RPT-PL، RPT-INV-VAL، RPT-JE، RPT-EMP-STATEMENT، RPT-STAFF-API (8 حزم)، RPT-VAN-DASHBOARD/REPORTS | **ACC-157**؛ ACC-120/018 إعادة | DB-044 |
+| تحقق | `R29-check-results.json` (78/17 من 95)، `R29-http-events.jsonl`، `R29-ids.json`، سكربتات `round29-main.cjs`/`round29-snapshot.cjs`/`round29-check.py` | — | — |
