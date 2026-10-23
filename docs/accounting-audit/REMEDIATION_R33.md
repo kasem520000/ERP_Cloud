@@ -110,6 +110,7 @@
 - **فرز الـ38 فشلاً القديم (17 ملفاً) اكتمل** — الجدول الكامل في `CONTINUITY_R33.md` §6: 16 ملفاً كانت اختبارات قديمة تخالف سياسات/حُرّاساً مدمجة وموثقة (ACC-024/058/100/121/127/132/139/149/150/153/170، UI-044) فحُدِّثت توقعاتها مع تعليق يذكر المعرّف ولم يُخفَّف أي حارس؛ ملف واحد كشف **عيباً حقيقياً** (ACC-181) أُصلح كوده.
 - **التشغيل الختامي على `02ea39f`:** 534 ملفاً / 2038 اختباراً — **2012 ✓ / 1 ✗ / 25 معلّق** (`evidence/round-33/R33-vitest-full-02ea39f.json`). الفشل الوحيد `src/modules/ai/ai-help.spec.ts` (لقطة التنقل تحمل `?kind=issue` بينما `navigation.ts` صار `?kind=stock_out`) أُصلح في `b307d21` بإعادة توليد اللقطة بسكربت المستودع `scripts/build-ai-navigation-snapshot.mjs` → `src/modules/ai` 11/11.
 - **تصحيح:** المعلّقة 25 لم تكن `it.skip` — كانت 3 ملفات محجوبة بفشل `beforeAll` (`treasury-movements` 6، `report-treasury-hrm` 9، `report-inventory` 10): سياسات مدمجة (ACC-023/ACC-132/UI-012/UI-044) + **عيب حقيقي ACC-182**. عُدِّلت الـfixtures وأُصلح الكود (`d4e48ed`) فصارت الثلاثة خضراء (25/25)، وانبثق منها اكتشاف ACC-183/184/185. التشغيل الختامي بعدها: R33_FINAL_VITEST.
+- **مسح التقارير (بعد ACC-182):** استدعاء **103 تقارير** الكتالوج كلها حياً بمعاملات الكتالوج (نافذة 2026) وبدون معاملات — **0 × 5xx، 0 × 4xx** (`scripts/round33-report-sweep.cjs`، `evidence/round-33/R33-report-sweep-33.json`؛ عدد الصفوف لكل تقرير مسجَّل). لا تقرير آخر من فئة ACC-182.
 
 ## 7. المتبقّي والتقدير الصريح
 
@@ -131,6 +132,7 @@ R33_RUN=NN ... node docs/accounting-audit/scripts/round33-probe2.cjs   # 46/46 (
 R33_RUN=NN ... node docs/accounting-audit/scripts/round33-probe3.cjs   # 48/48
 R33_RUN=NN ... node docs/accounting-audit/scripts/round33-probe4.cjs   # Block U 22/22 (ACC-178/180/177) — R33_SKIP_U1/U3 لتشغيل جزء
 R33_RUN=NN ... node docs/accounting-audit/scripts/round33-probe5.cjs   # Block V/W 47/47 (ACC-182/183/184/185) — يحتاج 2026-12 حراً (يعيده حراً في نهايته)
+R33_RUN=NN ... node docs/accounting-audit/scripts/round33-report-sweep.cjs  # كل تقارير الكتالوج (103) بمعاملاتها وبدونها: 0 × 5xx (RUN 33 — `R33-report-sweep-33.json`)
 cd apps/api && npx vitest run                                           # 0 فشل و0 معلّق متوقَّع (2042 ✓) — ~25 دقيقة
 cd apps/api && npx vitest run test/van-sales-stock-acceptance.spec.ts test/van-sales-stock-settlement.spec.ts test/van-sales.spec.ts test/van-sales-returns-in-reports.spec.ts test/payment-gateways.spec.ts
 ```
