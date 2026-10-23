@@ -15,8 +15,8 @@ import subprocess
 import sys
 from collections import Counter, defaultdict
 
-REF = next((a for a in sys.argv[1:] if not a.startswith('--')), 'origin/arena/163dfc4b-erp-cloud')
 OUT = sys.argv[sys.argv.index('--json') + 1] if '--json' in sys.argv else None
+REF = next((a for a in sys.argv[1:] if not a.startswith('--') and a != OUT), 'origin/arena/163dfc4b-erp-cloud')
 SEV_ORDER = {'CRITICAL': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3, 'ENHANCEMENT': 4}
 
 
