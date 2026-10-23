@@ -1,0 +1,39 @@
+{
+  "id": "R32-A04-neoleap-sale-50",
+  "at": "2026-10-23T06:57:53.307Z",
+  "method": "POST",
+  "path": "/payment-gateways/neoleap/sale",
+  "status": 201,
+  "request": {
+    "amount": "50.00",
+    "invoiceId": "01a1678d-1f5f-7228-b403-3efa9f94554d",
+    "reference": "R32-NL-SI1-50"
+  },
+  "response": {
+    "transaction": {
+      "id": "01a1678d-45cf-7729-9796-00d0b190295f",
+      "provider": "neoleap",
+      "reference": "R32-NL-SI1-50",
+      "sessionId": "SIM-c9584b5bd22a",
+      "invoiceId": "01a1678d-1f5f-7228-b403-3efa9f94554d",
+      "branchId": null,
+      "amount": "50.0000",
+      "currency": "SAR",
+      "status": "approved",
+      "responseCode": "00",
+      "detailedResponseCode": "00",
+      "message": "Approved",
+      "approvalCode": "095840",
+      "rrn": "511221115118",
+      "stan": "226238",
+      "cardScheme": "MADA",
+      "panMasked": "****4242",
+      "transactionType": "SALE",
+      "checkoutUrl": null,
+      "simulation": true,
+      "settled": true,
+      "createdAt": "2026-10-23T06:57:54.126Z"
+    },
+    "settled": true
+  }
+}

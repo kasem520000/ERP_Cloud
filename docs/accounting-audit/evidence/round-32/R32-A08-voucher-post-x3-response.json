@@ -1,0 +1,83 @@
+{
+  "id": "R32-A08-voucher-post-x3",
+  "at": "2026-10-23T06:58:34.877Z",
+  "concurrent": true,
+  "results": [
+    {
+      "method": "POST",
+      "path": "/vouchers/01a1678d-e4f7-72f4-8c69-afc9a010056a/post",
+      "status": 201,
+      "request": {},
+      "response": {
+        "id": "01a1678d-e4f7-72f4-8c69-afc9a010056a",
+        "tenantId": "01a1677f-d835-7319-91d8-f738c4304130",
+        "branchId": "01a1677f-da0d-7362-9fdc-c924c1a01bc7",
+        "kind": "receipt",
+        "subtype": "customer",
+        "number": "RV-000003",
+        "date": "2026-10-23",
+        "partyId": "01a1677f-da1b-7092-bf83-2bda42ee6219",
+        "counterAccountId": null,
+        "cashLocationId": "01a1677f-da12-717b-aa79-2656afc1f070",
+        "method": "cash",
+        "amount": "20.0000",
+        "vatAmount": "0.0000",
+        "netAmount": "20.0000",
+        "currency": "SAR",
+        "fxRate": null,
+        "chequeNo": null,
+        "chequeDate": null,
+        "bankName": null,
+        "chequeState": null,
+        "costCenterId": null,
+        "referenceNo": null,
+        "referenceDate": null,
+        "recipient": null,
+        "description": "R32 receipt 20 (concurrency probe)",
+        "voucherTime": null,
+        "salesmanId": null,
+        "foreignAmount": null,
+        "status": "posted",
+        "journalEntryId": "01a1678d-e844-732d-8723-8506a18e700d",
+        "fiscalPeriodId": null,
+        "postedAt": "2026-10-23T06:58:35.742Z",
+        "voidedAt": null,
+        "idempotencyKey": null,
+        "createdAt": "2026-10-23T06:58:34.869Z",
+        "createdBy": "01a1677f-d838-704e-9e88-c0e21eb81c5f",
+        "createdByName": "مالك الحساب",
+        "updatedAt": "2026-10-23T06:58:35.742Z",
+        "updatedBy": "01a1677f-d838-704e-9e88-c0e21eb81c5f",
+        "version": 1
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/vouchers/01a1678d-e4f7-72f4-8c69-afc9a010056a/post",
+      "status": 409,
+      "request": {},
+      "response": {
+        "type": "about:blank",
+        "title": "Voucher status does not allow this action",
+        "status": 409,
+        "code": "VOUCHER_INVALID_STATUS",
+        "detail": "Only draft vouchers can be posted",
+        "traceId": "01a1678d-e502-77e3-956f-a23df773c392"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/vouchers/01a1678d-e4f7-72f4-8c69-afc9a010056a/post",
+      "status": 409,
+      "request": {},
+      "response": {
+        "type": "about:blank",
+        "title": "Voucher status does not allow this action",
+        "status": 409,
+        "code": "VOUCHER_INVALID_STATUS",
+        "detail": "Only draft vouchers can be posted",
+        "traceId": "01a1678d-e503-70ea-ae29-86e1e0bdb592"
+      }
+    }
+  ]
+}

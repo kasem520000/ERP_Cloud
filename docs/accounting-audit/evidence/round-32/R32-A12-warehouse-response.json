@@ -1,0 +1,26 @@
+{
+  "id": "R32-A12-warehouse",
+  "at": "2026-10-23T06:58:48.062Z",
+  "method": "POST",
+  "path": "/warehouses",
+  "status": 201,
+  "request": {
+    "branchId": "01a1678e-1879-750a-b524-6638f8ca7e4f",
+    "code": "WH32",
+    "name": "مستودع R32"
+  },
+  "response": {
+    "data": {
+      "id": "01a1678e-1b8d-70ec-906d-b72ceb8f9a2f",
+      "branchId": "01a1678e-1879-750a-b524-6638f8ca7e4f",
+      "code": "WH32",
+      "name": "مستودع R32",
+      "inventoryAccountId": null,
+      "isDefault": false,
+      "isActive": true,
+      "version": 1,
+      "createdAt": "2026-10-23T06:58:48.841Z",
+      "updatedAt": null
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "R32-A11-unlock-treasury",
+  "at": "2026-10-23T06:58:43.295Z",
+  "method": "POST",
+  "path": "/fiscal-periods/01a1677f-dab4-7269-9b07-a8b7439c3d78/modules/treasury/unlock",
+  "status": 201,
+  "request": {},
+  "response": {
+    "data": {
+      "periodId": "01a1677f-dab4-7269-9b07-a8b7439c3d78",
+      "module": "treasury",
+      "locked": false,
+      "lockedAt": null,
+      "lockedBy": null
+    }
+  }
+}

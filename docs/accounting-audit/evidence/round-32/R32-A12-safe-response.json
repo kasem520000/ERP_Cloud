@@ -1,0 +1,33 @@
+{
+  "id": "R32-A12-safe",
+  "at": "2026-10-23T06:58:48.849Z",
+  "method": "POST",
+  "path": "/cash-locations",
+  "status": 201,
+  "request": {
+    "branchId": "01a1678e-1879-750a-b524-6638f8ca7e4f",
+    "kind": "safe",
+    "name": "صندوق R32",
+    "accountId": "01a1677f-da59-748c-a964-2279b10c86c1",
+    "isDefault": true
+  },
+  "response": {
+    "data": {
+      "id": "01a1678e-1eca-7221-a807-4564608a63de",
+      "branchId": "01a1678e-1879-750a-b524-6638f8ca7e4f",
+      "kind": "safe",
+      "name": "صندوق R32",
+      "accountId": "01a1677f-da59-748c-a964-2279b10c86c1",
+      "currencyCode": null,
+      "isDefault": true,
+      "bank": null,
+      "changeInPos": false,
+      "isActive": true,
+      "notes": null,
+      "custodianIds": [],
+      "version": 1,
+      "createdAt": "2026-10-23T06:58:49.669Z",
+      "updatedAt": null
+    }
+  }
+}

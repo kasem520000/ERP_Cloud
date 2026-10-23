@@ -1,0 +1,64 @@
+{
+  "id": "R32-A01-stockin",
+  "at": "2026-10-23T06:57:41.670Z",
+  "method": "POST",
+  "path": "/inventory/vouchers",
+  "status": 201,
+  "request": {
+    "branchId": "01a1677f-da0d-7362-9fdc-c924c1a01bc7",
+    "warehouseId": "01a1677f-da0f-73b3-92a7-7f511e3a6583",
+    "kind": "stock_in",
+    "voucherDate": "2026-10-23",
+    "reason": "R32 opening stock",
+    "lines": [
+      {
+        "itemId": "01a1678d-1517-73b9-9b70-0676626d6766",
+        "qty": "100",
+        "unitCost": "10.0000"
+      }
+    ]
+  },
+  "response": {
+    "id": "01a1678d-1838-769d-be71-3f49648afb37",
+    "tenantId": "01a1677f-d835-7319-91d8-f738c4304130",
+    "branchId": "01a1677f-da0d-7362-9fdc-c924c1a01bc7",
+    "warehouseId": "01a1677f-da0f-73b3-92a7-7f511e3a6583",
+    "kind": "stock_in",
+    "number": "SIN-000001",
+    "status": "draft",
+    "voucherDate": "2026-10-23",
+    "reason": "R32 opening stock",
+    "counterAccountId": null,
+    "notes": null,
+    "journalEntryId": null,
+    "totalCost": "1000.0000",
+    "postedAt": null,
+    "voidedAt": null,
+    "createdAt": "2026-10-23T06:57:42.457Z",
+    "createdBy": "01a1677f-d838-704e-9e88-c0e21eb81c5f",
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1,
+    "legacySource": null,
+    "legacyId": null,
+    "lines": [
+      {
+        "voucherId": "01a1678d-1838-769d-be71-3f49648afb37",
+        "lineNo": 1,
+        "tenantId": "01a1677f-d835-7319-91d8-f738c4304130",
+        "itemId": "01a1678d-1517-73b9-9b70-0676626d6766",
+        "qty": "100.0000",
+        "unitId": null,
+        "unitCost": "10.0000",
+        "lineCost": "1000.0000",
+        "lotId": null,
+        "batchNo": null,
+        "productionDate": null,
+        "expiryDate": null,
+        "serialId": null,
+        "serialNos": [],
+        "note": null
+      }
+    ]
+  }
+}

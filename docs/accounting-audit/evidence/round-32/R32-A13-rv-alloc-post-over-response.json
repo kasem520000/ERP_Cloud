@@ -1,0 +1,25 @@
+{
+  "id": "R32-A13-rv-alloc-post-over",
+  "at": "2026-10-23T06:58:55.532Z",
+  "method": "POST",
+  "path": "/vouchers/01a1678e-35a5-72da-b900-9f30e98c55a1/post",
+  "status": 422,
+  "request": {
+    "allocations": [
+      {
+        "partyId": "01a1677f-da1b-7092-bf83-2bda42ee6219",
+        "invoiceKind": "sales",
+        "invoiceId": "01a1678d-1f5f-7228-b403-3efa9f94554d",
+        "amount": "500.00"
+      }
+    ]
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "ALLOCATION_AMOUNT_EXCEEDS_INVOICE_BALANCE",
+    "detail": "Allocation amount 500.00 exceeds remaining sales invoice balance (0.0000)",
+    "traceId": "01a1678e-35ac-7239-ad68-08b3993bce2f"
+  }
+}

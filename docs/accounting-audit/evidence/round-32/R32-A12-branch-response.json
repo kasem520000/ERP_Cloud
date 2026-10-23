@@ -1,0 +1,29 @@
+{
+  "id": "R32-A12-branch",
+  "at": "2026-10-23T06:58:47.270Z",
+  "method": "POST",
+  "path": "/branches",
+  "status": 201,
+  "request": {
+    "code": "BR32",
+    "nameAr": "فرع R32",
+    "nameEn": "Branch R32"
+  },
+  "response": {
+    "data": {
+      "id": "01a1678e-1879-750a-b524-6638f8ca7e4f",
+      "code": "BR32",
+      "nameAr": "فرع R32",
+      "nameEn": "Branch R32",
+      "address": null,
+      "phone": null,
+      "mobile": null,
+      "email": null,
+      "isDefault": false,
+      "isActive": true,
+      "version": 1,
+      "createdAt": "2026-10-23T06:58:48.048Z",
+      "updatedAt": null
+    }
+  }
+}

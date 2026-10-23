@@ -1,0 +1,30 @@
+{
+  "id": "R32-A03-geidea-config",
+  "at": "2026-10-23T06:57:52.520Z",
+  "method": "PUT",
+  "path": "/payment-gateways/geidea",
+  "status": 200,
+  "request": {
+    "active": true,
+    "simulation": true,
+    "merchantKey": "R32-GEIDEA-KEY",
+    "merchantSecret": "***",
+    "currency": "SAR"
+  },
+  "response": {
+    "provider": "geidea",
+    "labelAr": "جيديا",
+    "active": true,
+    "printReceipt": false,
+    "port": null,
+    "baseUrl": "https://api.ksamerchant.geidea.net",
+    "currency": "SAR",
+    "merchantKey": "R32-GEIDEA-KEY",
+    "hasSecret": "***",
+    "secretMasked": "***",
+    "callbackUrl": "",
+    "simulation": true,
+    "lastTest": null,
+    "updatedAt": "2026-10-23T06:57:53.301Z"
+  }
+}

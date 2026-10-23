@@ -1,0 +1,33 @@
+{
+  "id": "R32-A10-je-period-mismatch",
+  "at": "2026-10-23T06:58:37.566Z",
+  "method": "POST",
+  "path": "/journal-entries",
+  "status": 409,
+  "request": {
+    "branchId": "01a1677f-da0d-7362-9fdc-c924c1a01bc7",
+    "fiscalPeriodId": "01a1677f-daac-76ad-b0d9-19710953d807",
+    "date": "2026-10-23",
+    "description": "R32 ACC-024 probe",
+    "lines": [
+      {
+        "accountId": "01a1677f-da20-76ec-90aa-516067fceef0",
+        "debit": "1.0000",
+        "description": "R32 date/period probe"
+      },
+      {
+        "accountId": "01a1677f-da59-748c-a964-2279b10c86c1",
+        "credit": "1.0000",
+        "description": "R32 date/period probe"
+      }
+    ]
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "FISCAL_PERIOD_DATE_MISMATCH",
+    "detail": "Entry date 2026-10-23 is outside the selected fiscal period (2026-01-01 to 2026-01-31)",
+    "traceId": "01a1678d-ef80-758c-b223-eb4b6e723fcb"
+  }
+}

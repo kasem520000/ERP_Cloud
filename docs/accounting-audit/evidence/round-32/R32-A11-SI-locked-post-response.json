@@ -1,0 +1,18 @@
+{
+  "id": "R32-A11-SI-locked-post",
+  "at": "2026-10-23T06:58:45.680Z",
+  "method": "POST",
+  "path": "/sales/invoices/01a1678e-0f20-706c-b31a-bfdec2e09258/post",
+  "status": 409,
+  "request": {
+    "settlement": "credit"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "PERIOD_MODULE_LOCKED",
+    "detail": "Module sales is locked for this fiscal period",
+    "traceId": "01a1678e-0f31-7028-9d16-a593cf34effa"
+  }
+}
