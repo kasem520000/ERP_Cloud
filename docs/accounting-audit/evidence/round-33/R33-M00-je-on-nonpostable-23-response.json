@@ -1,0 +1,40 @@
+{
+  "id": "R33-M00-je-on-nonpostable-23",
+  "at": "2026-10-23T18:46:36.289Z",
+  "method": "POST",
+  "path": "/journal-entries",
+  "status": 422,
+  "request": {
+    "branchId": "01a169f7-62ec-77ff-a049-07df41446dca",
+    "fiscalPeriodId": "01a169f7-6334-7659-b4b6-68fbf578e86f",
+    "date": "2026-11-05",
+    "description": "R33 حارس: قيد على حساب تجميعي 3122",
+    "lines": [
+      {
+        "accountId": "01a169f7-6308-7112-af3a-d9a7f3a6af56",
+        "debit": "1.0000"
+      },
+      {
+        "accountId": "01a169f7-6301-72ef-9bd8-4e7acc83c6bd",
+        "credit": "1.0000"
+      }
+    ]
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Account not postable",
+    "status": 422,
+    "code": "ACCOUNT_NOT_POSTABLE",
+    "detail": "لا يمكن الترحيل على حساب رئيسي/تجميعي (224, 3122) — اختر حساباً فرعياً قابلاً للترحيل",
+    "traceId": "01a16a16-1c05-7156-8930-754177a2ca7f",
+    "errors": [
+      {
+        "field": "accountId",
+        "accounts": [
+          "224",
+          "3122"
+        ]
+      }
+    ]
+  }
+}

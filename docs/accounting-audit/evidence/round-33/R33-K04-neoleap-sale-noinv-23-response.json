@@ -1,0 +1,39 @@
+{
+  "id": "R33-K04-neoleap-sale-noinv-23",
+  "at": "2026-10-23T18:46:05.743Z",
+  "method": "POST",
+  "path": "/payment-gateways/neoleap/sale",
+  "status": 201,
+  "request": {
+    "amount": "7.00",
+    "reference": "R33-NL-NOINV-7-23"
+  },
+  "response": {
+    "transaction": {
+      "id": "01a16a15-a6cf-721b-a8dc-c5901cf71426",
+      "provider": "neoleap",
+      "reference": "R33-NL-NOINV-7-23",
+      "sessionId": "SIM-db286b6b4831",
+      "invoiceId": null,
+      "branchId": null,
+      "amount": "7.0000",
+      "currency": "SAR",
+      "status": "approved",
+      "responseCode": "00",
+      "detailedResponseCode": "00",
+      "message": "Approved",
+      "approvalCode": "002860",
+      "rrn": "614831813777",
+      "stan": "698512",
+      "cardScheme": "MADA",
+      "panMasked": "****4242",
+      "transactionType": "SALE",
+      "checkoutUrl": null,
+      "simulation": true,
+      "settled": false,
+      "createdAt": "2026-10-23T18:46:06.286Z"
+    },
+    "settled": false,
+    "settlementError": "عملية شبكة بلا فاتورة — لا تُقيَّد في الدفاتر حتى تُربط بفاتورة مبيعات مرحَّلة."
+  }
+}

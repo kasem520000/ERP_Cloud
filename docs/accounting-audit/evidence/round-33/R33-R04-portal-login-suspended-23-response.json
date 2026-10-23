@@ -1,0 +1,12 @@
+{
+  "id": "R33-R04-portal-login-suspended",
+  "status": 403,
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 403,
+    "code": "PORTAL_ACCESS_SUSPENDED",
+    "detail": "تم إيقاف وصولكم إلى البوابة — راجعوا الجهة التي أنشأت حسابكم",
+    "traceId": "01a16a16-c5a9-77d2-a186-1a4990940fe8"
+  }
+}

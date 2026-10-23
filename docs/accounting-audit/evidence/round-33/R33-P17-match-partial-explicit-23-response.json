@@ -1,0 +1,42 @@
+{
+  "id": "R33-P17-match-partial-explicit-23",
+  "at": "2026-10-23T18:47:10.041Z",
+  "method": "POST",
+  "path": "/treasury/bank-statements/01a16a16-8708-764c-a5aa-3234229ce745/match",
+  "status": 201,
+  "request": {
+    "lineId": "01a16a16-870b-731c-9c9a-973236d7f879",
+    "invoiceId": "01a16a16-7d8e-74f8-a88e-e1ebc02288f7",
+    "invoiceType": "sale",
+    "partial": true
+  },
+  "response": {
+    "data": {
+      "id": "01a16a16-870b-731c-9c9a-973236d7f879",
+      "tenantId": "01a169f7-61ba-747d-b1af-5f1f066e70fc",
+      "statementId": "01a16a16-8708-764c-a5aa-3234229ce745",
+      "lineNo": 6,
+      "txnDate": "2026-10-23",
+      "description": "ايداع بلا مستند",
+      "reference": null,
+      "amount": "7.0000",
+      "balance": null,
+      "matchedVoucherId": null,
+      "matchedInvoiceId": "01a16a16-7d8e-74f8-a88e-e1ebc02288f7",
+      "matchedInvoiceType": "sale",
+      "matchConfidence": "0.9000",
+      "matchReason": "مطابقة جزئية يدوية (المستند 23.00 ≠ السطر 7.00)",
+      "suggestedAccountId": null,
+      "suggestedCostCenterId": null,
+      "status": "matched",
+      "matchedAt": "2026-10-23T18:47:10.810Z",
+      "matchedBy": "01a169f7-61bd-714a-9613-69d2cf50a0aa",
+      "metadata": {},
+      "createdAt": "2026-10-23T18:47:03.688Z",
+      "createdBy": "01a169f7-61bd-714a-9613-69d2cf50a0aa",
+      "updatedAt": "2026-10-23T18:47:10.810Z",
+      "updatedBy": "01a169f7-61bd-714a-9613-69d2cf50a0aa",
+      "version": 2
+    }
+  }
+}

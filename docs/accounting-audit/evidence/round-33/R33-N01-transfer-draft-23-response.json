@@ -1,0 +1,25 @@
+{
+  "id": "R33-N01-transfer-draft-23",
+  "at": "2026-10-23T18:46:43.235Z",
+  "method": "POST",
+  "path": "/inventory/transfers/draft",
+  "status": 201,
+  "request": {
+    "branchId": "01a169f7-62ec-77ff-a049-07df41446dca",
+    "fromWarehouseId": "01a169f7-62ed-733e-a5a2-176687c8e085",
+    "toWarehouseId": "01a16a15-f32e-731a-9b90-574f0c7a4f7f",
+    "lines": [
+      {
+        "itemId": "01a169f7-fa6c-74bc-a014-319d2d60d84f",
+        "qty": "3",
+        "lotId": "01a16a15-c4a6-7617-adce-e38e6bd49e01"
+      }
+    ]
+  },
+  "response": {
+    "id": "01a16a16-3a26-70fc-aa10-2041eeb62912",
+    "number": "TR-000005",
+    "branchId": "01a169f7-62ec-77ff-a049-07df41446dca",
+    "status": "draft"
+  }
+}

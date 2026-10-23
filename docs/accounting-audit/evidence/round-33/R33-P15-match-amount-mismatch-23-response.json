@@ -1,0 +1,26 @@
+{
+  "id": "R33-P15-match-amount-mismatch-23",
+  "at": "2026-10-23T18:47:08.498Z",
+  "method": "POST",
+  "path": "/treasury/bank-statements/01a16a16-8708-764c-a5aa-3234229ce745/match",
+  "status": 422,
+  "request": {
+    "lineId": "01a16a16-870b-731c-9c9a-973236d7f879",
+    "voucherId": "01a16a16-6859-77c9-bc22-5aa678fccada"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "BANK_MATCH_AMOUNT_MISMATCH",
+    "detail": "The bank line and the document carry different amounts — confirm a partial match explicitly",
+    "traceId": "01a16a16-99d3-70fc-b834-d2b49c0a3e18",
+    "errors": [
+      {
+        "field": "partial",
+        "lineAmount": "7.0000",
+        "documentAmount": "5.0000"
+      }
+    ]
+  }
+}

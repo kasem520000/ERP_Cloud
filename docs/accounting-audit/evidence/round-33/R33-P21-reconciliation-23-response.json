@@ -1,0 +1,28 @@
+{
+  "id": "R33-P21-reconciliation-23",
+  "at": "2026-10-23T18:47:12.357Z",
+  "method": "GET",
+  "path": "/treasury/bank-reconciliation?bank_account_id=01a16a16-83f9-777c-90fe-d87766467ad0",
+  "status": 200,
+  "response": {
+    "data": {
+      "bankAccountId": "01a16a16-83f9-777c-90fe-d87766467ad0",
+      "bankName": "R33 بنك اختبار 23",
+      "periodFrom": "2026-10-23",
+      "periodTo": "2026-10-23",
+      "currency": "SAR",
+      "bankMovement": "35.0000",
+      "bankBalance": "180035.0000",
+      "ledgerBalance": "180035.5000",
+      "ledgerSource": "journal ledger",
+      "difference": "-0.5000",
+      "matchedMovement": "7.5000",
+      "unmatchedMovement": "27.5000",
+      "matchedLines": 3,
+      "pendingLines": 3,
+      "ignoredLines": 0,
+      "statementCount": 1,
+      "lineCount": 6
+    }
+  }
+}
