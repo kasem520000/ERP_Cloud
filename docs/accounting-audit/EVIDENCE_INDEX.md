@@ -501,3 +501,15 @@ R17-manifest.json يفهرس 258 ملفاً (لا يشمل نفسه)، نحو 24
 | F: مرتجع وإقفال 2 | RETURN-D6 (`/rep`)، REP-ME-after-return، CLOSE-02-API-RETURN-ALL (422)، CLOSE-02-WHOLE-CLIENTBLOCK (حجب محلي)، CLOSE-02-SUBMIT (⚠ ماركر قديم — انظر `-review.json`)، APPROVE-02، CUSTODY-AFTER-02، DASHBOARD-after-close2 | **ACC-153/154/156، UI-051** | DB-039…043 |
 | G: تقارير | RPT-BAKERY-{HOME,PRODUCTION,DISTRIBUTION,SALES,COLLECTION,TREASURY,ACCOUNTING,REPORTS}، RPT-REP-FINAL + REP-ME-final، RPT-STAFF-VANSALES، RPT-TB، RPT-PL، RPT-INV-VAL، RPT-JE، RPT-EMP-STATEMENT، RPT-STAFF-API (8 حزم)، RPT-VAN-DASHBOARD/REPORTS | **ACC-157**؛ ACC-120/018 إعادة | DB-044 |
 | تحقق | `R29-check-results.json` (78/17 من 95)، `R29-http-events.jsonl`، `R29-ids.json`، سكربتات `round29-main.cjs`/`round29-snapshot.cjs`/`round29-check.py` | — | — |
+
+## الجولة 30 — `evidence/round-30/` (378 ملفاً، ~70 MB؛ تفصيل المراحل في ROUND_30_RESULTS.md §1)
+| الكتلة | المراحل والأدلة | النتيجة | لقطات DB |
+|---|---|---|---|
+| خط الأساس | `R30-DB-000-baseline` (نهاية R29؛ 83 مفتاحاً)، `R30-ids.json`، `R30-http-events.jsonl` | — | DB-000 |
+| A: وصول البوابة | A01 (staff)، A02-grant-portal-access، A03 (بوابة قبل الدخول)، A04-portal-login-temp، A05-portal-change-password، A06-portal-login-new، A07-portal-dashboard (+ `-me-api.json`)، A08…A14 (الفواتير/المدفوعات/الكشف/الحساب/الطباعة)، A10b (refresh)، A15-portal-guards (11 مساراً) | **ACC-158**؛ الحرّاس ✓ | DB-001…005 |
+| B: مستندات آجلة | B01…B04 (SI-000006/007 مسودة+ترحيل)، B05/B06 (SR-000002)، B07-portal-dashboard-after-docs، B08-portal-invoices-after-docs (+ API)، B09-portal-statement-after-docs (+ API) | JE-000020…022 ✓؛ **ACC-160** | DB-006…011 |
+| C: روابط الدفع | C01، C02-moyasar-config، C03-link-si4، C04-link-guards، C05، C06-simulate-si4، C07-link-replay، C08-link-si6، C09-webhook، C10…C13 (البوابة بعد الروابط) | RV-000002/003 + JE-000023/024 ✓؛ ACC-163 | DB-012…018 |
+| D: بوابات البطاقات | D01-gateways-before، D02-geidea-config، D03-geidea-test، D04-geidea-pay-no-invoice، D05-gateway-invoice-sales (الحقل الخاطئ — دليل ACC-159)، D06-gateways-log، D07-si7-after-card، D08…D11 (البوابة)، D12/D13 (SI-000008)، D14-gateway-probes (18 نداء)، D15…D18، D19-refresh-no-invoice (API) | **ACC-159** ×3؛ حالات المحاكاة ✓ | DB-019…025، DB-039 |
+| E: بوابة المورّد | E01، E02-supplier-invite، E03-rfq، E04-supplier-login، E05-supplier-board (+ `-api.json`)، E06-rfq-respond، E07-supplier-upload، E08 (+ `-staff-api.json`)، E09-supplier-guards، E09b-supplier-token-staff-routes | **ACC-161**؛ العزل ✓ | DB-026…031 |
+| F: تقارير ودورة الوصول | F01-party-statement، F02-trial-balance، F03-vouchers، F04-sales-invoices، F05-journal-entries، F05b-customer-balances، `R30-F-STAFF-API.json` (8 حزم)، F06-portal-suspend، F07/F07b (أثناء الإيقاف)، F08/F08b، F09-portal-revoke، F10/F10b، F11-final-tb | ACC-004 (إعادة إنتاج)؛ ACC-162 | DB-032…038 |
+| تحقق | `R30-CHECK-OUTPUT.txt` (76/15 من 91)، سكربتات `round30-main.cjs`/`round30-snapshot.cjs`/`round30-check.py` | — | — |

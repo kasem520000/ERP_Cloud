@@ -76,3 +76,9 @@
 ## 4. المتبقي بعد R30
 - R31: التقرير الموحَّد الختامي (دمج R10–R30، سجل العيوب الكامل، قرارات السياسة، خريطة التغطية النهائية، تقدير ما لم يُنفَّذ).
 - تقدير `apps/platform-admin` (فوترة المشغّل) و`apps/marketing`/`apps/migrator` يُوثَّق في `ROUND_30_RESULTS.md` §8.
+
+## الحالة الختامية لـR30 (2026-10-23) — مُنجَزة
+- الرنر 56 مرحلة اكتملت (A–F) + مسباران من API (E09b، D19)؛ آخر لقطة `R30-DB-039`؛ الفاحص `round30-check.py` 76/15 من 91 (`R30-CHECK-OUTPUT.txt`).
+- التقرير `ROUND_30_RESULTS.md`؛ العيوب ACC-158…163 + UI-053 في DEFECTS.md؛ السجلات (SCREEN_REGISTER/TEST_DATA/EVIDENCE_INDEX/FINANCIAL_RECONCILIATION/TEST_RESULTS/README) مُلحَقة.
+- انحراف موثَّق: D05 بحقل `ecrRef` الخاطئ (الحقل الصحيح `reference`) — أُبقي دليلاً على ACC-159 وأُعيدت المسابر على SI-000008 (D12–D18).
+- التالي (R31): التقرير الموحَّد بلا تنفيذ + تقدير `apps/platform-admin` (فوترة المشغّل). إن أُعيدت التهيئة: وصفة CONTINUITY_R24 §3 ثم `next build` لبوابة العميل (:3004) ولا حاجة لإعادة R30 (الأدلة كاملة في Git).

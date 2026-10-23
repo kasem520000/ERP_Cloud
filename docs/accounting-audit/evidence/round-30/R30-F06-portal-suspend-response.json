@@ -1,0 +1,24 @@
+{
+  "status": 200,
+  "method": "PATCH",
+  "url": "http://127.0.0.1:3001/api/v1/portal-access/01a166ce-8a0b-725a-b54a-a956fa82cda5",
+  "request": {
+    "status": "suspended"
+  },
+  "body": {
+    "data": {
+      "id": "01a166ce-8a0b-725a-b54a-a956fa82cda5",
+      "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
+      "partyId": "01a16672-aafe-77ce-bba9-27910738ad87",
+      "userId": "01a166ce-8a06-761b-849a-3c74f045e1f8",
+      "status": "suspended",
+      "invitedAt": "2026-10-23T03:29:34.219Z",
+      "lastSeenAt": "2026-10-23T03:55:11.962Z",
+      "createdAt": "2026-10-23T03:29:34.219Z",
+      "createdBy": "01a1666d-3a5a-76cc-841a-3b0bef8e64f3",
+      "updatedAt": "2026-10-23T04:04:20.072Z",
+      "updatedBy": null,
+      "version": 1
+    }
+  }
+}

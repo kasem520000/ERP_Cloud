@@ -654,3 +654,21 @@
 | bakery `/reports` (مالك؛ قراءة + API) | RPT-BAKERY-REPORTS، RPT-VAN-REPORTS | تقرير الخطّ يُطلب بفترة ✓ |
 | staff `/hrm/...` سلفة موظف (مالك) | HRM-ADVANCE | JE-000016 وأنشأت 22410002 ✓؛ الصندوق الفرعي لا يتحرك (ACC-018) |
 | staff `/sales/van`، `/accounting/trial-balance`، `/accounting/income-statement`، `/reports/inventory-valuation`، `/accounting/journal-entries`، `/hrm/.../employee-statement` (قراءة) | RPT-STAFF-VANSALES، RPT-TB، RPT-PL، RPT-INV-VAL، RPT-JE، RPT-EMP-STATEMENT | TB/تقييم = DB ✓؛ قائمة الدخل «حسابات رئيسية» 287.40 (**ACC-120**)؛ `/sales/van` يحذّر من الاختلاف المشتق (**ACC-157**) |
+
+## الشاشات المنفَّذة في R30 (بوابة العملاء `apps/customer-portal` :3004 + staff + بوابة المورّد؛ بذرة R29 للمستأجر R24؛ الأدلة `evidence/round-30/`)
+| الشاشة (الصفة) | المراحل | النتيجة |
+|---|---|---|
+| staff `/sales/portal-access` (مالك؛ منح/إيقاف/تفعيل/إلغاء) | A02-grant-portal-access، F06-portal-suspend، F08-portal-reactivate، F09-portal-revoke | 201/200 ✓؛ الإلغاء يحذف الصف (ACC-162) |
+| portal `/auth/login` + `/portal/account` (عميل) | A04-portal-login-temp، A05-portal-change-password، A06-portal-login-new، A10b (refresh)، F07-portal-login-while-suspended، F10b-portal-login-after-revoke | دخول/تغيير ✓؛ الموقوف يُصدر توكنات 200 (ACC-162)؛ الملغى 401 ✓ |
+| portal `/portal` اللوحة (عميل؛ قراءة) | A07، B07، C10، D08، D18 (+ `-me-api.json`) | «رصيد دائن لكم 20 → 36.79» مقابل أستاذ 77.29 → 77.75 (**ACC-158**)؛ «غير المسدد» يشمل المردود (**ACC-160**) |
+| portal `/portal/invoices` و`/portal/invoices/[id]` (عميل؛ قراءة) | A08، B08، C12-portal-pay-si4-paid، D09-portal-invoice-si7، D17-portal-invoice-si8 | SR-000002 «غير مسددة/فتح» (**ACC-160**)؛ SI-000007/8 «مسددة» بلا سند (ACC-159) |
+| portal `/portal/payments` و`/portal/statement` (عميل؛ قراءة) | A09/A11، B09، C11/C13، D10/D11 | الكشف يقيّد المردود مديناً (ACC-160)، ترتيب السندات أولاً (UI-053) |
+| portal حرّاس التوكن (API) | A15-portal-guards (11 مساراً) | 403/404 كلها ✓ |
+| staff `/sales/invoices` فاتورة آجلة + ترحيل (مالك) | B01/B02 (SI-000006)، B03/B04 (SI-000007)، D12/D13 (SI-000008) | JE-000020/021/025 ✓ |
+| staff `/sales/returns` (مالك) | B05/B06 (SR-000002 على SI-000002) | JE-000022 ✓؛ الكيلو إلى VAN-1 ✓ |
+| staff `/settings/payments` ميسر (مالك) | C02-moyasar-config | 201 محاكاة + سرّ ويبهوك ✓ |
+| staff `/sales/invoices/[id]` لوحة «روابط الدفع» (مالك) | C03-link-si4، C04-link-guards، C06-simulate-si4، C07-link-replay، C08-link-si6، C09-webhook (API) | RV-000002/003 + JE-000023/024 ✓؛ حرّاس 422/404 ✓؛ `lastError` عالق (ACC-163) |
+| staff `/settings/payment-gateways` جيديا/NeoLeap (مالك) | D01، D02-geidea-config، D03-geidea-test، D04-geidea-pay-no-invoice، D05-gateway-invoice-sales، D06/D15 (السجل)، D14-gateway-probes، D19 (API) | تسوية بلا سند/قيد وبيع بلا فاتورة معتمَد (**ACC-159**)؛ حالات المحاكاة ✓ |
+| staff `/purchases/supplier-portal` (مالك؛ دعوة/RFQ/قراءة) | E01، E02-supplier-invite، E03-rfq، E08 (+ `-staff-api.json`) | 201 ✓؛ الرفع المكرَّر يُعرض مرتين (ACC-161)؛ لا إيقاف لمستخدم المورّد (ACC-162) |
+| `/supplier-portal` (مورّد فعلياً) | E04-supplier-login، E05-supplier-board، E06-rfq-respond، E07-supplier-upload، E09-supplier-guards، E09b (API) | ردّ 190 ✓، رفع 115 بلا قيد ✓، 404/409/422 ✓، تكرار المرجع 201 (**ACC-161**)، توكن المورّد 401 على مسارات الموظفين ✓ |
+| staff `/reports/party-statement`، `/reports/customer-balances`، `/accounting/trial-balance`، `/treasury/vouchers`، `/sales/invoices`، `/accounting/journal-entries` (قراءة) | F01، F05b، F02/F11، F03، F04، F05 (+ `R30-F-STAFF-API.json`) | أرصدة العملاء/كشف العميل 36.79 دائن (ACC-004)؛ الميزان متزن ✓ |
