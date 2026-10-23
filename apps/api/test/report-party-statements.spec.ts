@@ -179,7 +179,11 @@ describe('كشوف الحساب — frmCustAccount · frmCustAccountGet · frmCu
 
   describe('أرصدة حساب العملاء — `frmCustAccount`', () => {
     it('لكل عميلٍ تحرّك حسابه سطر: مدينه ودائنه ورصيده وحالته', async () => {
-      const body = (await report('customer-balances')).body;
+      // بلا `partyKind` يفترض التقرير «عملاء» (تقرير «أرصدة حساب العملاء» لا يخلط الموردين به
+      // إلا بطلب صريح `partyKind=all` — يُختبر أدناه)؛ هنا نطلب «الكل» لنرى الطرفين معاً.
+      const defaultRows = rowsIn((await report('customer-balances')).body);
+      expect(defaultRows.map((row) => row.party)).toEqual(['عميل كشف الحساب']);
+      const body = (await report('customer-balances', 'partyKind=all')).body;
       const rows = rowsIn(body);
 
       // «عميل بلا حركة» لا يُطبع: النافذة لا تُظهر إلا من تحرك حسابه (L221-L231).

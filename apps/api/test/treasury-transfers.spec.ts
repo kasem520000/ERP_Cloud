@@ -8,6 +8,8 @@ import {
 } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
+import { sql } from 'drizzle-orm';
+import { withTenantTx } from '@erp/database';
 
 /**
  * Phase 06 part six — مناقلة (`Form_WPF/frmSafesTransfer.xaml`).
@@ -111,6 +113,7 @@ describe('Treasury cash transfers — مناقلة الخزن', () => {
         'accounting.account.view',
         'accounting.account.manage',
         'accounting.journal.post',
+        'accounting.reports.view',
         'accounting.period.close',
         'accounting.period.view',
       ],
@@ -271,7 +274,7 @@ describe('Treasury cash transfers — مناقلة الخزن', () => {
     expect(twice.status).toBe(422);
   });
 
-  it('🗑️ حذف للمسودة فقط — المُرسَلة تُردّ بمناقلة أخرى', async () => {
+  it('🗑️ إلغاء المسودة بلا قيد؛ والمُرسَلة تُعاد إلى المصدر بعكس قيد الإرسال (ACC-127)؛ والمستلَمة لا تُلغى', async () => {
     const draft = await create('70');
     const cancelled = await api(ctx.server, 'post', `/api/v1/cash-transfers/${draft.id}/cancel`, {
       token: actor.token,
@@ -280,12 +283,58 @@ describe('Treasury cash transfers — مناقلة الخزن', () => {
     expect(cancelled.status).toBeLessThan(300);
     expect(data(cancelled.body).status).toBe('voided');
 
+    // ACC-127 (R26 → remediation): a *sent* transfer that never arrived can be returned to its
+    // source — the sending entry (Dr نقد تحت التحويل / Cr خزنة المصدر) is mirrored, and the
+    // source balance is restored. Before that fix the API refused with 422.
+    const before = await balanceOf(safeAId);
+    const destinationBefore = await balanceOf(safeBId);
     const sent = await create('80');
-    await api(ctx.server, 'post', `/api/v1/cash-transfers/${sent.id}/send`, { token: actor.token, body: {} });
-    const refuse = await api(ctx.server, 'post', `/api/v1/cash-transfers/${sent.id}/cancel`, {
+    const sendRes = await api(ctx.server, 'post', `/api/v1/cash-transfers/${sent.id}/send`, { token: actor.token, body: {} });
+    expect(sendRes.status).toBeLessThan(300);
+    const sentEntryId = data(sendRes.body).sentJournalEntryId as string;
+    expect(await balanceOf(safeAId)).toBeCloseTo(before - 80, 4);
+
+    const returned = await api(ctx.server, 'post', `/api/v1/cash-transfers/${sent.id}/cancel`, {
       token: actor.token,
       body: {},
     });
+    expect(returned.status, JSON.stringify(returned.body)).toBeLessThan(300);
+    expect(data(returned.body).status).toBe('voided');
+    expect(await balanceOf(safeAId)).toBeCloseTo(before, 4);
+    expect(await balanceOf(safeBId)).toBeCloseTo(destinationBefore, 4); // nothing ever reached B
+
+    // The ledger agrees with the balance: the sending entry is now reversed by a posted mirror.
+    const original = await api(ctx.server, 'get', `/api/v1/journal-entries/${sentEntryId}`, { token: actor.token });
+    expect(original.status).toBe(200);
+    const originalBody = data(original.body) as {
+      status?: string;
+      lines?: Array<{ accountId: string; debit: string; credit: string }>;
+    };
+    expect(originalBody.status, JSON.stringify(originalBody)).toBe('posted');
+    expect((originalBody.lines ?? []).some((line) => Number(line.debit) === 80), JSON.stringify(originalBody)).toBe(true);
+    // Exactly one posted mirror points back at the sending entry, and it belongs to this transfer.
+    const mirrors = await withTenantTx(ctx.handle.db, actor.tenantId, async (tx) => {
+      const result = await tx.execute(sql`
+        SELECT id::text, status, source_type, source_id::text
+          FROM journal_entries
+         WHERE tenant_id = ${actor.tenantId}::uuid AND reversal_of = ${sentEntryId}::uuid`);
+      return (result as { rows: Array<Record<string, string>> }).rows;
+    });
+    expect(mirrors).toHaveLength(1);
+    expect(mirrors[0]).toMatchObject({ status: 'posted', source_type: 'cash_transfer', source_id: sent.id });
+
+    // Cancel is final: a second cancel and a late "receive" are both refused.
+    const again = await api(ctx.server, 'post', `/api/v1/cash-transfers/${sent.id}/cancel`, { token: actor.token, body: {} });
+    expect(again.status).toBe(422);
+    expect(codeOf(again.body)).toBe('CASH_TRANSFER_INVALID_STATE');
+    const lateReceive = await api(ctx.server, 'post', `/api/v1/cash-transfers/${sent.id}/receive`, { token: actor.token, body: {} });
+    expect(lateReceive.status).toBe(422);
+
+    // A received transfer cannot be cancelled — the money is already in the destination safe.
+    const received = await create('5');
+    await api(ctx.server, 'post', `/api/v1/cash-transfers/${received.id}/send`, { token: actor.token, body: {} });
+    await api(ctx.server, 'post', `/api/v1/cash-transfers/${received.id}/receive`, { token: actor.token, body: {} });
+    const refuse = await api(ctx.server, 'post', `/api/v1/cash-transfers/${received.id}/cancel`, { token: actor.token, body: {} });
     expect(refuse.status).toBe(422);
     expect(codeOf(refuse.body)).toBe('CASH_TRANSFER_INVALID_STATE');
   });
