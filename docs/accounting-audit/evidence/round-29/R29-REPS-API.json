@@ -1,0 +1,91 @@
+[
+  {
+    "id": "01a16596-a24a-70ea-b133-05653b5bc00e",
+    "name": "مندوب R26",
+    "active": true,
+    "employeeRef": null,
+    "commissionRate": "10.0000",
+    "collectionCommissionRate": "5.0000",
+    "profitCommissionRate": "20.0000",
+    "tel": null,
+    "mobile": null,
+    "email": null,
+    "notes": null,
+    "employeeId": null,
+    "employeeNo": null,
+    "employeeName": null,
+    "employeeStatus": null,
+    "membershipId": null,
+    "membershipStatus": null,
+    "userEmail": null,
+    "userStatus": null,
+    "roleCount": 0,
+    "permissions": [],
+    "warehouseId": null,
+    "warehouseName": null,
+    "warehouseCode": null,
+    "vehiclePlate": null,
+    "custody": {
+      "openLoadOrders": 0,
+      "pendingReceipts": 0,
+      "pendingClosings": 0,
+      "custodyQty": "0.0000",
+      "outstandingCash": "0.0000",
+      "items": []
+    },
+    "readiness": {
+      "hasEmployee": false,
+      "hasLoginAccount": false,
+      "loginActive": false,
+      "hasVanWarehouse": false,
+      "hasVanSalesPermissions": false
+    }
+  },
+  {
+    "id": "01a16504-1458-7735-9863-86d92c9f8c45",
+    "name": "مندوب الشركة",
+    "active": true,
+    "employeeRef": null,
+    "commissionRate": "0.0000",
+    "collectionCommissionRate": "0.0000",
+    "profitCommissionRate": "0.0000",
+    "tel": null,
+    "mobile": null,
+    "email": null,
+    "notes": null,
+    "employeeId": "01a16504-1454-71e2-ba13-f8475e21efe6",
+    "employeeNo": "EMP-REP-1",
+    "employeeName": "مندوب الشركة",
+    "employeeStatus": "active",
+    "membershipId": "01a16504-1450-77f9-b3e8-d39c1686df1d",
+    "membershipStatus": "active",
+    "userEmail": "rep@demo.test",
+    "userStatus": "active",
+    "roleCount": 1,
+    "permissions": [
+      "van_sales.closing.submit",
+      "van_sales.collection.create",
+      "van_sales.invoice.create",
+      "van_sales.view"
+    ],
+    "warehouseId": "01a16504-144a-729a-86bc-9e43bf582a10",
+    "warehouseName": "مستودع سيارة التوزيع",
+    "warehouseCode": "VAN-1",
+    "vehiclePlate": null,
+    "custody": {
+      "openLoadOrders": 0,
+      "pendingReceipts": 0,
+      "pendingClosings": 0,
+      "custodyQty": "0.0000",
+      "outstandingCash": "0.0000",
+      "items": []
+    },
+    "readiness": {
+      "hasEmployee": true,
+      "hasLoginAccount": true,
+      "loginActive": true,
+      "hasVanWarehouse": true,
+      "hasVanSalesPermissions": true
+    }
+  }
+]
