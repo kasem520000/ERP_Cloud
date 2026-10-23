@@ -1,0 +1,722 @@
+{
+ "round": 28,
+ "passed": 75,
+ "failed": 27,
+ "total": 102,
+ "results": [
+  {
+   "id": "A00",
+   "desc": "baseline = R27 closing: cash 50329.1960, 1270001 248.0728, Σ stock 336.1752, last JE-000040",
+   "pass": true,
+   "actual": "(Decimal('50329.1960'), Decimal('336.1752'), 'JE-000040')",
+   "tag": ""
+  },
+  {
+   "id": "A01",
+   "desc": "offer screen → R28-OFF-QTY percent 10 on quantity ≥ 2, active; offer_items/offer_parties untouched",
+   "pass": true,
+   "actual": "('percent', '10.0000', 'quantity', '2.0000', 'active')",
+   "tag": ""
+  },
+  {
+   "id": "A02",
+   "desc": "evaluate qty 1 / 40 → not eligible TARGET_NOT_MET",
+   "pass": true,
+   "actual": "{'eligible': False, 'discount': '0', 'reason': 'TARGET_NOT_MET'}",
+   "tag": ""
+  },
+  {
+   "id": "A03",
+   "desc": "evaluate qty 2 / 80 → eligible, discount 8.0000",
+   "pass": true,
+   "actual": "{'eligible': True, 'discount': '8.0000', 'offerId': '01a165fa-f68e-7247-aa88-0a5f9f89db12'}",
+   "tag": ""
+  },
+  {
+   "id": "A04",
+   "desc": "evaluate another item (RM, qty 2 / 16) must NOT match an offer that has no item scope checked — itemId is ignored (discount 1.6 granted)",
+   "pass": false,
+   "actual": "{'eligible': True, 'discount': '1.6000', 'offerId': '01a165fa-f68e-7247-aa88-0a5f9f89db12'}",
+   "tag": "ACC-137"
+  },
+  {
+   "id": "A05",
+   "desc": "evaluate value −80 must be rejected (422); actual eligible with discount −8.0000 (negative discount = surcharge)",
+   "pass": false,
+   "actual": "(201, {'eligible': True, 'discount': '-8.0000', 'offerId': '01a165fa-f68e-7247-aa88-0a5f9f89db12'})",
+   "tag": "ACC-136"
+  },
+  {
+   "id": "A06",
+   "desc": "expired offer (R28-OFF-OLD, Jan-2026) → OFFER_NOT_VALID",
+   "pass": true,
+   "actual": "{'eligible': False, 'discount': '0', 'reason': 'OFFER_NOT_VALID'}",
+   "tag": ""
+  },
+  {
+   "id": "A07",
+   "desc": "validTo < validFrom → 422 SALES_OFFER_INVALID_PERIOD",
+   "pass": true,
+   "actual": "(422, 'SALES_OFFER_INVALID_PERIOD')",
+   "tag": ""
+  },
+  {
+   "id": "A08",
+   "desc": "duplicate offer code → 409 with a domain code; actual 500 (unique index offers_tenant_code_key leaks as an internal error)",
+   "pass": false,
+   "actual": "(500, 'INTERNAL', 'An unexpected error occurred')",
+   "tag": "ACC-135"
+  },
+  {
+   "id": "A09",
+   "desc": "percent discount 150 % must be rejected on create (422); actual 201 and evaluate value 80 → discount 120.0000 > value",
+   "pass": false,
+   "actual": "(201, 201, '120.0000')",
+   "tag": "ACC-136"
+  },
+  {
+   "id": "A10",
+   "desc": "inactive offer → OFFER_NOT_VALID",
+   "pass": true,
+   "actual": "{'eligible': False, 'discount': '0', 'reason': 'OFFER_NOT_VALID'}",
+   "tag": ""
+  },
+  {
+   "id": "A11",
+   "desc": "evaluate unknown offer id → 404",
+   "pass": true,
+   "actual": "404",
+   "tag": ""
+  },
+  {
+   "id": "A12",
+   "desc": "SI-000012 (2 × FG @40 + 15 %) posted total 92.00, paid 92.00 — quantity 2 satisfies R28-OFF-QTY yet no discount is applied (offers are not wired into sales/POS; discount 8 expected by the offer definition)",
+   "pass": false,
+   "actual": "('92.0000', '0.0000', 'posted')",
+   "tag": "ACC-138"
+  },
+  {
+   "id": "A13",
+   "desc": "JE-000041: Dr 1211001 92 / Cr 4100001 80 / Cr 2222001 12 / Dr 3200004 72.1168 / Cr 1270001 72.1168 (2 × 36.0584)",
+   "pass": true,
+   "actual": "[('1211001', Decimal('92.0000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('72.1168')), ('2222001', Decimal('0.0000'), Decimal('12.0000')), ('3200004', D",
+   "tag": ""
+  },
+  {
+   "id": "A14",
+   "desc": "FG after SI-000012: 1 unit / 36.0584",
+   "pass": true,
+   "actual": "(Decimal('1.0000'), Decimal('36.0584'))",
+   "tag": ""
+  },
+  {
+   "id": "A15",
+   "desc": "balances after A: cash 50421.1960, 1270001 175.9560, 2222001 10.8075 Dr, 3200004 350.9967, 4100001 −672.07",
+   "pass": true,
+   "actual": "(Decimal('50421.1960'), Decimal('175.9560'), Decimal('10.8075'), Decimal('350.9967'), Decimal('-672.0700'))",
+   "tag": ""
+  },
+  {
+   "id": "B01",
+   "desc": "account screen → 1160002 (asset, parent 116, postable) with opening_balance 1000 and NO journal entry (last JE still JE-000041)",
+   "pass": true,
+   "actual": "('1000.0000', None, 'JE-000041')",
+   "tag": ""
+  },
+  {
+   "id": "B02",
+   "desc": "trial balance after opening: 1160002 opening debit 1000; totals opening 251000 vs 250000 → report must flag `balanced:false`; actual balance 1000 with balanced:true",
+   "pass": false,
+   "actual": "('1000.0000', '251000.0000', '250000.0000', '1000.0000', True)",
+   "tag": "ACC-139"
+  },
+  {
+   "id": "B03",
+   "desc": "balance sheet after opening must include 1160002 = 1000 (one-sided opening is still an asset); actual row absent (catalog reads journal lines only)",
+   "pass": false,
+   "actual": "None",
+   "tag": "ACC-140"
+  },
+  {
+   "id": "B04",
+   "desc": "accounts tree (plain) lists 1160002 under 116 with openingBalance 1000 / openedAt 2026-08-01 (roll-up verified at close in G12)",
+   "pass": true,
+   "actual": "('1000.0000', '2026-08-01')",
+   "tag": ""
+  },
+  {
+   "id": "B05",
+   "desc": "PATCH openingBalance 1500 before any posting → 200 / 1500",
+   "pass": true,
+   "actual": "(200, '1500.0000')",
+   "tag": ""
+  },
+  {
+   "id": "B06",
+   "desc": "POST /journal-entries (Dr 1160002 10 / Cr 1211001 10) must create a DRAFT awaiting posting; actual created as `posted` immediately (JE-000042, no review step)",
+   "pass": false,
+   "actual": "(201, 'JE-000042', 'posted')",
+   "tag": "ACC-141"
+  },
+  {
+   "id": "B07",
+   "desc": "PATCH openingBalance after a posting → 409 ACCOUNT_POSTED",
+   "pass": true,
+   "actual": "(409, 'ACCOUNT_POSTED')",
+   "tag": ""
+  },
+  {
+   "id": "B08",
+   "desc": "PATCH nameEn only after posting → 200 (opening kept 1500)",
+   "pass": true,
+   "actual": "(200, '1500.0000', 'R28 test furniture (edited)')",
+   "tag": ""
+  },
+  {
+   "id": "B09",
+   "desc": "DELETE account with postings → 409 ACCOUNT_POSTED",
+   "pass": true,
+   "actual": "(409, 'ACCOUNT_POSTED')",
+   "tag": ""
+  },
+  {
+   "id": "B10",
+   "desc": "GL 1160002: opening row 1500 then JE-000042 +10 → running 1510",
+   "pass": true,
+   "actual": "[(None, '1500.0000', '1500.0000'), ('JE-000042', '10.0000', '1510.0000')]",
+   "tag": ""
+  },
+  {
+   "id": "B11",
+   "desc": "trial balance after PATCH 1500 + JE-000042: 1160002 closing 1510; totals balance 1500 still reported `balanced:true`",
+   "pass": false,
+   "actual": "('1500.0000', True)",
+   "tag": "ACC-139"
+  },
+  {
+   "id": "B12",
+   "desc": "balance sheet after JE-000042 must show 1160002 = 1510; actual 10 (journal part only)",
+   "pass": false,
+   "actual": "10.0000",
+   "tag": "ACC-140"
+  },
+  {
+   "id": "B13",
+   "desc": "balances after B: cash 50411.1960 (50421.196 − 10); 1160002 journal balance 10; opening 1500 stored on the account",
+   "pass": true,
+   "actual": "(Decimal('50411.1960'), Decimal('10.0000'))",
+   "tag": ""
+  },
+  {
+   "id": "C01",
+   "desc": "cost-center screen → CC-R28-A on branch MAIN",
+   "pass": true,
+   "actual": "('CC-R28-A', 'مركز R28-A اختبار معزول', '5daa')",
+   "tag": ""
+  },
+  {
+   "id": "C02",
+   "desc": "CC-R28-B / CC-R28-C via API → 201",
+   "pass": true,
+   "actual": "(201, 201)",
+   "tag": ""
+  },
+  {
+   "id": "C03",
+   "desc": "duplicate cost-center code → 409 with a domain code; actual 500",
+   "pass": false,
+   "actual": "(500, 'INTERNAL', 'An unexpected error occurred')",
+   "tag": "ACC-135"
+  },
+  {
+   "id": "C04",
+   "desc": "SI-000013 (2 lines RM 1 × 8 + 15 %, header CC A, line 1 CC B, line 2 blank) posted total 18.40",
+   "pass": true,
+   "actual": "('18.4000', 'posted')",
+   "tag": ""
+  },
+  {
+   "id": "C05",
+   "desc": "JE-000043: Dr 1211001 18.4 / Cr 4100001 8 + 8 / Cr 2222001 2.4 / Dr 3200004 5 + 5 / Cr 1270001 5 + 5 (one revenue/COGS/inventory line per invoice line)",
+   "pass": true,
+   "actual": "[('1211001', Decimal('18.4000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('5.0000')), ('1270001', Decimal('0.0000'), Decimal('5.0000')), ('2222001', Dec",
+   "tag": ""
+  },
+  {
+   "id": "C06",
+   "desc": "JE-000043 dimensions: revenue/COGS/inventory lines carry CC B (line 1) and CC A (line 2 inherits the header); cash line has no CC",
+   "pass": true,
+   "actual": "[('1211001', Decimal('18.4000'), Decimal('0.0000'), '', ''), ('1270001', Decimal('0.0000'), Decimal('5.0000'), '03aa', '7199'), ('1270001', Decimal('0.0000'), Decimal('5.",
+   "tag": ""
+  },
+  {
+   "id": "C07",
+   "desc": "JE-000043 party dimension: the customer must appear only on the receivable/cash side; actual party_id stamped on COGS, inventory and VAT lines too",
+   "pass": false,
+   "actual": "[('1211001', ''), ('1270001', '7199'), ('1270001', '7199'), ('2222001', '7199'), ('3200004', '7199'), ('3200004', '7199'), ('4100001', '7199'), ('4100001', '7199')]",
+   "tag": "ACC-142"
+  },
+  {
+   "id": "C08",
+   "desc": "PI-000008 (RM 2 × 5 + 15 %, line CC A, credit) → JE-000044 Dr 1270001 10 / Dr 2222001 1.5 / Cr 22111001 11.5; inventory line CC A",
+   "pass": true,
+   "actual": "([('1270001', Decimal('10.0000'), Decimal('0.0000')), ('22111001', Decimal('0.0000'), Decimal('11.5000')), ('2222001', Decimal('1.5000'), Decimal('0.0000'))], [('1270001'",
+   "tag": ""
+  },
+  {
+   "id": "C09",
+   "desc": "RM after PI-000008: 5.6 / 28.0000 (avg 5 kept)",
+   "pass": true,
+   "actual": "(Decimal('5.6000'), Decimal('28.0000'))",
+   "tag": ""
+  },
+  {
+   "id": "C10",
+   "desc": "voucher screen → RV-000001 100 cash from the customer with CC B posted → JE-000045 Dr 1211001 100 / Cr 12310001 100; CC B on the receivable line only",
+   "pass": true,
+   "actual": "('posted', [('1211001', Decimal('100.0000'), Decimal('0.0000')), ('12310001', Decimal('0.0000'), Decimal('100.0000'))], [('1211001', Decimal('100.0000'), Decimal('0.0000'",
+   "tag": ""
+  },
+  {
+   "id": "C11",
+   "desc": "manual JE-000046: Dr 3130002 6 (CC A) / Cr 1211001 6 → 201",
+   "pass": true,
+   "actual": "[('1211001', Decimal('0.0000'), Decimal('6.0000'), '', ''), ('3130002', Decimal('6.0000'), Decimal('0.0000'), '9ba6', '')]",
+   "tag": ""
+  },
+  {
+   "id": "C12",
+   "desc": "manual JE with a non-existent costCenterId must be rejected (404 COST_CENTER_NOT_FOUND); actual 201 and JE-000047 posted with the bogus id (no FK, no validation)",
+   "pass": false,
+   "actual": "(201, 'posted', [('1211001', ''), ('3130002', '0000')])",
+   "tag": "ACC-143"
+  },
+  {
+   "id": "C13",
+   "desc": "cost-center statement A (Oct): debit 21 (COGS 5 + inventory 10 + expense 6) / credit 13 (sales 8 + inventory 5) / closing 8 Dr",
+   "pass": true,
+   "actual": "{'debit': '21.0000', 'credit': '13.0000', 'periodDebit': '8.0000', 'periodCredit': '0.0000', 'closing': '8.0000', 'closingStatus': 'مدين'}",
+   "tag": ""
+  },
+  {
+   "id": "C14",
+   "desc": "cost-center statement B: debit 5 / credit 113 (sales 8 + inventory 5 + receivable 100) / closing 108 Cr",
+   "pass": true,
+   "actual": "{'debit': '5.0000', 'credit': '113.0000', 'periodDebit': '0.0000', 'periodCredit': '108.0000', 'closing': '108.0000', 'closingStatus': 'دائن'}",
+   "tag": ""
+  },
+  {
+   "id": "C15",
+   "desc": "statement C (unused) → empty 0/0; statement of a bogus id → 404",
+   "pass": true,
+   "actual": "('0.0000', 404)",
+   "tag": ""
+  },
+  {
+   "id": "C16",
+   "desc": "statement A filtered to 4100001 → credit 8 only",
+   "pass": true,
+   "actual": "{'debit': '0.0000', 'credit': '8.0000', 'periodDebit': '0.0000', 'periodCredit': '8.0000', 'closing': '8.0000', 'closingStatus': 'دائن'}",
+   "tag": ""
+  },
+  {
+   "id": "C17",
+   "desc": "DELETE used CC A → 409 COST_CENTER_IN_USE; DELETE unused CC C → 200 and deleted_at set",
+   "pass": true,
+   "actual": "(409, 'COST_CENTER_IN_USE', 200, True)",
+   "tag": ""
+  },
+  {
+   "id": "C18",
+   "desc": "GET /cost-centers?with_balances=1 must return per-centre balances (A 8 Dr, B 108 Cr); actual rows carry no balance fields at all",
+   "pass": false,
+   "actual": "['branchId', 'code', 'createdAt', 'createdBy', 'deletedAt', 'deletedBy', 'id', 'legacyId', 'legacySource', 'nameAr', 'nameEn', 'parentId', 'tenantId', 'updatedAt', 'updat",
+   "tag": "ACC-144"
+  },
+  {
+   "id": "C19",
+   "desc": "balances after C: cash 50411.196 + 18.4 + 100 − 6 − 1 (JE-000047 accepted) = 50522.5960; 1270001 175.956 − 10 + 10 = 175.9560; 3130002 7; 22111001 −555.5535; 12310001 −104",
+   "pass": true,
+   "actual": "(Decimal('50522.5960'), Decimal('175.9560'), Decimal('7.0000'), Decimal('-555.5535'), Decimal('-104.0000'))",
+   "tag": ""
+  },
+  {
+   "id": "D01",
+   "desc": "batch 1 (A seq1, B seq2; 1 × RM @8 + 15 %, tendered 10) → processed 2 / synced 2 / conflicts 0; SI-000014 & SI-000015 total 9.20 change 0.80",
+   "pass": true,
+   "actual": "{'R28-OFF-A': ('synced', 'SI-000014', '9.2000', '0.8000'), 'R28-OFF-B': ('synced', 'SI-000015', '9.2000', '0.8000')}",
+   "tag": ""
+  },
+  {
+   "id": "D02",
+   "desc": "JE-000048/49: Dr 1211001 9.2 / Cr 4100001 8 / Cr 2222001 1.2 / Dr 3200004 5 / Cr 1270001 5 (avg 5)",
+   "pass": true,
+   "actual": "[('1211001', Decimal('9.2000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('5.0000')), ('2222001', Decimal('0.0000'), Decimal('1.2000')), ('3200004', Deci",
+   "tag": ""
+  },
+  {
+   "id": "D03",
+   "desc": "SI-000014/15 posted, paid 9.20, order_type tags the offline id (offline-pos:R28-OFF-A/B)",
+   "pass": true,
+   "actual": "[('posted', '9.2000', 'offline-pos:R28-OFF-A'), ('posted', '9.2000', 'offline-pos:R28-OFF-B')]",
+   "tag": ""
+  },
+  {
+   "id": "D04",
+   "desc": "replay of A/B → both synced with resolution remove-local-copy, no new invoices (idempotent)",
+   "pass": true,
+   "actual": "({'action': 'remove-local-copy'}, 'JE-000049')",
+   "tag": ""
+  },
+  {
+   "id": "D05",
+   "desc": "A re-sent with seq 5 (same offlineId, different sequence) must be POS_OFFLINE_ID_SEQUENCE_MISMATCH; actual `synced` — the idempotency short-circuit runs before the mismatch check",
+   "pass": false,
+   "actual": "('synced', None, {'action': 'remove-local-copy'})",
+   "tag": "ACC-145"
+  },
+  {
+   "id": "D06",
+   "desc": "C seq1 → POS_OFFLINE_SEQUENCE_OLD (lastAcceptedSequence 2, refresh-device-sequence)",
+   "pass": true,
+   "actual": "{'offlineId': 'R28-OFF-C', 'sequenceNo': 1, 'status': 'conflict', 'errorCode': 'POS_OFFLINE_SEQUENCE_OLD', 'message': 'Sequence 1 is not newer than the last accepted sequ",
+   "tag": ""
+  },
+  {
+   "id": "D07",
+   "desc": "D seq3 card payment → POS_OFFLINE_CASH_ONLY (change-payment-to-cash)",
+   "pass": true,
+   "actual": "{'offlineId': 'R28-OFF-D', 'sequenceNo': 3, 'status': 'conflict', 'errorCode': 'POS_OFFLINE_CASH_ONLY', 'message': 'Offline POS accepts cash payments only', 'resolution':",
+   "tag": ""
+  },
+  {
+   "id": "D08",
+   "desc": "E seq4 qty 99 → STOCK_INSUFFICIENT conflict, nothing posted",
+   "pass": true,
+   "actual": "{'offlineId': 'R28-OFF-E', 'sequenceNo': 4, 'status': 'conflict', 'errorCode': 'STOCK_INSUFFICIENT', 'message': 'Stock is insufficient for this movement', 'resolution': {",
+   "tag": ""
+  },
+  {
+   "id": "D09",
+   "desc": "F seq4 (sequence already used in the same batch by E) → POS_OFFLINE_SEQUENCE_DUPLICATE",
+   "pass": true,
+   "actual": "{'offlineId': 'R28-OFF-F', 'sequenceNo': 4, 'status': 'conflict', 'errorCode': 'POS_OFFLINE_SEQUENCE_DUPLICATE', 'message': 'The sequence number is duplicated in this bat",
+   "tag": ""
+  },
+  {
+   "id": "D10",
+   "desc": "after batch 3: no new invoice/JE (last JE-000049); offline_queue D = conflict POS_OFFLINE_CASH_ONLY, E = conflict STOCK_INSUFFICIENT",
+   "pass": true,
+   "actual": "('JE-000049', [('R28-OFF-A', 'synced', None), ('R28-OFF-B', 'synced', None), ('R28-OFF-D', 'conflict', 'POS_OFFLINE_CASH_ONLY'), ('R28-OFF-E', 'conflict', 'STOCK_INSUFFIC",
+   "tag": ""
+  },
+  {
+   "id": "D11",
+   "desc": "retry D with seq 6 → POS_OFFLINE_ID_SEQUENCE_MISMATCH (restore-original-sequence 3) — the mismatch guard works for a conflict row",
+   "pass": true,
+   "actual": "{'offlineId': 'R28-OFF-D', 'sequenceNo': 6, 'status': 'conflict', 'errorCode': 'POS_OFFLINE_ID_SEQUENCE_MISMATCH', 'message': 'The same offlineId was submitted with anoth",
+   "tag": ""
+  },
+  {
+   "id": "D12",
+   "desc": "retry E seq4 with qty 1 → synced SI-000016 9.20 (same offlineId + sequence re-accepted after a conflict)",
+   "pass": true,
+   "actual": "{'offlineId': 'R28-OFF-E', 'sequenceNo': 4, 'status': 'synced', 'invoiceId': '01a16616-c911-7475-b5d2-62875cec1d58', 'number': 'SI-000016', 'total': '9.2000', 'change': '",
+   "tag": ""
+  },
+  {
+   "id": "D13",
+   "desc": "retry G seq3 (valid cash sale, sequence below the burnt 4) → POS_OFFLINE_SEQUENCE_OLD lastAccepted 4 — conflicts consume sequence numbers (documented behaviour, policy decision)",
+   "pass": true,
+   "actual": "{'offlineId': 'R28-OFF-G', 'sequenceNo': 3, 'status': 'conflict', 'errorCode': 'POS_OFFLINE_SEQUENCE_OLD', 'message': 'Sequence 3 is not newer than the last accepted sequ",
+   "tag": ""
+  },
+  {
+   "id": "D14",
+   "desc": "JE-000050 for SI-000016 mirrors JE-000048; RM after D = 2.6 / 13.0000",
+   "pass": true,
+   "actual": "([('1211001', Decimal('9.2000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('5.0000')), ('2222001', Decimal('0.0000'), Decimal('1.2000')), ('3200004', Dec",
+   "tag": ""
+  },
+  {
+   "id": "D15",
+   "desc": "offline_queue E after the successful retry must clear error_code; actual status synced with error_code STOCK_INSUFFICIENT still stored",
+   "pass": false,
+   "actual": "('synced', 'STOCK_INSUFFICIENT', 'SI-000016')",
+   "tag": "ACC-146"
+  },
+  {
+   "id": "D16",
+   "desc": "batch of 101 → 422; empty batch → 422",
+   "pass": true,
+   "actual": "(422, 'VALIDATION_FAILED', 422, 'VALIDATION_FAILED')",
+   "tag": ""
+  },
+  {
+   "id": "D17",
+   "desc": "deviceId \"  \" → POS_OFFLINE_DEVICE_INVALID; sequenceNo 0 → POS_OFFLINE_SEQUENCE_INVALID",
+   "pass": true,
+   "actual": "('POS_OFFLINE_DEVICE_INVALID', 'POS_OFFLINE_SEQUENCE_INVALID')",
+   "tag": ""
+  },
+  {
+   "id": "D18",
+   "desc": "GET /pos/offline-data → 200 schemaVersion 1, expiresInSeconds 86400, items include RM-R27",
+   "pass": true,
+   "actual": "(200, 1, 86400, 4)",
+   "tag": ""
+  },
+  {
+   "id": "D19",
+   "desc": "cash after D = 50522.5960 + 3 × 9.2 = 50550.1960",
+   "pass": true,
+   "actual": "50550.1960",
+   "tag": ""
+  },
+  {
+   "id": "D20",
+   "desc": "1270001 after D = 175.956 − 15 = 160.9560; VAT 2222001 = 10.8075 − 2.4 + 1.5 − 3.6 = 6.3075 Dr; sales 4100001 = −672.07 − 16 − 24 = −712.07; COGS 375.9967",
+   "pass": true,
+   "actual": "(Decimal('160.9560'), Decimal('6.3075'), Decimal('-712.0700'), Decimal('375.9967'))",
+   "tag": ""
+  },
+  {
+   "id": "D21",
+   "desc": "trial balance after D: movements 2770.5353 = 2770.5353, closing 252873.6237 / 251373.6237 (one-sided opening 1500 persists), balanced flag still true",
+   "pass": true,
+   "actual": "{'openingDebit': '251500.0000', 'openingCredit': '250000.0000', 'debit': '2770.5353', 'credit': '2770.5353', 'balanceDebit': '1373.6237', 'balanceCredit': '1373.6237', 'c",
+   "tag": ""
+  },
+  {
+   "id": "E01",
+   "desc": "maintenance screen «فحص» → POST /settings/invoice-maintenance preview → run row kind invoice_maintenance / mode preview / status ready persisted",
+   "pass": true,
+   "actual": "(201, 'invoice_maintenance', 'preview', 'ready')",
+   "tag": ""
+  },
+  {
+   "id": "E02",
+   "desc": "preview counts: staleDrafts 0 (default 30 d), numberingGaps 0, postedWithoutJournal 0",
+   "pass": true,
+   "actual": "{'staleDrafts': 0, 'numberingGaps': 0, 'totalsMismatch': 1, 'repairableTotals': 0, 'postedWithoutJournal': 0}",
+   "tag": ""
+  },
+  {
+   "id": "E03",
+   "desc": "totalsMismatch must be 0 — every posted invoice total equals its lines + header taxes/discounts; actual 1: SI-000006 flagged (stored 24 vs Σ line.total 23) because the check ignores extra_tax (excise 1.00 from R25) → false positive",
+   "pass": false,
+   "actual": "(1, \"[{'id': '01a16575-2402-7197-aeb1-3dab81f2cbf7', 'kind': 'sale', 'number': 'SI-000006', 'status': 'posted', 'line_total':\")",
+   "tag": "ACC-147"
+  },
+  {
+   "id": "E04",
+   "desc": "preview with staleDraftDays 0 → staleDrafts = number of draft sales invoices in DB (5: 23, 39.8, 20, 26.45, 172.5)",
+   "pass": true,
+   "actual": "(5, 5, ['23.0000', '39.8000', '20.0000', '26.4500', '172.5000'])",
+   "tag": ""
+  },
+  {
+   "id": "E05",
+   "desc": "stale-draft detail rows must identify the document (number/kind/status); actual number/kind/status null — only id/total/date",
+   "pass": false,
+   "actual": "[{'id': '01a16530-afc6-7799-8459-bf062905b3fe', 'total': '23.0000', 'number': None, 'created_at': '2026-10-22 19:57:31.973807+00'}, {'id': '01a1656d-77ad-736f-b45a-e5ac72",
+   "tag": "ACC-148"
+  },
+  {
+   "id": "E06",
+   "desc": "GET /settings/maintenance-runs lists both preview runs",
+   "pass": true,
+   "actual": "(200, 2)",
+   "tag": ""
+  },
+  {
+   "id": "E07",
+   "desc": "DB cross-check: no posted sales invoice without a journal header (postedWithoutJournal 0 is truthful)",
+   "pass": true,
+   "actual": "[]",
+   "tag": ""
+  },
+  {
+   "id": "F01",
+   "desc": "tailoring «فاتورة جديدة» with a full form must save (or the screen must refuse to open without statuses); actual 404 TAILORING_STATUS_NOT_FOUND after filling everything — tenant provisioned without order statuses and the screen does not guard",
+   "pass": false,
+   "actual": "(404, 'TAILORING_STATUS_NOT_FOUND', 'لا توجد حالات للطلبات')",
+   "tag": "UI-047"
+  },
+  {
+   "id": "F02",
+   "desc": "after seeding the 4 provisioning statuses: TI-000001 created, qty 1 × 200 → total 200.00, status مستلم, customer عميل عام",
+   "pass": true,
+   "actual": "(201, 'TI-000001', '200.0000', 'مستلم')",
+   "tag": ""
+  },
+  {
+   "id": "F03",
+   "desc": "tailoring tax must follow the tenant VAT (15 % → 230.00); actual totalWithTax 210.00 = hard-coded × 1.05 (tailoring.service.ts L1619) — screen shows «الصافي (مع الضريبة) 210.00»",
+   "pass": false,
+   "actual": "('210.0000', '210.0000')",
+   "tag": "ACC-149"
+  },
+  {
+   "id": "F04",
+   "desc": "TI-000001 creates NO journal entry, no VAT, no receivable (last JE still JE-000050) — tailoring revenue is off-ledger",
+   "pass": false,
+   "actual": "('JE-000050', 1)",
+   "tag": "ACC-150"
+  },
+  {
+   "id": "F05",
+   "desc": "payment screen 50 cash → tailoring_invoice_payments row 50 linked to a receipt voucher (kind receipt / subtype customer / party set)",
+   "pass": true,
+   "actual": "('50.0000', '160.0000', [('50.0000', True)], [('receipt', 'customer', True)])",
+   "tag": ""
+  },
+  {
+   "id": "F06",
+   "desc": "the receipt voucher must be posted (numbered RV, JE Dr cash 50 / Cr customer 50); actual status draft, number null, no journal_entry_id — cash received is not in the ledger",
+   "pass": false,
+   "actual": "('draft', None, None, 'JE-000050')",
+   "tag": "ACC-150"
+  },
+  {
+   "id": "F07",
+   "desc": "payment modal defaults the location to the main cash safe for method «نقدي»; actual default «الحساب البنكي الرئيسي» (…3016aa) — bank location for a cash receipt",
+   "pass": false,
+   "actual": "16aa",
+   "tag": "UI-048"
+  },
+  {
+   "id": "F08",
+   "desc": "API payment with cashLocationId but no branchId → 4xx with a field-level message; actual 400 INVALID_ID «An identifier in this request is not a valid UUID» (branchId defaults to \"\")",
+   "pass": false,
+   "actual": "(400, 'INVALID_ID', 'An identifier in this request is not a valid UUID')",
+   "tag": "UI-049"
+  },
+  {
+   "id": "F09",
+   "desc": "API payment amount 0 → 422 TAILORING_PAYMENT_AMOUNT_INVALID",
+   "pass": true,
+   "actual": "(422, 'TAILORING_PAYMENT_AMOUNT_INVALID')",
+   "tag": ""
+  },
+  {
+   "id": "F10",
+   "desc": "API payment 10 without cashLocationId must be refused (money with no treasury location); actual 201 — payment row stored with voucher_id null, paid 60 / remaining 150",
+   "pass": false,
+   "actual": "(201, '60.0000', '150.0000', None)",
+   "tag": "ACC-150"
+  },
+  {
+   "id": "F11",
+   "desc": "cash sub-ledger and GL untouched by tailoring: main safe balance 85 (R27 −15 + RV 100), bank 0; 1211001 unchanged at 50549.7960 + 0",
+   "pass": true,
+   "actual": "([('e716', '85.0000'), ('16aa', '0.0000'), ('90d4', '15.0000')], Decimal('50550.1960'))",
+   "tag": ""
+  },
+  {
+   "id": "F12",
+   "desc": "tailoring list screen shows TI-000001 الإجمالي 210.00 / المدفوع 60.00 / الباقي 150.00 (tax-inclusive figures on the UI while DB total = 200)",
+   "pass": true,
+   "actual": "",
+   "tag": ""
+  },
+  {
+   "id": "G01",
+   "desc": "final journal balances Σ = 0 (every JE balanced)",
+   "pass": true,
+   "actual": "0.0000",
+   "tag": ""
+  },
+  {
+   "id": "G02",
+   "desc": "final cash 1211001 = 50329.1960 + 92 − 10 + 18.4 + 100 − 6 − 1 + 27.6 = 50550.1960",
+   "pass": true,
+   "actual": "50550.1960",
+   "tag": ""
+  },
+  {
+   "id": "G03",
+   "desc": "final 1270001 = 248.0728 − 72.1168 − 10 + 10 − 15 = 160.9560; Σ stock 249.0584 (RM 13 + FG 36.0584 + SN 200); gap 88.1024 inherited from R27",
+   "pass": true,
+   "actual": "(Decimal('160.9560'), Decimal('249.0584'))",
+   "tag": ""
+  },
+  {
+   "id": "G04",
+   "desc": "final VAT 2222001 6.3075 Dr; sales −712.07; returns 201.03; COGS 375.9967; expenses 3130002 7; payable −555.5535; receivable −104 (credit balance = customer prepaid/over-collected)",
+   "pass": true,
+   "actual": "(Decimal('6.3075'), Decimal('-712.0700'), Decimal('375.9967'), Decimal('-555.5535'), Decimal('-104.0000'))",
+   "tag": ""
+  },
+  {
+   "id": "G05",
+   "desc": "final trial balance report = GL (1211001 50550.1960, 1270001 160.9560, 4100001 −712.07, 1160002 1510 incl. opening)",
+   "pass": true,
+   "actual": "{'1211001': '50550.1960', '1270001': '160.9560', '4100001': '-712.0700', '1160002': '1510.0000'}",
+   "tag": ""
+  },
+  {
+   "id": "G06",
+   "desc": "final trial balance totals: closing 252873.6237 Dr vs 251373.6237 Cr → unbalanced by the one-sided opening 1500, yet `balanced:true`",
+   "pass": false,
+   "actual": "{'openingDebit': '251500.0000', 'openingCredit': '250000.0000', 'debit': '2770.5353', 'credit': '2770.5353', 'balanceDebit': '1373.6237', 'balanceCredit': '1373.6237', 'c",
+   "tag": "ACC-139"
+  },
+  {
+   "id": "G07",
+   "desc": "profit & loss: revenue 511.04 (712.07 − 201.03), expenses 428.1342 (COGS 375.9967 + adj 46.1375 − cash diff 1 + 3130002 7), net 82.9058 — tailoring 200 absent",
+   "pass": true,
+   "actual": "{'إجمالي الإيرادات': Decimal('511.0400'), 'إجمالي المصروفات': Decimal('428.1342'), 'صافي الربح': Decimal('82.9058')}",
+   "tag": ""
+  },
+  {
+   "id": "G08",
+   "desc": "balance sheet: 1160002 must be 1510 (opening 1500 + 10); actual 10 — opening balances never reach the catalog reports",
+   "pass": false,
+   "actual": "10.0000",
+   "tag": "ACC-140"
+  },
+  {
+   "id": "G09",
+   "desc": "inventory-valuation total 249.0584 = Σ stock_balances (≠ GL 160.9560)",
+   "pass": true,
+   "actual": "{'quantity': '5.60', 'value': '249.0584'}",
+   "tag": ""
+  },
+  {
+   "id": "G10",
+   "desc": "stock levels API: RM 2.6 / 13.0000, FG 1 / 36.0584",
+   "pass": true,
+   "actual": "('2.6000', '36.0584')",
+   "tag": ""
+  },
+  {
+   "id": "G11",
+   "desc": "cost-centre statements at close unchanged: A 21/13/8 Dr, B 5/113/108 Cr",
+   "pass": true,
+   "actual": "({'debit': '21.0000', 'credit': '13.0000', 'periodDebit': '8.0000', 'periodCredit': '0.0000', 'closing': '8.0000', 'closingStatus': 'مدين'}, {'debit': '5.0000', 'credit':",
+   "tag": ""
+  },
+  {
+   "id": "G12",
+   "desc": "tree-with-balances: 1160002 1510 (own 10 + opening 1500), 116 = 21510, root 1 = 252133.1518",
+   "pass": true,
+   "actual": "({'ownDebit': '10.0000', 'ownCredit': '0.0000', 'ownBalance': '10.0000', 'debit': '1510.0000', 'credit': '0.0000', 'balance': '1510.0000', 'descendants': 0}, '21510.0000'",
+   "tag": ""
+  },
+  {
+   "id": "G13",
+   "desc": "maintenance-runs at close: 2 preview rows, none applied",
+   "pass": true,
+   "actual": "[('preview', 'ready'), ('preview', 'ready')]",
+   "tag": ""
+  },
+  {
+   "id": "G14",
+   "desc": "TB screen shows 1211001 50,550.20 and 1160002 1,510.00 (opening 1,500 + 10) — matches GL + opening",
+   "pass": true,
+   "actual": "['1160002\\tR28 أثاث اختبار\\t1,500.00\\t0.00\\t10.00\\t0.00\\t10.00\\t0.00\\t1,510.00\\t0.00\\tمدين\\tتفاصيل', '1211001\\tالصندوق الرئيسي\\t0.00\\t0.00\\t50,893.88\\t343.68\\t50,550.20\\t",
+   "tag": ""
+  }
+ ]
+}

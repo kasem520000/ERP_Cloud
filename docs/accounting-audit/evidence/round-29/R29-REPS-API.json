@@ -1,0 +1,49 @@
+[
+  {
+    "id": "01a1666d-3c77-71da-adb8-65872738bfc6",
+    "name": "مندوب الشركة",
+    "active": true,
+    "employeeRef": null,
+    "commissionRate": "0.0000",
+    "collectionCommissionRate": "0.0000",
+    "profitCommissionRate": "0.0000",
+    "tel": null,
+    "mobile": null,
+    "email": null,
+    "notes": null,
+    "employeeId": "01a1666d-3c75-776b-bc5f-ab3e81bdc3ca",
+    "employeeNo": "EMP-REP-1",
+    "employeeName": "مندوب الشركة",
+    "employeeStatus": "active",
+    "membershipId": "01a1666d-3c71-75b1-9187-b2eb5cb573e9",
+    "membershipStatus": "active",
+    "userEmail": "rep@demo.test",
+    "userStatus": "active",
+    "roleCount": 1,
+    "permissions": [
+      "van_sales.closing.submit",
+      "van_sales.collection.create",
+      "van_sales.invoice.create",
+      "van_sales.view"
+    ],
+    "warehouseId": "01a1666d-3c6d-769c-93b1-29341574970b",
+    "warehouseName": "مستودع سيارة التوزيع",
+    "warehouseCode": "VAN-1",
+    "vehiclePlate": null,
+    "custody": {
+      "openLoadOrders": 0,
+      "pendingReceipts": 0,
+      "pendingClosings": 0,
+      "custodyQty": "0.0000",
+      "outstandingCash": "0.0000",
+      "items": []
+    },
+    "readiness": {
+      "hasEmployee": true,
+      "hasLoginAccount": true,
+      "loginActive": true,
+      "hasVanWarehouse": true,
+      "hasVanSalesPermissions": true
+    }
+  }
+]

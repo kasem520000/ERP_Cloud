@@ -475,3 +475,16 @@ R17-manifest.json يفهرس 258 ملفاً (لا يشمل نفسه)، نحو 24
 | G: تسلسلي | SERIAL-GENERATE (شاشة التقرير؛ الصورة الأولى حُذفت لخطأ محدِّد وأُعيدت)، SERIAL-FLOW (20 طلباً: reserve ×2، SI-000009، resell 422، SI-000010، SI-000011، consume/return، SR-000003، trace، lookup) | **ACC-128/132/133/134، UI-044/045**؛ ACC-019 | DB-015…016 |
 | H: تقارير وشاشات | REPORTS (27 طلباً)، MO/BOM/BINS/BIN-BALANCES/SERIALS/LEVELS/TB/ITEMS-SCREEN، VALUATION-SCREEN (المسار الصحيح؛ الخاطئ محفوظ `-wrong-path-404`)، ITEM-CARD-SCREEN، MOVEMENTS-SCREEN | **UI-046**؛ ACC-113/118/125؛ فرق GL/المخزون 88.10 | DB-017…018 |
 | تحقق | `R27-check-results.json` (74/24 من 98)، `R27-http-events.jsonl` (369)، لوجات الرنر `R27-runner-log-*.txt` | — | — |
+
+## الجولة 28 — `evidence/round-28/` (229 ملفاً، ~42 MB؛ تفصيل المراحل في ROUND_28_RESULTS.md §1)
+| الكتلة | المراحل والأدلة | النتيجة | لقطات DB |
+|---|---|---|---|
+| خط الأساس | `R28-DB-000-BASELINE` (= R27 DB-018؛ يضم `offers`/`offline_queue`/`tailoring_*`/`maintenance_runs`/`opening_balances`/`journal_dimensions`) | — | DB-000 |
+| A: عروض | OFFER-SCREEN (شاشة «عرض جديد»؛ `-before.png` مُراجَعة)، OFFERS-API (14 طلباً: evaluate ×7، منتهٍ، فترة مقلوبة، مكرر، 150 %، inactive، مجهول، list)، SI-OFFER-DRAFT/POST (شاشة البيع والترحيل النقدي)، SI-OFFER-READ، OFFERS-SCREEN | **ACC-135/136/137/138** | DB-001…005 |
+| B: افتتاحي | ACCOUNT-OPENING (شاشة «حساب جديد» برصيد افتتاحي)، OPENING-API (13 طلباً: TB، ميزانية، شجرة، PATCH ×3، قيد يدوي، DELETE، كشف)، ACCOUNTS-SCREEN | **ACC-139/140/141** | DB-005 (`-ACCOUNT-OPENING`)، DB-006 |
+| C: مراكز تكلفة | CC-A-SCREEN (شاشة)، CC-API (B/C/مكرر)، SI-CC-DRAFT/POST/READ (شاشة بيع بمركزين)، PI-CC (API)، RV-CC-DRAFT/POST/READ (شاشة السند)، CC-JE-API (14 طلباً: قيدان، 6 كشوف، حذفان، قائمة، أرصدة)، CC-A/B-STATEMENT-SCREEN، COST-CENTERS-SCREEN | **ACC-135/142/143/144** | DB-007…016 |
+| D: POS دون اتصال | POS-SYNC-1 (شاشة الطابور قبل المزامنة + دفعة A/B)، POS-SYNC-2-REPLAY، POS-SYNC-3-CONFLICTS (5 حالات)، POS-SYNC-4-RETRY (3)، POS-SYNC-5-GUARDS (101/فارغ/جهاز/تسلسل/offline-data/TB)، OFFLINE-QUEUE-SCREEN، SALES-SCREEN | **ACC-145/146**؛ 6/7 رموز ✓ | DB-017…021 |
+| E: صيانة | MAINT-PREVIEW (شاشة «فحص»)، MAINT-API (`staleDraftDays 0` + runs)، MAINT-SCREEN | **ACC-147/148** | DB-022/023 |
+| F: تفصيل | TI-CREATE-404 (المحاولة الأولى: نموذج كامل ← 404؛ محفوظة بكل ملفاتها)، `R28-TI-STATUS-SEED.json` (بذر الحالات)، TI-CREATE (شاشة؛ `-before.png` تُظهر الترويسة والصافي 210)، TI-PAY (شاشة «إستلام دفعة» 50)، TI-API (9 طلبات)، TAILORING-SCREEN، VOUCHERS-SCREEN | **ACC-149/150، UI-047/048/049** | DB-024…027 |
+| G: ختام | FINAL-REPORTS (19 طلباً: TB، ميزانية، قائمة دخل، 6 كشوف، مستويات، تقييم، كشفا مركز، عروض، فواتير، قيود، runs، شجرة بأرصدة)، TB-SCREEN، ACCOUNTS/COST-CENTERS/TAILORING/MAINT/OFFERS/OFFLINE-QUEUE/SALES/VOUCHERS-SCREEN | إعادة إنتاج ACC-139/140/130 | DB-028 |
+| تحقق | `R28-check-results.json` (75/27 من 102)، `R28-http-events.jsonl`، سكربتات `round28-main.cjs`/`round28-snapshot.cjs`/`round28-seed-tailoring-statuses.cjs`/`round28-check.py` | — | — |

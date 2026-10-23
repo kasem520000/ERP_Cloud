@@ -514,6 +514,18 @@ export class PosService {
           .where(and(eq(offlineQueue.tenantId, tenantId), eq(offlineQueue.offlineId, offlineId)))
           .limit(1),
       );
+      // ACC-145: Check sequence mismatch before returning already-synced status
+      if (existing && existing.sequenceNo !== sequenceNo) {
+        results.push({
+          offlineId,
+          sequenceNo,
+          status: 'conflict',
+          errorCode: 'POS_OFFLINE_ID_SEQUENCE_MISMATCH',
+          message: 'The same offlineId was submitted with another sequence number',
+          resolution: { action: 'restore-original-sequence', sequenceNo: existing.sequenceNo },
+        });
+        continue;
+      }
       if (existing?.status === 'synced') {
         results.push({
           offlineId,
@@ -524,17 +536,6 @@ export class PosService {
           errorCode: existing.errorCode,
           message: existing.errorDetail,
           resolution: { action: 'remove-local-copy' },
-        });
-        continue;
-      }
-      if (existing && existing.sequenceNo !== sequenceNo) {
-        results.push({
-          offlineId,
-          sequenceNo,
-          status: 'conflict',
-          errorCode: 'POS_OFFLINE_ID_SEQUENCE_MISMATCH',
-          message: 'The same offlineId was submitted with another sequence number',
-          resolution: { action: 'restore-original-sequence', sequenceNo: existing.sequenceNo },
         });
         continue;
       }
@@ -780,6 +781,8 @@ export class PosService {
                 status: 'synced',
                 invoiceId: postedAlready.id,
                 invoiceNumber: postedAlready.number,
+                errorCode: null,
+                errorDetail: null,
                 updatedAt: new Date(),
                 syncedAt: new Date(),
               })
@@ -808,6 +811,8 @@ export class PosService {
               status: 'synced',
               invoiceId: posted.data.invoiceId,
               invoiceNumber: posted.data.number,
+              errorCode: null,
+              errorDetail: null,
               updatedAt: new Date(),
               syncedAt: new Date(),
             })

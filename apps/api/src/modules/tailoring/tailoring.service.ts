@@ -697,10 +697,39 @@ export class TailoringService {
    * `SELECT StatusID, StatusName FROM OrderStatus WHERE IsActive=1 ORDER BY DisplayOrder`,
    * with «الكل» (StatusID 0) prepended in the UI rather than in the data.
    */
+  private async seedDefaultStatuses(tenantId: string): Promise<void> {
+    const seed = [
+      { code: 'received', nameAr: 'مستلم', displayOrder: 1 },
+      { code: 'sewing', nameAr: 'في الخياطة', displayOrder: 2 },
+      { code: 'ready', nameAr: 'جاهز', displayOrder: 3 },
+      { code: 'delivered', nameAr: 'تم التسليم', displayOrder: 4 },
+    ];
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const existing = await tx
+        .select({ code: tailoringOrderStatuses.code })
+        .from(tailoringOrderStatuses)
+        .where(and(eq(tailoringOrderStatuses.tenantId, tenantId), isNull(tailoringOrderStatuses.deletedAt)));
+      const present = new Set(existing.map((row) => row.code));
+      const missing = seed.filter((row) => !present.has(row.code));
+      if (!missing.length) return;
+      await tx.insert(tailoringOrderStatuses).values(
+        missing.map((row) => ({
+          id: newId(),
+          tenantId,
+          code: row.code,
+          nameAr: row.nameAr,
+          displayOrder: row.displayOrder,
+          isFinal: row.code === 'delivered',
+          active: true,
+        })),
+      );
+    });
+  }
+
   async listStatuses(tenantId: string, options: { activeOnly?: boolean } = {}): Promise<{ data: StatusRow[] }> {
     await this.ensureEnabled(tenantId);
     const activeOnly = options.activeOnly ?? true;
-    const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
+    let rows = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
         .select()
         .from(tailoringOrderStatuses)
@@ -713,6 +742,22 @@ export class TailoringService {
         )
         .orderBy(asc(tailoringOrderStatuses.displayOrder), asc(tailoringOrderStatuses.nameAr)),
     );
+    if (!rows.length) {
+      await this.seedDefaultStatuses(tenantId);
+      rows = await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .select()
+          .from(tailoringOrderStatuses)
+          .where(
+            and(
+              eq(tailoringOrderStatuses.tenantId, tenantId),
+              isNull(tailoringOrderStatuses.deletedAt),
+              ...(activeOnly ? [eq(tailoringOrderStatuses.active, true)] : []),
+            ),
+          )
+          .orderBy(asc(tailoringOrderStatuses.displayOrder), asc(tailoringOrderStatuses.nameAr)),
+      );
+    }
     return {
       data: rows.map((row) => ({
         id: row.id,
@@ -1774,46 +1819,55 @@ export class TailoringService {
     const note = input.note?.trim() || `تم استلام دفعة من عملية رقم ${current.number}`;
 
     let voucherId: string | null = null;
-    if (input.cashLocationId) {
-      let branchId = input.branchId;
-      if (!branchId) {
-        const [safe] = await withTenantTx(this.database.db, tenantId, (tx) =>
-          tx
-            .select({ branchId: cashLocations.branchId })
-            .from(cashLocations)
-            .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.id, input.cashLocationId!)))
-            .limit(1),
-        );
-        branchId = safe?.branchId ?? undefined;
-      }
-      if (!branchId) {
-        const [firstBranch] = await withTenantTx(this.database.db, tenantId, (tx) =>
-          tx
-            .select({ id: branches.id })
-            .from(branches)
-            .where(and(eq(branches.tenantId, tenantId), isNull(branches.deletedAt)))
-            .limit(1),
-        );
-        branchId = firstBranch?.id ?? undefined;
-      }
-
-      if (!branchId) {
-        throw new DomainError('BRANCH_REQUIRED', 'Branch is required to create a voucher', 422);
-      }
-
-      const voucher = await this.treasury.createVoucher(tenantId, {
-        branchId,
-        kind: 'receipt',
-        subtype: 'customer',
-        date: paidAt,
-        partyId: current.partyId ?? undefined,
-        cashLocationId: input.cashLocationId,
-        method: input.method ?? 'cash',
-        amount: four(received),
-        description: note,
-      });
-      voucherId = voucher!.id;
+    if (!input.cashLocationId) {
+      throw new DomainError(
+        'TAILORING_CASH_LOCATION_REQUIRED',
+        'موقع الخزينة مطلوب لتسجيل دفعة التفصيل',
+        422,
+        { field: 'cashLocationId' },
+      );
     }
+
+    let branchId = input.branchId;
+    if (!branchId) {
+      const [safe] = await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .select({ branchId: cashLocations.branchId })
+          .from(cashLocations)
+          .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.id, input.cashLocationId!)))
+          .limit(1),
+      );
+      branchId = safe?.branchId ?? undefined;
+    }
+    if (!branchId) {
+      const [firstBranch] = await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .select({ id: branches.id })
+          .from(branches)
+          .where(and(eq(branches.tenantId, tenantId), isNull(branches.deletedAt)))
+          .limit(1),
+      );
+      branchId = firstBranch?.id ?? undefined;
+    }
+
+    if (!branchId) {
+      throw new DomainError('BRANCH_REQUIRED', 'Branch is required to create a voucher', 422);
+    }
+
+    const voucher = await this.treasury.createVoucher(tenantId, {
+      branchId,
+      kind: 'receipt',
+      subtype: 'customer',
+      date: paidAt,
+      partyId: current.partyId ?? undefined,
+      cashLocationId: input.cashLocationId,
+      method: input.method ?? 'cash',
+      amount: four(received),
+      description: note,
+    });
+    voucherId = voucher!.id;
+    // ACC-150: Post the voucher so it is numbered and posted to GL
+    await this.treasury.postVoucher(tenantId, voucher!.id);
 
     await withTenantTx(this.database.db, tenantId, (tx) =>
       tx.insert(tailoringInvoicePayments).values({

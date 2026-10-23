@@ -278,13 +278,15 @@ export class AccountingController {
   async listCostCenters(
     @Query('q') q?: string,
     @Query('branch_id') branchId?: string,
-    @Query('with_balances') withBalances?: string,
+    @Query('with_balances') withBalancesSnake?: string,
+    @Query('withBalances') withBalancesCamel?: string,
   ) {
+    const withBalances = on(withBalancesSnake) || on(withBalancesCamel);
     return {
       data: await this.accounting.listCostCenters(getTenantContext().tenantId, {
         q,
         branchId,
-        withBalances: on(withBalances),
+        withBalances,
       }),
     };
   }

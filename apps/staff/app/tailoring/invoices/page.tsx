@@ -321,7 +321,11 @@ function TailoringInvoices() {
       amount: Number(invoice.remainingAmount).toString(),
       date: today(),
       cashLocationId:
-        (safes.data ?? []).find((safe) => safe.isDefault)?.id ?? (safes.data ?? [])[0]?.id ?? '',
+        (safes.data ?? []).find((safe) => safe.kind === 'safe' && safe.isDefault)?.id ??
+        (safes.data ?? []).find((safe) => safe.kind === 'safe')?.id ??
+        (safes.data ?? []).find((safe) => safe.isDefault)?.id ??
+        (safes.data ?? [])[0]?.id ??
+        '',
       branchId:
         (branches.data ?? []).find((branch) => branch.isDefault)?.id ?? (branches.data ?? [])[0]?.id ?? '',
       method: 'cash',

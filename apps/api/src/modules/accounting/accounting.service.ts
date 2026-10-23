@@ -36,6 +36,7 @@ import {
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { SequencesService } from '../platform-services/index.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
+import { isUniqueViolation } from '../organization/shared/org-support.js';
 
 export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 
@@ -1523,10 +1524,14 @@ export class AccountingService {
           balance: net.abs().toFixed(4),
           status: net.isZero() ? '' : statusOf(net),
           /**
-           * The point of a ميزان: every entry is balanced, so the period's gross movement
-           * must balance too. A netted total does not — that number is `balance` above.
+           * ACC-139 / R28: The trial balance is balanced only if both the period's gross movements
+           * balance (debit === credit) AND the net balance (closingDebit === closingCredit) is zero,
+           * AND opening balances balance. A one-sided opening balance flags balanced: false.
            */
-          balanced: totals.debit.minus(totals.credit).abs().lessThan(0.005),
+          balanced:
+            totals.debit.minus(totals.credit).abs().lessThan(0.005) &&
+            net.abs().lessThan(0.005) &&
+            totals.openingDebit.minus(totals.openingCredit).abs().lessThan(0.005),
         },
       };
     });
@@ -2374,6 +2379,10 @@ export class AccountingService {
           /** 🏷️ النوع — `🟢 رئيسي` / `🔵 فرعي`, exactly as the window's radio buttons read. */
           kind: row.parentId ? 'sub' : 'main',
           balance: totals,
+          debit: totals.debit,
+          credit: totals.credit,
+          closing: totals.balance,
+          total: totals.balance,
         };
       });
     });
@@ -2624,40 +2633,58 @@ export class AccountingService {
 
   async createCostCenter(tenantId: string, input: CostCenterInput) {
     const id = newId();
-    return withTenantTx(this.database.db, tenantId, async (tx) => {
-      await tx.insert(costCenters).values({
-        id,
-        tenantId,
-        code: input.code,
-        nameAr: input.nameAr,
-        nameEn: input.nameEn ?? null,
-        parentId: input.parentId ?? null,
-        branchId: input.branchId ?? null,
+    try {
+      return await withTenantTx(this.database.db, tenantId, async (tx) => {
+        await tx.insert(costCenters).values({
+          id,
+          tenantId,
+          code: input.code,
+          nameAr: input.nameAr,
+          nameEn: input.nameEn ?? null,
+          parentId: input.parentId ?? null,
+          branchId: input.branchId ?? null,
+        });
+        const [row] = await tx.select().from(costCenters).where(eq(costCenters.id, id));
+        return row;
       });
-      const [row] = await tx.select().from(costCenters).where(eq(costCenters.id, id));
-      return row;
-    });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new DomainError('COST_CENTER_CODE_TAKEN', `رمز مركز التكلفة "${input.code}" مستخدم مسبقاً`, 409, {
+          field: 'code',
+        });
+      }
+      throw error;
+    }
   }
 
   async updateCostCenter(tenantId: string, id: string, patch: CostCenterPatch) {
-    return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const [current] = await tx.select().from(costCenters).where(and(eq(costCenters.id, id), eq(costCenters.tenantId, tenantId), isNull(costCenters.deletedAt)));
-      if (!current) throw new DomainError('NOT_FOUND', 'Cost centre not found', 404);
-      if (patch.parentId === id) throw new DomainError('COST_CENTER_CYCLE', 'A cost centre cannot be its own parent', 422);
-      const [row] = await tx
-        .update(costCenters)
-        .set({
-          code: patch.code ?? current.code,
-          nameAr: patch.nameAr ?? current.nameAr,
-          nameEn: patch.nameEn === undefined ? current.nameEn : patch.nameEn,
-          parentId: patch.parentId === undefined ? current.parentId : patch.parentId,
-          branchId: patch.branchId === undefined ? current.branchId : patch.branchId,
-          updatedAt: new Date(),
-        })
-        .where(and(eq(costCenters.id, id), eq(costCenters.tenantId, tenantId)))
-        .returning();
-      return row;
-    });
+    try {
+      return await withTenantTx(this.database.db, tenantId, async (tx) => {
+        const [current] = await tx.select().from(costCenters).where(and(eq(costCenters.id, id), eq(costCenters.tenantId, tenantId), isNull(costCenters.deletedAt)));
+        if (!current) throw new DomainError('NOT_FOUND', 'Cost centre not found', 404);
+        if (patch.parentId === id) throw new DomainError('COST_CENTER_CYCLE', 'A cost centre cannot be its own parent', 422);
+        const [row] = await tx
+          .update(costCenters)
+          .set({
+            code: patch.code ?? current.code,
+            nameAr: patch.nameAr ?? current.nameAr,
+            nameEn: patch.nameEn === undefined ? current.nameEn : patch.nameEn,
+            parentId: patch.parentId === undefined ? current.parentId : patch.parentId,
+            branchId: patch.branchId === undefined ? current.branchId : patch.branchId,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(costCenters.id, id), eq(costCenters.tenantId, tenantId)))
+          .returning();
+        return row;
+      });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new DomainError('COST_CENTER_CODE_TAKEN', `رمز مركز التكلفة "${patch.code}" مستخدم مسبقاً`, 409, {
+          field: 'code',
+        });
+      }
+      throw error;
+    }
   }
 
   /** Cost centres carry analysis, so one that already appears on journal lines stays. */

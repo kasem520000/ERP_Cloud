@@ -17,6 +17,8 @@ import {
   journalEntries,
   journalEntryLines,
   offers,
+  offerItems,
+  offerParties,
   parties,
   paymentAllocations,
   paymentMethods,
@@ -2394,7 +2396,10 @@ export class SalesService {
     offerId: string,
     input: { itemId: string; quantity: string; value: string },
   ) {
-    if (money(input.quantity).lte(0) || money(input.value).lte(0)) {
+    if (money(input.quantity).lt(0) || money(input.value).lt(0)) {
+      throw new DomainError('SALES_OFFER_EVALUATION_INVALID', 'Quantity and value cannot be negative', 422);
+    }
+    if (money(input.quantity).isZero() || money(input.value).isZero()) {
       return { eligible: false, discount: '0', reason: 'TARGET_NOT_MET' };
     }
     const [offer] = await withTenantTx(this.database.db, tenantId, (tx) =>
@@ -2407,6 +2412,18 @@ export class SalesService {
     const now = Date.now();
     if (offer.status !== 'active' || now < offer.validFrom.getTime() || now > offer.validTo.getTime())
       return { eligible: false, discount: '0', reason: 'OFFER_NOT_VALID' };
+
+    // ACC-137: Scope offer to specific items if offer_items rows exist
+    const scopedItems = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .select({ itemId: offerItems.itemId })
+        .from(offerItems)
+        .where(and(eq(offerItems.tenantId, tenantId), eq(offerItems.offerId, offerId))),
+    );
+    if (scopedItems.length > 0 && !scopedItems.some((r) => r.itemId === input.itemId)) {
+      return { eligible: false, discount: '0', reason: 'ITEM_NOT_ELIGIBLE' };
+    }
+
     const target = money(offer.targetValue);
     const eligible =
       offer.targetType === 'value' ? money(input.value).gte(target) : money(input.quantity).gte(target);
@@ -2761,6 +2778,7 @@ export class SalesService {
     input: Omit<typeof offers.$inferInsert, 'id' | 'tenantId' | 'validFrom' | 'validTo'> & {
       validFrom: string | Date;
       validTo: string | Date;
+      itemIds?: string[];
     },
   ) {
     const validFrom = input.validFrom instanceof Date ? input.validFrom : new Date(input.validFrom);
@@ -2788,22 +2806,34 @@ export class SalesService {
       });
     }
 
+    const offerId = newId();
+    const { itemIds, ...offerData } = input;
     try {
-      const [offer] = await withTenantTx(this.database.db, tenantId, (tx) =>
-        tx
+      const offer = await withTenantTx(this.database.db, tenantId, async (tx) => {
+        const [inserted] = await tx
           .insert(offers)
           .values({
-            ...input,
+            ...offerData,
             discountValue: discountVal.toFixed(4),
             targetValue: targetVal.toFixed(4),
             validFrom,
             validTo,
-            id: newId(),
+            id: offerId,
             tenantId,
             createdBy: tryGetAuthContext()?.userId,
           })
-          .returning(),
-      );
+          .returning();
+        if (itemIds?.length) {
+          await tx.insert(offerItems).values(
+            itemIds.map((itemId) => ({
+              tenantId,
+              offerId,
+              itemId,
+            })),
+          );
+        }
+        return inserted!;
+      });
       return offer;
     } catch (err) {
       if (isUniqueViolation(err)) {

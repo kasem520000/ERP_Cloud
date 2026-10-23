@@ -1,0 +1,206 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "flour",
+      "method": "POST",
+      "path": "/organization/catalog/items",
+      "request": {
+        "sku": "FL-R29",
+        "nameAr": "دقيق R29",
+        "nameEn": "Flour R29",
+        "kind": "stock",
+        "baseUnitId": "01a1666d-3c38-702d-b983-02e4185f126b",
+        "taxGroupId": "01a1666d-3c3b-773c-a95f-9d4de0a5f2bd",
+        "purchasePrice": "2.0000",
+        "salePrice": "0",
+        "trackLot": false
+      },
+      "status": 400,
+      "body": {
+        "type": "about:blank",
+        "title": "Validation failed",
+        "status": 400,
+        "code": "VALIDATION_FAILED",
+        "detail": "Request validation failed",
+        "traceId": "01a16672-a1ca-7079-bece-1beb2d692cab",
+        "errors": [
+          {
+            "field": "categoryId",
+            "message": "Required"
+          }
+        ]
+      }
+    },
+    {
+      "label": "bread",
+      "method": "POST",
+      "path": "/organization/catalog/items",
+      "request": {
+        "sku": "BR-R29",
+        "nameAr": "خبز R29",
+        "nameEn": "Bread R29",
+        "kind": "stock",
+        "baseUnitId": "01a1666d-3c38-702d-b983-02e4185f126b",
+        "taxGroupId": "01a1666d-3c3b-773c-a95f-9d4de0a5f2bd",
+        "purchasePrice": "0",
+        "salePrice": "5.0000",
+        "trackLot": true
+      },
+      "status": 400,
+      "body": {
+        "type": "about:blank",
+        "title": "Validation failed",
+        "status": 400,
+        "code": "VALIDATION_FAILED",
+        "detail": "Request validation failed",
+        "traceId": "01a16672-a4e6-73cd-b1d9-2eaea891e135",
+        "errors": [
+          {
+            "field": "categoryId",
+            "message": "Required"
+          }
+        ]
+      }
+    },
+    {
+      "label": "party",
+      "method": "POST",
+      "path": "/parties",
+      "request": {
+        "name": "بقالة R29 (آجل)",
+        "kind": "customer",
+        "creditLimit": "100",
+        "phone": "0500000029"
+      },
+      "status": 201,
+      "body": {
+        "id": "01a16672-aafe-77ce-bba9-27910738ad87",
+        "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
+        "code": "000001",
+        "kind": "customer",
+        "name": "بقالة R29 (آجل)",
+        "legalName": null,
+        "taxNo": null,
+        "nationalId": null,
+        "address": null,
+        "phone": "0500000029",
+        "email": null,
+        "receivableAccountId": null,
+        "payableAccountId": null,
+        "creditLimit": "100.0000",
+        "isOwner": false,
+        "isContractor": false,
+        "branchId": null,
+        "paymentMethodId": null,
+        "createdAt": "2026-10-23T01:49:13.345Z",
+        "createdBy": null,
+        "updatedAt": null,
+        "updatedBy": null,
+        "version": 1,
+        "deletedAt": null,
+        "deletedBy": null,
+        "customFields": {}
+      }
+    },
+    {
+      "label": "items",
+      "method": "GET",
+      "path": "/organization/catalog/items?q=R29",
+      "status": 200,
+      "body": []
+    },
+    {
+      "label": "parties",
+      "method": "GET",
+      "path": "/parties?q=R29",
+      "status": 200,
+      "body": [
+        {
+          "id": "01a16672-aafe-77ce-bba9-27910738ad87",
+          "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
+          "code": "000001",
+          "kind": "customer",
+          "name": "بقالة R29 (آجل)",
+          "legalName": null,
+          "taxNo": null,
+          "nationalId": null,
+          "address": null,
+          "phone": "0500000029",
+          "email": null,
+          "receivableAccountId": null,
+          "payableAccountId": null,
+          "creditLimit": "100.0000",
+          "isOwner": false,
+          "isContractor": false,
+          "branchId": null,
+          "paymentMethodId": null,
+          "createdAt": "2026-10-23T01:49:13.345Z",
+          "createdBy": null,
+          "updatedAt": null,
+          "updatedBy": null,
+          "version": 1,
+          "deletedAt": null,
+          "deletedBy": null,
+          "customFields": {}
+        },
+        {
+          "id": "01a1666d-3bed-7668-9715-4a7e6ae2238f",
+          "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
+          "code": "SUPP-GEN",
+          "kind": "supplier",
+          "name": "مورد عام",
+          "legalName": "مورد عام",
+          "taxNo": null,
+          "nationalId": null,
+          "address": null,
+          "phone": null,
+          "email": null,
+          "receivableAccountId": null,
+          "payableAccountId": null,
+          "creditLimit": "0.0000",
+          "isOwner": false,
+          "isContractor": false,
+          "branchId": null,
+          "paymentMethodId": null,
+          "createdAt": "2026-10-23T01:43:17.229Z",
+          "createdBy": null,
+          "updatedAt": null,
+          "updatedBy": null,
+          "version": 1,
+          "deletedAt": null,
+          "deletedBy": null,
+          "customFields": {}
+        },
+        {
+          "id": "01a1666d-3beb-7409-8c8b-399e8fd4b7ec",
+          "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
+          "code": "CUST-GEN",
+          "kind": "customer",
+          "name": "عميل عام",
+          "legalName": "عميل عام",
+          "taxNo": null,
+          "nationalId": null,
+          "address": null,
+          "phone": null,
+          "email": null,
+          "receivableAccountId": null,
+          "payableAccountId": null,
+          "creditLimit": "0.0000",
+          "isOwner": false,
+          "isContractor": false,
+          "branchId": null,
+          "paymentMethodId": null,
+          "createdAt": "2026-10-23T01:43:17.227Z",
+          "createdBy": null,
+          "updatedAt": null,
+          "updatedBy": null,
+          "version": 1,
+          "deletedAt": null,
+          "deletedBy": null,
+          "customFields": {}
+        }
+      ]
+    }
+  ]
+}

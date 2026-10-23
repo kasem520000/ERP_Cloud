@@ -744,7 +744,7 @@ export class PurchasesService {
     const journal: JournalLineInput[] = [];
     const leg = (accountId: string, debit: Decimal, credit: Decimal, extra?: { partyId?: string | null; costCenterId?: string | null; description?: string }): void => {
       if (debit.abs().lte(0) && credit.abs().lte(0)) return;
-      journal.push({ accountId, debit: debit.toFixed(4), credit: credit.toFixed(4), partyId: (extra?.partyId ?? locked.partyId) ?? undefined, costCenterId: extra?.costCenterId ?? undefined, description: extra?.description });
+      journal.push({ accountId, debit: debit.toFixed(4), credit: credit.toFixed(4), partyId: extra?.partyId ?? undefined, costCenterId: extra?.costCenterId ?? undefined, description: extra?.description });
     };
 
     // Stored line nets already carry the header-discount share (pro-rata by gross,

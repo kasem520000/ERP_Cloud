@@ -176,15 +176,14 @@ describe('Remediation Phase 16 — Offers guards, cost centre validation, invoic
     expect(badPct.status).toBe(422);
     expect((badPct.body as any).code).toBe('SALES_OFFER_DISCOUNT_INVALID');
 
-    // 4. Evaluating with negative values does not yield negative discounts
+    // 4. Evaluating with negative values is rejected with 422 SALES_OFFER_EVALUATION_INVALID
     const evalRes = await req('post', `/api/v1/sales/offers/${offerId}/evaluate`, {
       itemId,
       quantity: '2',
       value: '-80',
     });
-    expect(evalRes.status).toBe(201);
-    expect((evalRes.body as any).eligible).toBe(false);
-    expect((evalRes.body as any).discount).toBe('0');
+    expect(evalRes.status).toBe(422);
+    expect((evalRes.body as any).code).toBe('SALES_OFFER_EVALUATION_INVALID');
   });
 
   it('ACC-136: Guards manual journal entries against orphan/bogus cost centres', async () => {

@@ -1,0 +1,212 @@
+{
+  "isRep": true,
+  "salesmanId": "01a16504-1458-7735-9863-86d92c9f8c45",
+  "salesmanName": "مندوب الشركة",
+  "employeeId": "01a16504-1454-71e2-ba13-f8475e21efe6",
+  "warehouseId": "01a16504-144a-729a-86bc-9e43bf582a10",
+  "vehiclePlate": null,
+  "active": true,
+  "balances": [],
+  "custodyKg": "0.0000",
+  "custodyValue": "0.0000",
+  "pendingReceipts": [
+    {
+      "id": "01a16661-8169-7241-b764-467bb1e87791",
+      "number": "VLO-0003",
+      "loadDate": "2026-10-23",
+      "status": "pending_receipt",
+      "loadedQty": "3.0000",
+      "receivedQty": "0.0000",
+      "productionBatchNo": "BATCH-R29-01",
+      "stockTransferId": "01a16661-816d-716e-a92d-c1784f03c1a4",
+      "itemName": "خبز R29",
+      "fromWarehouseName": "المستودع الرئيسي"
+    },
+    {
+      "id": "01a16660-c9e3-773d-8a86-fed094a27baa",
+      "number": "VLO-0002",
+      "loadDate": "2026-10-23",
+      "status": "pending_receipt",
+      "loadedQty": "6.0000",
+      "receivedQty": "0.0000",
+      "productionBatchNo": "BATCH-R29-01",
+      "stockTransferId": "01a16660-c9e6-7577-96cf-64d65c0fe1eb",
+      "itemName": "خبز R29",
+      "fromWarehouseName": "المستودع الرئيسي"
+    },
+    {
+      "id": "01a16660-0c13-74c2-a203-99c5d4ee9073",
+      "number": "VLO-0001",
+      "loadDate": "2026-10-23",
+      "status": "pending_receipt",
+      "loadedQty": "40.0000",
+      "receivedQty": "0.0000",
+      "productionBatchNo": "BATCH-R29-01",
+      "stockTransferId": "01a16660-0c17-765b-82c4-683f6ed895e4",
+      "itemName": "خبز R29",
+      "fromWarehouseName": "المستودع الرئيسي"
+    }
+  ],
+  "loadOrders": [
+    {
+      "id": "01a16661-8169-7241-b764-467bb1e87791",
+      "number": "VLO-0003",
+      "loadDate": "2026-10-23",
+      "status": "pending_receipt",
+      "itemName": "خبز R29",
+      "productionBatchNo": "BATCH-R29-01",
+      "loadedQty": "3.0000",
+      "receivedQty": "0.0000",
+      "soldQty": "0.0000",
+      "bonusQty": "0.0000",
+      "returnedQty": "0.0000",
+      "damagedQty": "0.0000",
+      "shortageQty": "0.0000",
+      "shortageValue": "0.0000",
+      "expectedCash": "0.0000",
+      "collectedCash": "0.0000",
+      "outstandingCash": "0.0000",
+      "expectedRemainingQty": "3.0000",
+      "actualRemainingQty": "0.0000",
+      "discrepancyQty": "0.0000",
+      "discrepancyNotes": "",
+      "stockSettlementStatus": "not_required",
+      "stockSettlementNote": "",
+      "remainingAction": null,
+      "closingSubmittedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "01a16660-c9e3-773d-8a86-fed094a27baa",
+      "number": "VLO-0002",
+      "loadDate": "2026-10-23",
+      "status": "pending_receipt",
+      "itemName": "خبز R29",
+      "productionBatchNo": "BATCH-R29-01",
+      "loadedQty": "6.0000",
+      "receivedQty": "0.0000",
+      "soldQty": "0.0000",
+      "bonusQty": "0.0000",
+      "returnedQty": "0.0000",
+      "damagedQty": "0.0000",
+      "shortageQty": "0.0000",
+      "shortageValue": "0.0000",
+      "expectedCash": "0.0000",
+      "collectedCash": "0.0000",
+      "outstandingCash": "0.0000",
+      "expectedRemainingQty": "6.0000",
+      "actualRemainingQty": "0.0000",
+      "discrepancyQty": "0.0000",
+      "discrepancyNotes": "",
+      "stockSettlementStatus": "not_required",
+      "stockSettlementNote": "",
+      "remainingAction": null,
+      "closingSubmittedAt": null,
+      "approvedAt": null
+    },
+    {
+      "id": "01a16660-0c13-74c2-a203-99c5d4ee9073",
+      "number": "VLO-0001",
+      "loadDate": "2026-10-23",
+      "status": "pending_receipt",
+      "itemName": "خبز R29",
+      "productionBatchNo": "BATCH-R29-01",
+      "loadedQty": "40.0000",
+      "receivedQty": "0.0000",
+      "soldQty": "0.0000",
+      "bonusQty": "0.0000",
+      "returnedQty": "0.0000",
+      "damagedQty": "0.0000",
+      "shortageQty": "0.0000",
+      "shortageValue": "0.0000",
+      "expectedCash": "0.0000",
+      "collectedCash": "0.0000",
+      "outstandingCash": "0.0000",
+      "expectedRemainingQty": "40.0000",
+      "actualRemainingQty": "0.0000",
+      "discrepancyQty": "0.0000",
+      "discrepancyNotes": "",
+      "stockSettlementStatus": "not_required",
+      "stockSettlementNote": "",
+      "remainingAction": null,
+      "closingSubmittedAt": null,
+      "approvedAt": null
+    }
+  ],
+  "documents": [],
+  "collections": [],
+  "totals": {
+    "revenue": "0.00",
+    "salesGross": "0.00",
+    "cashSales": "0.00",
+    "creditSales": "0.00",
+    "collected": "0.00",
+    "outstanding": "0.00",
+    "returns": "0.00",
+    "returnsVat": "0.00",
+    "returnCount": 0,
+    "returnsWithoutCostCount": 0
+  },
+  "custody": {
+    "expectedKg": "49.0000",
+    "officialKg": "0.0000",
+    "pendingClosings": 0
+  },
+  "windows": {
+    "loadOrders": {
+      "returned": 3,
+      "total": 3,
+      "limit": 50
+    },
+    "documents": {
+      "returned": 0,
+      "total": 0,
+      "limit": 100
+    },
+    "collections": {
+      "returned": 0,
+      "total": 0,
+      "limit": 50
+    },
+    "notifications": {
+      "returned": 3,
+      "total": 3,
+      "limit": 20
+    }
+  },
+  "notifications": [
+    {
+      "id": "01a16661-8195-76ab-9e30-c2b5dfcf677c",
+      "type": "van_sales_supply_pending_receipt",
+      "read": false,
+      "createdAt": "2026-10-23 01:30:28.625342+00",
+      "payload": {
+        "body": "تم صرف 3.00 كجم إلى عهدتك بموجب المناولة TR-000006 — أكّد الاستلام أو سجّل الفرق.",
+        "href": "/van-sales/rep",
+        "title": "🚐 توريد جديد بانتظار تأكيدك (VLO-0003)"
+      }
+    },
+    {
+      "id": "01a16660-ca04-7427-b05b-9112bf48d904",
+      "type": "van_sales_supply_pending_receipt",
+      "read": false,
+      "createdAt": "2026-10-23 01:29:41.631763+00",
+      "payload": {
+        "body": "تم صرف 6.00 كجم إلى عهدتك بموجب المناولة TR-000005 — أكّد الاستلام أو سجّل الفرق.",
+        "href": "/van-sales/rep",
+        "title": "🚐 توريد جديد بانتظار تأكيدك (VLO-0002)"
+      }
+    },
+    {
+      "id": "01a16660-0c35-740d-ba47-c1a9524e9c21",
+      "type": "van_sales_supply_pending_receipt",
+      "read": false,
+      "createdAt": "2026-10-23 01:28:53.040689+00",
+      "payload": {
+        "body": "تم صرف 40.00 كجم إلى عهدتك بموجب المناولة TR-000004 — أكّد الاستلام أو سجّل الفرق.",
+        "href": "/van-sales/rep",
+        "title": "🚐 توريد جديد بانتظار تأكيدك (VLO-0001)"
+      }
+    }
+  ]
+}

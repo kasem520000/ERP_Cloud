@@ -394,4 +394,45 @@ pnpm --filter "@erp/contracts" build && pnpm --filter "@erp/config" build && pnp
 ```
 - **All packages compile and build cleanly with 0 errors** (181 Next.js routes generated).
 
+---
+
+## 2026-10-23 — Phase 17: استكمال معالجة عيوب الجولة 28 (ACC-135, ACC-136, ACC-137, ACC-139, ACC-142, ACC-144, ACC-145, ACC-146, ACC-148, ACC-150, UI-047, UI-048)
+
+- **الملفات المعدلة**:
+  - `apps/api/src/modules/accounting/accounting.service.ts`:
+    - `ACC-135`: معالجة انتهاك الفهرس الفريد `23505` عند إنشاء أو تعديل مركز تكلفة `createCostCenter` / `updateCostCenter` ورمي 409 `COST_CENTER_CODE_TAKEN` بدلاً من 500 INTERNAL.
+    - `ACC-139`: تحديث منطق احتساب علم توازن ميزان المراجعة `totals.balanced` للتحقق من: (1) تساوي حركة الفترة (مدين = دائن)، (2) تصفير الرصيد الختامي الصافي، (3) تساوي المجاميع الافتتاحية المدائنة والدائنة، بحيث يُرفع علم `balanced: false` عند وجود رصيد افتتاحي أحادي الطرف غير متوازن.
+    - `ACC-144`: إضافة حساب وتسطيح حقول الرصيد في `listCostCenters` (`balance`, `debit`, `credit`, `closing`, `total`) عند طلب المعلمة.
+  - `apps/api/src/modules/accounting/accounting.controller.ts`:
+    - `ACC-144`: دعم كلا الصياغتين `with_balances` (snake_case) و `withBalances` (camelCase) في استعلام مراكز التكلفة.
+  - `apps/api/src/modules/purchases/purchases.service.ts`:
+    - `ACC-142`: عزل `partyId` وحصره على سطر الذمم الدائنة/التسوية النقدية فقط في القيد التلقائي لفاتورة الشراء `buildAutoJournal`، ومنع تسريبه لأسطر المخزون، ضريبة المدخلات، الخصم، والتكاليف الإضافية.
+  - `apps/api/src/modules/pos/pos.service.ts`:
+    - `ACC-145`: إعادة ترتيب التحقق من تسلسل التذاكر دون اتصال في `offlineSync` قبل فحص حالة المزامنة السابقة `synced`، لضمان الإبلاغ عن تعارض `POS_OFFLINE_ID_SEQUENCE_MISMATCH` عند إرسال نفس المعرّف بتسلسل رقمي مختلف.
+    - `ACC-146`: تصفير `errorCode: null` و `errorDetail: null` في جدول `offline_queue` فور نجاح معالجة المعاملة وإعادة ترحيلها.
+  - `apps/api/src/modules/operations/maintenance.service.ts`:
+    - `ACC-148`: إعادة رقم الفاتورة أو رقم اصطناعي (`DRAFT-xxxxxxxx`) مع حالتها ونوعها (`status`, `kind`) في معاينة صيانة الفواتير للمسودات القديمة بدلاً من إرجاع قيم فارغة `null`.
+  - `apps/api/src/modules/tailoring/tailoring.service.ts`:
+    - `UI-047`: زرع حالات الطلبات الافتراضية تلقائياً بـ `seedDefaultStatuses` عند طلب الحالة في حال خلو قاعدة بيانات المستأجر منها.
+    - `ACC-150`: إلزام تمرير `cashLocationId` لسداد فاتورة التفصيل ورفضه بـ 422 حال غيابه، وترحيل سند القبض تلقائياً بـ `postVoucher` مع إصدار رقم رسمي وتوليد قيد اليومية في الأستاذ العام.
+  - `apps/staff/app/tailoring/invoices/page.tsx`:
+    - `UI-048`: ترجيح الصندوق النقدي `safe.kind === 'safe'` افتراضياً في نافذة سداد التفصيل عند اختيار الدفع النقدي.
+  - `apps/api/src/modules/sales/sales.service.ts`:
+    - `ACC-136`: رفض تقييم العروض الترويجية بقيم أو كميات سالبة برمز 422 `SALES_OFFER_EVALUATION_INVALID`.
+    - `ACC-137`: تفعيل فلترة الأصناف المؤهلة للعرض من جدول `offer_items` ودعم تمرير `itemIds` عند إنشاء العرض في `createOffer`.
+- **الاختبارات**:
+  - إنشاء جناح اختبارات متكامل `apps/api/test/remediation-phase17.spec.ts` (7 اختبارات) يغطي كافة عيوب المرحلة بنجاح 100%.
+
+---
+
+## نتيجة التحقق الشاملة النهائية لجميع مراحل المعالجة (Phases 1..17):
+```bash
+vitest run test/remediation-phase1.spec.ts test/remediation-phase2.spec.ts test/remediation-phase3.spec.ts test/remediation-phase4.spec.ts test/remediation-phase5.spec.ts test/remediation-phase6.spec.ts test/remediation-phase7.spec.ts test/remediation-phase8.spec.ts test/remediation-phase9.spec.ts test/remediation-phase10.spec.ts test/remediation-phase11.spec.ts test/remediation-phase12.spec.ts test/remediation-phase13.spec.ts test/remediation-phase14.spec.ts test/remediation-phase15.spec.ts test/remediation-phase16.spec.ts test/remediation-phase17.spec.ts
+```
+- **Test Files**: 17 passed (17)
+- **Tests**: 111 passed (111)
+- **Duration**: ~75s
+- **Zero Failures**.
+
+
 
