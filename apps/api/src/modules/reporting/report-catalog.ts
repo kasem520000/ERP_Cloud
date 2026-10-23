@@ -3252,7 +3252,17 @@ const definitions: ReportDefinition[] = [
              coalesce(sum(round(pan.amount * coalesce(pi.tax_total / nullif(pi.total, 0), 0), 2)), 0)::text
       FROM purchase_adjustment_notes pan LEFT JOIN purchase_invoices pi ON pi.id = pan.invoice_id
       WHERE pan.tenant_id = ${tenantId} AND pan.status = 'posted' AND pan.kind = 'debit'
-        AND ${onDate(sql`coalesce(pan.posted_at::date, pan.created_at::date)`, f.from, f.to)} AND ${eqIf(sql`pan.branch_id`, f.branchId)}`,
+        AND ${onDate(sql`coalesce(pan.posted_at::date, pan.created_at::date)`, f.from, f.to)} AND ${eqIf(sql`pan.branch_id`, f.branchId)}
+      UNION ALL
+      /* R33 ACC-193 — a سند that carries VAT posts it to the VAT account, so the return lists it too
+         (receipts as output VAT, payments as input VAT); vouchers without VAT are cash movements only. */
+      SELECT 'سندات قبض بضريبة', coalesce(sum(${voucherBase('vr')}), 0)::text, coalesce(${voucherVat('vr')}, 0)::text
+      FROM vouchers vr WHERE vr.tenant_id = ${tenantId} AND vr.status = 'posted' AND vr.kind = 'receipt' AND ${voucherHasVat('vr')}
+        AND ${onDate(sql`vr.date`, f.from, f.to)} AND ${eqIf(sql`vr.branch_id`, f.branchId)}
+      UNION ALL
+      SELECT 'سندات صرف بضريبة', coalesce(sum(${voucherBase('vr')}), 0)::text, (-coalesce(${voucherVat('vr')}, 0))::text
+      FROM vouchers vr WHERE vr.tenant_id = ${tenantId} AND vr.status = 'posted' AND vr.kind = 'payment' AND ${voucherHasVat('vr')}
+        AND ${onDate(sql`vr.date`, f.from, f.to)} AND ${eqIf(sql`vr.branch_id`, f.branchId)}`,
   },
   /**
    * ACC-192 (R33): an aging report must tie to the control account. The old query summed
