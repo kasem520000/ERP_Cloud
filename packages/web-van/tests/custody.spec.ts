@@ -111,6 +111,12 @@ describe('buildClosingPayload — تقديم الجرد', () => {
     // ‏10 + 1 + 2 + 1 + 8 = 22 > 20
     const verdict = buildClosingPayload(closing({ actualRemainingQty: '8' }), quantities());
     expect(verdict.ok).toBe(false);
+    // ACC-188 (R33): مرتجع العميل يرفع السقف كما في الخادم (`loaded + customerReturned`) — 22 ≤ 20 + 2.
+    expect(
+      buildClosingPayload(closing({ actualRemainingQty: '8' }), quantities({ customerReturnedQty: '2' })).ok,
+    ).toBe(true);
+    // والمرتجع السليم يُجمع لا يُطرح من المباع: 10 + 1 + 3 + 1 + 6 = 21 > 20.
+    expect(buildClosingPayload(closing({ returnedQty: '3' }), quantities()).ok).toBe(false);
     if (!verdict.ok) {
       expect(verdict.message).toBe(
         'مجموع الكميات (المباع 10.00 + البونص 1.00 + المرتجع السليم 2.00 + التالف 1.00 + المتبقي الفعلي 8.00 = 22.00 كجم) يتجاوز العهدة المستلمة أصلاً (20.00 كجم). إن كانت الكمية الزائدة موجودة فعلاً في السيارة فأبلغ المحاسب: تسجيل الفائض يتم عند الاعتماد بإقرار صريح، لا من حساب المندوب.',
@@ -481,15 +487,16 @@ describe('🚐 عددُ المركبة كلها — الاشتقاق والرف�
       quantities(),
     );
     expect(within.ok).toBe(true);
-    // أمّا ما تجاوز نصيبُه العهدة فيُرفض كما يُرفض اليوم (فائضُ المندوب يُسجَّل عند الاعتماد).
+    // UI-051 (R33): مع عدد المركبة كلها لا تحجب الشاشة السقف — «O» في المتصفح تقديرٌ من اللوحة قد
+    // يحمل رصيداً شبحاً، والخادم يعيد الاشتقاق من الرصيد الرسمي الحيّ ويرفض 422 هو إن لزم.
     const over = buildClosingPayload(
       closing({ actualRemainingQty: '', vehicleCountQty: '30', otherCustodyInVanQty: '20' }),
       quantities(),
     );
-    expect(over.ok).toBe(false);
-    if (over.ok) return;
-    expect(over.message).toContain('يتجاوز العهدة المستلمة');
-    expect(over.field).toBe('actualRemainingQty');
+    expect(over.ok).toBe(true);
+    if (!over.ok) return;
+    expect(over.payload.vehicleCountQty).toBe('30.0000');
+    expect(over.payload.actualRemainingQty).toBeUndefined();
   });
 
   it('عددٌ دون عهدة الغير ⇒ رفضٌ قبل الإرسال (لا يُشطب ما لا يملكه الأمر)', () => {

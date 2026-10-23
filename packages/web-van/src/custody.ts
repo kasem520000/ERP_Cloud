@@ -43,6 +43,11 @@ export type CustodyQuantities = {
   receivedQty?: string | number | null;
   soldQty?: string | number | null;
   bonusQty?: string | number | null;
+  /**
+   * ACC-167/ACC-188 (R33): مرتجع العميل (`customer_returned_qty`) يعود إلى السيارة فيرفع سقف
+   * العهدة — `custodyCeiling = loaded + customerReturned` في الخادم (`submitClosing`/`approveClosing`).
+   */
+  customerReturnedQty?: string | number | null;
 };
 
 /** أساس العهدة: ما استُلم فعلاً إن وُجد، وإلا ما حُمِّل — قاعدة الخادم نفسها (‎:4006). */
@@ -51,10 +56,21 @@ export function custodyBasis(q: CustodyQuantities) {
   return received.gt(0) ? received : num(q.loadedQty);
 }
 
-/** ما حُوسب فعلاً من العهدة: صافي المبيعات (المباع - المرتجع) + بونص + تالف (مطابق لحسابات الخادم). */
+/**
+ * سقف العهدة الذي يُقاس به المجموع: الأساس + مرتجع العميل (ما عاد إلى السيارة بعد بيعه) —
+ * `custodyCeiling` في الخادم. ACC-188 (R33): كانت الشاشة تقيس بالأساس وحده وتطرح المرتجع من المباع
+ * (صيغة ACC-167 القديمة) فتخالف حكم الخادم في الاتجاهين.
+ */
+export function custodyCeiling(q: CustodyQuantities) {
+  return custodyBasis(q).plus(Decimal.max(0, num(q.customerReturnedQty)));
+}
+
+/**
+ * ما حُوسب فعلاً من العهدة: المباع + البونص + المرتجع السليم + التالف — حرفياً كما يجمعها الخادم
+ * (`accountedQty = sold + bonus + returnedQty + damagedQty`)، فالمرتجع السليم كميةٌ عادت لا خصمٌ من المباع.
+ */
 export function accountedFor(q: CustodyQuantities, returned: string, damaged: string) {
-  const netSold = Decimal.max(0, num(q.soldQty).minus(num(returned)));
-  return netSold.plus(num(q.bonusQty)).plus(num(damaged));
+  return num(q.soldQty).plus(num(q.bonusQty)).plus(num(returned)).plus(num(damaged));
 }
 
 /** مسودة تقديم الإقفال كما تكتبها الشاشة (من `submitClosing` في الخادم). */
@@ -233,8 +249,9 @@ export function buildClosingPayload(
     return { ok: false, message: CLOSING_MESSAGES.damageReasonRequired, field: 'damageReason' };
   }
 
-  // سقف العهدة: يُفحص عند العد الفردي للأمر فقط، ولا يُحجب عند عد المركبة كلها حيث يُترك الاشتقاق والإقرار للخادم
-  const loaded = custodyBasis(q);
+  // سقف العهدة (UI-051): يُفحص عند العد الفردي للأمر فقط، ولا يُحجب عند عد المركبة كلها حيث يُترك
+  // الاشتقاق من الرصيد الرسمي الحيّ والإقرار للخادم. السقف = الأساس + مرتجع العميل (ACC-188).
+  const loaded = custodyCeiling(q);
   const accounted = accountedFor(q, draft.returnedQty, draft.damagedQty);
   const countedTotal = accounted.plus(actualRemainingQty);
   if (!vehicleShare.declared && loaded.gt(0) && countedTotal.gt(loaded)) {
@@ -376,7 +393,7 @@ export function buildApprovalPayload(
     };
   }
 
-  const loaded = custodyBasis(q);
+  const loaded = custodyCeiling(q);
   const accounted = accountedFor(q, draft.returnedQty, draft.damagedQty);
   const countedTotal = accounted.plus(actualRemainingQty);
   if (countedTotal.gt(loaded) && !draft.surplusAcknowledged) {
