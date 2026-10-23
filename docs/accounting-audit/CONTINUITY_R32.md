@@ -1,41 +1,28 @@
-# CONTINUITY R32 — جولة التحقق من إصلاحات الفرع `arena/163dfc4b-erp-cloud` (تحضير؛ لم تبدأ)
+# CONTINUITY R32 — جولة التحقق بعد دمج فرع الإصلاح (الحالة بعد الدفعة الأولى، 2026-10-23)
 
-**الحالة:** وكيل الإصلاح أعلن الانتهاء عند `2d92324` (2026-10-23)؛ المراجعة المحدَّثة في `REMEDIATION_BRANCH_REVIEW.md` §7 (204/204 اسمياً؛ 7 توثيقية؛ ACC-065 إغلاق زائف؛ ACC-154 خلط؛ ACC-105/156 جزئية؛ ACC-159 ازدواج مشتبه). **بانتظار قرار المالك: دمج ثم R32.**
-**مرجع المراجعة المستقلة الحالية:** `REMEDIATION_BRANCH_REVIEW.md` (commit `f842774`).
+**الحالة:** فرع الإصلاح `arena/163dfc4b-erp-cloud` (`2d92324`) مدموج في فرعنا `arena/0e400dd3-erp-cloud` عند `83b9c4b`. نُفِّذت أربع كتل تحقق (Block A، إعادة R29، إعادة R30 + مسابير، Block H) وسُلِّمت `ROUND_32_RESULTS.md` + `ROUND_32_VERDICTS.md` + قسم «الجولة 32» في `DEFECTS.md` (ACC-164…171). **49/204 معرّفاً أُعيد تنفيذها؛ 155 لم يُنفَّذ مسارها بعد.**
 
-## 1. ما يُعاد عند الإشارة (قبل أي قرار)
+## 1. ما يُعاد فوراً عند الاستئناف
 ```bash
-git fetch origin +refs/heads/arena/163dfc4b-erp-cloud:refs/remotes/origin/arena/163dfc4b-erp-cloud
-git log --oneline -5 origin/arena/163dfc4b-erp-cloud                 # هل تجاوز 5fa4bbe؟
-python3 docs/accounting-audit/scripts/round32-coverage-compare.py    # الفجوة مقابل 204 عيباً
-git diff --stat $(git merge-base origin/arena/163dfc4b-erp-cloud HEAD) origin/arena/163dfc4b-erp-cloud -- . ':(exclude)docs/accounting-audit' | tail -1
+cd /home/user/ERP_Cloud && git log --oneline -1           # يجب أن يكون ≥ commit «R32: ROUND_32_RESULTS.md …»؛ وإلا: git fetch origin +refs/heads/arena/0e400dd3-erp-cloud:refs/remotes/origin/arena/0e400dd3-erp-cloud && git reset --hard origin/arena/0e400dd3-erp-cloud
+python3 docs/accounting-audit/scripts/round32-verdicts.py  # يعيد توليد ROUND_32_VERDICTS.md من DEFECTS.md + خريطة الأحكام
+python3 docs/accounting-audit/scripts/round32-r29-check.py | tail -1 ; python3 docs/accounting-audit/scripts/round32-r30-check.py | tail -1
 ```
-- نتيجة `5fa4bbe`: 175/204، 29 غير مشمولة. **نتيجة `2d92324`: 204/204؛ 7 مُغلقة توثيقاً (ACC-061/111/134/138/141/154/162).**
-- شرط البدء المقترح: المصفوفة تغطي R29/R30 والـ12 الساقطة، أو المالك يقبل تضييق نطاق R32 صراحةً.
-- تنبيه للمالك: وكيل الإصلاح ينسخ أدلتنا يدوياً (آخر نسخة حتى R28)؛ يحتاج `DEFECTS.md` من رأس فرعنا (الأسطر 1056–1139 = R29/R30) و`REMEDIATION_BRANCH_REVIEW.md`.
+- إن اختفت `/tmp` أو العمليات (إعادة تهيئة — حدثت 9 مرات): البيئة تُبنى من جديد بوصفة `CONTINUITY_R24.md` §3 (+ غلاف pnpm، `DB_LOCAL_PERSIST=true DB_LOCAL_DATA_DIR=/home/user/.pgdata-r32 node scripts/local-db.mjs`، متصفح `.scratch/audit-browser` + `/tmp/al2023` + `/tmp/fonts`، `sed` على `.env` لـ`DEMO_TENANT_NAME=AUDIT-TEST-2026-R24`، rename المستأجر). بذرة 9 تُفقد بإعادة التهيئة؛ أي استكمال يكون على **بذرة 10** جديدة.
+- عند الاستئناف على بذرة جديدة: لقطة خط أساس أولاً (`round30-snapshot.cjs R32-DB-000-...`) ثم الكتلة المطلوبة.
 
-## 2. قرار المالك المطلوب: كيف يُشغَّل كود الإصلاح؟
-| الخيار | الأمر | الإيجابيات | المخاطر |
-|---|---|---|---|
-| **(أ) دمج في فرعنا** (مُفضَّل) | `git merge --no-ff origin/arena/163dfc4b-erp-cloud` | العمل يبقى على فرع الجلسة؛ الأدلة والنتائج بجانب الكود | تعارضات متوقعة في `docs/accounting-audit/*` (نسخهم أقدم) ⇒ حلّها بـ`git checkout --ours -- docs/accounting-audit` ثم مراجعة؛ الكود يُؤخذ منهم كاملاً |
-| (ب) checkout/worktree لفرعهم | — | لا يلوّث فرعنا | يخالف قيد الجلسة (لا تبديل فروع)؛ لا يُنفَّذ إلا بتوجيه صريح |
+## 2. ما بقي (بالترتيب المقترح)
+1. **كتل API لجولات R19–R28** بنمط `round32-blockH.cjs` (استخرج أشكال الطلبات من `evidence/round-NN/RNN-http-events.jsonl` كما فُعل لـH): R20 (الدفعات/الأقساط/حدّ الائتمان staff)، R21 (المقاولات ACC-056…059/065، الأصول)، R22 (POS/offline ACC-052، العملات)، R23–R26 (الفترات/الإقفال السنوي/التكلفة/التصنيع)، R27 (ACC-128…134)، R28 (ACC-135…150). كل كتلة: توقعات صريحة + لقطات DB + `R32-<X>-results.json`، ثم تحديث خريطة الأحكام في `round32-verdicts.py`.
+2. **UI بلقطات قبل الحفظ** للمسارات ذات الشاشات فقط (شرط المالك)، بعد نجاح كتلة الـAPI المقابلة.
+3. **إعادة إنتاج مستهدَفة:** ACC-065، ACC-105، ACC-154، UI-051/052، ACC-016، وما تبقّى من CRITICAL القديمة (ACC-002/011/016).
+4. بعد إصلاح الانحدارات الثمانية: إعادة R29 كاملة + مسبار G + D19 + H04b، وتحديث الأحكام.
 
-## 3. إعادة بناء البيئة (البيئة تُمسح دورياً — حدث 8 مرات)
-وصفة `CONTINUITY_R24.md` §3 كما هي، مع فرقين: **الهجرات تشمل 0140/0141** (راقب فشل 0141 إن وُجدت أرقام قيود مكررة — سجّله كعيب نشر)، و**seed 7** ثم تشغيل API :3000 / staff :3001 / bakery :3005 / portal :3004، ثم `.scratch/audit-browser` + الخطوط `/tmp/fonts`.
-- بعد التهجير مباشرة: لقطة DB-000 (عدد القيود/السندات/الأرصدة) كخط أساس لـR32.
+## 3. حقائق تقنية تختصر الوقت
+- `round32-lib.cjs`: `api(id, method, path, body, {role})` يكتب `<R32_OUT>/<id>-response.json` (`{request, response}`)؛ `race(id, calls)`؛ `snapshot(name)` (يفوّض `round30-snapshot.cjs`؛ يرفض EEXIST). الدليل الهدف بـ`R32_OUT=`؛ ضع `R30-seed-ids.json` في الدليل إذا احتجت المعرّفات (`branch, whMain, safe, bank, cust, custGen, supp, bread, pi1, si*`).
+- بذرة 9 (إن بقيت): فترة 2026-10 `01a16790-5954-74f8-870d-909d680f1c60`؛ VAT 15 % `01a16790-5940-715b-ae91-43d89d867eed`؛ حسابات 3122001 `…d8f471c6a03d`، 224 `…23cd44ed1905`. المستأجر `01a16790-56f2-7106-81ae-fc3fdc1f6a88`.
+- أشكال API المؤكَّدة: `/hrm/employees {employeeNo,name,status,hireDate,gender,salaryComponents:{basic},bank:{},branchIds:[]}`؛ `/hrm/payroll/preview {yearMonth}`؛ `/hrm/payroll/runs {yearMonth, periodId}`؛ `/runs/:id/post {}` (اشتقاق خادمي) أو `{branchId,fiscalPeriodId,journalLines}` (يُطابَق الصافي)؛ `/hrm/salary-payments {employeeId,branchId,yearMonth,paymentDate,method:'cash',cashLocationId,runId}`؛ `/runs/:id/pay {branchId,cashLocationId,method,fiscalPeriodId}`؛ `/runs/:id/reverse {reason}`؛ `/purchase-invoices/:id/payments {amount,idempotencyKey,cashLocationId,method}`؛ `/shift-closes/open {branchId}` → `/current?branch_id=` (`live.expectedCash`) → `/:id/close {counts:[{denomination,count}]}` → `/:id/post {}`؛ `/treasury/bank-accounts {bankName,accountNo,iban,openingBalance,cashLocationId}`؛ `/treasury/bank-statements/import {bankAccountId,csv,openingBalance}` → `{data:{statement:{id},lines}}`؛ `/bank-statements/:id/auto-match`، `/match {lineId,voucherId}`، `DELETE /lines/:lineId/match`؛ `/vouchers` يتطلب `date` و`method ∈ cash|cheque|bank_transfer|card` وإلا 500 (ACC-171)؛ `/reports/party-statement?partyId=` (لا `party_id`).
+- فاحصات R29/R30 القديمة تُشفِّر سلوك ما قبل الإصلاح وأرقام بذرة 7 → استعمل الأغلفة `round32-r29-check.py`/`round32-r30-check.py` واقرأ FAIL بوصفه «اختلافاً يُفرز» لا عيباً.
+- عدّ العيوب: `grep -c "^#\{2,3\} [A-Z]\+-[0-9]\+" DEFECTS.md` = 212 عنواناً + 8 محجوزة = 220.
 
-## 4. تسلسل التنفيذ
-1. **خط الأساس بلا بيانات:** `round10-check.py` (تهيئة/أدلة) ثم فحوص «السياسات» التي لا تحتاج مستندات.
-2. **الجولات بالترتيب الأصلي** R17 → R20 → R21 → R22 → R23 → R24 → R25 → R26 → R27 → R28 → R29 → R30: لكل جولة رنر(ات) `scripts/roundNN-*.cjs` ثم `roundNN-check.py`. أحجام العيوب لكل جولة: R10 30، R17 43، R20 15، R21 19، R22 7، R23 10، R24 9، R25 17، R26 7، R27 11، R28 19، R29 10، R30 7.
-   - توقّع **تكيّف الرنرات**: كثير منها بُني حول العيب نفسه (مثل سقوط UI-038 ⇒ fallback إنشاء الصندوق، أو 500 في BR2). بعد الإصلاح يتغيّر المسار؛ عدّل الرنر ووثّق التعديل في `ROUND_32_RESULTS.md` لا في أدلة الجولة الأصلية.
-   - الأدلة الجديدة تحت `evidence/round-32/<round-origin>/…` (لا تُكتب فوق أدلة R10–R30).
-3. **إعادة إنتاج يدوية** لما لا تغطيه الفاحصات: ACC-016 (إبطال BOX)، ACC-031/006 (هل يظهر التحصيل في سجلّ السندات/حركة الخزينة أم قيد فقط)، ACC-100 (BR2 ترقيم + سلوك الترقيم الموحّد)، ACC-158/159 (البوابات)، ACC-151 (تحصيل الخطّ بلا صندوق)، والبيانات التاريخية (هل بقيت سطور مختومة بالطرف خطأً بعد الدمج؟).
-4. **اختبارات المُصلِح نفسها:** `pnpm --filter @erp/api test -- test/remediation-phase*.spec.ts` كشرط حدّ أدنى، مع تسجيل أي فشل.
-
-## 5. المخرجات
-- `ROUND_32_RESULTS.md`: جدول لكل معرّف من 204: `قبل (جولة الاكتشاف) | ادّعاء المصفوفة | نتيجة R32 (FIXED-VERIFIED / STILL-OPEN / PARTIAL / REGRESSED / NOT-RETESTED+سبب)` + دليل.
-- تحديث حقل «الحالة» في `DEFECTS.md` فقط بعد دليل فاحص أو إعادة إنتاج يدوية موثّقة؛ الانحدارات الجديدة تأخذ معرّفات **ACC-164+ / UI-054+**.
-- ملخص للمالك: نسبة التحقق الفعلية، ما بقي مفتوحاً، وقرارات السياسة التي اتخذها المُصلِح ضمنياً (ترقيم المستأجر ACC-100، القيد اليدوي الفوري ACC-141، 224 للرواتب ACC-040، تسامح 0.01 ACC-123) لإقرارها أو ردّها.
-
-## 6. ما يُطلب من فريق الإصلاح قبل الدمج (من المراجعة §5)
-إدراج الـ29 الساقطة؛ إعادة فتح ACC-138/141؛ `addPayment` يُصدر سند قبض مرحّلاً ويرفض 422 عند غياب حسابات الترحيل بدل التخطّي الصامت؛ رصيد فرعي لمدفوعات البطاقة/البنك؛ هجرات تصحيح للبيانات التاريخية (ختم الطرف، تحصيلات بلا قيود)؛ فحص تكرارات قبل الفهرس الفريد 0141؛ عرض قرارات السياسة على المالك.
+## 4. ما يُطلب من فريق الإصلاح الآن (من R32)
+ACC-164 (ازدواج التسوية الجزئية — `settleIfApproved` يجب ألا يستدعي `addPayment` بعد السند)، ACC-167 (إلغاء `netSold` أو فصل مرتجع العميل عن مرتجع المستودع)، ACC-168 (قيد مقابل لكل شطب عجز أو تأجيل الإخراج)، ACC-169 (`recordInTx` لعجز المناقلة)، ACC-170 (حسابات ورقية `is_postable` + فرض `is_postable` في `postJournalInTx`)، ACC-166 (`path` عند إنشاء حساب الموظف التلقائي أو 422)، ACC-165 وACC-032 (قرارا سياسة §7 في النتائج)، ACC-171، وما بقي مفتوحاً: ACC-035/044/045/064/156/120/141/162.
