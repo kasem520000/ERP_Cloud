@@ -3059,15 +3059,20 @@ const definitions: ReportDefinition[] = [
       FROM (
         SELECT CASE acc.type WHEN 'asset' THEN 'الأصول' WHEN 'liability' THEN 'الخصوم' ELSE 'حقوق الملكية' END AS section,
                acc.code, acc.name_ar AS account,
-               CASE acc.type WHEN 'asset' THEN sum(jel.debit) - sum(jel.credit)
-                             ELSE sum(jel.credit) - sum(jel.debit) END::text AS balance,
+               (CASE acc.type WHEN 'asset' THEN (coalesce(sum(jel.debit), 0) - coalesce(sum(jel.credit), 0)) + coalesce(acc.opening_balance, 0)
+                             ELSE (coalesce(sum(jel.credit), 0) - coalesce(sum(jel.debit), 0)) + coalesce(acc.opening_balance, 0) END)::text AS balance,
                CASE acc.type WHEN 'asset' THEN 1 WHEN 'liability' THEN 2 ELSE 3 END AS ord
-        FROM journal_entry_lines jel
-        JOIN journal_entries je ON je.id = jel.entry_id
-        JOIN accounts acc ON acc.id = jel.account_id
-        WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND acc.type IN ('asset', 'liability', 'equity')
-          AND ${onDate(sql`je.date`, undefined, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
-        GROUP BY acc.type, acc.code, acc.name_ar
+        FROM accounts acc
+        LEFT JOIN (
+          SELECT jel_sub.account_id, jel_sub.debit, jel_sub.credit
+          FROM journal_entry_lines jel_sub
+          JOIN journal_entries je ON je.id = jel_sub.entry_id
+          WHERE jel_sub.tenant_id = ${tenantId} AND je.status = 'posted'
+            AND ${onDate(sql`je.date`, undefined, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
+        ) jel ON jel.account_id = acc.id
+        WHERE acc.tenant_id = ${tenantId} AND acc.deleted_at IS NULL AND acc.type IN ('asset', 'liability', 'equity')
+        GROUP BY acc.type, acc.code, acc.name_ar, acc.opening_balance
+        HAVING (coalesce(sum(jel.debit), 0) <> 0 OR coalesce(sum(jel.credit), 0) <> 0 OR coalesce(acc.opening_balance, 0) <> 0)
         UNION ALL
         SELECT 'حقوق الملكية', '',
                CASE WHEN result.net >= 0 THEN 'صافي ربح الفترة' ELSE 'صافي خسارة الفترة' END,
@@ -3081,6 +3086,15 @@ const definitions: ReportDefinition[] = [
             AND ${onDate(sql`je.date`, undefined, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
         ) AS result
         WHERE result.net <> 0
+        UNION ALL
+        SELECT 'حقوق الملكية', '', 'أرصدة افتتاحية',
+               result.net_opening::text, 4
+        FROM (
+          SELECT coalesce(sum(CASE WHEN acc.type = 'asset' THEN acc.opening_balance ELSE -acc.opening_balance END), 0) AS net_opening
+          FROM accounts acc
+          WHERE acc.tenant_id = ${tenantId} AND acc.deleted_at IS NULL AND acc.type IN ('asset', 'liability', 'equity')
+        ) AS result
+        WHERE result.net_opening <> 0
       ) AS sheet
       ORDER BY sheet.ord, sheet.code`,
   },

@@ -1,0 +1,203 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "preview-stale0",
+      "method": "POST",
+      "path": "/settings/invoice-maintenance",
+      "request": {
+        "mode": "preview",
+        "staleDraftDays": 0
+      },
+      "status": 201,
+      "body": {
+        "data": {
+          "id": "01a1661a-3613-751b-a4f0-c44a8b9d41c7",
+          "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+          "kind": "invoice_maintenance",
+          "mode": "preview",
+          "status": "ready",
+          "cutoffDate": null,
+          "backupId": null,
+          "findings": {
+            "counts": {
+              "staleDrafts": 5,
+              "numberingGaps": 0,
+              "totalsMismatch": 1,
+              "repairableTotals": 0,
+              "postedWithoutJournal": 0
+            },
+            "staleDrafts": [
+              {
+                "id": "01a16530-afc6-7799-8459-bf062905b3fe",
+                "total": "23.0000",
+                "number": null,
+                "created_at": "2026-10-22 19:57:31.973807+00"
+              },
+              {
+                "id": "01a1656d-77ad-736f-b45a-e5ac7259ea6b",
+                "total": "39.8000",
+                "number": null,
+                "created_at": "2026-10-22 21:03:55.308925+00"
+              },
+              {
+                "id": "01a1657e-1034-77df-b023-1bce87f39932",
+                "total": "20.0000",
+                "number": null,
+                "created_at": "2026-10-22 21:22:02.931715+00"
+              },
+              {
+                "id": "01a1657e-1988-733e-915d-cf21a03cb87f",
+                "total": "26.4500",
+                "number": null,
+                "created_at": "2026-10-22 21:22:05.319728+00"
+              },
+              {
+                "id": "01a165d8-ffc9-75df-9ed8-7973a1ab9d85",
+                "total": "172.5000",
+                "number": null,
+                "created_at": "2026-10-22 23:01:22.505338+00"
+              }
+            ],
+            "numberingGaps": [],
+            "totalsMismatch": [
+              {
+                "id": "01a16575-2402-7197-aeb1-3dab81f2cbf7",
+                "kind": "sale",
+                "number": "SI-000006",
+                "status": "posted",
+                "line_total": "23.0000",
+                "repairable": false,
+                "stored_total": "24.0000"
+              }
+            ],
+            "postedWithoutJournal": []
+          },
+          "applied": {},
+          "createdAt": "2026-10-23T00:12:36.238Z",
+          "createdBy": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+          "updatedAt": null,
+          "updatedBy": null,
+          "version": 1
+        }
+      }
+    },
+    {
+      "label": "runs",
+      "method": "GET",
+      "path": "/settings/maintenance-runs",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a1661a-3613-751b-a4f0-c44a8b9d41c7",
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "invoice_maintenance",
+            "mode": "preview",
+            "status": "ready",
+            "cutoffDate": null,
+            "backupId": null,
+            "findings": {
+              "counts": {
+                "staleDrafts": 5,
+                "numberingGaps": 0,
+                "totalsMismatch": 1,
+                "repairableTotals": 0,
+                "postedWithoutJournal": 0
+              },
+              "staleDrafts": [
+                {
+                  "id": "01a16530-afc6-7799-8459-bf062905b3fe",
+                  "total": "23.0000",
+                  "number": null,
+                  "created_at": "2026-10-22 19:57:31.973807+00"
+                },
+                {
+                  "id": "01a1656d-77ad-736f-b45a-e5ac7259ea6b",
+                  "total": "39.8000",
+                  "number": null,
+                  "created_at": "2026-10-22 21:03:55.308925+00"
+                },
+                {
+                  "id": "01a1657e-1034-77df-b023-1bce87f39932",
+                  "total": "20.0000",
+                  "number": null,
+                  "created_at": "2026-10-22 21:22:02.931715+00"
+                },
+                {
+                  "id": "01a1657e-1988-733e-915d-cf21a03cb87f",
+                  "total": "26.4500",
+                  "number": null,
+                  "created_at": "2026-10-22 21:22:05.319728+00"
+                },
+                {
+                  "id": "01a165d8-ffc9-75df-9ed8-7973a1ab9d85",
+                  "total": "172.5000",
+                  "number": null,
+                  "created_at": "2026-10-22 23:01:22.505338+00"
+                }
+              ],
+              "numberingGaps": [],
+              "totalsMismatch": [
+                {
+                  "id": "01a16575-2402-7197-aeb1-3dab81f2cbf7",
+                  "kind": "sale",
+                  "number": "SI-000006",
+                  "status": "posted",
+                  "line_total": "23.0000",
+                  "repairable": false,
+                  "stored_total": "24.0000"
+                }
+              ],
+              "postedWithoutJournal": []
+            },
+            "applied": {},
+            "createdAt": "2026-10-23T00:12:36.238Z",
+            "createdBy": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+            "updatedAt": null,
+            "updatedBy": null,
+            "version": 1
+          },
+          {
+            "id": "01a16619-4cbb-75cc-8990-4c428f2093f2",
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "kind": "invoice_maintenance",
+            "mode": "preview",
+            "status": "ready",
+            "cutoffDate": null,
+            "backupId": null,
+            "findings": {
+              "counts": {
+                "staleDrafts": 0,
+                "numberingGaps": 0,
+                "totalsMismatch": 1,
+                "repairableTotals": 0,
+                "postedWithoutJournal": 0
+              },
+              "staleDrafts": [],
+              "numberingGaps": [],
+              "totalsMismatch": [
+                {
+                  "id": "01a16575-2402-7197-aeb1-3dab81f2cbf7",
+                  "kind": "sale",
+                  "number": "SI-000006",
+                  "status": "posted",
+                  "line_total": "23.0000",
+                  "repairable": false,
+                  "stored_total": "24.0000"
+                }
+              ],
+              "postedWithoutJournal": []
+            },
+            "applied": {},
+            "createdAt": "2026-10-23T00:11:36.502Z",
+            "createdBy": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+            "updatedAt": null,
+            "updatedBy": null,
+            "version": 1
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -2118,6 +2118,13 @@ export class AccountingService {
       await this.assertModuleUnlocked(tx, tenantId, input.fiscalPeriodId, 'accounting');
     }
 
+    // ACC-135 / R28: التحقق من وجود مراكز التكلفة المحددة على أسطر القيد وأنها تنتمي للمستأجر
+    await this.assertCostCentersInTx(
+      tx,
+      tenantId,
+      input.lines.map((l) => l.costCenterId),
+    );
+
     // ACC-023: حظر القيود اليدوية المباشرة على حسابات رقابة الخزينة (الصندوق والبنك المرتبطة بمواقع نقدية)
     if (!input.sourceType || input.sourceType === 'manual') {
       const lineAccountIds = input.lines.map((line) => line.accountId);

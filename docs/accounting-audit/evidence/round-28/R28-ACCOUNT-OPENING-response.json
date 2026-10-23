@@ -1,0 +1,47 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/accounts",
+  "request": {
+    "code": "1160002",
+    "nameAr": "R28 أثاث اختبار",
+    "nameEn": "R28 test furniture",
+    "type": "asset",
+    "parentId": "01a16504-13b1-71b8-89e5-3ebc41b25177",
+    "isPostable": true,
+    "openedAt": "2026-08-01",
+    "openingBalance": "1000",
+    "costCenterId": null
+  },
+  "body": {
+    "data": {
+      "id": "01a165ff-cc89-701f-9000-cc04e34e77b5",
+      "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+      "code": "1160002",
+      "nameAr": "R28 أثاث اختبار",
+      "nameEn": "R28 test furniture",
+      "parentId": "01a16504-13b1-71b8-89e5-3ebc41b25177",
+      "level": 3,
+      "path": "01a16504-139d-777b-9366-d32d0ef9ff83.01a16504-13a1-71ad-b389-5a9dff643992.01a16504-13b1-71b8-89e5-3ebc41b25177.01a165ff-cc89-701f-9000-cc04e34e77b5",
+      "type": "asset",
+      "subtype": null,
+      "normalBalance": "debit",
+      "isPostable": true,
+      "allowManual": true,
+      "branchId": null,
+      "currencyCode": null,
+      "openedAt": "2026-08-01",
+      "openingBalance": "1000.0000",
+      "costCenterId": null,
+      "createdAt": "2026-10-22T23:43:45.290Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "deletedAt": null,
+      "deletedBy": null,
+      "legacySource": null,
+      "legacyId": null
+    }
+  }
+}

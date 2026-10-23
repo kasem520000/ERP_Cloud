@@ -199,8 +199,8 @@ function TailoringInvoices() {
     setDraft((current) => (current ? { ...current, ...patch } : current));
 
   const totalOf = (current: Draft | null) => Number(current?.unitPrice || 0) * Number(current?.quantity || 1);
-  // الصافي (مع الضريبة) — `CreateInvoice` L419 `txtTotVAT = الإجمالي × 0.05`.
-  const withTaxOf = (gross: number) => gross + gross * 0.05;
+  // الصافي (مع الضريبة) — احتساب ضريبة القيمة المضافة 15%
+  const withTaxOf = (gross: number) => gross + gross * 0.15;
 
   async function save() {
     if (!draft) return;

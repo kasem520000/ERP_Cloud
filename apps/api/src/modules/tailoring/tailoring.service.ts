@@ -2,6 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, count, desc, eq, gte, ilike, isNull, lte, or, sql, type SQL } from 'drizzle-orm';
 import { DomainError, newId } from '@erp/contracts';
 import {
+  branches,
+  cashLocations,
   customerMeasurements,
   parties,
   tailoringGarmentTypes,
@@ -1773,8 +1775,34 @@ export class TailoringService {
 
     let voucherId: string | null = null;
     if (input.cashLocationId) {
+      let branchId = input.branchId;
+      if (!branchId) {
+        const [safe] = await withTenantTx(this.database.db, tenantId, (tx) =>
+          tx
+            .select({ branchId: cashLocations.branchId })
+            .from(cashLocations)
+            .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.id, input.cashLocationId!)))
+            .limit(1),
+        );
+        branchId = safe?.branchId ?? undefined;
+      }
+      if (!branchId) {
+        const [firstBranch] = await withTenantTx(this.database.db, tenantId, (tx) =>
+          tx
+            .select({ id: branches.id })
+            .from(branches)
+            .where(and(eq(branches.tenantId, tenantId), isNull(branches.deletedAt)))
+            .limit(1),
+        );
+        branchId = firstBranch?.id ?? undefined;
+      }
+
+      if (!branchId) {
+        throw new DomainError('BRANCH_REQUIRED', 'Branch is required to create a voucher', 422);
+      }
+
       const voucher = await this.treasury.createVoucher(tenantId, {
-        branchId: input.branchId ?? '',
+        branchId,
         kind: 'receipt',
         subtype: 'customer',
         date: paidAt,
@@ -2038,4 +2066,4 @@ export type PaymentInput = {
 };
 
 const INVOICE_SEQUENCE = { prefix: 'TI-', padding: 6 } as const;
-const TAX_RATE = 0.05;
+const TAX_RATE = 0.15;

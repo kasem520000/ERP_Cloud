@@ -120,14 +120,15 @@ export class MaintenanceService {
     const staleDays = input.staleDraftDays ?? 30;
 
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      // 1. Stored header totals that disagree with the sum of their own lines.
+      // 1. Stored header totals that disagree with the sum of their own lines (+ extraTax / withholding).
       const mismatched = (await tx.execute(sql`
         SELECT si.id, si.number, si.status, si.kind, si.total::text AS stored_total,
-               coalesce(sum(line.total), 0)::text AS line_total
+               (coalesce(sum(line.total), 0) - coalesce(si.withholding, 0))::text AS line_total
         FROM sales_invoices si
         LEFT JOIN sales_invoice_lines line ON line.invoice_id = si.id
-        GROUP BY si.id, si.number, si.status, si.kind, si.total
-        HAVING abs(si.total - coalesce(sum(line.total), 0)) > 0.005
+        GROUP BY si.id, si.number, si.status, si.kind, si.total, si.extra_tax, si.withholding
+        HAVING abs(si.total - (coalesce(sum(line.total), 0) - coalesce(si.withholding, 0))) > 0.005
+           AND abs(si.total - (coalesce(sum(line.total), 0) + coalesce(si.extra_tax, 0) - coalesce(si.withholding, 0))) > 0.005
         ORDER BY si.created_at DESC
         LIMIT 200
       `)).rows as Array<{ id: string; number: string | null; status: string; kind: string; stored_total: string; line_total: string }>;

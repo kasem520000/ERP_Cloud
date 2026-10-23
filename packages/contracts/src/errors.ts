@@ -249,6 +249,9 @@ export const errorCodes = {
   // المنصّة (`POST /platform/tenants/:id/owner/transfer`). 422 لا 403: مدير العضويّات
   // يملك فعل إدارة العضويّات، والمرفوض هو **الدور** المطلوب.
   OWNER_ROLE_NOT_ASSIGNABLE: 'OWNER_ROLE_NOT_ASSIGNABLE',
+  SALES_OFFER_CODE_TAKEN: 'SALES_OFFER_CODE_TAKEN',
+  SALES_OFFER_DISCOUNT_INVALID: 'SALES_OFFER_DISCOUNT_INVALID',
+  SALES_OFFER_TARGET_INVALID: 'SALES_OFFER_TARGET_INVALID',
 } as const;
 
 export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes];
@@ -371,6 +374,9 @@ export const errorStatus: Record<ErrorCode, number> = {
   VOUCHER_VOID_REASON_REQUIRED: 422,
   SYSTEM_ROLE_PERMISSIONS_IMMUTABLE: 422,
   OWNER_ROLE_NOT_ASSIGNABLE: 422,
+  SALES_OFFER_CODE_TAKEN: 409,
+  SALES_OFFER_DISCOUNT_INVALID: 422,
+  SALES_OFFER_TARGET_INVALID: 422,
 };
 
 /** RFC 9457 `title` member for each stable code. */
@@ -487,6 +493,9 @@ export const errorTitle: Record<ErrorCode, string> = {
   VOUCHER_VOID_REASON_REQUIRED: 'Void reason is required',
   SYSTEM_ROLE_PERMISSIONS_IMMUTABLE: 'System role permissions cannot be changed',
   OWNER_ROLE_NOT_ASSIGNABLE: 'The owner role cannot be assigned here',
+  SALES_OFFER_CODE_TAKEN: 'An offer with this code already exists',
+  SALES_OFFER_DISCOUNT_INVALID: 'Offer discount value is invalid',
+  SALES_OFFER_TARGET_INVALID: 'Offer target value is invalid',
 };
 
 export function statusForCode(code: string): number {

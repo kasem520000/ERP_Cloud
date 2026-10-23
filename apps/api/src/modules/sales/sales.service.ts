@@ -2394,6 +2394,9 @@ export class SalesService {
     offerId: string,
     input: { itemId: string; quantity: string; value: string },
   ) {
+    if (money(input.quantity).lte(0) || money(input.value).lte(0)) {
+      return { eligible: false, discount: '0', reason: 'TARGET_NOT_MET' };
+    }
     const [offer] = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
         .select()
@@ -2408,10 +2411,11 @@ export class SalesService {
     const eligible =
       offer.targetType === 'value' ? money(input.value).gte(target) : money(input.quantity).gte(target);
     if (!eligible) return { eligible: false, discount: '0', reason: 'TARGET_NOT_MET' };
-    const discount =
+    let discount =
       offer.discountType === 'percent'
         ? money(input.value).mul(offer.discountValue).div(100)
         : Decimal.min(money(offer.discountValue), money(input.value));
+    discount = Decimal.max(0, Decimal.min(discount, money(input.value)));
     return { eligible: true, discount: discount.toFixed(4), offerId };
   }
 
@@ -2765,20 +2769,50 @@ export class SalesService {
       throw new DomainError('SALES_OFFER_INVALID_PERIOD', 'Offer validity dates are invalid', 422);
     if (validTo < validFrom)
       throw new DomainError('SALES_OFFER_INVALID_PERIOD', 'Offer end date precedes its start date', 422);
-    const [offer] = await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx
-        .insert(offers)
-        .values({
-          ...input,
-          validFrom,
-          validTo,
-          id: newId(),
-          tenantId,
-          createdBy: tryGetAuthContext()?.userId,
-        })
-        .returning(),
-    );
-    return offer;
+
+    const discountVal = money(input.discountValue ?? '0');
+    if (discountVal.lte(0)) {
+      throw new DomainError('SALES_OFFER_DISCOUNT_INVALID', 'Discount value must be greater than zero', 422, {
+        field: 'discountValue',
+      });
+    }
+    if (input.discountType === 'percent' && discountVal.gt(100)) {
+      throw new DomainError('SALES_OFFER_DISCOUNT_INVALID', 'Percentage discount cannot exceed 100%', 422, {
+        field: 'discountValue',
+      });
+    }
+    const targetVal = money(input.targetValue ?? '0');
+    if (targetVal.lte(0)) {
+      throw new DomainError('SALES_OFFER_TARGET_INVALID', 'Target value must be greater than zero', 422, {
+        field: 'targetValue',
+      });
+    }
+
+    try {
+      const [offer] = await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .insert(offers)
+          .values({
+            ...input,
+            discountValue: discountVal.toFixed(4),
+            targetValue: targetVal.toFixed(4),
+            validFrom,
+            validTo,
+            id: newId(),
+            tenantId,
+            createdBy: tryGetAuthContext()?.userId,
+          })
+          .returning(),
+      );
+      return offer;
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        throw new DomainError('SALES_OFFER_CODE_TAKEN', 'An offer with this code already exists', 409, {
+          field: 'code',
+        });
+      }
+      throw err;
+    }
   }
   /**
    * 👤 عميل نقدي — `Form_WPF/frmCashCustomer.xaml.cs` (`SearchCustomers`).

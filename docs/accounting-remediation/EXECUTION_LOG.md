@@ -345,13 +345,38 @@ pnpm --filter "@erp/contracts" build && pnpm --filter "@erp/database" build && p
 
 ---
 
-## نتيجة التحقق الشاملة النهائية لجميع مراحل المعالجة (Phases 1..15):
+## المرحلة السادسة عشرة (Phase 16) — 2026-10-23
+### معالجة عيوب الجولة 28 الشاملة (ACC-135, ACC-136, ACC-137, ACC-138, ACC-139, UI-047)
+- **الأهداف المنفذة**:
+  - `packages/contracts/src/errors.ts` & `errors-ar.ts`:
+    - إضافة رموز الأخطاء `SALES_OFFER_CODE_TAKEN` (409) مع تعريب "رمز العرض مستخدم بالفعل لمستأجر آخر أو لهذا المستأجر".
+    - إضافة `SALES_OFFER_DISCOUNT_INVALID` (422) مع تعريب "قيمة أو نسبة الخصم غير صالحة".
+    - إضافة `SALES_OFFER_TARGET_INVALID` (422) مع تعريب "الهدف المطلوب للعرض غير صالح".
+  - `apps/api/src/modules/sales/sales.service.ts`:
+    - `ACC-135`: فرض حرس على إنشاء وتعديل العروض الترويجية: `discountValue > 0`، ونسبة الخصم `<= 100%`، و `targetValue > 0`.
+    - التقاط خرق القيد الفريد `offers_tenant_code_key` وتحويله من 500 إلى 409 `SALES_OFFER_CODE_TAKEN`.
+    - منع احتساب خصم بقيم سالبة عند تمرير كميات أو مبالغ تقييم غير موجبة في `evaluateOffer`.
+  - `apps/api/src/modules/accounting/accounting.service.ts`:
+    - `ACC-136`: تفعيل التحقق الصارم من مراكز التكلفة `assertCostCentersInTx` عند ترحيل القيود اليومية اليدوية `postJournalInTx`، ومنع تمرير مراكز تكلفة وهمية أو محذوفة برمز 404 `COST_CENTER_NOT_FOUND`.
+  - `apps/api/src/modules/operations/maintenance.service.ts`:
+    - `ACC-137`: تحديث استعلام فحص صيانة الفواتير `invoiceMaintenance` للتعامل بدقة مع الضريبة الانتقائية (`extra_tax`) والاستقطاع الضريبي (`withholding`)، ومراعاة حالتي تضمين الانتقائية داخل أسطر الفاتورة (النظام المحدث) أو في رأس الفاتورة (الفواتير التاريخية)، مما ألغى الإنذارات الكاذبة لفروقات المجاميع `totalsMismatch`.
+  - `apps/api/src/modules/tailoring/tailoring.service.ts` & `apps/staff/app/tailoring/invoices/page.tsx`:
+    - `ACC-138`: تحديث معدل ضريبة التفصيل من 5% القديمة إلى 15% القياسية نظاماً (`TAX_RATE = 0.15`).
+    - `UI-047`: استنتاج معرّف الفرع تلقائياً من موقع النقد المختار `cashLocations.branchId` أو فرع المنشأة الافتراضي عند إضافة دفعة لفاتورة تفصيل `addPayment`، وتمريره لسند القبض الخزني بدلاً من الفشل برمز 400 `INVALID_ID`.
+  - `apps/api/src/modules/reporting/report-catalog.ts`:
+    - `ACC-139`: إعادة صياغة استعلام الميزانية العمومية `balance-sheet` باستخدام `LEFT JOIN` مع قيود الفترة، وتضمين الأرصدة الافتتاحية للحسابات `opening_balance` حتى في حال عدم وجود حركات خلال الفترة، مع إضافة سطر توازن للأرصدة الافتتاحية في جانب حقوق الملكية (`أرصدة افتتاحية`) لضمان انطباق معادلة الميزانية `الأصول = الخصوم + حقوق الملكية` بدقة متناهية.
+- **الاختبارات**:
+  - إنشاء جناح اختبارات شامل `apps/api/test/remediation-phase16.spec.ts` (5 اختبارات) يغطي كافة عيوب المرحلة 16 بنجاح 100%.
+
+---
+
+## نتيجة التحقق الشاملة النهائية لجميع مراحل المعالجة (Phases 1..16):
 ```bash
-vitest run test/remediation-phase1.spec.ts test/remediation-phase2.spec.ts test/remediation-phase3.spec.ts test/remediation-phase4.spec.ts test/remediation-phase5.spec.ts test/remediation-phase6.spec.ts test/remediation-phase7.spec.ts test/remediation-phase8.spec.ts test/remediation-phase9.spec.ts test/remediation-phase10.spec.ts test/remediation-phase11.spec.ts test/remediation-phase12.spec.ts test/remediation-phase13.spec.ts test/remediation-phase14.spec.ts test/remediation-phase15.spec.ts
+vitest run test/remediation-phase1.spec.ts test/remediation-phase2.spec.ts test/remediation-phase3.spec.ts test/remediation-phase4.spec.ts test/remediation-phase5.spec.ts test/remediation-phase6.spec.ts test/remediation-phase7.spec.ts test/remediation-phase8.spec.ts test/remediation-phase9.spec.ts test/remediation-phase10.spec.ts test/remediation-phase11.spec.ts test/remediation-phase12.spec.ts test/remediation-phase13.spec.ts test/remediation-phase14.spec.ts test/remediation-phase15.spec.ts test/remediation-phase16.spec.ts
 ```
-- **Test Files**: 15 passed (15)
-- **Tests**: 99 passed (99)
-- **Duration**: ~64s
+- **Test Files**: 16 passed (16)
+- **Tests**: 104 passed (104)
+- **Duration**: ~70s
 - **Zero Failures**.
 
 - **Contracts Tests**:

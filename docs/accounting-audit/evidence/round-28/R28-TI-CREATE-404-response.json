@@ -1,0 +1,24 @@
+{
+  "status": 404,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/tailoring/invoices",
+  "request": {
+    "partyId": "01a16504-1399-742e-af16-f564b9117199",
+    "customerName": "عميل عام",
+    "phone": "0500000028",
+    "invoiceDate": "2026-10-23",
+    "quantity": "1",
+    "unitPrice": "200",
+    "garmentTypeId": null,
+    "measurements": {},
+    "notes": "R28 فاتورة تفصيل اختبار معزول"
+  },
+  "body": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 404,
+    "code": "TAILORING_STATUS_NOT_FOUND",
+    "detail": "لا توجد حالات للطلبات",
+    "traceId": "01a1661e-f7f9-76f3-bc89-c2ae8669845e"
+  }
+}

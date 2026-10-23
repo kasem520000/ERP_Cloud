@@ -146,6 +146,9 @@ const MESSAGES: Record<string, string> = {
   USER_NOT_FOUND: 'المستخدم غير موجود.',
   ROLE_NOT_FOUND: 'الدور غير موجود.',
   TEMPLATE_NOT_FOUND: 'القالب غير موجود.',
+  SALES_OFFER_CODE_TAKEN: 'رمز العرض الترويجي مسجّل مسبقاً.',
+  SALES_OFFER_DISCOUNT_INVALID: 'قيمة أو نسبة الخصم غير صحيحة.',
+  SALES_OFFER_TARGET_INVALID: 'الحد الأدنى المستهدف للعرض غير صحيح.',
 };
 
 /** الترجمة العربية لرمز خطأ؛ و`undefined` حين لا يوجد نصٌّ خاص (تسقط الشاشة إلى حالة HTTP). */
