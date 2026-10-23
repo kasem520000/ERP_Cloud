@@ -1,0 +1,32 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/cost-centers",
+  "request": {
+    "code": "CC-R28-A",
+    "nameAr": "مركز R28-A اختبار معزول",
+    "nameEn": "R28 cost centre A",
+    "parentId": null,
+    "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa"
+  },
+  "body": {
+    "data": {
+      "id": "01a16603-4b5c-72e7-a348-a13aa9fe9ba6",
+      "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+      "code": "CC-R28-A",
+      "nameAr": "مركز R28-A اختبار معزول",
+      "nameEn": "R28 cost centre A",
+      "parentId": null,
+      "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+      "createdAt": "2026-10-22T23:47:34.365Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "deletedAt": null,
+      "deletedBy": null,
+      "legacySource": null,
+      "legacyId": null
+    }
+  }
+}
