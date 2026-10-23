@@ -160,6 +160,46 @@ describe('R33 — journal-screen reversal guard (ACC-186) and payment cap after 
     expect(Number(data(inv.body).paidTotal)).toBe(23);
   });
 
+  it('ACC-192 — the receivables aging ties to the control account: returns and on-account receipts are not invisible', async () => {
+    const fresh = await req('post', '/parties', { kind: 'customer', name: `عميل أعمار R33 ${Date.now()}`, code: `AGE-${Date.now()}` });
+    expect(fresh.status, JSON.stringify(fresh.body)).toBe(201);
+    const partyId = String(data(fresh.body).id);
+    const name = String(data(fresh.body).name);
+    const sale = async (quantity: string, unitPrice: string) => {
+      const inv = await req('post', '/sales/invoices', { branchId, warehouseId, partyId, kind: 'sale', priceIncludesVat: false, lines: [{ itemId, quantity, unitPrice, taxRate: '15' }] });
+      expect(inv.status, JSON.stringify(inv.body)).toBe(201);
+      const id = String(data(inv.body).id);
+      expect((await req('post', `/sales/invoices/${id}/post`, {})).status).toBe(201);
+      return id;
+    };
+    const a = await sale('2', '20'); // 46.00
+    const b = await sale('1', '100'); // 115.00
+    // a posted return of 23 against invoice A → the ledger carries 138.00 for this customer
+    const ret = await req('post', `/sales/invoices/${a}/return`, { branchId, warehouseId, partyId, lines: [{ itemId, quantity: '1', unitPrice: '20', taxRate: '15' }] });
+    expect(ret.status, JSON.stringify(ret.body)).toBe(201);
+    expect((await req('post', `/sales/invoices/${String(data(ret.body).id)}/post`, {})).status).toBe(201);
+    void b;
+
+    const aging = await req('get', '/reports/ar-aging');
+    expect(aging.status, JSON.stringify(aging.body).slice(0, 300)).toBe(200);
+    const row = rows(aging.body).find((r) => String(r.party) === name) as Record<string, string> | undefined;
+    expect(row, JSON.stringify(rows(aging.body).map((r) => r.party))).toBeDefined();
+    // open invoices after the referenced return: A 46 − 23 = 23, B 115 → 138 in the 0-30 bucket; nothing unapplied
+    expect(Number(row?.bucket_0_30).toFixed(2)).toBe('138.00');
+    expect(Number(row?.unapplied).toFixed(2)).toBe('0.00');
+    expect(Number(row?.due).toFixed(2)).toBe('138.00');
+
+    // an on-account receipt of 50 (no allocation) reduces the ledger, not any invoice → shown as unapplied, due ties to the ledger
+    const voucher = await req('post', '/vouchers', { kind: 'receipt', subtype: 'customer', partyId, branchId, cashLocationId, method: 'cash', amount: '50.00', date: new Date().toISOString().slice(0, 10), description: 'R33 ACC-192 دفعة تحت الحساب' });
+    expect(voucher.status, JSON.stringify(voucher.body)).toBe(201);
+    const postedVoucher = await req('post', `/vouchers/${String(data(voucher.body).id)}/post`, {});
+    expect(postedVoucher.status, JSON.stringify(postedVoucher.body)).toBe(201);
+    const after = rows((await req('get', '/reports/ar-aging')).body).find((r) => String(r.party) === name) as Record<string, string> | undefined;
+    expect(Number(after?.bucket_0_30).toFixed(2)).toBe('138.00');
+    expect(Number(after?.unapplied).toFixed(2)).toBe('-50.00');
+    expect(Number(after?.due).toFixed(2)).toBe('88.00');
+  });
+
   it('ACC-186 — a sales-invoice entry cannot be reversed from the journal screen; the invoice is untouched', async () => {
     const invoiceId = await postedSale('1', '20'); // 23.00
     const [entry] = await entriesOf(invoiceId);

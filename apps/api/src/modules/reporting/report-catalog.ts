@@ -698,6 +698,86 @@ const zatcaSyncScope = (status?: string): SQL =>
 
 // Party display name, tolerant of the cash-customer case where no party row exists.
 const partyName = sql`coalesce(party.name, '—')`;
+
+/**
+ * ACC-192 (R33) — one aging for both sides. Open documents (posted, kind sale/purchase,
+ * total > paid_total, dated on or before «إلى») are bucketed by the age of their journal date;
+ * the party's ledger balance is Σ(debit − credit) of the posted lines that carry the party on the
+ * receivable (payable) control account of the posting profiles or on his own sub-account — the
+ * control-account leg is the only one tagged with the party since ACC-142 — and «unapplied» is
+ * the difference.
+ */
+const agingSql = (tenantId: string, f: ReportFilters, side: 'customer' | 'supplier'): SQL => {
+  const asOf = f.to ? sql`${f.to}::date` : sql`current_date`;
+  const doc = side === 'customer' ? sql.raw('sales_invoices') : sql.raw('purchase_invoices');
+  const docKind = side === 'customer' ? 'sale' : 'purchase';
+  const sourceType = side === 'customer' ? 'sales_invoice' : 'purchase_invoice';
+  // the control account(s): the posting profiles' receivable / payable account plus the party's own
+  // sub-account when the chart gave him one — retention and other receivable classes stay out.
+  const profileKey = side === 'customer' ? 'receivableAccountId' : 'payableAccountId';
+  const ownAccount = side === 'customer' ? sql`p.receivable_account_id` : sql`p.payable_account_id`;
+  // a supplier balance is a credit; show it positive like the invoices
+  const sign = side === 'customer' ? sql`jel.debit - jel.credit` : sql`jel.credit - jel.debit`;
+  const age = sql`${asOf} - coalesce(je.date::date, d.posted_at::date, d.created_at::date)`;
+  // the system's own «due» (ACC-082/187): total − posted returns and credit/debit notes that
+  // reference the document − what was paid on it; never below zero
+  const returnKinds = side === 'customer' ? sql`('sale_return', 'credit_note')` : sql`('purchase_return', 'debit_note')`;
+  const open = sql`greatest(d.total - d.paid_total - coalesce(r.returned, 0), 0)`;
+  return sql`
+      WITH open_docs AS (
+        SELECT d.party_id,
+               sum(CASE WHEN ${age} <= 30 THEN ${open} ELSE 0 END) AS bucket_0_30,
+               sum(CASE WHEN ${age} > 30 AND ${age} <= 60 THEN ${open} ELSE 0 END) AS bucket_31_60,
+               sum(CASE WHEN ${age} > 60 AND ${age} <= 90 THEN ${open} ELSE 0 END) AS bucket_61_90,
+               sum(CASE WHEN ${age} > 90 THEN ${open} ELSE 0 END) AS bucket_90_plus,
+               sum(${open}) AS due_docs
+          FROM ${doc} d
+          LEFT JOIN (
+            SELECT source_id, max(date) AS date
+              FROM journal_entries
+             WHERE tenant_id = ${tenantId} AND source_type = ${sourceType} AND status = 'posted'
+             GROUP BY source_id
+          ) je ON je.source_id = d.id
+          LEFT JOIN (
+            SELECT rd.reference_invoice_id AS invoice_id, sum(rd.total) AS returned
+              FROM ${doc} rd
+             WHERE rd.tenant_id = ${tenantId} AND rd.status = 'posted' AND rd.kind IN ${returnKinds}
+               AND rd.reference_invoice_id IS NOT NULL
+             GROUP BY rd.reference_invoice_id
+          ) r ON r.invoice_id = d.id
+         WHERE d.tenant_id = ${tenantId} AND d.kind = ${docKind} AND d.status = 'posted'
+           AND ${open} > 0 AND ${eqIf(sql`d.branch_id`, f.branchId)}
+           AND coalesce(je.date::date, d.posted_at::date, d.created_at::date) <= ${asOf}
+         GROUP BY d.party_id
+      ), control AS (
+        SELECT DISTINCT (bpp.mapping->>${profileKey})::uuid AS account_id
+          FROM branch_posting_profiles bpp
+         WHERE bpp.tenant_id = ${tenantId} AND bpp.mapping ? ${profileKey}
+           AND (bpp.mapping->>${profileKey}) ~ '^[0-9a-fA-F-]{36}$'
+      ), ledger AS (
+        SELECT jel.party_id, sum(${sign}) AS balance
+          FROM journal_entry_lines jel
+          JOIN journal_entries je ON je.id = jel.entry_id AND je.status = 'posted'
+          JOIN parties p ON p.id = jel.party_id
+         WHERE jel.tenant_id = ${tenantId}
+           AND (jel.account_id IN (SELECT account_id FROM control) OR jel.account_id = ${ownAccount})
+           AND je.date <= ${asOf} AND ${eqIf(sql`je.branch_id`, f.branchId)}
+         GROUP BY jel.party_id
+      )
+      SELECT ${partyName} AS party,
+             round(coalesce(o.bucket_0_30, 0), 2)::text AS bucket_0_30,
+             round(coalesce(o.bucket_31_60, 0), 2)::text AS bucket_31_60,
+             round(coalesce(o.bucket_61_90, 0), 2)::text AS bucket_61_90,
+             round(coalesce(o.bucket_90_plus, 0), 2)::text AS bucket_90_plus,
+             round(coalesce(l.balance, 0) - coalesce(o.due_docs, 0), 2)::text AS unapplied,
+             round(coalesce(l.balance, 0), 2)::text AS due
+        FROM parties party
+        LEFT JOIN open_docs o ON o.party_id = party.id
+        LEFT JOIN ledger l ON l.party_id = party.id
+       WHERE party.tenant_id = ${tenantId}
+         AND (coalesce(o.due_docs, 0) <> 0 OR abs(coalesce(l.balance, 0)) >= 0.005)
+       ORDER BY coalesce(l.balance, 0) DESC, party.name`;
+};
 const branchName = sql`coalesce(branch.name_ar, '—')`;
 const itemName = sql`coalesce(item.name_ar, '—')`;
 
@@ -3161,68 +3241,37 @@ const definitions: ReportDefinition[] = [
       WHERE pan.tenant_id = ${tenantId} AND pan.status = 'posted' AND pan.kind = 'debit'
         AND ${onDate(sql`coalesce(pan.posted_at::date, pan.created_at::date)`, f.from, f.to)} AND ${eqIf(sql`pan.branch_id`, f.branchId)}`,
   },
+  /**
+   * ACC-192 (R33): an aging report must tie to the control account. The old query summed
+   * «total − paid_total» over posted invoices only, so a posted return (credit note) or an
+   * on-account receipt that the ledger had already netted against the customer stayed invisible:
+   * the audit tenant showed 703.10 receivable against 513.35 on 12310001 (returns of 17.25 and
+   * 172.50). Open invoices are still aged by document date; the difference between the party's
+   * ledger balance and his open invoices is shown as «أرصدة دائنة غير مطبّقة» (returns, credit
+   * notes, on-account receipts — a negative figure) and «الإجمالي» is the ledger balance itself,
+   * so Σ الإجمالي = the control account as of the date. A party with a credit balance and no
+   * open invoice appears as well. `from` no longer hides older open invoices — an aging is a
+   * snapshot «as of», and old debt is exactly what the 90+ bucket is for.
+   */
   {
     key: 'ar-aging',
     titleAr: 'أعمار ديون العملاء',
     group: 'accounting',
-    hintAr: 'المتبقي على كل فاتورة مبيعات مرحّلة موزّعاً على شرائح العمر.',
+    hintAr: 'المتبقي على كل فاتورة مبيعات مرحّلة موزّعاً على شرائح العمر، والمردودات/الدفعات غير المطبّقة في عمود مستقل؛ الإجمالي = رصيد العميل في الأستاذ حتى التاريخ.',
     params: [BRANCH, PERIOD[0]!, PERIOD[1]!],
-    columns: [text('party', 'العميل'), money('bucket_0_30', '0-30 يوم'), money('bucket_31_60', '31-60'), money('bucket_61_90', '61-90'), money('bucket_90_plus', 'أكثر من 90'), money('due', 'الإجمالي')],
-    totals: ['bucket_0_30', 'bucket_31_60', 'bucket_61_90', 'bucket_90_plus', 'due'],
-    build: (tenantId, f) => {
-      const asOf = f.to ? sql`${f.to}::date` : sql`current_date`;
-      return sql`
-      SELECT ${partyName} AS party,
-             sum(CASE WHEN ${asOf} - coalesce(je.date::date, si.posted_at::date, si.created_at::date) <= 30 THEN si.total - si.paid_total ELSE 0 END)::text AS bucket_0_30,
-             sum(CASE WHEN ${asOf} - coalesce(je.date::date, si.posted_at::date, si.created_at::date) > 30 AND ${asOf} - coalesce(je.date::date, si.posted_at::date, si.created_at::date) <= 60 THEN si.total - si.paid_total ELSE 0 END)::text AS bucket_31_60,
-             sum(CASE WHEN ${asOf} - coalesce(je.date::date, si.posted_at::date, si.created_at::date) > 60 AND ${asOf} - coalesce(je.date::date, si.posted_at::date, si.created_at::date) <= 90 THEN si.total - si.paid_total ELSE 0 END)::text AS bucket_61_90,
-             sum(CASE WHEN ${asOf} - coalesce(je.date::date, si.posted_at::date, si.created_at::date) > 90 THEN si.total - si.paid_total ELSE 0 END)::text AS bucket_90_plus,
-             sum(si.total - si.paid_total)::text AS due
-      FROM sales_invoices si
-      LEFT JOIN parties party ON party.id = si.party_id
-      LEFT JOIN (
-        SELECT source_id, max(date) AS date
-        FROM journal_entries
-        WHERE tenant_id = ${tenantId} AND source_type = 'sales_invoice' AND status = 'posted'
-        GROUP BY source_id
-      ) je ON je.source_id = si.id
-      WHERE si.tenant_id = ${tenantId} AND si.kind = 'sale' AND si.status = 'posted'
-        AND si.total > si.paid_total AND ${eqIf(sql`si.branch_id`, f.branchId)}
-        ${f.to ? sql`AND coalesce(je.date::date, si.posted_at::date, si.created_at::date) <= ${f.to}::date` : sql``}
-        ${f.from ? sql`AND coalesce(je.date::date, si.posted_at::date, si.created_at::date) >= ${f.from}::date` : sql``}
-      GROUP BY party.name ORDER BY sum(si.total - si.paid_total) DESC`;
-    },
+    columns: [text('party', 'العميل'), money('bucket_0_30', '0-30 يوم'), money('bucket_31_60', '31-60'), money('bucket_61_90', '61-90'), money('bucket_90_plus', 'أكثر من 90'), money('unapplied', 'أرصدة دائنة غير مطبّقة'), money('due', 'الإجمالي')],
+    totals: ['bucket_0_30', 'bucket_31_60', 'bucket_61_90', 'bucket_90_plus', 'unapplied', 'due'],
+    build: (tenantId, f) => agingSql(tenantId, f, 'customer'),
   },
   {
     key: 'ap-aging',
     titleAr: 'أعمار ديون الموردين',
     group: 'accounting',
+    hintAr: 'المتبقي على كل فاتورة مشتريات مرحّلة موزّعاً على شرائح العمر، ومردودات المشتريات/الدفعات غير المطبّقة في عمود مستقل؛ الإجمالي = رصيد المورد في الأستاذ حتى التاريخ.',
     params: [BRANCH, PERIOD[0]!, PERIOD[1]!],
-    columns: [text('party', 'المورد'), money('bucket_0_30', '0-30 يوم'), money('bucket_31_60', '31-60'), money('bucket_61_90', '61-90'), money('bucket_90_plus', 'أكثر من 90'), money('due', 'الإجمالي')],
-    totals: ['bucket_0_30', 'bucket_31_60', 'bucket_61_90', 'bucket_90_plus', 'due'],
-    build: (tenantId, f) => {
-      const asOf = f.to ? sql`${f.to}::date` : sql`current_date`;
-      return sql`
-      SELECT ${partyName} AS party,
-             sum(CASE WHEN ${asOf} - coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) <= 30 THEN pi.total - pi.paid_total ELSE 0 END)::text AS bucket_0_30,
-             sum(CASE WHEN ${asOf} - coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) > 30 AND ${asOf} - coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) <= 60 THEN pi.total - pi.paid_total ELSE 0 END)::text AS bucket_31_60,
-             sum(CASE WHEN ${asOf} - coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) > 60 AND ${asOf} - coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) <= 90 THEN pi.total - pi.paid_total ELSE 0 END)::text AS bucket_61_90,
-             sum(CASE WHEN ${asOf} - coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) > 90 THEN pi.total - pi.paid_total ELSE 0 END)::text AS bucket_90_plus,
-             sum(pi.total - pi.paid_total)::text AS due
-      FROM purchase_invoices pi
-      LEFT JOIN parties party ON party.id = pi.party_id
-      LEFT JOIN (
-        SELECT source_id, max(date) AS date
-        FROM journal_entries
-        WHERE tenant_id = ${tenantId} AND source_type = 'purchase_invoice' AND status = 'posted'
-        GROUP BY source_id
-      ) je ON je.source_id = pi.id
-      WHERE pi.tenant_id = ${tenantId} AND pi.kind = 'purchase' AND pi.status = 'posted'
-        AND pi.total > pi.paid_total AND ${eqIf(sql`pi.branch_id`, f.branchId)}
-        ${f.to ? sql`AND coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) <= ${f.to}::date` : sql``}
-        ${f.from ? sql`AND coalesce(je.date::date, pi.posted_at::date, pi.created_at::date) >= ${f.from}::date` : sql``}
-      GROUP BY party.name ORDER BY sum(pi.total - pi.paid_total) DESC`;
-    },
+    columns: [text('party', 'المورد'), money('bucket_0_30', '0-30 يوم'), money('bucket_31_60', '31-60'), money('bucket_61_90', '61-90'), money('bucket_90_plus', 'أكثر من 90'), money('unapplied', 'أرصدة مدينة غير مطبّقة'), money('due', 'الإجمالي')],
+    totals: ['bucket_0_30', 'bucket_31_60', 'bucket_61_90', 'bucket_90_plus', 'unapplied', 'due'],
+    build: (tenantId, f) => agingSql(tenantId, f, 'supplier'),
   },
   {
     key: 'party-statement',
