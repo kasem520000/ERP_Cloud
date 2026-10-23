@@ -1,0 +1,25 @@
+{
+  "id": "R33-L13a-salesman-dup-name-04",
+  "at": "2026-10-23T08:57:26.118Z",
+  "method": "POST",
+  "path": "/sales/salesmen",
+  "status": 409,
+  "request": {
+    "name": "مندوب الشركة",
+    "warehouseId": "01a167fa-b561-74ad-994f-558defa38aad",
+    "active": true
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "SALESMAN_NAME_TAKEN",
+    "detail": "يوجد مندوب آخر بهذا الاسم",
+    "traceId": "01a167fa-b567-71ad-8d95-c9d0a8e8257c",
+    "errors": [
+      {
+        "field": "name"
+      }
+    ]
+  }
+}

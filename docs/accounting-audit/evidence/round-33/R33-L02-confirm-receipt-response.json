@@ -1,0 +1,25 @@
+{
+  "id": "R33-L02-confirm-receipt",
+  "at": "2026-10-23T08:49:49.315Z",
+  "method": "POST",
+  "path": "/van-sales/load-orders/undefined/confirm-receipt",
+  "status": 400,
+  "request": {
+    "receivedQty": "10.0000",
+    "notes": "R33 استلام كامل"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Identifier is not a valid UUID",
+    "status": 400,
+    "code": "INVALID_ID",
+    "detail": "The identifier \"id\" is not a valid UUID",
+    "traceId": "01a167f3-bd04-747f-91f7-a32575a24324",
+    "errors": [
+      {
+        "field": "id",
+        "message": "Expected a UUID"
+      }
+    ]
+  }
+}

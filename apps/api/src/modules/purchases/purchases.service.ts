@@ -1007,6 +1007,7 @@ export class PurchasesService {
           referenceNo: input.reference ?? locked.number ?? undefined,
           idempotencyKey,
         });
+        if (!voucher?.id) throw new DomainError('VOUCHER_CREATE_FAILED', 'Failed to create payment voucher', 500);
         await this.treasury.postVoucherInTx(tx, tenantId, voucher.id, {
           allocations: [{ partyId: locked.partyId, invoiceKind: 'purchase', invoiceId, amount: amount.toFixed(4) }],
         });

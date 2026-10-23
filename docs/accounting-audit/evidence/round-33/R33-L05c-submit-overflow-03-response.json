@@ -1,0 +1,26 @@
+{
+  "id": "R33-L05c-submit-overflow-03",
+  "at": "2026-10-23T08:55:33.005Z",
+  "method": "POST",
+  "path": "/van-sales/load-orders/01a167f8-e908-740d-882f-91b0b4e968b0/submit-closing",
+  "status": 422,
+  "request": {
+    "returnedQty": "9",
+    "damagedQty": "0",
+    "actualRemainingQty": "0",
+    "closingNotes": "R33 حارس: 3 + 9 = 12 > 11"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Validation failed",
+    "status": 422,
+    "code": "VALIDATION_FAILED",
+    "detail": "مجموع الكميات (المباع 3.00 + البونص 0.00 + المرتجع السليم 9.00 + التالف 0.00 + المتبقي الفعلي 0.00 = 12.00 كجم) يتجاوز العهدة المستلمة أصلاً (10.00 + مرتجع العملاء 1.00 = 11.00 كجم). إن كانت الكمية الزائدة موجودة فعلاً في السيارة فأبلغ المحاسب: تسجيل الفائض يتم عند الاعتماد بإقرار صريح، لا من حساب المندوب.",
+    "traceId": "01a167f8-fb8f-728c-b69a-9bd38ad8d0a2",
+    "errors": [
+      {
+        "field": "actualRemainingQty"
+      }
+    ]
+  }
+}

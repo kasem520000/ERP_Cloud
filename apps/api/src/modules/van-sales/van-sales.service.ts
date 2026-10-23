@@ -5723,7 +5723,13 @@ export class VanSalesService {
       // `!isResume`: a completing call must never move these kilograms a second time.
       if (!isResume && returnedQty.gt(0) && warehouseId && itemId) {
         if (vanWarehouseId && vanWarehouseId !== warehouseId) {
-          const retMoves = await this.inventory.recordInTx(
+          /**
+           * ACC-172 (R33): the kilograms leave the van at the van's moving average and must enter
+           * the main warehouse at exactly that cost — the same rule `settleLoadOrderStock` applies
+           * below. Valuing the inbound leg at the production batch cost (1.00) while the outbound
+           * leg was relieved at 1.0224 silently destroyed 0.1566 of stock value per 7 kg.
+           */
+          const retOut = await this.inventory.recordInTx(
             tx,
             tenantId,
             [
@@ -5737,22 +5743,46 @@ export class VanSalesService {
                 docId: loadOrderId,
                 lineId: newId(),
                 lotId: countLotId ?? undefined,
+                costing: 'outAtAvg',
               },
+            ],
+            { allowNegative: true },
+          );
+          const retOutTxId = retOut.transactionIds[0] ?? null;
+          const retOutCost = retOutTxId
+            ? first(
+                await tx.execute(sql`
+                  SELECT unit_cost::text AS "unitCost"
+                  FROM inventory_transactions
+                  WHERE id = ${retOutTxId}::uuid AND tenant_id = ${tenantId}::uuid
+                  LIMIT 1
+                `),
+              )
+            : undefined;
+          const retInCost =
+            retOutCost?.unitCost != null && str(retOutCost.unitCost).length > 0
+              ? str(retOutCost.unitCost)
+              : batchUnitCost.toFixed(4);
+          const retIn = await this.inventory.recordInTx(
+            tx,
+            tenantId,
+            [
               {
                 itemId,
                 warehouseId,
                 qty: returnedQty.toFixed(4),
-                unitCost: batchUnitCost.toFixed(4),
+                unitCost: retInCost,
                 direction: 'in',
                 docType: 'van_return',
                 docId: loadOrderId,
                 lineId: newId(),
                 lotId: countLotId ?? undefined,
+                costing: 'inWithCost',
               },
             ],
             { allowNegative: true },
           );
-          returnInventoryTxId = retMoves.transactionIds[1] ?? retMoves.transactionIds[0] ?? null;
+          returnInventoryTxId = retIn.transactionIds[0] ?? retOutTxId ?? null;
         } else {
           const retMoves = await this.inventory.recordInTx(tx, tenantId, [
             {

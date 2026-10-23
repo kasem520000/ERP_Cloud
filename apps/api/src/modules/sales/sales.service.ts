@@ -3019,6 +3019,9 @@ export class SalesService {
       throw new DomainError('SALESMAN_EMPLOYEE_TAKEN', 'هذا الموظف مرتبط بمندوب آخر', 409, {
         field: 'employeeId',
       });
+    // ACC-173 (R33): a duplicate salesman name used to surface as 500 INTERNAL.
+    if (isUniqueViolation(error, 'salesmen_tenant_name_key'))
+      throw new DomainError('SALESMAN_NAME_TAKEN', 'يوجد مندوب آخر بهذا الاسم', 409, { field: 'name' });
     throw error;
   }
 

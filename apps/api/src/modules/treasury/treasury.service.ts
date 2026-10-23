@@ -365,9 +365,20 @@ export class TreasuryService implements OnModuleInit {
       throw invalid('partyId', 'partyId must be a UUID');
     if (input.counterAccountId !== undefined && input.counterAccountId !== null && !isUuid(String(input.counterAccountId)))
       throw invalid('counterAccountId', 'counterAccountId must be a UUID');
-    const amount = money(input.amount);
+    const parseMoney = (field: string, raw: unknown, required: boolean) => {
+      if (raw === undefined || raw === null || String(raw).trim() === '') {
+        if (required) throw invalid(field, `${field} is required`);
+        return null;
+      }
+      if (!/^-?\d+(\.\d+)?$/.test(String(raw).trim())) throw invalid(field, `${field} must be a decimal number`);
+      return money(String(raw).trim());
+    };
+    const amount = parseMoney('amount', input.amount, true) as Decimal;
     if (!amount.isFinite() || amount.lte(0))
-      throw new DomainError('VOUCHER_AMOUNT_INVALID', 'Voucher amount must be positive', 422);
+      throw new DomainError('VOUCHER_AMOUNT_INVALID', 'Voucher amount must be positive', 422, { field: 'amount' });
+    parseMoney('vatAmount', input.vatAmount, false);
+    parseMoney('netAmount', input.netAmount, false);
+    parseMoney('foreignAmount', input.foreignAmount, false);
     if (input.method === 'cheque' && !input.chequeNo)
       throw new DomainError('CHEQUE_NO_REQUIRED', 'Cheque vouchers require a cheque number', 422);
 

@@ -1,0 +1,28 @@
+{
+  "id": "R33-L14-load-order-3-03",
+  "at": "2026-10-23T08:55:41.097Z",
+  "method": "POST",
+  "path": "/van-sales/load-orders",
+  "status": 422,
+  "request": {
+    "loadedQty": "2.0000",
+    "itemId": "01a16794-156b-701c-a1cf-1c0c462ce6eb",
+    "productionBatchNo": "BATCH-R33-03",
+    "vanWarehouseId": "01a167f9-17e8-7509-9cff-c8da916cd109",
+    "notes": "R33 عهدة مندوب بلا حساب",
+    "idempotencyKey": "r33-load-order-03-03"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Validation failed",
+    "status": 422,
+    "code": "VALIDATION_FAILED",
+    "detail": "اختر المندوب لأمر التحميل",
+    "traceId": "01a167f9-1b2a-7088-aba2-8cb4918cd22f",
+    "errors": [
+      {
+        "field": "salesmanId"
+      }
+    ]
+  }
+}

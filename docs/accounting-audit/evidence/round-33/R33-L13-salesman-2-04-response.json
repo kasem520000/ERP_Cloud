@@ -1,0 +1,35 @@
+{
+  "id": "R33-L13-salesman-2-04",
+  "at": "2026-10-23T08:57:26.905Z",
+  "method": "POST",
+  "path": "/sales/salesmen",
+  "status": 201,
+  "request": {
+    "name": "R33 مندوب 2 (04)",
+    "employeeId": "01a167fa-b234-71fb-afd5-f47dff845297",
+    "warehouseId": "01a167fa-b561-74ad-994f-558defa38aad",
+    "active": true
+  },
+  "response": {
+    "id": "01a167fa-bb85-74cb-911f-9c0b43ed03ec",
+    "tenantId": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+    "name": "R33 مندوب 2 (04)",
+    "employeeRef": null,
+    "active": true,
+    "commissionRate": "0.0000",
+    "collectionCommissionRate": "0.0000",
+    "profitCommissionRate": "0.0000",
+    "employeeId": "01a167fa-b234-71fb-afd5-f47dff845297",
+    "warehouseId": "01a167fa-b561-74ad-994f-558defa38aad",
+    "vehiclePlate": null,
+    "tel": null,
+    "mobile": null,
+    "email": null,
+    "notes": null,
+    "createdAt": "2026-10-23T08:57:27.685Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1
+  }
+}

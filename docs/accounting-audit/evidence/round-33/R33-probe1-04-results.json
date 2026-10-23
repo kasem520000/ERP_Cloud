@@ -1,0 +1,115 @@
+[
+  {
+    "id": "L00",
+    "title": "production batch 20 kg → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "L11",
+    "title": "employee R33-REP-2 (createAccount:false) → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "L11b",
+    "title": "employee has NO account before the closing (ACC-166 precondition)",
+    "expected": null,
+    "actual": null,
+    "ok": true
+  },
+  {
+    "id": "L12",
+    "title": "warehouse VAN-R33 → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "L13a",
+    "title": "ACC-173 duplicate salesman name → 409 SALESMAN_NAME_TAKEN (was 500)",
+    "expected": [
+      409,
+      "SALESMAN_NAME_TAKEN"
+    ],
+    "actual": [
+      409,
+      "SALESMAN_NAME_TAKEN"
+    ],
+    "ok": true
+  },
+  {
+    "id": "L13",
+    "title": "salesman 2 linked to employee + VAN-R33 → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "L14",
+    "title": "load order 3 (2 kg) → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "L15",
+    "title": "confirm receipt 2 → ok",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201 "
+  },
+  {
+    "id": "L16",
+    "title": "submit closing 3 → ok",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201 "
+  },
+  {
+    "id": "L17",
+    "title": "ACC-166 approve with salary deduction for rep without account → not 500",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201  \"\""
+  },
+  {
+    "id": "L17b",
+    "title": "ACC-166 employee account auto-created under 2241 with level 4 and a path",
+    "expected": [
+      true,
+      4,
+      true
+    ],
+    "actual": [
+      true,
+      4,
+      true
+    ],
+    "ok": true,
+    "note": "{\"employee_account_id\":\"01a167fa-c893-728d-a249-c4221e952261\",\"code\":\"22410006\",\"level\":4,\"path\":\"01a16790-58f3-72d1-b86c-6a0407915918.01a16790-58f7-733a-9cc0-a9106ff4dd46.01a16790-5907-755f-96c7-23cd44ed1905.01a16790-5910-754a-88c9-1be8b697c17a.01a167fa-c893-728d-a249-c4221e952261\",\"parent_id\":\"01a16790-5910-754a-88c9-1be8b697c17a\"}"
+  },
+  {
+    "id": "L17c",
+    "title": "ACC-166 charge journal posted on the new employee account",
+    "expected": [
+      "22410006",
+      "1.0000"
+    ],
+    "actual": [
+      "22410006",
+      "1.0000"
+    ],
+    "ok": true
+  }
+]

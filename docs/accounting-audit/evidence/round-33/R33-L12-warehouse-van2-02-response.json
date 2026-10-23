@@ -1,0 +1,27 @@
+{
+  "id": "R33-L12-warehouse-van2-02",
+  "at": "2026-10-23T08:52:15.288Z",
+  "method": "POST",
+  "path": "/warehouses",
+  "status": 201,
+  "request": {
+    "branchId": "01a16790-58e0-70f5-a712-0f875e9b5deb",
+    "code": "VAN-R33-02",
+    "name": "سيارة توزيع R33",
+    "isActive": true
+  },
+  "response": {
+    "data": {
+      "id": "01a167f5-fa40-72bc-84af-d57bc259147d",
+      "branchId": "01a16790-58e0-70f5-a712-0f875e9b5deb",
+      "code": "VAN-R33-02",
+      "name": "سيارة توزيع R33",
+      "inventoryAccountId": null,
+      "isDefault": false,
+      "isActive": true,
+      "version": 1,
+      "createdAt": "2026-10-23T08:52:16.061Z",
+      "updatedAt": null
+    }
+  }
+}

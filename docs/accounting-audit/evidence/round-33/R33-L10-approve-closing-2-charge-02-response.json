@@ -1,0 +1,32 @@
+{
+  "id": "R33-L10-approve-closing-2-charge-02",
+  "at": "2026-10-23T08:52:13.415Z",
+  "method": "POST",
+  "path": "/van-sales/load-orders/undefined/approve-closing",
+  "status": 400,
+  "request": {
+    "returnedQty": "4.0000",
+    "damagedQty": "0.0000",
+    "collectedCash": "0.0000",
+    "actualRemainingQty": "0.0000",
+    "damageInspected": false,
+    "salaryDeductionApproved": true,
+    "notes": "R33 اعتماد مع تحميل العجز على المندوب",
+    "settleStockAdjustment": false,
+    "surplusAcknowledged": false
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Identifier is not a valid UUID",
+    "status": 400,
+    "code": "INVALID_ID",
+    "detail": "The identifier \"id\" is not a valid UUID",
+    "traceId": "01a167f5-efe8-728e-bda3-c2033e9e078c",
+    "errors": [
+      {
+        "field": "id",
+        "message": "Expected a UUID"
+      }
+    ]
+  }
+}

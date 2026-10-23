@@ -1,0 +1,39 @@
+{
+  "id": "R33-K06-neoleap-partial-5",
+  "at": "2026-10-23T08:49:42.995Z",
+  "method": "POST",
+  "path": "/payment-gateways/neoleap/sale",
+  "status": 201,
+  "request": {
+    "amount": "5.00",
+    "invoiceId": "01a167f3-a0d4-7528-a3ac-f8673cfdce95",
+    "reference": "R33-NL-PART-5"
+  },
+  "response": {
+    "transaction": {
+      "id": "01a167f3-a778-725c-a31b-31ddced99ab7",
+      "provider": "neoleap",
+      "reference": "R33-NL-PART-5",
+      "sessionId": "SIM-70476d95b6f2",
+      "invoiceId": "01a167f3-a0d4-7528-a3ac-f8673cfdce95",
+      "branchId": null,
+      "amount": "5.0000",
+      "currency": "SAR",
+      "status": "approved",
+      "responseCode": "00",
+      "detailedResponseCode": "00",
+      "message": "Approved",
+      "approvalCode": "704760",
+      "rrn": "951612191111",
+      "stan": "624212",
+      "cardScheme": "MADA",
+      "panMasked": "****4242",
+      "transactionType": "SALE",
+      "checkoutUrl": null,
+      "simulation": true,
+      "settled": true,
+      "createdAt": "2026-10-23T08:49:43.799Z"
+    },
+    "settled": true
+  }
+}

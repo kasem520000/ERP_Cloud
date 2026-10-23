@@ -1,0 +1,84 @@
+{
+  "id": "R33-L11-employee-noacct-02",
+  "at": "2026-10-23T08:52:14.473Z",
+  "method": "POST",
+  "path": "/hrm/employees",
+  "status": 201,
+  "request": {
+    "employeeNo": "R33-REP-2-02",
+    "name": "R33 مندوب بلا حساب",
+    "status": "active",
+    "hireDate": "2026-10-01",
+    "gender": "male",
+    "salaryComponents": {
+      "basic": "100"
+    },
+    "bank": {},
+    "branchIds": [
+      "01a16790-58e0-70f5-a712-0f875e9b5deb"
+    ]
+  },
+  "response": {
+    "id": "01a167f5-f716-75a7-b25b-43d9579682ab",
+    "tenantId": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+    "employeeNo": "R33-REP-2-02",
+    "name": "R33 مندوب بلا حساب",
+    "branchId": null,
+    "departmentId": null,
+    "jobId": null,
+    "membershipId": null,
+    "status": "active",
+    "hireDate": "2026-10-01",
+    "birthDate": null,
+    "insuranceNo": null,
+    "nationalId": null,
+    "iqamaExpiresOn": null,
+    "insuranceExpiresOn": null,
+    "gosiScheme": null,
+    "maritalStatus": null,
+    "nationality": null,
+    "gender": "male",
+    "phone": null,
+    "mobile": null,
+    "email": null,
+    "address": null,
+    "notes": null,
+    "employeeAccountId": "01a167f5-f725-747a-b98e-85c3fd96cfa7",
+    "salaryComponents": {
+      "basic": "100"
+    },
+    "bank": {},
+    "salaryExpenseAccountId": null,
+    "salaryPayableAccountId": null,
+    "costCenterId": null,
+    "photoFileId": null,
+    "createdAt": "2026-10-23T08:52:15.254Z",
+    "createdBy": null,
+    "updatedAt": "2026-10-23T08:52:15.274Z",
+    "updatedBy": null,
+    "version": 1,
+    "deletedAt": null,
+    "deletedBy": null,
+    "legacySource": null,
+    "legacyId": null,
+    "departmentName": null,
+    "departmentKind": null,
+    "managementId": null,
+    "managementName": null,
+    "sectionId": null,
+    "sectionName": null,
+    "jobName": null,
+    "accountCode": "22410004",
+    "totalSalary": "100.0000",
+    "genderLabel": "ذكر",
+    "statusLabel": "نشط",
+    "customFields": {},
+    "branches": [
+      {
+        "branchId": "01a16790-58e0-70f5-a712-0f875e9b5deb",
+        "branchName": "الفرع الرئيسي",
+        "branchCode": "MAIN"
+      }
+    ]
+  }
+}
