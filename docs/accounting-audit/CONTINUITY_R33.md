@@ -5,17 +5,18 @@
 
 ## 1. ما أُنجز في R33 (ملخص؛ التفصيل في `REMEDIATION_R33.md`)
 - 19 من الـ20 عيباً المفتوحة بعد R32 مُصلَحة ومُثبَتة حياً؛ ACC-141 توثيق فقط (MF-46).
-- 10 عيوب جديدة ACC-172…181 مُصلَحة؛ 177/178/180 أُثبتت حياً بفاحص **Block U** (`round33-probe4.cjs` RUN 21/22 — 22/22)؛ ACC-181 (خصوصية سجل التدقيق) باختبار تكامل فقط.
+- **14** عيباً جديداً ACC-172…185 مُصلَحة؛ الأربعة الأخيرة (182 تقرير الرواتب 500، 183/184/185 تداخل المسيّر والإذن الفردي — **185 CRITICAL**) اكتُشفت عند فرز الـ25 «معلّقاً» (كانت 3 ملفات محجوبة بفشل `beforeAll` لا `it.skip`) وأُثبتت حياً بـ**Block V/W** (`round33-probe5.cjs` RUN 32 — **47/47**) + `r33-payroll-individual-payments.spec.ts`؛ ترحيل إصلاح بيانات **0143** (قابل للعكس، أُثبت down/up حياً)؛ 177/178/180 أُثبتت حياً بفاحص **Block U** (`round33-probe4.cjs` RUN 21/22 — 22/22)؛ ACC-181 (خصوصية سجل التدقيق) باختبار تكامل فقط.
 - فاحصات حيّة على **بذرة 12 بالبناء الختامي `b307d21`:** probe1 68/68، probe2 42/42، probe3 48/48 (كلها RUN 23)، probe4 22/22. (بذرة 11 سابقاً: 68/46/48.)
-- 12 قرار سياسة بالتفويض مع موضع العكس (`REMEDIATION_R33.md` §4).
+- 13 قرار سياسة بالتفويض مع موضع العكس (`REMEDIATION_R33.md` §4؛ آخرها P-M10: عكس المسيّر لا يمسّ الأذون المستقلة).
 - **vitest الكامل على `02ea39f`:** 534 ملفاً / 2038 اختباراً — **2012 ✓ / 1 ✗ / 25 معلّق** (الأساس `0a9dc57`: 46 ✗)؛ الفشل الوحيد (`ai-help` لقطة التنقل) أُصلح في `b307d21` → المتوقَّع الآن **0 فشل**. فرز الـ38 فشلاً القديم مكتمل (§6).
+- **vitest الكامل على `b307d21`:** 2013 ✓ / 0 ✗ / 25 معلّق (`R33-vitest-full-b307d21.json`) — ثم تبيّن أن الـ25 ملفات محجوبة؛ بعد `d4e48ed` الملفات الثلاثة خضراء (25/25) + 4 اختبارات جديدة → **التشغيل الختامي على `d4e48ed`+: R33_FINAL_VITEST**.
 
 ## 2. البيئة (التهيئة 12 — بذرة 12) — إعادة البناء عند الحاجة
 1. العلامة أن البيئة أُعيدت تهيئتها: `git log -1` = `54171c6` و`git status` يُظهر `?? docs/accounting-audit/` ولا يوجد `/home/user/.bin` ولا `.env`.
 2. الوصفة: `git fetch origin +refs/heads/arena/0e400dd3-erp-cloud:refs/remotes/origin/arena/0e400dd3-erp-cloud && rm -rf docs/accounting-audit && git reset --hard origin/arena/0e400dd3-erp-cloud` → `mkdir -p /home/user/.bin /home/user/.corepack; COREPACK_HOME=/home/user/.corepack corepack enable --install-directory /home/user/.bin; corepack prepare pnpm@9.15.0 --activate` → `export PATH=/home/user/.bin:$PATH COREPACK_HOME=/home/user/.corepack` → `pnpm install --frozen-lockfile` → `pnpm -r --filter "./packages/*" build` → `node scripts/setup-env.mjs` → `sed -i 's/^DEMO_TENANT_NAME=.*/DEMO_TENANT_NAME=AUDIT-TEST-2026-R24/' .env` (قبل البذرة فيأخذه الـseed) → start_process `DB_LOCAL_PERSIST=true DB_LOCAL_DATA_DIR=/home/user/.pgdata-r33 node scripts/local-db.mjs` → `pnpm db:migrate` (142) → `pnpm db:seed` → `cd apps/api && pnpm build` → start_process `node dist/main.js` → `R33_RUN=NN … round33-bootstrap.cjs`.
 3. **لا تُصدِّر `.env` بـ`set -a`** (يكسر `JWT_PRIVATE_KEY`). API من `dist`: تعديل `src` بلا `pnpm build` + إعادة تشغيل لا أثر له.
 4. `/tmp/q.cjs "<sql>"` أداة استعلام (تُمحى مع التهيئة؛ تُعاد كتابتها: pg من `node_modules/.pnpm/node_modules/pg` عبر `DATABASE_MIGRATOR_URL` من `.env`).
-5. الفاحصات: `R33_RUN=NN R32_OUT=$PWD/docs/accounting-audit/evidence/round-33 node docs/accounting-audit/scripts/round33-probe{1,2,3,4}.cjs | grep -v ^Snapshot` — السطر الختامي «R33 probe N: X/Y PASS». آخر RUN مستعمل **23** (probe1/2/3 على بذرة 12؛ probe4 استعمل 21 و22) → التالي 24. probe2 يختار أول شهر حر من (2026-11, 2026-12): على بذرة 12 بعد RUN 23 نوفمبر مشغول (مسيّر معكوس + مسودة متبقية — MF-45) وديسمبر حر؛ إن لم يبقَ شهر حر فإما بذرة جديدة أو توسيع قائمة الأشهر في probe2. probe4 (Block U) يُشغَّل بنفس الصيغة؛ `R33_SKIP_U1`/`R33_SKIP_U3` لتخطي كتلتي ACC-178/ACC-177.
+5. الفاحصات: `R33_RUN=NN R32_OUT=$PWD/docs/accounting-audit/evidence/round-33 node docs/accounting-audit/scripts/round33-probe{1,2,3,4}.cjs | grep -v ^Snapshot` — السطر الختامي «R33 probe N: X/Y PASS». آخر RUN مستعمل **32** (probe5؛ probe1/2/3 كانت 23، probe4 21/22) → التالي 33. probe5 يُنشئ موظفاً جديداً `R33-NEW-<RUN>` بأساسي 50 كل تشغيل (ينضم لمسيّرات ديسمبر اللاحقة — الفحوص ديناميكية) ويعيد ديسمبر حراً في نهايته. probe2 يختار أول شهر حر من (2026-11, 2026-12): على بذرة 12 بعد RUN 23 نوفمبر مشغول (مسيّر معكوس + مسودة متبقية — MF-45) وديسمبر حر؛ إن لم يبقَ شهر حر فإما بذرة جديدة أو توسيع قائمة الأشهر في probe2. probe4 (Block U) يُشغَّل بنفس الصيغة؛ `R33_SKIP_U1`/`R33_SKIP_U3` لتخطي كتلتي ACC-178/ACC-177.
 
 ## 3. اختبارات `apps/api`
 - أمر ملف: `cd apps/api && timeout 900 npx vitest run test/<file>.spec.ts 2>&1 | grep -E "✓|×|Tests |spec.ts:[0-9]+:"`.
@@ -31,7 +32,7 @@
 
 ## 5. الخطوات التالية المقترحة (بالترتيب)
 1. ~~فرز الـ38 فشلاً القديم~~ ✅ (§6). ~~فاحص حي لـACC-177/178/180~~ ✅ (`round33-probe4.cjs`).
-2. تشغيل vitest كامل مرة أخيرة على `b307d21` للتأكد من 0 فشل (آخر تشغيل كامل على `02ea39f` = فشل واحد أُصلح بعده).
+2. ~~تشغيل vitest كامل على `b307d21`~~ ✅ 2013/0/25 → ~~فرز الـ25 المعلّقة~~ ✅ (3 ملفات محجوبة → ACC-182…185 + fixtures) → التشغيل الختامي على `d4e48ed`+ (النتيجة في §1).
 3. جولة تحقق للـ153 معرّفاً NOT-RETESTED (7 صارت FIXED-VERIFIED-R33 في `ROUND_32_VERDICTS.md`) (أولوية: التصنيع/الأصول/التقارير التفصيلية؛ الخياطة والمقاولات غطّتها اختبارات R33).
 4. جولة UI (staff + bakery) بلقطات حقيقية للمسارات التي تغيّر سلوك API فيها (الرواتب، المناقلات النقدية، الخياطة، الأرقام التسلسلية).
 5. تنفيذ MF-45 (إلغاء مسودة مسيّر) وMF-46 (مسودة القيد اليدوي — بعد قرار المالك)؛ اقتراح MF جديد: ضريبة التفصيل كإعداد للمستأجر بدل `TAX_RATE` ثابت.
@@ -58,5 +59,8 @@
 | `test/audit-salla-webhook.spec.ts` | 1 | اختبار قديم | المسار المدقَّق `integrations/salla/webhooks/<storeId>/orders` → `LIKE`؛ نسب AUD-14 سليم (`02ea39f`) |
 | `src/modules/ai/ai-help.spec.ts` | 1 | ارتعاش/ترتيب | يمرّ منفرداً دون تعديل (يُراقَب في التشغيل الكامل) |
 | `test/public-help.spec.ts` | 1 | **عيب حقيقي → ACC-181** | صوت الزائر المجهول كان يُدقَّق مع IP (طيّ المسار في `describeRoute`)؛ إصلاح `isAnonymousPost()` (`02ea39f`) |
+| `test/treasury-movements.spec.ts` | 6 (محجوب `beforeAll`) | اختبار قديم | قيود يدوية على حساب صندوق مرتبط → 422 `MANUAL_JOURNAL_ON_TREASURY_ACCOUNT` (ACC-023)؛ القيود تُنشأ قبل ربط الحساب (`d4e48ed`) |
+| `test/report-treasury-hrm.spec.ts` | 9 (محجوب) | قديم + **عيب حقيقي → ACC-182** | ACC-023 نفسه + UI-012 («بلا صندوق» = كل الصناديق) + **تقرير الرواتب 500** (`d4e48ed`) |
+| `test/report-inventory.spec.ts` | 10 (محجوب) | اختبار قديم | ACC-132 (`SERIAL_COUNT_EXCEEDS_STOCK` بمستودع بلا رصيد) + UI-044 (`IV4SN-0001`)؛ التوليد غير مُسنَد ثم قيد الافتتاح يُسنِد (`d4e48ed`) |
 
 **نتيجة التشغيل الكامل بعد الفرز (`02ea39f`):** 2012 ✓ / 1 ✗ (`ai-help` — أُصلح في `b307d21`) / 25 معلّق — `evidence/round-33/R33-vitest-full-02ea39f.json`.

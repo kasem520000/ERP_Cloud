@@ -85,7 +85,8 @@ async function expectedStatement(ym) {
     }
     check('V05b', 'card «إجمالي الرواتب» = Σnet of those rows (the window sums الصافي)', exp12.net, n2(card(r12, 'net')));
     check('V05c', 'card «عدد الإيذونات» = number of rows', n2(exp12.rows), n2(card(r12, 's_count')));
-    check('V05d', 'doc_no per row = that employee\'s own voucher (run voucher payroll:<run>:<employee>, or the إذن number)', exp12.byEmployee, Object.fromEntries(rows.map((x) => [x.employee, x.doc_no])));
+    const sortedEntries = (o) => Object.entries(o).sort((a, b) => a[0].localeCompare(b[0]));
+    check('V05d', 'doc_no per row = that employee\'s own voucher (run voucher payroll:<run>:<employee>, or the إذن number)', sortedEntries(exp12.byEmployee), sortedEntries(Object.fromEntries(rows.map((x) => [x.employee, x.doc_no]))));
 
     // an individual salary payment for a month already paid by the run is refused
     const emp = lines[0];
