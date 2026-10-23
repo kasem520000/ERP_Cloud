@@ -1,3 +1,5 @@
+import { withTenantTx } from '@erp/database';
+import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -204,13 +206,26 @@ describe('Remediation Phase 1 — Accounting Core & Controls (ACC-024, ACC-053, 
     ]);
 
     const statuses = [res1.status, res2.status].sort();
-    // أحدهما ينجح والآخر يرفض بـ 409
-    expect(statuses).toEqual([201, 409]);
+    // أحدهما ينجح والآخر يرفض بـ409 (تصادم فعلي على قفل الصف)، أو — إذا سبقت الأولى وأُغلقت قبل
+    // أن تقرأ الثانية — تُعاد الثانية بالسند المرحَّل نفسه (إعادة محاولة idempotent: «سندٌ مرحّل
+    // يُعاد كما هو» — R32 A08). المعيار المالي الثابت في الحالتين: قيد واحد لا اثنان.
+    expect([[201, 409], [201, 201]]).toContainEqual(statuses);
 
-    // السند الناجح يحمل journalEntryId واحد صحيح
+    // السند الناجح يحمل journalEntryId واحد صحيح — وفي حالة 201/201 المعرّف نفسه في الاستجابتين.
     const winner = res1.status === 201 ? res1 : res2;
     const voucherData = data(winner.body);
     expect(voucherData.journalEntryId).toBeTruthy();
+    if (res1.status === 201 && res2.status === 201) {
+      expect(data(res2.body).journalEntryId).toBe(data(res1.body).journalEntryId);
+    }
+    const entryCount = await withTenantTx(ctx.handle.db, actor.tenantId, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT COUNT(*)::int AS cnt FROM journal_entries
+        WHERE tenant_id = ${actor.tenantId}::uuid AND source_type = 'voucher' AND source_id = ${voucherId}::uuid
+      `);
+      return (rows as { rows: Array<{ cnt: number }> }).rows[0]?.cnt ?? 0;
+    });
+    expect(entryCount, 'exactly one journal for the voucher').toBe(1);
 
     const entryRes = await api(ctx.server, 'get', `/api/v1/journal-entries/${voucherData.journalEntryId}`, {
       token: actor.token,
