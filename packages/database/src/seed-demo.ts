@@ -1035,6 +1035,23 @@ async function seedOpeningEntry(
     lineNo += 1;
   }
 
+  // R33 ACC-194 — the opening entry debits the safe and the bank, so the treasury sub-ledger
+  // (`cash_location_balances`) has to start at the same figures; otherwise the demo tenant is
+  // born with GL 50,000 / 180,000 against a sub-ledger of 0 / 0 (the ACC-018 class of gap).
+  // Guarded by the idempotency check above: the entry is inserted once, so this runs once.
+  for (const [accountId, debit] of [[cash, '50000.0000'], [bank, '180000.0000']] as Array<[string, string]>) {
+    await client.query(
+      `UPDATE cash_location_balances b
+          SET balance = b.balance + $3::numeric, updated_at = now()
+         FROM cash_locations cl
+        WHERE cl.id = b.cash_location_id AND cl.tenant_id = $1 AND b.tenant_id = $1
+          AND cl.account_id = $2 AND b.currency_code = (
+            SELECT upper(trim(coalesce(nullif(t.base_currency, ''), 'SAR'))) FROM tenants t WHERE t.id = $1
+          )`,
+      [tenantId, accountId, debit],
+    );
+  }
+
   // The application allocates journal numbers from `document_sequences`; advance it so the
   // next entry posted through the API does not re-use JE-000001.
   await client.query(
