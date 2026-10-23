@@ -123,6 +123,18 @@ describe('Serial lifecycle, lots and the production order header', () => {
       body: { unitId: cartonId, ratio: '6' },
     });
     expect(cartonUnit.status).toBe(201);
+
+    // ACC-132: serial numbers are minted against units that physically exist — generating into a
+    // warehouse with no stock is refused (`SERIAL_COUNT_EXCEEDS_STOCK`). Put 10 units on the shelf.
+    const opening = await api(ctx.server, 'post', '/api/v1/inventory/ledger/record', {
+      token: actor.token,
+      body: {
+        lines: [
+          { itemId: trackedId, warehouseId, qty: '10', unitCost: '25', direction: 'in', docType: 'opening', docId: '00000000-0000-0000-0000-000000000132' },
+        ],
+      },
+    });
+    expect([200, 201], JSON.stringify(opening.body)).toContain(opening.status);
   });
 
   afterAll(async () => {
@@ -134,10 +146,11 @@ describe('Serial lifecycle, lots and the production order header', () => {
       token: actor.token,
       body: { itemId: trackedId, prefix: 'SN-', startAt: 1, count: 5, warehouseId },
     });
-    expect(generated.status).toBe(201);
+    expect(generated.status, JSON.stringify(generated.body)).toBe(201);
     const made = data(generated.body);
     expect(made.count).toBe(5);
-    expect(made.serialNos).toEqual(['SN-1', 'SN-2', 'SN-3', 'SN-4', 'SN-5']);
+    // UI-044: numbers are zero-padded to at least four digits so lists sort as a human reads them.
+    expect(made.serialNos).toEqual(['SN-0001', 'SN-0002', 'SN-0003', 'SN-0004', 'SN-0005']);
 
     // Zero padding follows the last number in the batch, so the list sorts like a human reads it.
     const padded = await api(ctx.server, 'post', '/api/v1/inventory/serials/generate', {
@@ -145,7 +158,7 @@ describe('Serial lifecycle, lots and the production order header', () => {
       body: { itemId: trackedId, prefix: 'BX-', startAt: 98, count: 4 },
     });
     expect(padded.status).toBe(201);
-    expect(data(padded.body).serialNos).toEqual(['BX-098', 'BX-099', 'BX-100', 'BX-101']);
+    expect(data(padded.body).serialNos).toEqual(['BX-0098', 'BX-0099', 'BX-0100', 'BX-0101']);
 
     const clash = await api(ctx.server, 'post', '/api/v1/inventory/serials/generate', {
       token: actor.token,
@@ -169,10 +182,10 @@ describe('Serial lifecycle, lots and the production order header', () => {
   });
 
   it('2. a reader cannot move a serial, and a serial cannot be withdrawn once it left the shelf', async () => {
-    const one = await api(ctx.server, 'get', `/api/v1/inventory/serials?item_id=${trackedId}&q=SN-1`, {
+    const one = await api(ctx.server, 'get', `/api/v1/inventory/serials?item_id=${trackedId}&q=SN-0001`, {
       token: actor.token,
     });
-    const single = rows(one.body).find((row) => row.serialNo === 'SN-1');
+    const single = rows(one.body).find((row) => row.serialNo === 'SN-0001');
     expect(single).toBeDefined();
     const serialId = single!.id as string;
 
@@ -365,14 +378,14 @@ describe('Serial lifecycle, lots and the production order header', () => {
     });
     expect([200, 201]).toContain(done.status);
 
-    // 2 cartons × 6 = 12 pieces came in — the order was counted in cartons, the ledger
-    // stores pieces.
+    // 2 cartons × 6 = 12 pieces came in on top of the 10 opening units (ACC-132 fixture) — the
+    // order was counted in cartons, the ledger stores pieces.
     const level = await api(
       ctx.server,
       'get',
       `/api/v1/inventory/levels?warehouse_id=${warehouseId}&item_id=${trackedId}`,
       { token: actor.token },
     );
-    expect(Number(rows(level.body)[0]?.quantity ?? 0)).toBe(12);
+    expect(Number(rows(level.body)[0]?.quantity ?? 0)).toBe(10 + 12);
   });
 });

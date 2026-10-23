@@ -51,7 +51,12 @@ describe('AUD-11 — استبدال سطور المسودّة ذرّي بهوي�
       lines,
     });
     expect(response.status).toBe(201);
-    return (response.body.data ?? response.body) as { id: string; total: string; lines: Array<{ id: string; description: string }> };
+    return (response.body.data ?? response.body) as {
+      id: string;
+      subtotal: string;
+      total: string;
+      lines: Array<{ id: string; description: string }>;
+    };
   };
 
   const linesOf = (invoiceId: string) =>
@@ -132,16 +137,18 @@ describe('AUD-11 — استبدال سطور المسودّة ذرّي بهوي�
 
   it('موجبة: الاستبدال يُحدّث السطور والمجاميع ويُبقي المعرّف نفسه', async () => {
     const draft = await createDraft([line('قديم ١', '2', '100.0000')]);
-    expect(Number(draft.total)).toBe(200);
+    // ACC-153/154: `total` is GROSS (the item's VAT is added); the line arithmetic lives in `subtotal`.
+    expect(Number(draft.subtotal)).toBe(200);
+    expect(Number(draft.total)).toBeGreaterThanOrEqual(200);
 
     const updated = await patch(`/sales/invoices/${draft.id}`, {
       lines: [line('جديد ١', '3', '100.0000'), line('جديد ٢', '1', '50.0000')],
     });
     expect(updated.status).toBe(200);
-    const body = (updated.body.data ?? updated.body) as { id: string; total: string; lines: Array<{ description: string }> };
+    const body = (updated.body.data ?? updated.body) as { id: string; subtotal: string; total: string; lines: Array<{ description: string }> };
     expect(body.id, 'the draft keeps its identity — links and audit stay valid').toBe(draft.id);
     expect(body.lines.map((row) => row.description)).toEqual(['جديد ١', 'جديد ٢']);
-    expect(Number(body.total)).toBe(350);
+    expect(Number(body.subtotal)).toBe(350);
 
     const stored = await linesOf(draft.id);
     expect(stored.filter((row) => row.description === 'قديم ١')).toHaveLength(0);
@@ -180,7 +187,7 @@ describe('AUD-11 — استبدال سطور المسودّة ذرّي بهوي�
       expect(after[0]!.description).toBe('أصلي ١');
 
       const header = await get(`/sales/invoices/${draft.id}`);
-      expect(Number(((header.body.data ?? header.body) as { total: string }).total)).toBe(500);
+      expect(Number(((header.body.data ?? header.body) as { subtotal: string }).subtotal)).toBe(500);
     } finally {
       await withOwnerClient(ctx.db.ownerUrl, async (client) => {
         await client.query(`DROP TRIGGER IF EXISTS audit11_block_line_insert_trigger ON sales_invoice_lines`);
@@ -203,7 +210,7 @@ describe('AUD-11 — استبدال سطور المسودّة ذرّي بهوي�
     const winner = stored[0]!;
 
     const header = await get(`/sales/invoices/${draft.id}`);
-    const headerTotal = ((header.body.data ?? header.body) as { total: string }).total;
+    const headerTotal = ((header.body.data ?? header.body) as { subtotal: string }).subtotal;
     // المجموع في الرأس يطابق السطر الفائز — لا رأسٌ يحمل مجموع الخاسر.
     expect(new Decimal(headerTotal).toFixed(4)).toBe(new Decimal(winner.quantity).times('100').toFixed(4));
   });
