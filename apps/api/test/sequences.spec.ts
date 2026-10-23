@@ -81,10 +81,25 @@ describe('document sequences (PHASE_04 §5.6)', () => {
     const scoped = { tenantId: alpha.tenantId, docType: 'receipt' };
     expect((await sequences.next({ ...scoped, branchId: branchA })).value).toBe(1);
     expect((await sequences.next({ ...scoped, branchId: branchA })).value).toBe(2);
-    expect((await sequences.next({ ...scoped, branchId: branchB })).value).toBe(1);
-    expect((await sequences.next({ ...scoped, branchId: branchA, fiscalYearId: yearA })).value).toBe(1);
-    // Tenant-wide (branch NULL) is yet another scope.
-    expect((await sequences.next(scoped)).value).toBe(1);
+    // ACC-100 (remediation): every scope row keeps its own counter, but a *new* scope is seeded
+    // from the tenant's highest value for that doc type so that two branches can never mint the
+    // same number (the tenant-wide unique indexes on invoices/returns made that a 500 before).
+    // So branch B does not restart at 1 — it continues after branch A — and from then on the
+    // two counters advance independently.
+    const firstB = (await sequences.next({ ...scoped, branchId: branchB })).value;
+    expect(firstB).toBe(3);
+    expect((await sequences.next({ ...scoped, branchId: branchB })).value).toBe(4);
+    expect((await sequences.next({ ...scoped, branchId: branchA })).value).toBe(3); // A's own counter
+    // Fiscal-year and tenant-wide (branch NULL) scopes are separate rows, seeded the same way.
+    const firstYearA = (await sequences.next({ ...scoped, branchId: branchA, fiscalYearId: yearA })).value;
+    expect(firstYearA).toBe(5);
+    const firstTenantWide = (await sequences.next(scoped)).value;
+    expect(firstTenantWide).toBe(6);
+    // Doc types whose unique index is tenant-wide (sales_invoice, returns, notes…) ignore the
+    // branch scope altogether: one counter for the whole tenant.
+    const invoiceA = (await sequences.next({ tenantId: alpha.tenantId, docType: 'sales_invoice', branchId: branchA })).value;
+    expect((await sequences.next({ tenantId: alpha.tenantId, docType: 'sales_invoice', branchId: branchB })).value).toBe(invoiceA + 1);
+    expect((await sequences.next({ tenantId: alpha.tenantId, docType: 'sales_invoice', branchId: branchA })).value).toBe(invoiceA + 2);
 
     // A different tenant starts from scratch, even for the same doc type.
     expect((await sequences.next({ tenantId: beta.tenantId, docType: 'receipt' })).value).toBe(1);

@@ -38,21 +38,55 @@ describe('contractor contracts, payments and offers', () => {
         'parties.manage',
         'treasury.view',
         'treasury.voucher.create',
+        'accounting.period.close',
+        'accounting.period.view',
+        'accounting.account.view',
+        'accounting.account.manage',
+        'accounting.reports.view',
       ],
     });
 
     const branch = await api(ctx.server, 'post', '/api/v1/branches', { token: actor.token, body: { code: 'MAIN', nameAr: 'الفرع الرئيسي' } });
     branchId = body(branch).id;
+    // Paying a certificate posts a real treasury voucher (and its journal), which needs an open
+    // fiscal period covering today — the fixture predates that and had no fiscal year at all.
+    const year = new Date().getUTCFullYear();
+    const fiscal = await api(ctx.server, 'post', '/api/v1/fiscal-years', {
+      token: actor.token,
+      body: { name: `FY${year}`, startDate: `${year}-01-01`, endDate: `${year}-12-31` },
+    });
+    expect(fiscal.status, JSON.stringify(fiscal.body)).toBe(201);
     const client = await api(ctx.server, 'post', '/api/v1/parties', { token: actor.token, body: { kind: 'customer', name: 'عميل المشروع' } });
     clientId = body(client).id;
-    const contractor = await api(ctx.server, 'post', '/api/v1/parties', { token: actor.token, body: { kind: 'supplier', name: 'مقاول الباطن', isContractor: true } });
+    // The contractor's payable account is where the payment voucher's other side lands
+    // (`COUNTER_ACCOUNT_REQUIRED` otherwise — a voucher without a ledger counterpart is refused).
+    const payableAccount = await api(ctx.server, 'post', '/api/v1/accounts', {
+      token: actor.token,
+      body: { code: '2110', nameAr: 'مقاولو الباطن', type: 'liability' },
+    });
+    expect(payableAccount.status, JSON.stringify(payableAccount.body)).toBe(201);
+    const contractor = await api(ctx.server, 'post', '/api/v1/parties', {
+      token: actor.token,
+      body: { kind: 'supplier', name: 'مقاول الباطن', isContractor: true, payableAccountId: body(payableAccount).id },
+    });
+    expect(contractor.status, JSON.stringify(contractor.body)).toBe(201);
     contractorId = body(contractor).id;
     const project = await api(ctx.server, 'post', '/api/v1/projects', {
       token: actor.token,
       body: { branchId, code: 'PRJ-1', name: 'برج التقنية', partyId: clientId, contractValue: '1000000', retentionPct: '5' },
     });
     projectId = body(project).id;
-    const cash = await api(ctx.server, 'post', '/api/v1/cash-locations', { token: actor.token, body: { branchId, kind: 'safe', name: 'الخزينة الرئيسية' } });
+    // The safe must carry its ledger account: the payment voucher credits it (CASH_ACCOUNT_REQUIRED otherwise).
+    const safeAccount = await api(ctx.server, 'post', '/api/v1/accounts', {
+      token: actor.token,
+      body: { code: '1211', nameAr: 'الخزينة الرئيسية', type: 'asset' },
+    });
+    expect(safeAccount.status, JSON.stringify(safeAccount.body)).toBe(201);
+    const cash = await api(ctx.server, 'post', '/api/v1/cash-locations', {
+      token: actor.token,
+      body: { branchId, kind: 'safe', name: 'الخزينة الرئيسية', accountId: body(safeAccount).id },
+    });
+    expect(cash.status, JSON.stringify(cash.body)).toBe(201);
     cashLocationId = body(cash).id;
   }, 240_000);
 
@@ -123,14 +157,22 @@ describe('contractor contracts, payments and offers', () => {
     // Approve → pay: the money leaves through a draft treasury voucher, not a shadow ledger.
     await api(ctx.server, 'post', `/api/v1/contracting/payments/${payment.id}/approve`, { token: actor.token, body: {} });
     const paid = await api(ctx.server, 'post', `/api/v1/contracting/payments/${payment.id}/pay`, { token: actor.token, body: { cashLocationId } });
-    expect(body(paid).status).toBe('paid');
+    expect(body(paid).status, JSON.stringify(paid.body)).toBe('paid');
     const voucherId = body(paid).voucherId;
     expect(voucherId).toBeTruthy();
     const voucher = await api(ctx.server, 'get', `/api/v1/vouchers/${voucherId}`, { token: actor.token });
     expect(body(voucher).kind).toBe('payment');
     expect(body(voucher).subtype).toBe('supplier');
-    expect(body(voucher).status).toBe('draft');
+    // ACC-058 (R19 → remediation): «صرف» is a real payment — the voucher is posted with its
+    // journal (Dr مقاولو الباطن / Cr الخزينة), not left as a draft that moved no money.
+    expect(body(voucher).status, JSON.stringify(voucher.body)).toBe('posted');
+    expect(body(voucher).journalEntryId).toBeTruthy();
     expect(String(body(voucher).amount)).toBe('80000.0000');
+    const journal = await api(ctx.server, 'get', `/api/v1/journal-entries/${body(voucher).journalEntryId}`, { token: actor.token });
+    expect(journal.status, JSON.stringify(journal.body)).toBe(200);
+    const lines = (body(journal).lines ?? []) as Array<{ accountCode: string; debit: string; credit: string }>;
+    expect(lines.find((line) => line.accountCode === '2110')?.debit).toBe('80000.0000');
+    expect(lines.find((line) => line.accountCode === '1211')?.credit).toBe('80000.0000');
 
     const after = await api(ctx.server, 'get', `/api/v1/contracting/contracts/${contractId}`, { token: actor.token });
     expect(body(after).certified).toBe('100000.0000');
