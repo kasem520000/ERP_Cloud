@@ -361,7 +361,16 @@ export class InventoryService {
         unitId,
         factor: factor.toFixed(6),
         unitCost: unitCost.toFixed(4),
-        totalCost: baseQuantity.mul(unitCost).toFixed(4),
+        /**
+         * ACC-191 (R33): the movement carries the value the balance actually moved by. With the
+         * ACC-116 rebuild that is «receipt cost + cost correction» (24.50 for a 24.00 receipt that
+         * fills two units owed at 12.25) — the ledger got the correction (Dr المخزون / Cr تكلفة
+         * المبيعات 0.50) and the balance got it, but the movement row kept 24.00, so Σ movements ran
+         * 0.50 below `stock_balances` and the income statement's «بضاعة آخر المدة» (summed from the
+         * movements) disagreed with the balance sheet by the same amount. Everywhere else the two
+         * figures are identical.
+         */
+        totalCost: (line.direction === 'in' ? nextValue.minus(currentValue) : currentValue.minus(nextValue)).toFixed(4),
         costing: line.costing ?? (line.direction === 'in' ? 'inWithCost' : 'outAtAvg'),
         lotId: line.lotId,
         serialId: line.serialId,

@@ -150,6 +150,24 @@ const lineOf = (je, c, side) => { const l = (je && je.lines || []).find((x) => x
   const receivedValue = r2Txn.reduce((s, t) => s + Number(t.total_cost), 0);
   check('AF06d', 'value neutrality: Σ receipt movements = sent movement (4 dp), 1270003 is back to its pre-transfer balance, WH10 holds 7 units at the sending cost', [n4(sentValue), n4(transit0), '7.0000', n4(sentValue)], [n4(receivedValue), n4(await gl(TRANSIT)), (await bal(P10, WH10)).quantity, n4((await bal(P10, WH10)).value)], `sent=${n4(sentValue)} received=${n4(receivedValue)} transit before=${n4(transit0)} after=${n4(await gl(TRANSIT))}`);
 
+  // ───────── AF07 ACC-191: after a negative-stock episode Σ movements (value) = stock_balances.value ─────────
+  const negBefore = await L.one(`select value from tenant_settings where tenant_id = $1 and key = 'allow_negative_stock'`, [S.tenant]);
+  const negOn = await L.api('R33-AF07-negative-on', 'PUT', '/settings/allow_negative_stock', { value: true });
+  const whB = await bal(P10, WH10);
+  const outQty = String(Number(whB.quantity) + 2);
+  const sov7 = await L.api('R33-AF07-stock-out-below-zero', 'POST', '/inventory/vouchers', { branchId: S.branch, warehouseId: WH10, kind: 'stock_out', voucherDate: TODAY, reason: 'R33 AF07 صرف تحت الصفر', lines: [{ itemId: P10, qty: outQty }] });
+  const sov7p = sov7.data ? await L.api('R33-AF07-stock-out-below-zero-post', 'POST', `/inventory/vouchers/${sov7.data.id}/post`, { allowNegative: true }) : { status: null };
+  const owed = await bal(P10, WH10);
+  const fill = await pi('R33-AF07-receipt-fills-hole-2x9', [pline(P10, '2', '9')], { warehouseId: WH10 });
+  const fillPost = fill.data ? await post('R33-AF07-receipt-post', fill.data.id) : { status: null };
+  const filled = await bal(P10, WH10);
+  const sumMoves = await L.one(`select coalesce(sum(case when direction = 'in' then total_cost else -total_cost end), 0)::text v, coalesce(sum(case when direction = 'in' then base_qty else -base_qty end), 0)::text q from inventory_transactions where tenant_id = $1 and item_id = $2 and warehouse_id = $3`, [S.tenant, P10, WH10]);
+  const fillTxn = fill.data ? await L.one(`select qty::text, unit_cost::text, total_cost::text, metadata from inventory_transactions where tenant_id = $1 and doc_id = $2`, [S.tenant, fill.data.id]) : null;
+  const corr = fill.data ? (await jeOf(fill.data.id)).find((e) => e.source_type === 'negative_stock_correction') : null;
+  const negRestore = await L.api('R33-AF07-negative-restore', 'PUT', '/settings/allow_negative_stock', { value: negBefore ? negBefore.value === true || negBefore.value === 'true' : false });
+  check('AF07a', 'ACC-116 replay on WH10: out below zero (−2 owed at the provisional average), receipt 2 × 9 rebuilds the balance to exactly zero and books the cost correction', [200, 201, 201, '-2.0000', 201, 201, '0.0000', '0.0000', true], [negOn.status, sov7.status, sov7p.status, owed.quantity, fill.status, fillPost.status, filled.quantity, n4(filled.value), Boolean(corr)], `${code(sov7p) || ''} ${code(fillPost) || ''} owedValue=${owed.value} corr=${corr && corr.lines && JSON.stringify(corr.lines).slice(0, 120)}`);
+  check('AF07b', 'ACC-191 the receipt movement carries the value the balance moved by (receipt cost + correction) so Σ movements = stock_balances (qty and value) — the movement-based «بضاعة آخر المدة» equals the balance sheet', [filled.quantity, n4(filled.value), true, 200], [n4(sumMoves.q), n4(sumMoves.v), fillTxn ? n4(fillTxn.total_cost) === n4(Number(owed.value) * -1) : null, negRestore.status], `receipt txn=${JSON.stringify(fillTxn)}`);
+
   L.snapshot(`R33-DB-${RUN}-101-probe10-final`);
   fs.writeFileSync(L.out + `/R33-probe10-${RUN}-results.json`, JSON.stringify(results, null, 2));
   const pass = results.filter((r) => r.ok).length;

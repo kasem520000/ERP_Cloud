@@ -288,6 +288,13 @@ describe('R33 — inventory policies, lots, bins and partial-return proration', 
     expect(lines).toContainEqual({ accountId: accountIds['3200004'], debit: '0.0000', credit: '0.5000' });
     // GL inventory moved by the real value delta (+24.50), not by the invoice cost alone (+24.00)
     expect((await glBalance('1270001')).minus(inventoryBefore).toFixed(4)).toBe('24.5000');
+    // ACC-191: the movement ledger carries the same +24.50, so Σ movements = balance (0.0000) and the
+    // income statement's closing stock (summed from movements) agrees with the balance sheet
+    const card = await req('get', `/reports/item-movement-summary?from=2000-01-01&to=2100-01-01&warehouseId=${warehouseId}`);
+    expect(card.status).toBe(200);
+    const cardRow = rows(card.body).find((r) => String(r.sku).startsWith('R116-')) as Record<string, unknown> | undefined;
+    expect(cardRow, JSON.stringify(rows(card.body).map((r) => r.sku))).toBeDefined();
+    expect(new Decimal(String(cardRow?.in_value)).minus(String(cardRow?.out_value)).toFixed(4)).toBe('0.0000');
 
     // the next receipt averages cleanly — no leak from the episode
     await postedPurchase([{ itemId, quantity: '5', unitPrice: '10' }]);
