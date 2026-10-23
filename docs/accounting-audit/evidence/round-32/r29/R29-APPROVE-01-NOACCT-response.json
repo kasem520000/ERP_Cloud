@@ -1,0 +1,24 @@
+{
+  "status": 500,
+  "method": "POST",
+  "url": "http://127.0.0.1:3005/api/v1/van-sales/load-orders/01a16796-e1b2-77aa-b111-00c8d04e193b/approve-closing",
+  "request": {
+    "returnedQty": "0.0000",
+    "damagedQty": "1.0000",
+    "collectedCash": "109.2500",
+    "vehicleCountQty": "4.0000",
+    "damageInspected": true,
+    "salaryDeductionApproved": true,
+    "notes": "R29 اعتماد مع تحميل العجز — قبل إنشاء حساب الموظف",
+    "settleStockAdjustment": true,
+    "surplusAcknowledged": false
+  },
+  "body": {
+    "type": "about:blank",
+    "title": "Internal error",
+    "status": 500,
+    "code": "INTERNAL",
+    "detail": "An unexpected error occurred",
+    "traceId": "01a1679e-f5cd-759a-9198-d806da1c9201"
+  }
+}

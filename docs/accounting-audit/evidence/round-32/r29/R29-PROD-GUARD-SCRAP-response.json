@@ -1,0 +1,6 @@
+{
+  "clientSide": true,
+  "buttonDisabled": false,
+  "httpWritesDuringStep": 0,
+  "note": "no server round-trip expected"
+}

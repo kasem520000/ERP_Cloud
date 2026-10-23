@@ -1,0 +1,32 @@
+{
+  "status": 422,
+  "method": "POST",
+  "url": "http://127.0.0.1:3005/api/v1/van-sales/documents",
+  "request": {
+    "loadOrderId": "01a16796-e1b2-77aa-b111-00c8d04e193b",
+    "customerName": "زبون نقدي R29 (خصم)",
+    "invoiceMode": "zatca_tax",
+    "paymentMethod": "cash",
+    "cashLocationId": "01a16790-58e4-767f-8a9e-d49653d519ff",
+    "soldQty": "10",
+    "bonusQty": "0",
+    "unitPrice": "5",
+    "discountAmount": "5.00",
+    "discountReason": "R29 خصم 10% بلا سقف عميل",
+    "notes": "R29 D4",
+    "idempotencyKey": "van-document:a0ac38663bf6fd80:9c179a84afb44669"
+  },
+  "body": {
+    "type": "about:blank",
+    "title": "Validation failed",
+    "status": 422,
+    "code": "VALIDATION_FAILED",
+    "detail": "منع الخصم غير المصرح به: قيمة الخصم (5.00 ريال — 10.0%) تتجاوز السقف المسموح للعميل (0.0%). يتطلب اعتماد صاحب المصنع أو المحاسب.",
+    "traceId": "01a1679a-9d2a-70bd-a325-5c0aad70f059",
+    "errors": [
+      {
+        "field": "discountAmount"
+      }
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "reviewedAt": "2026-10-23T07:06:40.303Z",
+  "screenshot": "R29-PROD-GUARD-NOINPUT-before.png",
+  "approval": "Agent reviewed screenshot; expecting a client-side refusal (no HTTP write)"
+}

@@ -1,0 +1,34 @@
+{
+  "method": "POST",
+  "path": "/van-sales/production-batches",
+  "requests": [
+    {
+      "itemId": "01a16794-156b-701c-a1cf-1c0c462ce6eb",
+      "warehouseId": "01a16790-58e2-76cc-a34d-ed53f2f401fa",
+      "productionDate": "2026-10-23",
+      "producedQty": "50.0000",
+      "batchNo": "BATCH-R29-01",
+      "notes": "R29 حارس الخادم: بلا مكوّنات",
+      "idempotencyKey": "r29-prod-guard-noinput"
+    }
+  ],
+  "results": [
+    {
+      "status": 422,
+      "body": {
+        "type": "about:blank",
+        "title": "Production batch needs a material source",
+        "status": 422,
+        "code": "VAN_PRODUCTION_INPUT_REQUIRED",
+        "detail": "دفعة الإنتاج تحتاج مصدراً للمواد: اربطها بقائمة مواد (BOM) أو أدخل المكوّنات المصروفة (الصنف والكمية). لا تُسجَّل دفعة إنتاج بلا مواد لأنها تُدخل مخزوناً بلا مصدر ولا تكلفة، والوارد من خارج المنشأة موضعه إذن إدخال مخزني رسمي أو تسوية جرد معتمدة.",
+        "traceId": "01a16795-8dba-7682-8858-5ea366e6fa92",
+        "errors": [
+          {
+            "field": "components",
+            "itemId": "01a16794-156b-701c-a1cf-1c0c462ce6eb"
+          }
+        ]
+      }
+    }
+  ]
+}
