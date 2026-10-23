@@ -1,0 +1,29 @@
+{
+  "id": "R33-Z09-profile-br8-partial-48",
+  "at": "2026-10-23T21:24:22.340Z",
+  "method": "POST",
+  "path": "/branch-posting-profiles",
+  "status": 201,
+  "request": {
+    "branchId": "01a16aa2-aa04-7477-a35c-1a7f7a8346bc",
+    "docType": "*",
+    "mapping": {
+      "version": 1,
+      "cashAccountId": "01a16a85-7d72-7321-9bd9-d1afef111bba"
+    }
+  },
+  "response": {
+    "data": {
+      "id": "01a16aa3-52e8-7343-8578-5748f306b4b9",
+      "branchId": "01a16aa2-aa04-7477-a35c-1a7f7a8346bc",
+      "docType": "*",
+      "mapping": {
+        "version": 1,
+        "cashAccountId": "01a16a85-7d72-7321-9bd9-d1afef111bba"
+      },
+      "version": 2,
+      "createdAt": "2026-10-23T21:20:50.916Z",
+      "updatedAt": "2026-10-23T21:24:23.086Z"
+    }
+  }
+}

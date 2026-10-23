@@ -1,0 +1,26 @@
+{
+  "id": "R33-Z04-fx-usd-sar-47",
+  "at": "2026-10-23T21:22:43.052Z",
+  "method": "POST",
+  "path": "/fx-rates",
+  "status": 422,
+  "request": {
+    "fromCode": "USD",
+    "toCode": "SAR",
+    "rate": "3.75",
+    "effectiveFrom": "2026-10-23"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Validation failed",
+    "status": 422,
+    "code": "VALIDATION_FAILED",
+    "detail": "A rate for USD→SAR on 2026-10-23 already exists",
+    "traceId": "01a16aa5-08ed-76f8-b2f2-8398a7910434",
+    "errors": [
+      {
+        "field": "effectiveFrom"
+      }
+    ]
+  }
+}

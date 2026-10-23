@@ -1,0 +1,23 @@
+{
+  "id": "R33-Z07-reopen-blank-reason-45",
+  "at": "2026-10-23T21:17:35.721Z",
+  "method": "POST",
+  "path": "/fiscal-periods/01a16a85-7db4-7237-ab27-1a758c50c891/reopen",
+  "status": 422,
+  "request": {
+    "reason": "   "
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "REOPEN_REASON_REQUIRED",
+    "detail": "Reopen reason is required",
+    "traceId": "01a16aa0-586a-72e3-979e-aa6c4c56d62c",
+    "errors": [
+      {
+        "field": "reason"
+      }
+    ]
+  }
+}

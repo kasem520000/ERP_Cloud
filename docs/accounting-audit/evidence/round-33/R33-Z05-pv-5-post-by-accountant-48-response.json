@@ -1,0 +1,21 @@
+{
+  "id": "R33-Z05-pv-5-post-by-accountant-48",
+  "at": "2026-10-23T21:24:08.439Z",
+  "method": "POST",
+  "path": "/vouchers/01a16aa6-5673-76c9-be80-06a8aacd3cd1/post",
+  "status": 202,
+  "request": {},
+  "response": {
+    "type": "about:blank",
+    "title": "Approval required",
+    "status": 202,
+    "code": "APPROVAL_REQUIRED",
+    "detail": "This document was submitted for approval and has not been posted",
+    "traceId": "01a16aa6-5678-70a8-bc1a-8f9e0380acca",
+    "errors": [
+      {
+        "requestId": "01a16aa6-5982-73bf-b071-2f9ca4eb557e"
+      }
+    ]
+  }
+}

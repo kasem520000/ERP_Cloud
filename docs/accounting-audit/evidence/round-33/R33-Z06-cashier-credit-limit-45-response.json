@@ -1,0 +1,24 @@
+{
+  "id": "R33-Z06-cashier-credit-limit-45",
+  "at": "2026-10-23T21:17:32.567Z",
+  "method": "PUT",
+  "path": "/parties/01a16a9f-d1ec-76ac-b523-ac8d48a66bde",
+  "status": 403,
+  "request": {
+    "creditLimit": "1000000"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Forbidden",
+    "status": 403,
+    "code": "FORBIDDEN",
+    "detail": "permission parties.manage required",
+    "traceId": "01a16aa0-4c18-7575-9752-bf9f163b4dda",
+    "errors": [
+      {
+        "field": "permission",
+        "message": "parties.manage"
+      }
+    ]
+  }
+}

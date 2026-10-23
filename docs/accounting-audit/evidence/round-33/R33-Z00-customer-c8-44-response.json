@@ -1,0 +1,39 @@
+{
+  "id": "R33-Z00-customer-c8-44",
+  "at": "2026-10-23T21:16:40.953Z",
+  "method": "POST",
+  "path": "/parties",
+  "status": 201,
+  "request": {
+    "kind": "customer",
+    "name": "عميل Z8 44"
+  },
+  "response": {
+    "id": "01a16a9f-8583-70a7-b16e-4ed1a64f3ecb",
+    "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+    "code": "000002",
+    "kind": "customer",
+    "name": "عميل Z8 44",
+    "legalName": null,
+    "taxNo": null,
+    "nationalId": null,
+    "address": null,
+    "phone": null,
+    "email": null,
+    "receivableAccountId": null,
+    "payableAccountId": null,
+    "creditLimit": "0.0000",
+    "isOwner": false,
+    "isContractor": false,
+    "branchId": null,
+    "paymentMethodId": null,
+    "createdAt": "2026-10-23T21:16:41.734Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1,
+    "deletedAt": null,
+    "deletedBy": null,
+    "customFields": {}
+  }
+}

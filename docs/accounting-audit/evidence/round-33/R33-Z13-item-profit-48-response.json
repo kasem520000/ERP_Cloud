@@ -1,0 +1,130 @@
+{
+  "id": "R33-Z13-item-profit-48",
+  "at": "2026-10-23T21:24:36.130Z",
+  "method": "GET",
+  "path": "/reports/item-profit?from=2026-10-23&to=2026-10-23",
+  "status": 200,
+  "response": {
+    "key": "item-profit",
+    "titleAr": "أرباح الأصناف",
+    "group": "sales",
+    "hintAr": null,
+    "chart": null,
+    "params": {
+      "from": "2026-10-23",
+      "to": "2026-10-23"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "sku",
+        "labelAr": "الرمز",
+        "type": "text"
+      },
+      {
+        "key": "item",
+        "labelAr": "الصنف",
+        "type": "text"
+      },
+      {
+        "key": "quantity",
+        "labelAr": "الكمية",
+        "type": "qty"
+      },
+      {
+        "key": "revenue",
+        "labelAr": "الإيراد",
+        "type": "money"
+      },
+      {
+        "key": "cost_total",
+        "labelAr": "التكلفة",
+        "type": "money"
+      },
+      {
+        "key": "profit",
+        "labelAr": "الربح",
+        "type": "money"
+      },
+      {
+        "key": "margin",
+        "labelAr": "الهامش",
+        "type": "percent"
+      }
+    ],
+    "rows": [
+      {
+        "sku": "P8-R33-46",
+        "item": "P8 46",
+        "quantity": "5.0000",
+        "revenue": "62.0600",
+        "cost_total": "39.6500",
+        "profit": "22.4100",
+        "margin": "36.11"
+      },
+      {
+        "sku": "P8-R33-45",
+        "item": "P8 45",
+        "quantity": "5.0000",
+        "revenue": "62.0600",
+        "cost_total": "39.6500",
+        "profit": "22.4100",
+        "margin": "36.11"
+      },
+      {
+        "sku": "P8-R33-47",
+        "item": "P8 47",
+        "quantity": "5.0000",
+        "revenue": "62.0600",
+        "cost_total": "39.6500",
+        "profit": "22.4100",
+        "margin": "36.11"
+      },
+      {
+        "sku": "P8-R33-48",
+        "item": "P8 48",
+        "quantity": "5.0000",
+        "revenue": "62.0600",
+        "cost_total": "39.6500",
+        "profit": "22.4100",
+        "margin": "36.11"
+      },
+      {
+        "sku": "P7-R33-43",
+        "item": "P7-R33 43",
+        "quantity": "3.0000",
+        "revenue": "54.0000",
+        "cost_total": "36.7500",
+        "profit": "17.2500",
+        "margin": "31.94"
+      },
+      {
+        "sku": "L7-R33-43",
+        "item": "L7-R33 43",
+        "quantity": "1.0000",
+        "revenue": "20.0000",
+        "cost_total": "10.0000",
+        "profit": "10.0000",
+        "margin": "50.00"
+      },
+      {
+        "sku": "S7-R33-43",
+        "item": "S7-R33 43",
+        "quantity": "0.0000",
+        "revenue": "0.0000",
+        "cost_total": "0.0000",
+        "profit": "0.0000",
+        "margin": "0"
+      }
+    ],
+    "totals": {
+      "quantity": "24.00",
+      "revenue": "322.24",
+      "cost_total": "205.35",
+      "profit": "116.89"
+    },
+    "grandTotal": [],
+    "rowCount": 7,
+    "generatedAt": "2026-10-23T21:24:36.920Z"
+  }
+}

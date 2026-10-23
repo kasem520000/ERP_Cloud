@@ -1,0 +1,14 @@
+{
+  "id": "R33-Z07-close-nov-46",
+  "at": "2026-10-23T21:20:42.400Z",
+  "method": "POST",
+  "path": "/fiscal-periods/01a16a85-7db4-7237-ab27-1a758c50c891/close",
+  "status": 201,
+  "request": {},
+  "response": {
+    "data": {
+      "id": "01a16a85-7db4-7237-ab27-1a758c50c891",
+      "status": "closed"
+    }
+  }
+}

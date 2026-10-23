@@ -1,0 +1,32 @@
+{
+  "id": "R33-Z08-cost-center-cc8-47",
+  "at": "2026-10-23T21:23:01.611Z",
+  "method": "POST",
+  "path": "/cost-centers",
+  "status": 201,
+  "request": {
+    "code": "CC8-47",
+    "nameAr": "مركز Z8 47",
+    "nameEn": "CC Z8 47"
+  },
+  "response": {
+    "data": {
+      "id": "01a16aa5-5477-723f-b81d-3826513fff7b",
+      "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+      "code": "CC8-47",
+      "nameAr": "مركز Z8 47",
+      "nameEn": "CC Z8 47",
+      "parentId": null,
+      "branchId": null,
+      "createdAt": "2026-10-23T21:23:02.392Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "deletedAt": null,
+      "deletedBy": null,
+      "legacySource": null,
+      "legacyId": null
+    }
+  }
+}

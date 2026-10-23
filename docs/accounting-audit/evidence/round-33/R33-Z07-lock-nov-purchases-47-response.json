@@ -1,0 +1,17 @@
+{
+  "id": "R33-Z07-lock-nov-purchases-47",
+  "at": "2026-10-23T21:22:59.248Z",
+  "method": "POST",
+  "path": "/fiscal-periods/01a16a85-7db4-7237-ab27-1a758c50c891/modules/purchases/lock",
+  "status": 201,
+  "request": {},
+  "response": {
+    "data": {
+      "periodId": "01a16a85-7db4-7237-ab27-1a758c50c891",
+      "module": "purchases",
+      "locked": true,
+      "lockedAt": "2026-10-23T21:23:00.020Z",
+      "lockedBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f"
+    }
+  }
+}

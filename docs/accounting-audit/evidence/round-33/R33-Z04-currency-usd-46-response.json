@@ -1,0 +1,27 @@
+{
+  "id": "R33-Z04-currency-usd-46",
+  "at": "2026-10-23T21:20:28.616Z",
+  "method": "POST",
+  "path": "/currencies",
+  "status": 422,
+  "request": {
+    "code": "USD",
+    "nameAr": "دولار أمريكي",
+    "nameEn": "US Dollar",
+    "minorUnits": 2,
+    "isActive": true
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Validation failed",
+    "status": 422,
+    "code": "VALIDATION_FAILED",
+    "detail": "Currency 'USD' is already enabled",
+    "traceId": "01a16aa2-fbc9-7499-94d3-15f35542165a",
+    "errors": [
+      {
+        "field": "code"
+      }
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "id": "R33-Z05-workflow-deactivate-46",
+  "at": "2026-10-23T21:20:39.354Z",
+  "method": "PATCH",
+  "path": "/approval-workflows/01a16aa3-13d9-70b1-ad0f-2fac62bde1e6",
+  "status": 200,
+  "request": {
+    "entity": "voucher",
+    "name": "R33 Z05 سندات ≥ 1 46 (معطّل)",
+    "is_active": false,
+    "steps": [
+      {
+        "step_order": 1,
+        "approver_role": "Accountant",
+        "condition": {
+          "min_amount": "1"
+        },
+        "action": "approve",
+        "is_required": true
+      }
+    ]
+  },
+  "response": {
+    "id": "01a16aa3-13d9-70b1-ad0f-2fac62bde1e6",
+    "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+    "entity": "voucher",
+    "name": "R33 Z05 سندات ≥ 1 46 (معطّل)",
+    "isActive": false,
+    "steps": [
+      {
+        "id": "01a16aa3-2919-765d-9086-1e14f0f726e1",
+        "workflowId": "01a16aa3-13d9-70b1-ad0f-2fac62bde1e6",
+        "stepOrder": 1,
+        "approverRole": "Accountant",
+        "approverUserId": null,
+        "condition": {
+          "min_amount": "1"
+        },
+        "action": "approve",
+        "isRequired": true
+      }
+    ],
+    "createdAt": "2026-10-23T21:20:34.775Z",
+    "updatedAt": "2026-10-23T21:20:40.214Z"
+  }
+}

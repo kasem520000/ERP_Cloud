@@ -1,0 +1,34 @@
+{
+  "id": "R33-Z01-pi-3x1.03-44",
+  "at": "2026-10-23T21:16:43.324Z",
+  "method": "POST",
+  "path": "/purchase-invoices",
+  "status": 500,
+  "request": {
+    "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+    "warehouseId": "01a16a85-7d3b-703a-934b-daeedd7a2267",
+    "partyId": "01a16a85-7d48-76df-9259-580a9fab43df",
+    "kind": "purchase",
+    "supplierReferenceNo": "R33-Z01-pi-3x1.03-44",
+    "supplierReferenceDate": "2026-10-23",
+    "priceIncludesVat": false,
+    "autoPost": false,
+    "lines": [
+      {
+        "quantity": "3",
+        "unitPrice": "1.03",
+        "discountRate": "0",
+        "taxRate": "15",
+        "taxGroupId": "01a16a85-7da0-71ee-8bbe-e1341879ad4a"
+      }
+    ]
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Internal error",
+    "status": 500,
+    "code": "INTERNAL",
+    "detail": "An unexpected error occurred",
+    "traceId": "01a16a9f-8bbd-77c9-807a-6407e3f71e48"
+  }
+}

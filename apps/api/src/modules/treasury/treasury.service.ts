@@ -2907,6 +2907,9 @@ export class TreasuryService implements OnModuleInit {
                 eq(journalEntryLines.tenantId, tenantId),
                 eq(journalEntryLines.accountId, loc.accountId),
                 eq(journalEntries.status, 'posted'),
+                // ACC-060 follow-up (R33): foreign-currency lines live on their own currency row of the
+                // sub-ledger (see bumpBalance at posting time) — the SAR row must not absorb their base amount.
+                or(isNull(journalEntryLines.currencyCode), eq(journalEntryLines.currencyCode, 'SAR')),
               ),
             );
           computedBalance = money(glSum?.totalDebit ?? '0').minus(glSum?.totalCredit ?? '0').toFixed(4);

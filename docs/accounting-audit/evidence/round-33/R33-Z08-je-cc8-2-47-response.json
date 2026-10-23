@@ -1,0 +1,53 @@
+{
+  "id": "R33-Z08-je-cc8-2-47",
+  "at": "2026-10-23T21:23:02.417Z",
+  "method": "POST",
+  "path": "/journal-entries",
+  "status": 201,
+  "request": {
+    "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+    "date": "2026-10-23",
+    "description": "R33 Z08 مصروف على CC8",
+    "lines": [
+      {
+        "accountId": "01a16a85-7d94-70f9-b6d2-9d43cb0e2abb",
+        "debit": "2.00",
+        "credit": "0",
+        "costCenterId": "01a16aa5-5477-723f-b81d-3826513fff7b"
+      },
+      {
+        "accountId": "01a16a85-7d93-7719-ae54-4f15bb126151",
+        "debit": "0",
+        "credit": "2.00"
+      }
+    ]
+  },
+  "response": {
+    "data": {
+      "id": "01a16aa5-570d-748b-8786-7e0a005d9a6f",
+      "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+      "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+      "fiscalPeriodId": "01a16a85-7db3-7208-9135-7eb2e80b7248",
+      "date": "2026-10-23",
+      "number": "JE-000054",
+      "entryTime": null,
+      "isVat": false,
+      "kind": "manual",
+      "status": "posted",
+      "description": "R33 Z08 مصروف على CC8",
+      "sourceType": null,
+      "sourceId": null,
+      "reversalOf": null,
+      "idempotencyKey": null,
+      "postedAt": "2026-10-23T21:23:03.054Z",
+      "postedBy": null,
+      "createdAt": "2026-10-23T21:23:03.049Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "legacySource": null,
+      "legacyId": null
+    }
+  }
+}

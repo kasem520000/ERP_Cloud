@@ -1,0 +1,22 @@
+{
+  "id": "R33-Z03-custom-report-run-45",
+  "at": "2026-10-23T21:17:19.062Z",
+  "method": "POST",
+  "path": "/custom-reports/undefined/run",
+  "status": 400,
+  "request": {},
+  "response": {
+    "type": "about:blank",
+    "title": "Identifier is not a valid UUID",
+    "status": 400,
+    "code": "INVALID_ID",
+    "detail": "The identifier \"id\" is not a valid UUID",
+    "traceId": "01a16aa0-1757-7153-ab46-6ca6d470292e",
+    "errors": [
+      {
+        "field": "id",
+        "message": "Expected a UUID"
+      }
+    ]
+  }
+}

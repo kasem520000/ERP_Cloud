@@ -1,0 +1,28 @@
+{
+  "id": "R33-Z14-reconciliation-to-47",
+  "at": "2026-10-23T21:23:17.341Z",
+  "method": "GET",
+  "path": "/treasury/bank-reconciliation?bank_account_id=01a16aa5-88b3-74c0-9355-cd7952feeb13&from=2026-10-23&to=2026-10-23",
+  "status": 200,
+  "response": {
+    "data": {
+      "bankAccountId": "01a16aa5-88b3-74c0-9355-cd7952feeb13",
+      "bankName": "بنك Z8 47",
+      "periodFrom": "2026-10-23",
+      "periodTo": "2026-10-23",
+      "currency": "SAR",
+      "bankMovement": "245.0000",
+      "bankBalance": "1245.0000",
+      "ledgerBalance": "180000.0000",
+      "ledgerSource": "journal ledger",
+      "difference": "-178755.0000",
+      "matchedMovement": "0.0000",
+      "unmatchedMovement": "245.0000",
+      "matchedLines": 0,
+      "pendingLines": 2,
+      "ignoredLines": 0,
+      "statementCount": 1,
+      "lineCount": 2
+    }
+  }
+}

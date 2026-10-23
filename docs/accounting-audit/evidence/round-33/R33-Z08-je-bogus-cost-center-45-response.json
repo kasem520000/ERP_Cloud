@@ -1,0 +1,39 @@
+{
+  "id": "R33-Z08-je-bogus-cost-center-45",
+  "at": "2026-10-23T21:17:38.894Z",
+  "method": "POST",
+  "path": "/journal-entries",
+  "status": 404,
+  "request": {
+    "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+    "date": "2026-10-23",
+    "description": "R33 Z08 مركز غير موجود",
+    "lines": [
+      {
+        "accountId": "01a16a85-7d94-70f9-b6d2-9d43cb0e2abb",
+        "debit": "1.00",
+        "credit": "0",
+        "costCenterId": "01a16504-0000-7000-8000-000000000000"
+      },
+      {
+        "accountId": "01a16a85-7d93-7719-ae54-4f15bb126151",
+        "debit": "0",
+        "credit": "1.00"
+      }
+    ]
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Cost centre not found",
+    "status": 404,
+    "code": "COST_CENTER_NOT_FOUND",
+    "detail": "The cost centre does not belong to this tenant",
+    "traceId": "01a16aa0-64cf-7416-94bf-f48bb89ff53a",
+    "errors": [
+      {
+        "field": "costCenterId",
+        "costCenterId": "01a16504-0000-7000-8000-000000000000"
+      }
+    ]
+  }
+}

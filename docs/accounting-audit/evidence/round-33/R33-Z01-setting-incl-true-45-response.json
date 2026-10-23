@@ -1,0 +1,16 @@
+{
+  "id": "R33-Z01-setting-incl-true-45",
+  "at": "2026-10-23T21:17:10.231Z",
+  "method": "PUT",
+  "path": "/settings/pricing.price_includes_vat",
+  "status": 200,
+  "request": {
+    "value": true
+  },
+  "response": {
+    "data": {
+      "key": "pricing.price_includes_vat",
+      "value": true
+    }
+  }
+}

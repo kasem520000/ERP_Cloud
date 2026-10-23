@@ -1,0 +1,38 @@
+{
+  "id": "R33-Z14-statement-import-46",
+  "at": "2026-10-23T21:21:05.419Z",
+  "method": "POST",
+  "path": "/treasury/bank-statements/import",
+  "status": 201,
+  "request": {
+    "bankAccountId": "01a16aa3-8b85-7109-a6b5-d0e9536d05f7",
+    "csv": "date,description,reference,amount,balance\n2026-10-23,إيداع عميل,Z14-1,250.00,1250.00\n2026-10-23,رسوم بنكية,Z14-2,-5.00,1245.00",
+    "fileName": "z14-46.csv",
+    "openingBalance": "1000"
+  },
+  "response": {
+    "data": {
+      "statement": {
+        "id": "01a16aa3-8e91-735b-9dbe-266d00c92989",
+        "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+        "bankAccountId": "01a16aa3-8b85-7109-a6b5-d0e9536d05f7",
+        "fileId": null,
+        "periodFrom": "2026-10-23",
+        "periodTo": "2026-10-23",
+        "openingBalance": "1000.0000",
+        "closingBalance": "1245.0000",
+        "status": "processed",
+        "sourceFileName": "z14-46.csv",
+        "rowCount": 2,
+        "error": null,
+        "processedAt": "2026-10-23T21:21:06.196Z",
+        "createdAt": "2026-10-23T21:21:06.193Z",
+        "createdBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f",
+        "updatedAt": null,
+        "updatedBy": null,
+        "version": 1
+      },
+      "importedLines": 2
+    }
+  }
+}

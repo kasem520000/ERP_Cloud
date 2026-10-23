@@ -1,0 +1,21 @@
+{
+  "id": "R33-Z07-reopen-empty-body-45",
+  "at": "2026-10-23T21:17:34.946Z",
+  "method": "POST",
+  "path": "/fiscal-periods/01a16a85-7db4-7237-ab27-1a758c50c891/reopen",
+  "status": 422,
+  "request": {},
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "REOPEN_REASON_REQUIRED",
+    "detail": "Reopen reason is required",
+    "traceId": "01a16aa0-5563-735e-bd94-f398eeef5b80",
+    "errors": [
+      {
+        "field": "reason"
+      }
+    ]
+  }
+}

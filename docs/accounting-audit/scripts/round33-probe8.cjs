@@ -42,11 +42,17 @@ const twoDp = (v) => v != null && Number.isInteger(Math.round(Number(v) * 10000)
   const INV = '1270001', AP = '22111001', AR = '12310001', VATIN = '2222001', SAFE = '1211001', EXP = '3121004';
 
   // ───────── Z00 fixtures ─────────
-  const item = await L.api('R33-Z00-item-p8', 'POST', '/organization/catalog/items', { sku: `P8-R33-${RUN}`, nameAr: `P8 ${RUN}`, nameEn: `P8 ${RUN}`, categoryId: cat.id, baseUnitId: kg.id, kind: 'product', isActive: true, salePrice: '20', purchasePrice: '10' });
+  const item = await L.api('R33-Z00-item-p8', 'POST', '/organization/catalog/items', { sku: `P8-R33-${RUN}`, nameAr: `P8 ${RUN}`, nameEn: `P8 ${RUN}`, categoryId: cat.id, baseUnitId: kg.id, kind: 'stock', isActive: true, salePrice: '20', purchasePrice: '10', trackLot: false });
   const P8 = item.data && item.data.id;
-  const br8 = await L.api('R33-Z00-branch-br8', 'POST', '/branches', { code: `BR8-${RUN}`, nameAr: `فرع Z8 ${RUN}`, nameEn: `Branch Z8 ${RUN}` });
+  let br8 = await L.api('R33-Z00-branch-br8', 'POST', '/branches', { code: `BR8-${RUN}`, nameAr: `فرع Z8 ${RUN}`, nameEn: `Branch Z8 ${RUN}` });
+  // the demo plan caps the number of branches (USAGE_LIMIT_REACHED on re-runs) → reuse the BR8/WH8 pair of an earlier RUN
+  let reused = null;
+  if (br8.status === 409 && code(br8) === 'USAGE_LIMIT_REACHED') {
+    reused = await L.one(`select b.id branch_id, w.id warehouse_id from branches b join warehouses w on w.branch_id = b.id and w.code like 'WH8-%' where b.tenant_id = $1 and b.code like 'BR8-%' order by b.created_at desc limit 1`, [S.tenant]);
+    if (reused) br8 = { status: 201, data: { id: reused.branch_id }, reused: true };
+  }
   const BR8 = br8.data && br8.data.id;
-  const wh8 = await L.api('R33-Z00-warehouse-wh8', 'POST', '/warehouses', { branchId: BR8, code: `WH8-${RUN}`, name: `مستودع Z8 ${RUN}`, isActive: true });
+  const wh8 = reused ? { status: 201, data: { id: reused.warehouse_id } } : await L.api('R33-Z00-warehouse-wh8', 'POST', '/warehouses', { branchId: BR8, code: `WH8-${RUN}`, name: `مستودع Z8 ${RUN}`, isActive: true });
   const WH8 = wh8.data && wh8.data.id;
   const cust = await L.api('R33-Z00-customer-c8', 'POST', '/parties', { kind: 'customer', name: `عميل Z8 ${RUN}` });
   const C8 = cust.data && cust.data.id;
@@ -65,12 +71,12 @@ const twoDp = (v) => v != null && Number.isInteger(Math.round(Number(v) * 10000)
   check('Z01a', 'stock fixture: 10 × 10 + 15 % = 115.00 posted (P8 @ 10)', [201, 201, '115.00'], [pi0.status, pi0p.status, n2(pi0.data && pi0.data.total)], code(pi0) || code(pi0p) || '');
   const pi1 = await pi('R33-Z01-pi-3x1.03', [pline(P8, '3', '1.03')]);
   const pi1p = pi1.data ? await piPost('R33-Z01-pi-3x1.03-post', pi1.data.id) : { status: null };
-  const pi1Row = pi1.data ? await L.one(`select subtotal::text, tax_total::text, total::text from purchase_invoices where id = $1`, [pi1.data.id]) : {};
+  const pi1Row = (pi1.data ? await L.one(`select subtotal::text, tax_total::text, total::text from purchase_invoices where id = $1`, [pi1.data.id]) : null) || {};
   const pi1Je = pi1.data ? (await jeOf(pi1.data.id))[0] : null;
   check('Z01b', 'ACC-108 purchase 3 × 1.03 + 15 %: tax 0.46 / total 3.55 (was 0.4635 / 3.5535) — document and ledger', [201, '3.09', '0.46', '3.55', '0.46', '3.55'], [pi1p.status, n2(pi1Row.subtotal), n2(pi1Row.tax_total), n2(pi1Row.total), lineOf(pi1Je, VATIN, 'debit'), lineOf(pi1Je, AP, 'credit')], `${code(pi1) || code(pi1p) || ''} tax_total=${pi1Row.tax_total} total=${pi1Row.total}`);
   const si1 = await si('R33-Z01-si-2x-1.03', [sline('1', '1.03'), sline('1', '1.03')]);
   const si1p = si1.data ? await siPost('R33-Z01-si-2x-1.03-post', si1.data.id, { settlement: 'cash', settlementCashLocationId: S.safe }) : { status: null };
-  const si1Row = si1.data ? await L.one(`select subtotal::text, tax_total::text, total::text, paid_total::text from sales_invoices where id = $1`, [si1.data.id]) : {};
+  const si1Row = (si1.data ? await L.one(`select subtotal::text, tax_total::text, total::text, paid_total::text from sales_invoices where id = $1`, [si1.data.id]) : null) || {};
   const si1Je = si1.data ? (await jeOf(si1.data.id))[0] : null;
   const si1AllTwoDp = si1Je ? si1Je.lines.every((l) => twoDp(l.debit) && twoDp(l.credit)) : null;
   check('Z01c', 'ACC-108 cash sale 2 lines × 1.03 + 15 %: tax 0.30 / total 2.36 (was 2.369); every ledger line in halalas', [201, '0.30', '2.36', '2.36', true], [si1p.status, n2(si1Row.tax_total), n2(si1Row.total), n2(si1Row.paid_total), si1AllTwoDp], `${code(si1) || code(si1p) || ''} lines=${JSON.stringify(si1Je && si1Je.lines.map((l) => [l.code, l.debit, l.credit]))}`);
@@ -109,7 +115,7 @@ const twoDp = (v) => v != null && Number.isInteger(Math.round(Number(v) * 10000)
   check('Z02a', 'ACC-114 1 × 20 + excise 1 + 15 %: VAT 3.15 on 21, total 24.15; ledger Cr VAT 3.15 / Cr excise 1.00', [201, '3.15', '24.15', '3.15', '1.00'], [siExP.status, n2(siEx.data && siEx.data.taxTotal), n2(siEx.data && siEx.data.total), lineOf(exJe, VATIN, 'credit'), exciseCode ? lineOf(exJe, exciseCode, 'credit') : null], `${code(siEx) || code(siExP) || ''} excise account=${exciseCode}`);
 
   // ───────── Z03 ACC-117: custom report footer totals are exact decimals ─────────
-  const cr = await L.api('R33-Z03-custom-report-create', 'POST', '/custom-reports', { name: `R33 Z03 ${RUN}`, baseEntity: 'sales_invoice', columns: [{ key: 'number' }, { key: 'total', agg: 'sum' }, { key: 'tax_total', agg: 'sum' }], filters: [], chartType: 'table', isPublic: false });
+  const cr = await L.api('R33-Z03-custom-report-create', 'POST', '/custom-reports', { name: `R33 Z03 ${RUN}`, baseEntity: 'sales_invoice', columns: [{ key: 'number' }, { key: 'total', agg: 'sum' }, { key: 'taxTotal', agg: 'sum' }], filters: [], chartType: 'table', isPublic: false });
   const crRun = cr.data ? await L.api('R33-Z03-custom-report-run', 'POST', `/custom-reports/${cr.data.id}/run`, {}) : { status: null };
   const crTotals = crRun.data && (crRun.data.totals || (crRun.data.result && crRun.data.result.totals)) || {};
   const crRows = crRun.data && (crRun.data.rows || (crRun.data.result && crRun.data.result.rows)) || [];
@@ -151,7 +157,7 @@ const twoDp = (v) => v != null && Number.isInteger(Math.round(Number(v) * 10000)
     const pvRow = pv.data ? await L.one(`select status, number from vouchers where id = $1`, [pv.data.id]) : {};
     const req = pv.data ? await L.one(`select id, status, created_by from approval_requests where tenant_id = $1 and entity_type = 'voucher' and entity_id = $2 order by created_at desc limit 1`, [S.tenant, pv.data.id]) : null;
     check('Z05a', 'ACC-074 a payment voucher ≥ the workflow threshold → 202 APPROVAL_REQUIRED, stays draft, pending request row', [201, 201, 202, 'APPROVAL_REQUIRED', 'draft', 'pending'], [wf.status, pv.status, pvPost.status, code(pvPost), pvRow.status, req && req.status], `${code(wf) || ''} ${code(pv) || ''}`);
-    const selfApprove = req ? await L.api('R33-Z05-self-approve', 'POST', `/approvals/requests/${req.id}/approve`, { note: 'R33 Z05 self' }, { role: 'accountant' }) : { status: null };
+    const selfApprove = req ? await L.api('R33-Z05-self-approve', 'POST', `/approvals/requests/${req.id}/approve`, { comment: 'R33 Z05 self' }, { role: 'accountant' }) : { status: null };
     const reqAfter = req ? await L.one(`select status from approval_requests where id = $1`, [req.id]) : {};
     check('Z05b', 'ACC-075 the requester (Accountant) approving their own request → 403 CANNOT_SELF_APPROVE, request still pending', [403, 'CANNOT_SELF_APPROVE', 'pending'], [selfApprove.status, code(selfApprove), reqAfter.status]);
     const small = await L.api('R33-Z05-pv-0.5-below-threshold', 'POST', '/vouchers', { branchId: S.branch, kind: 'payment', subtype: 'expense', counterAccountId: await acct(EXP), cashLocationId: S.safe, method: 'cash', date: TODAY, amount: '0.50', description: 'R33 Z05 سند صرف 0.50 دون الحد' }, { role: 'accountant' });
@@ -198,7 +204,7 @@ const twoDp = (v) => v != null && Number.isInteger(Math.round(Number(v) * 10000)
   const ccList = await L.api('R33-Z08-cost-centers-with-balances', 'GET', '/cost-centers?with_balances=1');
   const flat = (nodes) => (nodes || []).flatMap((n) => [n, ...flat(n.children)]);
   const ccRow = flat(rowsOf(ccList)).find((r) => r.id === CC8);
-  check('Z08b', 'ACC-144 GET /cost-centers?with_balances=1 shows CC8 with debit 2.00 / balance 2.00', [201, 201, 200, '2.00', '2.00'], [cc.status, jeCc.status, ccList.status, n2(ccRow && (ccRow.debit ?? ccRow.ownDebit)), n2(ccRow && (ccRow.balance ?? ccRow.ownBalance))], `${code(cc) || code(jeCc) || ''} row=${JSON.stringify(ccRow || null).slice(0, 200)}`);
+  check('Z08b', 'ACC-144 GET /cost-centers?with_balances=1 shows CC8 with debit 2.00 / balance 2.00', [201, 201, 200, '2.00', '2.00'], [cc.status, jeCc.status, ccList.status, n2(ccRow && (ccRow.debit ?? ccRow.ownDebit)), n2(ccRow && (typeof ccRow.balance === 'object' && ccRow.balance ? ccRow.balance.balance : (ccRow.balance ?? ccRow.closing)))], `${code(cc) || code(jeCc) || ''} row=${JSON.stringify(ccRow || null).slice(0, 200)}`);
 
   // ───────── Z09 ACC-101: a partial branch profile merges with the default key by key ─────────
   const cashAcct = await acct(SAFE);
@@ -229,7 +235,12 @@ const twoDp = (v) => v != null && Number.isInteger(Math.round(Number(v) * 10000)
   await L.db(`update cash_location_balances set balance = balance + 7 where tenant_id = $1 and cash_location_id = $2 and currency_code = 'SAR'`, [S.tenant, S.safe]);
   const recalc = await L.api('R33-Z11-recalc-balance', 'POST', `/cash-locations/${S.safe}/recalc-balance`, {});
   const safeRowAfter = balOf(await cashBal(S.safe), 'SAR');
-  check('Z11b', 'ACC-060 recalc-balance rebuilds the safe row from the ledger: a +7 corruption is removed and the response reports the delta', [200, safeRowBefore, true], [recalc.status === 201 ? 200 : recalc.status, safeRowAfter, Boolean(recalc.data && (recalc.data.delta !== undefined || recalc.data.before !== undefined || recalc.data.previousBalance !== undefined))], `response=${JSON.stringify(recalc.data).slice(0, 220)}`);
+  // the rebuild's source of truth is the GL: Σ(debit − credit) of posted lines on the safe account whose currency
+  // is SAR/null (foreign lines belong to their own currency row — the USD voucher of Z04 must NOT land here).
+  const glSafeSar = await L.one(`select coalesce(sum(l.debit - l.credit),0)::text bal from journal_entry_lines l join journal_entries e on e.id = l.entry_id join cash_locations c on c.account_id = l.account_id where l.tenant_id = $1 and c.id = $2 and e.status = 'posted' and (l.currency_code is null or l.currency_code = 'SAR')`, [S.tenant, S.safe]);
+  const usdRowAfter = balOf(await cashBal(S.safe), 'USD');
+  const glSafeUsd = await L.one(`select coalesce(sum(case when l.debit > 0 then l.currency_amount else -l.currency_amount end),0)::text bal from journal_entry_lines l join journal_entries e on e.id = l.entry_id join cash_locations c on c.account_id = l.account_id where l.tenant_id = $1 and c.id = $2 and e.status = 'posted' and l.currency_code = 'USD'`, [S.tenant, S.safe]);
+  check('Z11b', 'ACC-060 recalc-balance rebuilds the SAR row from the GL (SAR/null lines only, the +7 corruption vanishes, the USD row = Σ USD currency amounts) and the response reports previousBalance/delta', [200, n2(glSafeSar.bal), n2(glSafeUsd.bal), true], [recalc.status === 201 ? 200 : recalc.status, safeRowAfter, usdRowAfter, Boolean(recalc.data && (recalc.data.delta !== undefined || recalc.data.before !== undefined || recalc.data.previousBalance !== undefined))], `before=${safeRowBefore} response=${JSON.stringify(recalc.data).slice(0, 260)}`);
 
   // ───────── Z12 ACC-122: collection commission follows the collected share ─────────
   const sm = await L.api('R33-Z12-salesman-sm8', 'POST', '/sales/salesmen', { name: `مندوب Z8 ${RUN}`, commissionRate: '10', collectionCommissionRate: '5', profitCommissionRate: '20', active: true });
@@ -240,7 +251,7 @@ const twoDp = (v) => v != null && Number.isInteger(Math.round(Number(v) * 10000)
   const comm = SM8 ? await L.api('R33-Z12-commissions', 'GET', `/sales/salesmen/commissions?salesman_id=${SM8}&all_period=true`) : { status: null };
   const commRows = rowsOf(comm).length ? rowsOf(comm) : (comm.data && (comm.data.movements || comm.data.lines || comm.data.items)) || [];
   const commRow = commRows.find((r) => r.documentId === (siSm.data && siSm.data.id)) || commRows[0];
-  check('Z12a', 'ACC-122 invoice 23 (net 20) paid 1.00 → collection commission 5 % × 20 × 1/23 = 0.0435 (was 1.00)', [201, 201, 201, 200, '0.0435'], [sm.status, siSmP.status, pay1.status, comm.status, n4(commRow && commRow.collectionCommission)], `${code(sm) || code(siSm) || code(siSmP) || code(pay1) || code(comm) || ''} row=${JSON.stringify(commRow || null).slice(0, 240)}`);
+  check('Z12a', 'ACC-122 invoice 23 (net 20) paid 1.00 → collection commission 5 % × 20 × 1/23 = 0.0435 → 0.04 in halalas (was 1.00)', [201, 201, 201, 200, '0.04'], [sm.status, siSmP.status, pay1.status, comm.status, n2(commRow && commRow.collectionCommission)], `${code(sm) || code(siSm) || code(siSmP) || code(pay1) || code(comm) || ''} row=${JSON.stringify(commRow || null).slice(0, 240)}`);
 
   // ───────── Z13 ACC-125: item-profit nets the returns ─────────
   const siR = await si('R33-Z13-si-2x20', [sline('2', '20')]);
@@ -252,7 +263,7 @@ const twoDp = (v) => v != null && Number.isInteger(Math.round(Number(v) * 10000)
   const prof8 = await L.api('R33-Z13-item-profit', 'GET', `/reports/item-profit?from=${TODAY}&to=${TODAY}`);
   const p8Row = rowsOf(prof8).find((r) => (r.sku || r.item_sku || r.code) === `P8-R33-${RUN}`);
   const soldQty = 2 + 1 + 1 + 1 + 1; // Z01c (2) + Z02a (1) + Z12a (1) + Z13 (2) − return 1 = sold net 6 − 1 → computed below
-  const salesNet = await L.one(`select coalesce(sum(case when si.kind = 'sale_return' then -l.quantity else l.quantity end),0)::text q, coalesce(sum(case when si.kind = 'sale_return' then -l.net else l.net end),0)::text net from sales_invoice_lines l join sales_invoices si on si.id = l.invoice_id where si.tenant_id = $1 and si.status = 'posted' and si.kind in ('sale','sale_return') and l.item_id = $2 and si.date = $3`, [S.tenant, P8, TODAY]);
+  const salesNet = await L.one(`select coalesce(sum(case when si.kind = 'sale_return' then -l.quantity else l.quantity end),0)::text q, coalesce(sum(case when si.kind = 'sale_return' then -l.net else l.net end),0)::text net from sales_invoice_lines l join sales_invoices si on si.id = l.invoice_id where si.tenant_id = $1 and si.status = 'posted' and si.kind in ('sale','sale_return') and l.item_id = $2`, [S.tenant, P8]);
   check('Z13a', 'ACC-125 item-profit for P8 nets the posted return: quantity and net equal the signed DB sum (sales − returns)', [201, true, 200, n4(salesNet.q), n2(salesNet.net)], [siRP.status, retPost.status === 201 || retRow.status === 'posted', prof8.status, n4(p8Row && (p8Row.quantity ?? p8Row.qty)), n2(p8Row && (p8Row.net ?? p8Row.revenue))], `${code(ret) || code(retPost) || ''} ret=${JSON.stringify(retRow)} row=${JSON.stringify(p8Row || null).slice(0, 240)} soldRef=${soldQty}`);
 
   // ───────── Z14 ACC-041: bank reconciliation ledger balance = GL balance at period end ─────────
@@ -261,8 +272,8 @@ const twoDp = (v) => v != null && Number.isInteger(Math.round(Number(v) * 10000)
   const BA = ba.data && ba.data.id;
   const csv = `date,description,reference,amount,balance\n${TODAY},إيداع عميل,Z14-1,250.00,1250.00\n${TODAY},رسوم بنكية,Z14-2,-5.00,1245.00`;
   const imp = BA ? await L.api('R33-Z14-statement-import', 'POST', '/treasury/bank-statements/import', { bankAccountId: BA, csv, fileName: `z14-${RUN}.csv`, openingBalance: '1000' }) : { status: null };
-  const rec = BA ? await L.api('R33-Z14-reconciliation', 'GET', `/treasury/bank-reconciliation?bankAccountId=${BA}`) : { status: null };
-  const recTo = BA ? await L.api('R33-Z14-reconciliation-to', 'GET', `/treasury/bank-reconciliation?bankAccountId=${BA}&from=${TODAY}&to=${TODAY}`) : { status: null };
+  const rec = BA ? await L.api('R33-Z14-reconciliation', 'GET', `/treasury/bank-reconciliation?bank_account_id=${BA}`) : { status: null };
+  const recTo = BA ? await L.api('R33-Z14-reconciliation-to', 'GET', `/treasury/bank-reconciliation?bank_account_id=${BA}&from=${TODAY}&to=${TODAY}`) : { status: null };
   const glBank = await gl('1221001');
   check('Z14a', 'ACC-041 «رصيد الدفاتر» = GL 1221001 balance (no statement opening added), both without and with a from/to window; bank balance = last statement balance 1245', [201, true, 200, n2(glBank), n2(glBank), '1245.00'], [ba.status, [200, 201].includes(imp.status), rec.status, n2(rec.data && rec.data.ledgerBalance), n2(recTo.data && recTo.data.ledgerBalance), n2(rec.data && rec.data.bankBalance)], `${code(ba) || ''} ${code(imp) || ''} ${code(rec) || ''} rec=${JSON.stringify(rec.data).slice(0, 260)}`);
 
@@ -270,10 +281,12 @@ const twoDp = (v) => v != null && Number.isInteger(Math.round(Number(v) * 10000)
   const bk = await L.api('R33-Z15-backup', 'POST', '/settings/backups', { note: `R33 Z15 ${RUN}` });
   const tables = (bk.data && bk.data.tables) || [];
   const dry = bk.data ? await L.api('R33-Z15-restore-dry-run', 'POST', '/settings/restores', { backupId: bk.data.id, mode: 'dry_run', confirmTenantCode: 'demo' }) : { status: null };
-  const summary = dry.data && (dry.data.summary || dry.data.tables) || {};
-  const sums = Object.values(summary).reduce((a, t) => ({ rows: a.rows + Number(t.rows || 0), inserted: a.inserted + Number(t.inserted || 0), skipped: a.skipped + Number(t.skipped || 0), errors: a.errors + (t.error ? 1 : 0) }), { rows: 0, inserted: 0, skipped: 0, errors: 0 });
-  check('Z15a', 'ACC-079 the logical backup includes approval_steps + approval_decisions (dependent tables without tenant_id)', [201, true, true], [bk.status, tables.includes('approval_steps'), tables.includes('approval_decisions')], `tables=${tables.length} totalRows=${bk.data && bk.data.totalRows}`);
-  check('Z15b', 'ACC-080 dry-run restore of the fresh backup: inserted 0, skipped = rows (every row already exists), no table error, nothing unresolved', [true, 0, true, 0, 0], [[200, 201].includes(dry.status), sums.inserted, sums.rows > 0 && sums.skipped === sums.rows, sums.errors, ((dry.data && dry.data.unresolved) || []).length], `${code(dry) || ''} ${JSON.stringify(sums)} mode=${dry.data && dry.data.mode}`);
+  const summaryTables = (dry.data && dry.data.summary && (dry.data.summary.tables || dry.data.summary)) || {};
+  const sums = Object.values(summaryTables).reduce((a, t) => ({ rows: a.rows + Number((t && t.rows) || 0), inserted: a.inserted + Number((t && t.inserted) || 0), skipped: a.skipped + Number((t && t.skipped) || 0), errors: a.errors + (t && t.error ? 1 : 0) }), { rows: 0, inserted: 0, skipped: 0, errors: 0 });
+  // empty tables are (by design) left out of the snapshot — approval_decisions only has to appear when it has rows
+  const depCounts = await L.one(`select (select count(*) from approval_steps s join approval_workflows w on w.id = s.workflow_id where w.tenant_id = $1)::int steps, (select count(*) from approval_decisions d join approval_requests r on r.id = d.request_id where r.tenant_id = $1)::int decisions`, [S.tenant]);
+  check('Z15a', 'ACC-079 the logical backup includes approval_steps (+ approval_decisions when it has rows) — dependent tables without tenant_id — with the right row counts', [201, true, true, depCounts.steps], [bk.status, tables.includes('approval_steps'), depCounts.decisions > 0 ? tables.includes('approval_decisions') : true, Number(bk.data && bk.data.rowCounts && bk.data.rowCounts.approval_steps)], `tables=${tables.length} totalRows=${bk.data && bk.data.totalRows} steps=${depCounts.steps} decisions=${depCounts.decisions}`);
+  check('Z15b', 'ACC-080 dry-run restore of the fresh backup: inserted 0, skipped = rows = backup totalRows (every row already exists), no table error, nothing unresolved', [true, 0, true, 0, 0], [[200, 201].includes(dry.status), Number(dry.data && dry.data.insertedRows), sums.rows > 0 && sums.skipped === sums.rows && Number(dry.data && dry.data.skippedRows) === Number(bk.data && bk.data.totalRows), sums.errors, ((dry.data && dry.data.summary && dry.data.summary.unresolved) || []).length], `${code(dry) || ''} ${JSON.stringify(sums)} insertedRows=${dry.data && dry.data.insertedRows} skippedRows=${dry.data && dry.data.skippedRows} mode=${dry.data && dry.data.mode}`);
 
   L.snapshot(`R33-DB-${RUN}-081-probe8-final`);
   const pass = results.filter((r) => r.ok).length;

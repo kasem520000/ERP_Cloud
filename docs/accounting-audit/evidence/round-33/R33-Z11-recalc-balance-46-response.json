@@ -1,0 +1,18 @@
+{
+  "id": "R33-Z11-recalc-balance-46",
+  "at": "2026-10-23T21:20:55.725Z",
+  "method": "POST",
+  "path": "/cash-locations/01a16a85-7d3e-728f-be93-07c3575d8d67/recalc-balance",
+  "status": 201,
+  "request": {},
+  "response": {
+    "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+    "cashLocationId": "01a16a85-7d3e-728f-be93-07c3575d8d67",
+    "currencyCode": "SAR",
+    "balance": "49976.0200",
+    "previousBalance": "50020.5200",
+    "delta": "-44.5000",
+    "source": "journal ledger",
+    "reconciled": true
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "R33-Z01-setting-vat-15-46",
+  "at": "2026-10-23T21:20:15.845Z",
+  "method": "PUT",
+  "path": "/settings/vat.default_rate_percent",
+  "status": 200,
+  "request": {
+    "value": 15
+  },
+  "response": {
+    "data": {
+      "key": "vat.default_rate_percent",
+      "value": 15
+    }
+  }
+}

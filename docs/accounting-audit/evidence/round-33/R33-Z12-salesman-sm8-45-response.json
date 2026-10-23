@@ -1,0 +1,36 @@
+{
+  "id": "R33-Z12-salesman-sm8-45",
+  "at": "2026-10-23T21:17:48.603Z",
+  "method": "POST",
+  "path": "/sales/salesmen",
+  "status": 201,
+  "request": {
+    "name": "مندوب Z8 45",
+    "commissionRate": "10",
+    "collectionCommissionRate": "5",
+    "profitCommissionRate": "20",
+    "active": true
+  },
+  "response": {
+    "id": "01a16aa0-8dc8-72bc-b37e-7514632bff53",
+    "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+    "name": "مندوب Z8 45",
+    "employeeRef": null,
+    "active": true,
+    "commissionRate": "10.0000",
+    "collectionCommissionRate": "5.0000",
+    "profitCommissionRate": "20.0000",
+    "employeeId": null,
+    "warehouseId": null,
+    "vehiclePlate": null,
+    "tel": null,
+    "mobile": null,
+    "email": null,
+    "notes": null,
+    "createdAt": "2026-10-23T21:17:49.384Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1
+  }
+}

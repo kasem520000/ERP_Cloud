@@ -1,0 +1,327 @@
+{
+  "id": "R33-Z03-custom-report-run-46",
+  "at": "2026-10-23T21:20:27.013Z",
+  "method": "POST",
+  "path": "/custom-reports/01a16aa2-f57f-743d-af65-3cb5ff3c8451/run",
+  "status": 201,
+  "request": {},
+  "response": {
+    "report": {
+      "id": "01a16aa2-f57f-743d-af65-3cb5ff3c8451",
+      "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+      "name": "R33 Z03 46",
+      "baseEntity": "sales_invoice",
+      "columns": [
+        {
+          "key": "number"
+        },
+        {
+          "agg": "sum",
+          "key": "total"
+        },
+        {
+          "agg": "sum",
+          "key": "taxTotal"
+        }
+      ],
+      "filters": [],
+      "chartType": "table",
+      "isPublic": false,
+      "createdAt": "2026-10-23T21:20:27.007Z",
+      "createdBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f",
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "deletedAt": null,
+      "deletedBy": null,
+      "public": false
+    },
+    "columns": [
+      {
+        "key": "number",
+        "label": "number",
+        "source": "native",
+        "agg": null
+      },
+      {
+        "key": "total",
+        "label": "total",
+        "source": "native",
+        "agg": "sum"
+      },
+      {
+        "key": "taxTotal",
+        "label": "taxTotal",
+        "source": "native",
+        "agg": "sum"
+      }
+    ],
+    "rows": [
+      {
+        "number": "SI-000001",
+        "total": "23.0000",
+        "taxTotal": "3.0000"
+      },
+      {
+        "number": "SI-000002",
+        "total": "39.1000",
+        "taxTotal": "5.1000"
+      },
+      {
+        "number": null,
+        "total": "19.5500",
+        "taxTotal": "2.5500"
+      },
+      {
+        "number": null,
+        "total": "23.0000",
+        "taxTotal": "3.0000"
+      },
+      {
+        "number": "SI-000003",
+        "total": "23.0000",
+        "taxTotal": "3.0000"
+      },
+      {
+        "number": null,
+        "total": "23.0000",
+        "taxTotal": "3.0000"
+      },
+      {
+        "number": null,
+        "total": "172.5000",
+        "taxTotal": "22.5000"
+      },
+      {
+        "number": "SI-000004",
+        "total": "172.5000",
+        "taxTotal": "22.5000"
+      },
+      {
+        "number": "SR-000001",
+        "total": "172.5000",
+        "taxTotal": "22.5000"
+      },
+      {
+        "number": "SI-000005",
+        "total": "2.3600",
+        "taxTotal": "0.3000"
+      },
+      {
+        "number": null,
+        "total": "21.0000",
+        "taxTotal": "1.0000"
+      },
+      {
+        "number": null,
+        "total": "23.0000",
+        "taxTotal": "3.0000"
+      },
+      {
+        "number": null,
+        "total": "23.0000",
+        "taxTotal": "3.0000"
+      },
+      {
+        "number": null,
+        "total": "23.0000",
+        "taxTotal": "3.0000"
+      },
+      {
+        "number": null,
+        "total": "26.4500",
+        "taxTotal": "3.4500"
+      },
+      {
+        "number": null,
+        "total": "12.0000",
+        "taxTotal": "2.0000"
+      },
+      {
+        "number": null,
+        "total": "11.9600",
+        "taxTotal": "1.5600"
+      },
+      {
+        "number": "SI-000006",
+        "total": "24.1500",
+        "taxTotal": "3.1500"
+      },
+      {
+        "number": "SI-000007",
+        "total": "23.0000",
+        "taxTotal": "3.0000"
+      },
+      {
+        "number": "SI-000008",
+        "total": "46.0000",
+        "taxTotal": "6.0000"
+      },
+      {
+        "number": "SR-000002",
+        "total": "23.0000",
+        "taxTotal": "3.0000"
+      },
+      {
+        "number": "SI-000009",
+        "total": "2.3600",
+        "taxTotal": "0.3000"
+      },
+      {
+        "number": null,
+        "total": "21.0000",
+        "taxTotal": "1.0000"
+      },
+      {
+        "number": null,
+        "total": "23.0000",
+        "taxTotal": "3.0000"
+      },
+      {
+        "number": null,
+        "total": "23.0000",
+        "taxTotal": "3.0000"
+      },
+      {
+        "number": null,
+        "total": "23.0000",
+        "taxTotal": "3.0000"
+      },
+      {
+        "number": null,
+        "total": "26.4500",
+        "taxTotal": "3.4500"
+      },
+      {
+        "number": null,
+        "total": "12.0000",
+        "taxTotal": "2.0000"
+      },
+      {
+        "number": null,
+        "total": "11.9600",
+        "taxTotal": "1.5600"
+      },
+      {
+        "number": "SI-000010",
+        "total": "24.1500",
+        "taxTotal": "3.1500"
+      }
+    ],
+    "totals": {
+      "total": 1093.99,
+      "taxTotal": 140.07
+    },
+    "chart": {
+      "type": "table",
+      "labels": [
+        "SI-000001",
+        "SI-000002",
+        "3",
+        "4",
+        "SI-000003",
+        "6",
+        "7",
+        "SI-000004",
+        "SR-000001",
+        "SI-000005",
+        "11",
+        "12",
+        "13",
+        "14",
+        "15",
+        "16",
+        "17",
+        "SI-000006",
+        "SI-000007",
+        "SI-000008",
+        "SR-000002",
+        "SI-000009",
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "SI-000010"
+      ],
+      "series": [
+        {
+          "key": "total",
+          "label": "total",
+          "values": [
+            "23.0000",
+            "39.1000",
+            "19.5500",
+            "23.0000",
+            "23.0000",
+            "23.0000",
+            "172.5000",
+            "172.5000",
+            "172.5000",
+            "2.3600",
+            "21.0000",
+            "23.0000",
+            "23.0000",
+            "23.0000",
+            "26.4500",
+            "12.0000",
+            "11.9600",
+            "24.1500",
+            "23.0000",
+            "46.0000",
+            "23.0000",
+            "2.3600",
+            "21.0000",
+            "23.0000",
+            "23.0000",
+            "23.0000",
+            "26.4500",
+            "12.0000",
+            "11.9600",
+            "24.1500"
+          ]
+        },
+        {
+          "key": "taxTotal",
+          "label": "taxTotal",
+          "values": [
+            "3.0000",
+            "5.1000",
+            "2.5500",
+            "3.0000",
+            "3.0000",
+            "3.0000",
+            "22.5000",
+            "22.5000",
+            "22.5000",
+            "0.3000",
+            "1.0000",
+            "3.0000",
+            "3.0000",
+            "3.0000",
+            "3.4500",
+            "2.0000",
+            "1.5600",
+            "3.1500",
+            "3.0000",
+            "6.0000",
+            "3.0000",
+            "0.3000",
+            "1.0000",
+            "3.0000",
+            "3.0000",
+            "3.0000",
+            "3.4500",
+            "2.0000",
+            "1.5600",
+            "3.1500"
+          ]
+        }
+      ]
+    },
+    "rowCount": 30,
+    "generatedAt": "2026-10-23T21:20:27.812Z"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "R33-Z01-setting-digits-0-46",
+  "at": "2026-10-23T21:20:21.408Z",
+  "method": "PUT",
+  "path": "/settings/money.rounding_digits",
+  "status": 200,
+  "request": {
+    "value": 0
+  },
+  "response": {
+    "data": {
+      "key": "money.rounding_digits",
+      "value": 0
+    }
+  }
+}

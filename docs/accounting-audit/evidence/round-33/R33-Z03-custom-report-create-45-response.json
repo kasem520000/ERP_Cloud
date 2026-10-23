@@ -1,0 +1,35 @@
+{
+  "id": "R33-Z03-custom-report-create-45",
+  "at": "2026-10-23T21:17:18.271Z",
+  "method": "POST",
+  "path": "/custom-reports",
+  "status": 400,
+  "request": {
+    "name": "R33 Z03 45",
+    "baseEntity": "sales_invoice",
+    "columns": [
+      {
+        "key": "number"
+      },
+      {
+        "key": "total",
+        "agg": "sum"
+      },
+      {
+        "key": "tax_total",
+        "agg": "sum"
+      }
+    ],
+    "filters": [],
+    "chartType": "table",
+    "isPublic": false
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Validation failed",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "detail": "Report column is not allowed: tax_total",
+    "traceId": "01a16aa0-1440-7467-b161-516e540166fd"
+  }
+}

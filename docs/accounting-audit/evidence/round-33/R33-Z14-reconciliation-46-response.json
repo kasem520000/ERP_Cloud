@@ -1,0 +1,15 @@
+{
+  "id": "R33-Z14-reconciliation-46",
+  "at": "2026-10-23T21:21:06.200Z",
+  "method": "GET",
+  "path": "/treasury/bank-reconciliation?bankAccountId=01a16aa3-8b85-7109-a6b5-d0e9536d05f7",
+  "status": 404,
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 404,
+    "code": "BANK_ACCOUNT_NOT_FOUND",
+    "detail": "Bank account was not found",
+    "traceId": "01a16aa3-8e99-70ae-ab84-a98cfd04bb84"
+  }
+}

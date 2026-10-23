@@ -1,0 +1,22 @@
+{
+  "id": "R33-Z01-pi-stock-post-44",
+  "at": "2026-10-23T21:16:42.541Z",
+  "method": "POST",
+  "path": "/purchase-invoices/undefined/post",
+  "status": 400,
+  "request": {},
+  "response": {
+    "type": "about:blank",
+    "title": "Identifier is not a valid UUID",
+    "status": 400,
+    "code": "INVALID_ID",
+    "detail": "The identifier \"id\" is not a valid UUID",
+    "traceId": "01a16a9f-88af-7668-b972-077569837006",
+    "errors": [
+      {
+        "field": "id",
+        "message": "Expected a UUID"
+      }
+    ]
+  }
+}

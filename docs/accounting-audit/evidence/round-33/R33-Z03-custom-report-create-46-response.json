@@ -1,0 +1,57 @@
+{
+  "id": "R33-Z03-custom-report-create-46",
+  "at": "2026-10-23T21:20:26.217Z",
+  "method": "POST",
+  "path": "/custom-reports",
+  "status": 201,
+  "request": {
+    "name": "R33 Z03 46",
+    "baseEntity": "sales_invoice",
+    "columns": [
+      {
+        "key": "number"
+      },
+      {
+        "key": "total",
+        "agg": "sum"
+      },
+      {
+        "key": "taxTotal",
+        "agg": "sum"
+      }
+    ],
+    "filters": [],
+    "chartType": "table",
+    "isPublic": false
+  },
+  "response": {
+    "id": "01a16aa2-f57f-743d-af65-3cb5ff3c8451",
+    "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+    "name": "R33 Z03 46",
+    "baseEntity": "sales_invoice",
+    "columns": [
+      {
+        "key": "number"
+      },
+      {
+        "agg": "sum",
+        "key": "total"
+      },
+      {
+        "agg": "sum",
+        "key": "taxTotal"
+      }
+    ],
+    "filters": [],
+    "chartType": "table",
+    "isPublic": false,
+    "createdAt": "2026-10-23T21:20:27.007Z",
+    "createdBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f",
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1,
+    "deletedAt": null,
+    "deletedBy": null,
+    "public": false
+  }
+}

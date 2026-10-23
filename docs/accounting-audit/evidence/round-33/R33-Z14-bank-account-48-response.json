@@ -1,0 +1,32 @@
+{
+  "id": "R33-Z14-bank-account-48",
+  "at": "2026-10-23T21:24:36.938Z",
+  "method": "POST",
+  "path": "/treasury/bank-accounts",
+  "status": 201,
+  "request": {
+    "bankName": "بنك Z8 48",
+    "accountNo": "Z8-48",
+    "currency": "SAR",
+    "accountId": "01a16a85-7d73-755b-a2c5-bbd7eb64d9b7",
+    "openingBalance": "1000"
+  },
+  "response": {
+    "data": {
+      "id": "01a16aa6-c8d2-7009-86b9-fcbf3ed17c61",
+      "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+      "bankName": "بنك Z8 48",
+      "accountNo": "Z8-48",
+      "iban": null,
+      "currency": "SAR",
+      "openingBalance": "1000.0000",
+      "accountId": "01a16a85-7d73-755b-a2c5-bbd7eb64d9b7",
+      "status": "active",
+      "createdAt": "2026-10-23T21:24:37.715Z",
+      "createdBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f",
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "R33-Z05-self-approve-46",
+  "at": "2026-10-23T21:20:36.946Z",
+  "method": "POST",
+  "path": "/approvals/requests/01a16aa3-1c3c-765c-b5c2-84eabde32f06/approve",
+  "status": 403,
+  "request": {
+    "comment": "R33 Z05 self"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 403,
+    "code": "CANNOT_SELF_APPROVE",
+    "detail": "لا يجوز لمُنشئ الطلب اعتماد طلبه بنفسه — يجب أن يعتمد الطلب شخصٌ آخر",
+    "traceId": "01a16aa3-1c53-751d-b2d3-ed64e3df0596",
+    "errors": [
+      {
+        "field": "userId",
+        "createdBy": "01a16a85-7dbd-7106-aa48-f33f3ac739b6",
+        "userId": "01a16a85-7dbd-7106-aa48-f33f3ac739b6"
+      }
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "id": "R33-Z05-workflow-voucher-46",
+  "at": "2026-10-23T21:20:33.999Z",
+  "method": "POST",
+  "path": "/approval-workflows",
+  "status": 201,
+  "request": {
+    "entity": "voucher",
+    "name": "R33 Z05 سندات ≥ 1 46",
+    "is_active": true,
+    "steps": [
+      {
+        "step_order": 1,
+        "approver_role": "Accountant",
+        "condition": {
+          "min_amount": "1"
+        },
+        "action": "approve",
+        "is_required": true
+      }
+    ]
+  },
+  "response": {
+    "id": "01a16aa3-13d9-70b1-ad0f-2fac62bde1e6",
+    "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+    "entity": "voucher",
+    "name": "R33 Z05 سندات ≥ 1 46",
+    "isActive": true,
+    "steps": [
+      {
+        "id": "01a16aa3-13da-768e-8270-b793747c9fc0",
+        "workflowId": "01a16aa3-13d9-70b1-ad0f-2fac62bde1e6",
+        "stepOrder": 1,
+        "approverRole": "Accountant",
+        "approverUserId": null,
+        "condition": {
+          "min_amount": "1"
+        },
+        "action": "approve",
+        "isRequired": true
+      }
+    ],
+    "createdAt": "2026-10-23T21:20:34.775Z",
+    "updatedAt": null
+  }
+}

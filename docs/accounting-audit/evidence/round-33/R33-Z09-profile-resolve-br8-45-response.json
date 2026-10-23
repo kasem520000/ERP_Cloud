@@ -1,0 +1,39 @@
+{
+  "id": "R33-Z09-profile-resolve-br8-45",
+  "at": "2026-10-23T21:17:42.793Z",
+  "method": "GET",
+  "path": "/branch-posting-profiles/resolve?branchId=01a16a9f-cbc6-762a-8aa3-db662768b8e4&docType=purchase_invoice",
+  "status": 200,
+  "response": {
+    "data": {
+      "branchId": "01a16a9f-cbc6-762a-8aa3-db662768b8e4",
+      "docType": "purchase_invoice",
+      "mapping": {
+        "version": 1,
+        "salesAccountId": "01a16a85-7d8c-76fc-ae6f-4a8310a49ca4",
+        "salesReturnAccountId": "01a16a85-7d8d-717f-9627-b390f4da7d52",
+        "purchasesAccountId": "01a16a85-7d8b-74af-8011-1ceee674a1f7",
+        "purchaseReturnAccountId": "01a16a85-7d8b-74af-8011-22728a9649fe",
+        "discountGivenAccountId": "01a16a85-7d8d-717f-9627-b58bcd3bdbbe",
+        "discountReceivedAccountId": "01a16a85-7d8c-76fc-ae6f-47aa33aa70c8",
+        "vatOutputAccountId": "01a16a85-7d79-7428-b95b-4f896eb98bb9",
+        "vatInputAccountId": "01a16a85-7d79-7428-b95b-4f896eb98bb9",
+        "exciseTaxAccountId": "01a16a85-7d7a-753c-ac25-34e3f6c71872",
+        "inventoryAccountId": "01a16a85-7d75-705c-94ee-93c53fa7fb81",
+        "cogsAccountId": "01a16a85-7d93-7719-ae54-48ccbb6b25ee",
+        "openingBalanceAccountId": "01a16a85-7d76-76f9-a674-942b8d770b43",
+        "inventoryAdjustmentAccountId": "01a16a85-7d94-70f9-b6d2-9d43cb0e2abb",
+        "stockInTransitAccountId": "01a16a85-7d93-7719-ae54-4f15bb126151",
+        "cashAccountId": "01a16a85-7d72-7321-9bd9-d1afef111bba",
+        "bankAccountId": "01a16a85-7d73-755b-a2c5-bbd7eb64d9b7",
+        "receivableAccountId": "01a16a85-7d90-7329-98f0-5f4c4b1e41be",
+        "payableAccountId": "01a16a85-7d90-7329-98f0-62eb0d5a37ee",
+        "cashDifferenceAccountId": "01a16a85-7d80-7272-88d1-a6064d2d6c7a",
+        "custodyAccountId": "01a16a85-7d72-7321-9bd9-d6d7a4d938f0",
+        "cashInTransitAccountId": "01a16a85-7d95-7488-9b9d-9de94681ccc9"
+      },
+      "matchedBranchId": "01a16a9f-cbc6-762a-8aa3-db662768b8e4",
+      "matchedDocType": "*"
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "id": "R33-Z12-commissions-48",
+  "at": "2026-10-23T21:24:32.068Z",
+  "method": "GET",
+  "path": "/sales/salesmen/commissions?salesman_id=01a16aa6-a92b-71bb-a95b-11410cbade5f&all_period=true",
+  "status": 200,
+  "response": {
+    "data": {
+      "salesmanId": "01a16aa6-a92b-71bb-a95b-11410cbade5f",
+      "salesmanName": "مندوب Z8 48",
+      "allSalesmen": false,
+      "allPeriod": true,
+      "from": "2026-10-23",
+      "to": "2026-10-23",
+      "branchId": null,
+      "summary": {
+        "totalValue": "20.0000",
+        "salesCommission": "2.0000",
+        "collectionCommission": "0.0400",
+        "profitCommission": "2.4100",
+        "invoices": 1,
+        "notes": 0,
+        "receipts": 0,
+        "rows": 1
+      },
+      "rows": [
+        {
+          "seq": 1,
+          "movementType": "فاتورة بيع",
+          "date": "2026-10-23",
+          "documentId": "01a16aa6-ac43-7096-8ca5-144f4ad21a67",
+          "number": "SI-000019",
+          "refNumber": null,
+          "salesmanId": "01a16aa6-a92b-71bb-a95b-11410cbade5f",
+          "salesmanName": "مندوب Z8 48",
+          "branchName": "الفرع الرئيسي",
+          "value": "20.0000",
+          "salesCommission": "2.0000",
+          "collectionCommission": "0.0400",
+          "profitCommission": "2.4100",
+          "isPlus": 1
+        }
+      ]
+    }
+  }
+}

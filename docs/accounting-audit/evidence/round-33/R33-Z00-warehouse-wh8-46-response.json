@@ -1,0 +1,27 @@
+{
+  "id": "R33-Z00-warehouse-wh8-46",
+  "at": "2026-10-23T21:20:07.691Z",
+  "method": "POST",
+  "path": "/warehouses",
+  "status": 201,
+  "request": {
+    "branchId": "01a16aa2-aa04-7477-a35c-1a7f7a8346bc",
+    "code": "WH8-46",
+    "name": "مستودع Z8 46",
+    "isActive": true
+  },
+  "response": {
+    "data": {
+      "id": "01a16aa2-ad33-730f-960d-0bc956b470f5",
+      "branchId": "01a16aa2-aa04-7477-a35c-1a7f7a8346bc",
+      "code": "WH8-46",
+      "name": "مستودع Z8 46",
+      "inventoryAccountId": null,
+      "isDefault": false,
+      "isActive": true,
+      "version": 1,
+      "createdAt": "2026-10-23T21:20:08.495Z",
+      "updatedAt": null
+    }
+  }
+}
