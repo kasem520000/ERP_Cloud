@@ -294,6 +294,63 @@ describe('R33 — inventory policies, lots, bins and partial-return proration', 
     expect((await balance(itemId)).avg.toFixed(4)).toBe('10.0000');
   });
 
+  it('ACC-189 / ACC-190 — a transfer received in two parts posts each part once and clears in-transit exactly', async () => {
+    const itemId = await newItem('R189');
+    // 8 × 10 + 3 × 10.01 = 110.03 for 11 units → average 10.002727… (non-terminating, so rounding matters)
+    await postedPurchase([{ itemId, quantity: '8', unitPrice: '10' }]);
+    await postedPurchase([{ itemId, quantity: '3', unitPrice: '10.01' }]);
+    const wh2 = await req('post', '/warehouses', { branchId, code: `WH-R189-${Date.now()}`, name: 'مستودع R189', isActive: true });
+    expect(wh2.status, JSON.stringify(wh2.body)).toBe(201);
+    const toWarehouseId = String(data(wh2.body).id);
+    const levelAt = async (whId: string) => {
+      const res = await req('get', `/inventory/levels?warehouse_id=${whId}&item_id=${itemId}`);
+      const row = rows(res.body).find((r) => r.itemId === itemId) as Record<string, unknown> | undefined;
+      return { qty: new Decimal(String(row?.quantity ?? row?.qty ?? '0')), value: new Decimal(String(row?.value ?? row?.totalValue ?? '0')) };
+    };
+    const transitBefore = await glBalance('1270003');
+    const inventoryBefore = await glBalance('1270001');
+    const sourceBefore = await levelAt(warehouseId);
+
+    const draft = await req('post', '/inventory/transfers/draft', { branchId, fromWarehouseId: warehouseId, toWarehouseId, lines: [{ itemId, qty: '7' }] });
+    expect(draft.status, JSON.stringify(draft.body)).toBe(201);
+    const transferId = String(data(draft.body).id);
+    expect((await req('post', `/inventory/transfers/${transferId}/send`, {})).status).toBe(201);
+    const sentValue = sourceBefore.value.minus((await levelAt(warehouseId)).value); // what the source actually relieved (70.0191)
+    expect(sentValue.toFixed(4)).toBe('70.0191');
+    const sendEntries = (await entriesOf(transferId)).filter((e) => e.sourceType === 'stock_transfer');
+    expect(sendEntries).toHaveLength(1);
+    expect((await glBalance('1270003')).minus(transitBefore).toFixed(4)).toBe('70.0191');
+
+    // ACC-190: the second receipt used to post the cumulative value (70.0189) instead of its own part
+    const first = await req('post', `/inventory/transfers/${transferId}/receive`, { received: [{ lineNo: 1, qty: '2' }] });
+    expect(first.status, JSON.stringify(first.body)).toBe(201);
+    expect(data(first.body).status).toBe('partially_received');
+    const afterFirst = await levelAt(toWarehouseId);
+    expect(afterFirst.qty.toFixed(4)).toBe('2.0000');
+    expect((await glBalance('1270003')).minus(transitBefore).toFixed(4)).toBe(sentValue.minus(afterFirst.value).toFixed(4));
+
+    const second = await req('post', `/inventory/transfers/${transferId}/receive`, { received: [{ lineNo: 1, qty: '5' }] });
+    expect(second.status, JSON.stringify(second.body)).toBe(201);
+    expect(data(second.body).status).toBe('received');
+    const receiptEntries = (await entriesOf(transferId)).filter((e) => e.sourceType === 'stock_transfer_receipt');
+    expect(receiptEntries).toHaveLength(2);
+    const receiptAmounts = await Promise.all(
+      receiptEntries.map(async (e) => {
+        const detail = await req('get', `/journal-entries/${String(e.id)}`);
+        const lines = data(detail.body).lines as Array<Record<string, unknown>>;
+        return new Decimal(String(lines.find((l) => String(l.accountId) === accountIds['1270003'])?.credit ?? '0')).toFixed(4);
+      }),
+    );
+    // ACC-189: Σ receipts ≡ sent (70.0191), the completing receipt takes the remainder (not 5 × 10.0027 = 50.0135)
+    expect(receiptAmounts.sort()).toEqual(['20.0055', '50.0136']);
+    const destination = await levelAt(toWarehouseId);
+    expect(destination.qty.toFixed(4)).toBe('7.0000');
+    expect(destination.value.toFixed(4)).toBe('70.0191');
+    expect((await glBalance('1270003')).minus(transitBefore).toFixed(4)).toBe('0.0000');
+    expect((await glBalance('1270001')).minus(inventoryBefore).toFixed(4)).toBe('0.0000');
+    expect((await levelAt(warehouseId)).value.plus(destination.value).toFixed(4)).toBe(sourceBefore.value.toFixed(4));
+  });
+
   it('ACC-129 — the planned cost frozen at order creation survives a later change of the average', async () => {
     const component = await newItem('R129C');
     const product = await newItem('R129P');

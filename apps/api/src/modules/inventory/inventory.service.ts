@@ -1470,6 +1470,46 @@ export class InventoryService {
       if (!['in_transit', 'partially_received'].includes(transfer.status))
         throw new DomainError('TRANSFER_INVALID_STATE', 'Transfer is not awaiting receipt', 409);
       const byLine = new Map(transfer.lines.map((line) => [line.lineNo, line]));
+      /**
+       * ACC-189 (R33): the destination must receive exactly the value the source relieved — not
+       * «quantity × the unit cost rounded to four places» stamped on the line. The out movement
+       * relieved the balance proportionally (7 of 11 units worth 110.03 → 70.0191) while the
+       * receipt used 7 × 10.0027 = 70.0189, so every transfer left a fraction of a halalah on
+       * «بضاعة تحت التحويل» (−0.0002 after four fully received transfers on the audit tenant) that
+       * no later document could clear. Each receipt is therefore valued pro rata from the sent
+       * movements of the same item / lot, and the receipt that completes the quantity takes the
+       * whole remainder, so Σ receipts ≡ sent and the in-transit account returns to zero.
+       */
+      const costKey = (itemId: string, lotId?: string | null) => `${itemId}:${lotId ?? ''}`;
+      const ledgerByKey = new Map<string, { sentQty: Decimal; sentValue: Decimal; receivedQty: Decimal; receivedValue: Decimal }>();
+      const transferMovements = await tx
+        .select({
+          itemId: inventoryTransactions.itemId,
+          lotId: inventoryTransactions.lotId,
+          docType: inventoryTransactions.docType,
+          baseQty: inventoryTransactions.baseQty,
+          totalCost: inventoryTransactions.totalCost,
+        })
+        .from(inventoryTransactions)
+        .where(
+          and(
+            eq(inventoryTransactions.tenantId, tenantId),
+            eq(inventoryTransactions.docId, transferId),
+            inArray(inventoryTransactions.docType, ['stock_transfer', 'stock_transfer_receipt']),
+          ),
+        );
+      for (const row of transferMovements) {
+        const key = costKey(row.itemId, row.lotId);
+        const bucket = ledgerByKey.get(key) ?? { sentQty: new Decimal(0), sentValue: new Decimal(0), receivedQty: new Decimal(0), receivedValue: new Decimal(0) };
+        if (row.docType === 'stock_transfer') {
+          bucket.sentQty = bucket.sentQty.plus(row.baseQty ?? '0');
+          bucket.sentValue = bucket.sentValue.plus(row.totalCost ?? '0');
+        } else {
+          bucket.receivedQty = bucket.receivedQty.plus(row.baseQty ?? '0');
+          bucket.receivedValue = bucket.receivedValue.plus(row.totalCost ?? '0');
+        }
+        ledgerByKey.set(key, bucket);
+      }
       const movements: InventoryLine[] = [];
       const serialIds: string[] = [];
       for (const input of received) {
@@ -1485,11 +1525,25 @@ export class InventoryService {
             422,
             { field: 'qty' },
           );
+        let unitCost = line.unitCost;
+        const bucket = ledgerByKey.get(costKey(line.itemId, line.lotId));
+        if (bucket && bucket.sentQty.gt(0)) {
+          const outstandingQty = bucket.sentQty.minus(bucket.receivedQty);
+          const outstandingValue = bucket.sentValue.minus(bucket.receivedValue);
+          const receiptValue = qty.gte(outstandingQty)
+            ? outstandingValue
+            : bucket.sentValue.mul(qty).div(bucket.sentQty).toDecimalPlaces(4);
+          if (receiptValue.gte(0)) {
+            unitCost = receiptValue.div(qty).toString();
+            bucket.receivedQty = bucket.receivedQty.plus(qty);
+            bucket.receivedValue = bucket.receivedValue.plus(receiptValue.toDecimalPlaces(4));
+          }
+        }
         movements.push({
           itemId: line.itemId,
           warehouseId: transfer.toWarehouseId,
           qty: qty.toFixed(4),
-          unitCost: line.unitCost,
+          unitCost,
           direction: 'in',
           docType: 'stock_transfer_receipt',
           docId: transferId,
@@ -1500,7 +1554,7 @@ export class InventoryService {
         serialIds.push(...(line.serialIds ?? []));
       }
       if (!movements.length) throw new DomainError('TRANSFER_RECEIPT_REQUIRED', 'Nothing to receive', 422);
-      await this.recordInTx(tx, tenantId, movements);
+      const recorded = await this.recordInTx(tx, tenantId, movements);
       await this.transitionSerialsInTx(
         tx,
         tenantId,
@@ -1531,7 +1585,20 @@ export class InventoryService {
           }),
         );
 
-      const value = await this.valueOfMovements(tx, tenantId, transferId, 'stock_transfer_receipt');
+      /**
+       * ACC-190 (R33): the receipt journal must carry the value of *this* receipt only. It used to
+       * read back every receipt movement of the transfer, so the second partial receipt posted the
+       * cumulative value (2 then 7 units → journals 20.0054 and 70.0189 against a 70.0191 send) and
+       * «بضاعة تحت التحويل» was over-cleared by the first receipt's value (−20.0054 on the audit
+       * tenant) while المخزون was overstated by the same amount.
+       */
+      const receiptRows = recorded.transactionIds.length
+        ? await tx
+            .select({ totalCost: inventoryTransactions.totalCost })
+            .from(inventoryTransactions)
+            .where(and(eq(inventoryTransactions.tenantId, tenantId), inArray(inventoryTransactions.id, recorded.transactionIds)))
+        : [];
+      const value = receiptRows.reduce((sum, row) => sum.plus(row.totalCost ?? '0'), new Decimal(0));
       let receivedJournalEntryId: string | undefined;
       if (value.gt(0)) {
         // ACC-112: The receive journal entry belongs to the destination branch where stock is received
