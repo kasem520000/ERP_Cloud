@@ -1,0 +1,406 @@
+[
+  {
+    "id": "AF00a",
+    "title": "fixtures: item P10, supplier SUPP10, warehouse WH10, PI-A 10 × 10 posted (S.supp), PI-B 2 × 10 posted (SUPP10), PI-D draft",
+    "expected": [
+      true,
+      201,
+      201,
+      201,
+      201,
+      201,
+      201,
+      201,
+      "12.0000",
+      "10.0000"
+    ],
+    "actual": [
+      true,
+      201,
+      201,
+      201,
+      201,
+      201,
+      201,
+      201,
+      "12.0000",
+      "10.0000"
+    ],
+    "ok": true,
+    "note": " "
+  },
+  {
+    "id": "AF01a",
+    "title": "UI-047 GET /tailoring/order-statuses on a tenant with no statuses seeds the defaults (4) and returns them",
+    "expected": [
+      200,
+      true,
+      true
+    ],
+    "actual": [
+      200,
+      true,
+      true
+    ],
+    "ok": true,
+    "note": "before=4 after=4 rows=مستلم/في الخياطة/جاهز/تم التسليم"
+  },
+  {
+    "id": "AF01b",
+    "title": "UI-047 a tailoring invoice saved without statusId takes the first active status (201, no TAILORING_STATUS_NOT_FOUND)",
+    "expected": [
+      201,
+      "01a16ae4-022a-737b-b2e8-0831a2691d2c"
+    ],
+    "actual": [
+      201,
+      "01a16ae4-022a-737b-b2e8-0831a2691d2c"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "AF02a",
+    "title": "UI-005 draft line of a stock-out without unitCost is valued at the moving average (10.0000 × 1)",
+    "expected": [
+      201,
+      "10.0000",
+      "10.0000"
+    ],
+    "actual": [
+      201,
+      "10.0000",
+      "10.0000"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "AF02b",
+    "title": "UI-005 posted: voucher line = inventory movement = ledger credit on 1270001 (10.0000), stock 12 → 11",
+    "expected": [
+      201,
+      "10.0000",
+      "10.0000",
+      "10.0000",
+      "10.0000",
+      "1268.34",
+      "11.0000"
+    ],
+    "actual": [
+      201,
+      "10.0000",
+      "10.0000",
+      "10.0000",
+      "10.0000",
+      "1268.34",
+      "11.0000"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "AF03a",
+    "title": "ACC-021 a supplier return without referenceInvoiceId → 422 PURCHASE_RETURN_REFERENCE_REQUIRED",
+    "expected": [
+      422,
+      "PURCHASE_RETURN_REFERENCE_REQUIRED"
+    ],
+    "actual": [
+      422,
+      "PURCHASE_RETURN_REFERENCE_REQUIRED"
+    ],
+    "ok": true
+  },
+  {
+    "id": "AF03b",
+    "title": "ACC-021 reference belongs to another supplier → 422 PURCHASE_RETURN_SUPPLIER_MISMATCH",
+    "expected": [
+      422,
+      "PURCHASE_RETURN_SUPPLIER_MISMATCH"
+    ],
+    "actual": [
+      422,
+      "PURCHASE_RETURN_SUPPLIER_MISMATCH"
+    ],
+    "ok": true
+  },
+  {
+    "id": "AF03c",
+    "title": "ACC-021 reference is a draft purchase → 422 PURCHASE_RETURN_REFERENCE_INVALID",
+    "expected": [
+      422,
+      "PURCHASE_RETURN_REFERENCE_INVALID"
+    ],
+    "actual": [
+      422,
+      "PURCHASE_RETURN_REFERENCE_INVALID"
+    ],
+    "ok": true
+  },
+  {
+    "id": "AF03d",
+    "title": "ACC-021 reference does not exist → 422 PURCHASE_RETURN_REFERENCE_INVALID",
+    "expected": [
+      422,
+      "PURCHASE_RETURN_REFERENCE_INVALID"
+    ],
+    "actual": [
+      422,
+      "PURCHASE_RETURN_REFERENCE_INVALID"
+    ],
+    "ok": true
+  },
+  {
+    "id": "AF03f",
+    "title": "ACC-021 a return against the posted PI-A of the same supplier: 201 + posted; AP debited 11.50, inventory −10.00, stock 11 → 10",
+    "expected": [
+      201,
+      201,
+      "-1831.26",
+      "1258.34",
+      "10.0000"
+    ],
+    "actual": [
+      201,
+      201,
+      "-1831.26",
+      "1258.34",
+      "10.0000"
+    ],
+    "ok": true,
+    "note": " "
+  },
+  {
+    "id": "AF03e",
+    "title": "ACC-021 the reference must be a purchase — a posted return as reference → 422 PURCHASE_RETURN_REFERENCE_INVALID",
+    "expected": [
+      422,
+      "PURCHASE_RETURN_REFERENCE_INVALID"
+    ],
+    "actual": [
+      422,
+      "PURCHASE_RETURN_REFERENCE_INVALID"
+    ],
+    "ok": true
+  },
+  {
+    "id": "AF03g",
+    "title": "the referenced purchase can no longer be voided while its return stands → 409 PURCHASE_VOID_HAS_RETURNS",
+    "expected": [
+      409,
+      "PURCHASE_VOID_HAS_RETURNS"
+    ],
+    "actual": [
+      409,
+      "PURCHASE_VOID_HAS_RETURNS"
+    ],
+    "ok": true
+  },
+  {
+    "id": "AF03h",
+    "title": "policy switch: purchases.require_return_reference=false lets a reference-less return through (draft 201, left unposted); back to true it is refused again",
+    "expected": [
+      200,
+      201,
+      200,
+      422
+    ],
+    "actual": [
+      200,
+      201,
+      200,
+      422
+    ],
+    "ok": true,
+    "note": "  PURCHASE_RETURN_REFERENCE_REQUIRED"
+  },
+  {
+    "id": "AF03i",
+    "title": "the key is in the typed settings registry (boolean, default true) and the effective value is true again",
+    "expected": [
+      200,
+      true,
+      true
+    ],
+    "actual": [
+      200,
+      true,
+      true
+    ],
+    "ok": true,
+    "note": "{\"key\":\"purchases.require_return_reference\",\"module\":\"purchases\",\"description\":\"ACC-021 (R33): a supplier return must name the posted purchase invoice it return"
+  },
+  {
+    "id": "AF04a",
+    "title": "UI-006 sale 2 × 20 posted; delivery D1 (1) is a draft: the screen formula counts 0 delivered while a naive sum says 1",
+    "expected": [
+      201,
+      201,
+      201,
+      "draft",
+      0,
+      1
+    ],
+    "actual": [
+      201,
+      201,
+      201,
+      "draft",
+      0,
+      1
+    ],
+    "ok": true,
+    "note": " "
+  },
+  {
+    "id": "AF04b",
+    "title": "UI-006 D1 delivered, D2 delivered then cancelled: screen formula = 1 (naive sum 2); outstanding remaining = 1; stock untouched by deliveries (10 − 2 sold = 8)",
+    "expected": [
+      201,
+      201,
+      201,
+      201,
+      "delivered",
+      "cancelled",
+      1,
+      2,
+      1,
+      "8.0000"
+    ],
+    "actual": [
+      201,
+      201,
+      201,
+      201,
+      "delivered",
+      "cancelled",
+      1,
+      2,
+      1,
+      "8.0000"
+    ],
+    "ok": true,
+    "note": " "
+  },
+  {
+    "id": "AF06a",
+    "title": "send 7 of 11 @ 10.0027…: the out movement relieves the exact proportional value and the send journal debits 1270003 with the same amount",
+    "expected": [
+      201,
+      201,
+      201,
+      true,
+      true
+    ],
+    "actual": [
+      201,
+      201,
+      201,
+      true,
+      true
+    ],
+    "ok": true,
+    "note": "avg=10.0027 value=110.0300 sent={\"qty\":\"7.0000\",\"unit_cost\":\"10.0027\",\"total_cost\":\"70.0191\"} je=70.0191"
+  },
+  {
+    "id": "AF06b",
+    "title": "partial receipt 2 of 7: one receipt journal whose 1270003 credit equals the value of the 2 units received (not more)",
+    "expected": [
+      201,
+      "partially_received",
+      1,
+      true
+    ],
+    "actual": [
+      201,
+      "partially_received",
+      1,
+      true
+    ],
+    "ok": true,
+    "note": "txn=[{\"qty\":\"2.0000\",\"unit_cost\":\"10.0028\",\"total_cost\":\"20.0055\"}] je=20.0055"
+  },
+  {
+    "id": "AF06c",
+    "title": "second receipt 5 of 7: its journal credits 1270003 with the value of those 5 units only — not the cumulative 7 (double posting)",
+    "expected": [
+      201,
+      "received",
+      2,
+      true
+    ],
+    "actual": [
+      201,
+      "received",
+      2,
+      true
+    ],
+    "ok": true,
+    "note": "second txn=50.0136 second je=50.0136 all=20.0055,50.0136"
+  },
+  {
+    "id": "AF06d",
+    "title": "value neutrality: Σ receipt movements = sent movement (4 dp), 1270003 is back to its pre-transfer balance, WH10 holds 7 units at the sending cost",
+    "expected": [
+      "70.0191",
+      "-28.0054",
+      "7.0000",
+      "70.0191"
+    ],
+    "actual": [
+      "70.0191",
+      "-28.0054",
+      "7.0000",
+      "70.0191"
+    ],
+    "ok": true,
+    "note": "sent=70.0191 received=70.0191 transit before=-28.0054 after=-28.0054"
+  },
+  {
+    "id": "AF07a",
+    "title": "ACC-116 replay on WH10: out below zero (−2 owed at the provisional average), receipt 2 × 9 rebuilds the balance to exactly zero and books the cost correction",
+    "expected": [
+      200,
+      201,
+      201,
+      "-2.0000",
+      201,
+      201,
+      "0.0000",
+      "0.0000",
+      true
+    ],
+    "actual": [
+      200,
+      201,
+      201,
+      "-2.0000",
+      201,
+      201,
+      "0.0000",
+      "0.0000",
+      true
+    ],
+    "ok": true,
+    "note": "  owedValue=-20.0055 corr=[{\"code\":\"1270001\",\"debit\":\"2.0055\",\"credit\":\"0.0000\",\"party\":null},{\"code\":\"3200004\",\"debit\":\"0.0000\",\"credit\":\"2.0055\""
+  },
+  {
+    "id": "AF07b",
+    "title": "ACC-191 the receipt movement carries the value the balance moved by (receipt cost + correction) so Σ movements = stock_balances (qty and value) — the movement-based «بضاعة آخر المدة» equals the balance sheet",
+    "expected": [
+      "0.0000",
+      "0.0000",
+      true,
+      200
+    ],
+    "actual": [
+      "0.0000",
+      "0.0000",
+      true,
+      200
+    ],
+    "ok": true,
+    "note": "receipt txn={\"qty\":\"2.0000\",\"unit_cost\":\"9.0000\",\"total_cost\":\"20.0055\",\"metadata\":{\"owedQty\":\"2.0000\",\"provisionalCost\":\"10.0028\",\"negativeStockCorrection\":\"-2.0055\"}}"
+  }
+]
