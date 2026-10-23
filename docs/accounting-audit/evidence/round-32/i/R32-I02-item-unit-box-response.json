@@ -1,0 +1,23 @@
+{
+  "id": "R32-I02-item-unit-box",
+  "at": "2026-10-23T08:18:55.953Z",
+  "method": "POST",
+  "path": "/organization/catalog/items/01a167d7-753e-71af-87f4-3b67b1f884f1/units",
+  "status": 201,
+  "request": {
+    "unitId": "01a16790-593c-74ee-adc1-70ef607f3f53",
+    "ratio": "2"
+  },
+  "response": {
+    "itemId": "01a167d7-753e-71af-87f4-3b67b1f884f1",
+    "unitId": "01a16790-593c-74ee-adc1-70ef607f3f53",
+    "unitCode": "BOX",
+    "unitNameAr": "كرتون",
+    "ratio": "2.000000",
+    "barcode": null,
+    "salePrice": null,
+    "purchasePrice": null,
+    "isDefaultSale": false,
+    "isDefaultPurchase": false
+  }
+}

@@ -1,0 +1,113 @@
+[
+  {
+    "id": "I01",
+    "title": "item R32-VOID-ITEM (base PCS) → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "I02",
+    "title": "BOX unit ratio 2 → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "I03",
+    "title": "stock_in draft 2 BOX → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "I04",
+    "title": "post → 201/200",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201 "
+  },
+  {
+    "id": "I04b",
+    "title": "balance after post = 4 PCS / 40.00",
+    "expected": [
+      "4.0000",
+      "40.0000"
+    ],
+    "actual": [
+      "4.0000",
+      "40.0000"
+    ],
+    "ok": true
+  },
+  {
+    "id": "I04c",
+    "title": "GL 1270001 +40.00 after post",
+    "expected": "40.0000",
+    "actual": "40.0000",
+    "ok": true
+  },
+  {
+    "id": "I05",
+    "title": "void → 201/200",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201 "
+  },
+  {
+    "id": "I05b",
+    "title": "ACC-016: balance after void = 0 PCS / 0.00 (R11 left 2 PCS / 20)",
+    "expected": [
+      "0.0000",
+      "0.0000"
+    ],
+    "actual": [
+      "0.0000",
+      "0.0000"
+    ],
+    "ok": true
+  },
+  {
+    "id": "I05c",
+    "title": "void movement: qty 2 in BOX (factor 2), unit cost 10 base",
+    "expected": [
+      "2.0000",
+      "2.000000",
+      "10.0000",
+      "01a16790-593c-74ee-adc1-70ef607f3f53"
+    ],
+    "actual": [
+      "2.0000",
+      "2.000000",
+      "10.0000",
+      "01a16790-593c-74ee-adc1-70ef607f3f53"
+    ],
+    "ok": true
+  },
+  {
+    "id": "I05d",
+    "title": "GL 1270001 back to baseline after void",
+    "expected": "0.0000",
+    "actual": "0.0000",
+    "ok": true
+  },
+  {
+    "id": "I05e",
+    "title": "voucher voided",
+    "expected": "voided",
+    "actual": "voided",
+    "ok": true
+  },
+  {
+    "id": "I06",
+    "title": "Σ stock_balances value unchanged vs baseline",
+    "expected": "142.4000",
+    "actual": "142.4000",
+    "ok": true
+  }
+]
