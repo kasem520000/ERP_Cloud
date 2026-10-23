@@ -105,4 +105,24 @@ describe('bank reconciliation import and matching', () => {
     expect(matchedBenchmarkLines).toHaveLength(60);
     expect(matchedBenchmarkLines.length / benchmarkLines.length).toBeGreaterThanOrEqual(0.6);
   });
+
+  // ACC-035 (R33): the document named in the bank line outranks another receipt of the same customer,
+  // and two unreferenced receipts of the same amount on the same day rank equal (a tie → suggestion).
+  it('ranks an explicit reference above a party-name match and exposes ties through rank', () => {
+    const named = scoreBankMatch(line, { id: 'rv-a', type: 'voucher', kind: 'receipt', date: '2026-09-01', amount: '1250.0000', number: 'RV-5', reference: 'INV-1001', partyName: 'شركة المدى' });
+    const sameParty = scoreBankMatch(line, { id: 'rv-b', type: 'voucher', kind: 'receipt', date: '2026-09-01', amount: '1250.0000', number: 'RV-6', reference: null, partyName: 'شركة المدى' });
+    expect(named.referenceMatches).toBe(true);
+    expect(sameParty.referenceMatches).toBe(false);
+    expect(named.rank).toBeGreaterThan(sameParty.rank);
+    expect(sameParty.confidence).toBeGreaterThanOrEqual(0.8);
+
+    const anonymousLine: ParsedBankStatementLine = { ...line, description: 'ايداع غير معروف', reference: null, amount: '5.0000' };
+    const twinA = scoreBankMatch(anonymousLine, { id: 'rv-1', type: 'voucher', kind: 'receipt', date: '2026-09-01', amount: '5.0000', number: 'RV-1' });
+    const twinB = scoreBankMatch(anonymousLine, { id: 'rv-2', type: 'voucher', kind: 'receipt', date: '2026-09-01', amount: '5.0000', number: 'RV-2' });
+    expect(twinA.rank).toBe(twinB.rank);
+    expect(twinA.confidence).toBe(0.85);
+    // a payment of the same amount is penalised for the wrong direction and never reaches a confirmation score
+    const wrongWay = scoreBankMatch(anonymousLine, { id: 'pv-1', type: 'voucher', kind: 'payment', date: '2026-09-01', amount: '5.0000', number: 'PV-1' });
+    expect(wrongWay.confidence).toBeLessThan(0.8);
+  });
 });

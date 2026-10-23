@@ -235,9 +235,13 @@ const VAN_MONEY_SQL = {
       ELSE COALESCE(d.total, 0) END), 0)::text`,
   /** المحصَّلُ نقدًا — صفوفُ البيع وحدها (وصفُّ المرتجع `paid_amount = 0` أصلًا). */
   collected: sql`COALESCE(SUM(d.paid_amount) FILTER (WHERE ${SALE_ROW_SQL}), 0)::text`,
-  /** الذمم: لكلّ مستندٍ `GREATEST(0, total − paid)` ناقصًا قيمةَ كلّ إشعارٍ دائن. */
+  /**
+   * الذمم: لكلّ مستندٍ `GREATEST(0, total − paid)` ناقصًا قيمةَ كلّ إشعارٍ دائن **لم يُردّ نقدًا**.
+   * ACC-176 (R33): مرتجعُ فاتورةٍ نقدية يُردّ نقدًا (`paid_amount` على صفّ المرتجع = المبلغ المردود، ACC-156)
+   * فلا يُخفّض الذمم؛ وما يُطرح من الذمم هو `القيمة الدائنة − المردود نقدًا` (مرتجعات الآجل فقط).
+   */
   receivables: sql`GREATEST(0, COALESCE(SUM(CASE
-      WHEN ${RETURN_ROW_SQL} THEN -${RETURN_CREDIT_SQL}
+      WHEN ${RETURN_ROW_SQL} THEN -GREATEST(0, ${RETURN_CREDIT_SQL} - COALESCE(d.paid_amount, 0))
       ELSE GREATEST(0, COALESCE(d.total, 0) - COALESCE(d.paid_amount, 0)) END), 0))::text`,
   /**
    * دينُ العميل لفحص الحدّ الائتمانيّ — كالذمم لكن **بلا `GREATEST(0, …)` لكلّ صفّ**، فهذه
@@ -245,7 +249,7 @@ const VAN_MONEY_SQL = {
    * المرتجع. والحدُّ الأدنى صفرٌ للمجموع: فرصيدٌ دائنٌ للعميل لا يُوسّع سقفَه الائتمانيّ.
    */
   partyDebt: sql`GREATEST(0, COALESCE(SUM(CASE
-      WHEN ${RETURN_ROW_SQL} THEN -${RETURN_CREDIT_SQL}
+      WHEN ${RETURN_ROW_SQL} THEN -GREATEST(0, ${RETURN_CREDIT_SQL} - COALESCE(d.paid_amount, 0))
       ELSE COALESCE(d.total, 0) - COALESCE(d.paid_amount, 0) END), 0))::text`,
   /** الربحُ كما يكتبه مستندُ البيع (`net_profit`) — وصفُّ المرتجع يحمل صفرًا. */
   profitGross: sql`COALESCE(SUM(d.net_profit), 0)::text`,

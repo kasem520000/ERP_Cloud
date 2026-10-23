@@ -1,0 +1,29 @@
+{
+  "id": "R33-Q01-provider-moyasar-14",
+  "at": "2026-10-23T13:44:09.635Z",
+  "method": "POST",
+  "path": "/payments/providers",
+  "status": 201,
+  "request": {
+    "provider": "moyasar",
+    "apiKey": "sk_test_r33",
+    "webhookSecret": "***",
+    "isActive": true,
+    "simulation": true,
+    "currency": "SAR",
+    "cashLocationId": "01a168e9-e2fd-769d-992f-f54aee10c248"
+  },
+  "response": {
+    "provider": "moyasar",
+    "label": "ميسر",
+    "isActive": true,
+    "simulation": true,
+    "currency": "SAR",
+    "publishableKey": null,
+    "cashLocationId": "01a168e9-e2fd-769d-992f-f54aee10c248",
+    "hasApiKey": true,
+    "hasWebhookSecret": "***",
+    "webhookUrl": "http://localhost:3000/api/v1/payments/webhooks/moyasar?tenant_id=01a168e9-e14c-70d7-a5d3-dc555976e392",
+    "configured": true
+  }
+}

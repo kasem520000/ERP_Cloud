@@ -1,0 +1,36 @@
+{
+  "id": "R33-P19-unmatch-matched-14",
+  "at": "2026-10-23T13:44:07.813Z",
+  "method": "DELETE",
+  "path": "/treasury/bank-statements/01a16901-0fc2-704f-b30d-af72fdd673cd/lines/01a16901-0fc7-7778-9252-ef92ed08c04d/match",
+  "status": 200,
+  "response": {
+    "data": {
+      "id": "01a16901-0fc7-7778-9252-ef92ed08c04d",
+      "tenantId": "01a168e9-e14c-70d7-a5d3-dc555976e392",
+      "statementId": "01a16901-0fc2-704f-b30d-af72fdd673cd",
+      "lineNo": 6,
+      "txnDate": "2026-10-23",
+      "description": "ايداع بلا مستند",
+      "reference": null,
+      "amount": "7.0000",
+      "balance": null,
+      "matchedVoucherId": null,
+      "matchedInvoiceId": null,
+      "matchedInvoiceType": null,
+      "matchConfidence": null,
+      "matchReason": null,
+      "suggestedAccountId": null,
+      "suggestedCostCenterId": null,
+      "status": "pending",
+      "matchedAt": null,
+      "matchedBy": null,
+      "metadata": {},
+      "createdAt": "2026-10-23T13:43:59.682Z",
+      "createdBy": "01a168e9-e14f-72f8-bec4-91045e8010ce",
+      "updatedAt": "2026-10-23T13:44:08.610Z",
+      "updatedBy": "01a168e9-e14f-72f8-bec4-91045e8010ce",
+      "version": 3
+    }
+  }
+}

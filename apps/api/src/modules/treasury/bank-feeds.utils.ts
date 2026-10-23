@@ -33,6 +33,10 @@ export type BankMatchCandidate = {
 export type BankMatchScore = {
   confidence: number;
   reason: string;
+  /** Uncapped score — used to order candidates and to detect ties (ACC-035). */
+  rank: number;
+  /** The line text carries the document's own number/reference — the strongest clue there is. */
+  referenceMatches: boolean;
 };
 
 const HEADER_ALIASES: Record<keyof ColumnMap, string[]> = {
@@ -281,7 +285,9 @@ export function scoreBankMatch(line: ParsedBankStatementLine, candidate: BankMat
     score += 0.15;
     reasons.push('المرجع موجود في البيان');
   } else if (partyMatches) {
-    score += 0.15;
+    // ACC-035 (R33): a party name is a weaker clue than the document's own reference — several
+    // receipts of the same customer on one day must not tie with the one the bank line names.
+    score += 0.1;
     reasons.push('اسم العميل أو المورد موجود في البيان');
   }
   if (candidate.kind !== undefined && directionMatches) {
@@ -293,6 +299,8 @@ export function scoreBankMatch(line: ParsedBankStatementLine, candidate: BankMat
   return {
     confidence: Math.max(0, Math.min(0.99, Number(score.toFixed(4)))),
     reason: reasons.join(' + ') || 'لا توجد قرائن كافية',
+    rank: Number(score.toFixed(4)),
+    referenceMatches,
   };
 }
 
@@ -303,5 +311,5 @@ export function bestBankMatch(
   return candidates
     .map((candidate) => ({ candidate, score: scoreBankMatch(line, candidate) }))
     .filter((entry) => entry.score.confidence >= 0.6)
-    .sort((left, right) => right.score.confidence - left.score.confidence)[0];
+    .sort((left, right) => right.score.rank - left.score.rank)[0];
 }

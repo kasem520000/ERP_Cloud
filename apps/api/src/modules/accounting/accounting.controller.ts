@@ -196,7 +196,8 @@ export class AccountingController {
    * `صافي أرباح العام` / `صافي خسائر العام` under them.
    *
    * `summary=0` keeps one row per account instead of one per parent, and
-   * `with_stock=0` drops the stock row.
+   * `with_stock=1` asks for the closing-stock row (ACC-120: off by default, and suppressed whenever cost of
+   * sales is already posted in the period — see `totals.closingStockNote`).
    */
   @Get('statements/income-statement')
   @RequiresPermission('accounting.reports.view')

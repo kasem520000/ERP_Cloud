@@ -1,0 +1,38 @@
+{
+  "id": "R33-P08-statement-import-15",
+  "at": "2026-10-23T13:45:31.115Z",
+  "method": "POST",
+  "path": "/treasury/bank-statements/import",
+  "status": 201,
+  "request": {
+    "bankAccountId": "01a16902-74d9-74d5-9349-524f02fb1b9f",
+    "csv": "التاريخ,البيان,المرجع,المبلغ\n2026-10-23,تحويل وارد بقالة R33,R33-TRF-A-15,5.00\n2026-10-23,ايداع غير معروف,,5.00\n2026-10-23,ايداع فاتورة SI-000009,SI-000009,23.00\n2026-10-23,رسوم بنكية,R33-FEE-15,-2.50\n2026-10-23,رسوم بنكية مكررة,,-2.50\n2026-10-23,ايداع بلا مستند,,7.00\n",
+    "openingBalance": "180000",
+    "fileName": "r33-15.csv"
+  },
+  "response": {
+    "data": {
+      "statement": {
+        "id": "01a16902-77ef-7579-9d30-dee509bb7884",
+        "tenantId": "01a168e9-e14c-70d7-a5d3-dc555976e392",
+        "bankAccountId": "01a16902-74d9-74d5-9349-524f02fb1b9f",
+        "fileId": null,
+        "periodFrom": "2026-10-23",
+        "periodTo": "2026-10-23",
+        "openingBalance": "180000.0000",
+        "closingBalance": null,
+        "status": "processed",
+        "sourceFileName": "r33-15.csv",
+        "rowCount": 6,
+        "error": null,
+        "processedAt": "2026-10-23T13:45:31.889Z",
+        "createdAt": "2026-10-23T13:45:31.887Z",
+        "createdBy": "01a168e9-e14f-72f8-bec4-91045e8010ce",
+        "updatedAt": null,
+        "updatedBy": null,
+        "version": 1
+      },
+      "importedLines": 6
+    }
+  }
+}

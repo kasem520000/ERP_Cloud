@@ -1,0 +1,91 @@
+{
+  "id": "R33-S01-income-statement-default-15",
+  "at": "2026-10-23T13:45:51.395Z",
+  "method": "GET",
+  "path": "/statements/income-statement?from=2026-10-01&to=2026-10-23",
+  "status": 200,
+  "response": {
+    "data": [
+      {
+        "kind": "account",
+        "code": "311",
+        "name": "مصاريف إدارية",
+        "debit": "20.0000",
+        "credit": "0.0000",
+        "balanceDebit": "20.0000",
+        "balanceCredit": "0.0000",
+        "status": "مدين"
+      },
+      {
+        "kind": "account",
+        "code": "3121",
+        "name": "مصاريف متنوعة",
+        "debit": "7.0000",
+        "credit": "4.0000",
+        "balanceDebit": "3.0000",
+        "balanceCredit": "0.0000",
+        "status": "مدين"
+      },
+      {
+        "kind": "account",
+        "code": "3122",
+        "name": "مصاريف الموظفين",
+        "debit": "0.0000",
+        "credit": "200.0000",
+        "balanceDebit": "0.0000",
+        "balanceCredit": "200.0000",
+        "status": "دائن"
+      },
+      {
+        "kind": "account",
+        "code": "32",
+        "name": "صافي المشتريات",
+        "debit": "28.0000",
+        "credit": "4.0000",
+        "balanceDebit": "24.0000",
+        "balanceCredit": "0.0000",
+        "status": "مدين"
+      },
+      {
+        "kind": "account",
+        "code": "41",
+        "name": "صافي المبيعات",
+        "debit": "20.0000",
+        "credit": "140.0000",
+        "balanceDebit": "0.0000",
+        "balanceCredit": "120.0000",
+        "status": "دائن"
+      },
+      {
+        "kind": "account",
+        "code": "42",
+        "name": "إيرادات اخرى",
+        "debit": "0.0000",
+        "credit": "35.0000",
+        "balanceDebit": "0.0000",
+        "balanceCredit": "35.0000",
+        "status": "دائن"
+      },
+      {
+        "kind": "profit",
+        "code": null,
+        "name": "صافي أرباح العام",
+        "debit": "308.0000",
+        "credit": "0.0000",
+        "balanceDebit": "308.0000",
+        "balanceCredit": "0.0000",
+        "status": "مدين"
+      }
+    ],
+    "totals": {
+      "debit": "355.0000",
+      "credit": "355.0000",
+      "stock": "0.0000",
+      "profit": "308.0000",
+      "profitLabel": "صافي أرباح العام",
+      "closingStockNote": null,
+      "balanced": true,
+      "balancedLabel": "✅ الحسابات متوازنة"
+    }
+  }
+}

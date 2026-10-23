@@ -1,0 +1,45 @@
+{
+  "id": "R33-R06-portal-login-reactivated",
+  "status": 200,
+  "response": {
+    "accessToken": "[redacted]",
+    "refreshToken": "[redacted]",
+    "tokenType": "Bearer",
+    "expiresIn": 900,
+    "user": {
+      "id": "01a16902-b282-7165-ba3b-2ac06e6c65b8",
+      "email": "r33-portal-15@r33.test",
+      "fullName": "R33 عميل بوابة 15",
+      "phone": null,
+      "status": "active",
+      "isPlatformAdmin": false,
+      "platformRoles": [],
+      "mustChangePassword": true,
+      "lastLoginAt": "2026-10-23T13:45:47.440Z"
+    },
+    "memberships": [
+      {
+        "id": "01a16902-b284-772e-ac36-298f7d1294b0",
+        "tenantId": "01a168e9-e14c-70d7-a5d3-dc555976e392",
+        "tenantCode": "demo",
+        "tenantName": "AUDIT-TEST-2026-R24",
+        "displayName": "R33 عميل بوابة 15",
+        "status": "active",
+        "isOwner": false,
+        "branchScope": null,
+        "maxDiscountPct": null,
+        "maxDiscountAmount": null,
+        "roles": [
+          {
+            "id": "01a16901-4b80-72da-b794-fb4983edeb2b",
+            "name": "Customer portal",
+            "description": "وصول بوابة العملاء — بلا أي صلاحية على النظام؛ الوصول محصور بمستندات العميل نفسه.",
+            "isSystem": true
+          }
+        ],
+        "kind": "portal",
+        "scopes": []
+      }
+    ]
+  }
+}

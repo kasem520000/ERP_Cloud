@@ -1,0 +1,26 @@
+{
+  "id": "R33-P14-match-already-used-14",
+  "at": "2026-10-23T13:44:03.864Z",
+  "method": "POST",
+  "path": "/treasury/bank-statements/01a16901-0fc2-704f-b30d-af72fdd673cd/match",
+  "status": 409,
+  "request": {
+    "lineId": "01a16901-0fc7-7778-9252-eb203f2cd4e5",
+    "voucherId": "01a16900-f71e-701a-a9ad-9a60d12b1e7d"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "BANK_MATCH_TARGET_ALREADY_MATCHED",
+    "detail": "This document already reconciles another bank line",
+    "traceId": "01a16901-2019-70ed-b7e4-35d2d64e6042",
+    "errors": [
+      {
+        "field": "voucherId",
+        "statementId": "01a16901-0fc2-704f-b30d-af72fdd673cd",
+        "lineNo": 4
+      }
+    ]
+  }
+}

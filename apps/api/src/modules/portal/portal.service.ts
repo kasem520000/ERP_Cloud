@@ -176,11 +176,21 @@ export class PortalService {
     });
   }
 
+  /**
+   * ACC-162 (R33): suspending portal access must also stop the account from *signing in*, not only from
+   * calling `/portal/*` afterwards. The login path only consults the tenant membership, so the portal
+   * membership is suspended together with the portal account (and restored on re-activation). The
+   * `users` row is untouched — it may belong to other tenants.
+   */
   async setAccessStatus(tenantId: string, id: string, status: 'active' | 'suspended') {
     if (status !== 'active' && status !== 'suspended') throw new DomainError('VALIDATION_FAILED', 'Unknown portal account status', 422);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const [row] = await tx.update(portalAccounts).set({ status, updatedAt: new Date() }).where(and(eq(portalAccounts.tenantId, tenantId), eq(portalAccounts.id, id))).returning();
       if (!row) throw new DomainError('NOT_FOUND', 'Portal account was not found', 404);
+      await tx
+        .update(memberships)
+        .set({ status, deletedAt: null, updatedAt: new Date() })
+        .where(and(eq(memberships.tenantId, tenantId), eq(memberships.userId, row.userId), eq(memberships.kind, 'portal')));
       return row;
     });
   }

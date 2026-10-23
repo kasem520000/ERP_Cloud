@@ -1,0 +1,40 @@
+{
+  "id": "R33-P16-match-suggested-confirm-13",
+  "at": "2026-10-23T13:41:11.832Z",
+  "method": "POST",
+  "path": "/treasury/bank-statements/01a168fe-6a89-7144-8dd3-491170e5da82/match",
+  "status": 201,
+  "request": {
+    "lineId": "01a168fe-6a8e-7301-80ea-53b778d10e75",
+    "voucherId": "01a168fe-4577-70ba-b29a-c680ef7c65a0"
+  },
+  "response": {
+    "data": {
+      "id": "01a168fe-6a8e-7301-80ea-53b778d10e75",
+      "tenantId": "01a168e9-e14c-70d7-a5d3-dc555976e392",
+      "statementId": "01a168fe-6a89-7144-8dd3-491170e5da82",
+      "lineNo": 2,
+      "txnDate": "2026-10-23",
+      "description": "ايداع غير معروف",
+      "reference": null,
+      "amount": "5.0000",
+      "balance": null,
+      "matchedVoucherId": "01a168fe-4577-70ba-b29a-c680ef7c65a0",
+      "matchedInvoiceId": null,
+      "matchedInvoiceType": null,
+      "matchConfidence": "1.0000",
+      "matchReason": "مطابقة يدوية",
+      "suggestedAccountId": null,
+      "suggestedCostCenterId": null,
+      "status": "matched",
+      "matchedAt": "2026-10-23T13:41:12.615Z",
+      "matchedBy": "01a168e9-e14f-72f8-bec4-91045e8010ce",
+      "metadata": {},
+      "createdAt": "2026-10-23T13:41:06.313Z",
+      "createdBy": "01a168e9-e14f-72f8-bec4-91045e8010ce",
+      "updatedAt": "2026-10-23T13:41:12.615Z",
+      "updatedBy": "01a168e9-e14f-72f8-bec4-91045e8010ce",
+      "version": 3
+    }
+  }
+}

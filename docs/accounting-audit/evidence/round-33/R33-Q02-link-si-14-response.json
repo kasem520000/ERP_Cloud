@@ -1,0 +1,30 @@
+{
+  "id": "R33-Q02-link-si-14",
+  "at": "2026-10-23T13:44:10.439Z",
+  "method": "POST",
+  "path": "/payments/links",
+  "status": 201,
+  "request": {
+    "invoiceId": "01a16901-0628-7628-9ac8-97867e7ac0de",
+    "provider": "moyasar"
+  },
+  "response": {
+    "id": "01a16901-3cd9-74dc-a46c-c609fd633760",
+    "invoiceId": "01a16901-0628-7628-9ac8-97867e7ac0de",
+    "provider": "moyasar",
+    "label": "ميسر",
+    "amount": "23.0000",
+    "currency": "SAR",
+    "linkUrl": "https://pay.simulation.local/moyasar/sim_moyasar_01a169013cd974dc",
+    "externalId": "sim_moyasar_01a169013cd974dc",
+    "status": "pending",
+    "paidAt": null,
+    "voucherId": null,
+    "createdAt": "2026-10-23T13:44:11.228Z",
+    "lastError": null,
+    "payload": {
+      "simulation": true,
+      "providerStatus": "initiated"
+    }
+  }
+}

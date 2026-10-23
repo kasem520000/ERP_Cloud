@@ -5,6 +5,7 @@ import { DomainError, errorCodes } from '@erp/contracts';
 import {
   accounts,
   branches,
+  branchPostingProfiles,
   cashLocations,
   vouchers,
   costCenters,
@@ -235,7 +236,13 @@ export type IncomeStatementQuery = {
    * «حسابات رئيسية»). `summary=0` keeps one row per account.
    */
   summary?: boolean;
-  /** `قيمة مخزون بضاعة آخر المدة حتى هذا التاريخ` — on by default, as in the window. */
+  /**
+   * `قيمة مخزون بضاعة آخر المدة حتى هذا التاريخ` — ACC-120 (R33): **off by default**. The cloud posts cost
+   * of sales on every sale (perpetual inventory), so the periodic-inventory closing-stock credit of the
+   * desktop window double counts the margin. The row is only produced when it is asked for *and* no
+   * perpetual cost of sales was posted in the period; otherwise it is suppressed and the reason is returned
+   * in `totals.closingStockNote`.
+   */
   withStock?: boolean;
 };
 
@@ -259,6 +266,8 @@ export type IncomeStatementTotals = {
   /** `صافي أرباح العام` or `صافي خسائر العام` — the window swaps the label, not the row. */
   profitLabel: string;
   balanced: boolean;
+  /** ACC-120 — why the closing-stock row was left out although it was requested (null when not relevant). */
+  closingStockNote?: { code: 'PERPETUAL_COGS_POSTED'; cogsPosted: string; closingStock: string; message: string } | null;
   /** «✅ الحسابات متوازنة» — the window's own strap under the grid. */
   balancedLabel: string;
 };
@@ -1561,7 +1570,7 @@ export class AccountingService {
     /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
     validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'ACCOUNTING_DATE_INVALID');
     const summary = query.summary !== false;
-    const withStock = query.withStock !== false;
+    const withStockRequested = query.withStock === true;
 
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const from = query.from ?? '0001-01-01';
@@ -1641,7 +1650,20 @@ export class AccountingService {
        * in the desktop. Here it is the same sum over `inventory_transactions`: everything
        * in, minus everything out, up to the end of the period.
        */
-      const stock = withStock ? await this.stockValueAt(tx, tenantId, to, query.branchId) : new Decimal(0);
+      // ACC-120: closing stock is a periodic-inventory figure. When cost of sales was already posted in the
+      // period (perpetual inventory — the cloud's normal mode) the row would count the margin twice, so it is
+      // suppressed and the caller is told why.
+      const cogsPosted = withStockRequested ? await this.perpetualCogsPosted(tx, tenantId, from, to, query.branchId) : new Decimal(0);
+      const withStock = withStockRequested && cogsPosted.isZero();
+      const stock = withStockRequested ? await this.stockValueAt(tx, tenantId, to, query.branchId) : new Decimal(0);
+      const closingStockNote = withStockRequested && !withStock
+        ? {
+            code: 'PERPETUAL_COGS_POSTED' as const,
+            cogsPosted: cogsPosted.toFixed(4),
+            closingStock: stock.toFixed(4),
+            message: 'لم تُضف بضاعة آخر المدة لأن تكلفة المبيعات مرحَّلة فعلاً في الفترة (جرد مستمر) — إضافتها تزدوج الاعتراف بالربح.',
+          }
+        : null;
       if (withStock) {
         const onDebit = stock.isNegative();
         rows.push({
@@ -1679,9 +1701,10 @@ export class AccountingService {
         totals: {
           debit: totalDebit.toFixed(4),
           credit: totalCredit.toFixed(4),
-          stock: stock.toFixed(4),
+          stock: withStock ? stock.toFixed(4) : '0.0000',
           profit: profit.toFixed(4),
           profitLabel,
+          closingStockNote,
           balanced: totalDebit.minus(totalCredit).abs().lessThan(0.005),
           balancedLabel: '✅ الحسابات متوازنة',
         },
@@ -1695,6 +1718,41 @@ export class AccountingService {
    * `InventoryService` because that service depends on this one; the sum is the same four
    * lines either way.
    */
+  /**
+   * ACC-120 — net amount posted in the period on the cost-of-sales accounts of the branch posting
+   * profiles (`mapping.cogsAccountId`). Non-zero means the ledger already carries the perpetual cost of
+   * sales, so a closing-stock row must not be added on top of it.
+   */
+  private async perpetualCogsPosted(tx: DrizzleTx, tenantId: string, from: string, to: string, branchId?: string): Promise<Decimal> {
+    const profiles = await tx
+      .select({ mapping: branchPostingProfiles.mapping })
+      .from(branchPostingProfiles)
+      .where(eq(branchPostingProfiles.tenantId, tenantId));
+    const cogsAccountIds = Array.from(
+      new Set(
+        profiles
+          .map((row) => (row.mapping as Record<string, unknown> | null)?.cogsAccountId)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0),
+      ),
+    );
+    if (cogsAccountIds.length === 0) return new Decimal(0);
+    const [row] = await tx
+      .select({ net: sql<string>`COALESCE(SUM(${journalEntryLines.debit} - ${journalEntryLines.credit}), 0)::text` })
+      .from(journalEntryLines)
+      .innerJoin(journalEntries, eq(journalEntries.id, journalEntryLines.entryId))
+      .where(
+        and(
+          eq(journalEntries.tenantId, tenantId),
+          eq(journalEntries.status, 'posted'),
+          gte(journalEntries.date, from),
+          lte(journalEntries.date, to),
+          inArray(journalEntryLines.accountId, cogsAccountIds),
+          ...(branchId ? [eq(journalEntries.branchId, branchId)] : []),
+        ),
+      );
+    return new Decimal(row?.net ?? 0);
+  }
+
   private async stockValueAt(tx: DrizzleTx, tenantId: string, to: string, branchId?: string): Promise<Decimal> {
     const asOf = to >= '9999-12-31' ? new Date().toISOString() : `${to}T23:59:59.999Z`;
     const [row] = await tx

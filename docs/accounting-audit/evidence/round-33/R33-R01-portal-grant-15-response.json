@@ -1,0 +1,21 @@
+{
+  "id": "R33-R01-portal-grant-15",
+  "at": "2026-10-23T13:45:46.060Z",
+  "method": "POST",
+  "path": "/parties/01a168eb-6de4-742f-b9ba-e42f4d2900b2/portal-access",
+  "status": 201,
+  "request": {
+    "email": "r33-portal-15@r33.test",
+    "fullName": "R33 عميل بوابة 15",
+    "password": "***"
+  },
+  "response": {
+    "data": {
+      "id": "01a16902-b28a-709f-8cd0-224f2782b27d",
+      "partyId": "01a168eb-6de4-742f-b9ba-e42f4d2900b2",
+      "email": "r33-portal-15@r33.test",
+      "status": "active",
+      "temporaryPassword": "***"
+    }
+  }
+}

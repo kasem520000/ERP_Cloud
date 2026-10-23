@@ -43,6 +43,7 @@ type Totals = {
   profit: string;
   profitLabel: string;
   balanced: boolean;
+  closingStockNote?: { code: string; cogsPosted: string; closingStock: string; message: string } | null;
   balancedLabel: string;
 };
 
@@ -70,8 +71,9 @@ export default function IncomeStatementPage() {
   const [to, setTo] = useState('');
   const [allPeriod, setAllPeriod] = useState(true);
   const [summary, setSummary] = useState(true); // تجميعي — حسابات رئيسية
-  const [withStock, setWithStock] = useState(true);
-  const [applied, setApplied] = useState({ branchId: '', from: '', to: '', summary: true, withStock: true });
+  // ACC-120: بضاعة آخر المدة منطق جرد دوري؛ النظام يرحّل تكلفة المبيعات مع كل بيع، فالخيار معطَّل افتراضياً.
+  const [withStock, setWithStock] = useState(false);
+  const [applied, setApplied] = useState({ branchId: '', from: '', to: '', summary: true, withStock: false });
 
   const statement = useQuery<Envelope>(() => {
     const params = new URLSearchParams();
@@ -194,7 +196,7 @@ export default function IncomeStatementPage() {
               checked={withStock}
               onChange={(event) => setWithStock(event.target.checked)}
             />
-            قيمة مخزون بضاعة آخر المدة
+            قيمة مخزون بضاعة آخر المدة (جرد دوري فقط)
           </label>
         </div>
       </FilterBand>
@@ -214,6 +216,11 @@ export default function IncomeStatementPage() {
               tone={totals.profitLabel === 'صافي أرباح العام' ? 'ok' : 'danger'}
             />
           </StatTiles>
+          {totals.closingStockNote && (
+            <p className="muted" role="note" style={{ marginBlock: 8 }}>
+              ℹ️ {totals.closingStockNote.message} (تكلفة المبيعات المرحَّلة {money(totals.closingStockNote.cogsPosted)} · قيمة المخزون الختامي {money(totals.closingStockNote.closingStock)})
+            </p>
+          )}
 
           {rows.filter((row) => row.kind === 'account').length === 0 ? (
             <Empty

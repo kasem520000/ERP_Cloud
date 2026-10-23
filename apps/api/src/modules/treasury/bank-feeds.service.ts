@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
-import { and, asc, desc, eq, gte, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNull, lte, ne, sql } from 'drizzle-orm';
 import { DomainError, newId } from '@erp/contracts';
 import {
   accounts,
@@ -26,6 +26,7 @@ import { tryGetAuthContext } from '../../request-context/request-context.js';
 
 import {
   bestBankMatch,
+  scoreBankMatch,
   parseBankStatementCsv,
   type BankMatchCandidate,
   type ParsedBankStatementLine,
@@ -38,6 +39,8 @@ export type BankAccountInput = {
   currency?: string;
   openingBalance?: string;
   accountId?: string;
+  /** R33: a treasury location may be given instead of the ledger account — its account is used. */
+  cashLocationId?: string;
 };
 
 export type BankAccountUpdate = Partial<BankAccountInput> & {
@@ -60,7 +63,15 @@ export type BankLineMatchInput = {
   voucherId?: string;
   invoiceId?: string;
   invoiceType?: 'sale' | 'purchase';
+  /**
+   * ACC-044 (R33): a bank line may legitimately settle a document for a different amount (bank
+   * charges, a voucher split over two lines). That is an explicit accountant decision, so it has
+   * to be asked for; without it the amounts must agree to the halalah.
+   */
+  partial?: boolean;
 };
+
+const BANK_METHODS = ['bank', 'bank_transfer', 'cheque', 'card'];
 
 export type BankRuleInput = {
   keyword: string;
@@ -153,7 +164,8 @@ export class BankFeedsService {
     if (!bankName) throw new DomainError('BANK_NAME_REQUIRED', 'Bank name is required', 422, { field: 'bankName' });
     const id = newId();
     const created = await withTenantTx(this.database.db, tenantId, async (tx) => {
-      await this.assertAccount(tx, tenantId, input.accountId);
+      const accountId = await this.resolveLedgerAccountId(tx, tenantId, input);
+      await this.assertAccount(tx, tenantId, accountId);
       const [row] = await tx
         .insert(bankAccounts)
         .values({
@@ -164,7 +176,7 @@ export class BankFeedsService {
           iban: normaliseIban(input.iban),
           currency: (input.currency ?? 'SAR').trim().toUpperCase(),
           openingBalance: assertPositiveOrZero(input.openingBalance, 'openingBalance'),
-          accountId: input.accountId ?? null,
+          accountId: accountId ?? null,
           createdBy: actorId(),
         })
         .returning();
@@ -196,6 +208,7 @@ export class BankFeedsService {
       if (input.currency !== undefined) updates.currency = input.currency.trim().toUpperCase();
       if (input.openingBalance !== undefined) updates.openingBalance = assertPositiveOrZero(input.openingBalance, 'openingBalance');
       if (input.accountId !== undefined) updates.accountId = input.accountId || null;
+      else if (input.cashLocationId) updates.accountId = (await this.resolveLedgerAccountId(tx, tenantId, input)) ?? null;
       if (input.status !== undefined) updates.status = input.status;
 
       const [row] = await tx
@@ -398,34 +411,97 @@ export class BankFeedsService {
 
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const line = await this.mustLine(tx, tenantId, statementId, input.lineId);
+      if (line.status === 'matched')
+        throw new DomainError('BANK_LINE_ALREADY_MATCHED', 'Bank statement line is already matched — unmatch it first', 409, { field: 'lineId' });
+      const statement = await this.mustStatement(tx, tenantId, statementId);
+      const lineAmount = money(line.amount);
+      const lineIsCredit = lineAmount.gt(0);
       let invoiceType: 'sale' | 'purchase' | null = null;
+      let targetAmount: Decimal | null = null;
+      /**
+       * ACC-044 / ACC-045 (R33): a manual match is still a reconciliation statement — «this bank
+       * movement IS that document». So the document must be in the ledger (posted), must move in
+       * the same direction as the bank line, must belong to this bank account, must not already
+       * reconcile another line, and must carry the same amount unless the accountant explicitly
+       * asks for a partial match. The old code only checked that the id existed in the tenant.
+       */
       if (input.voucherId) {
         const [voucher] = await tx
-          .select({ id: vouchers.id })
+          .select({ id: vouchers.id, status: vouchers.status, kind: vouchers.kind, amount: vouchers.amount, method: vouchers.method, cashLocationId: vouchers.cashLocationId, number: vouchers.number })
           .from(vouchers)
           .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, input.voucherId)))
           .limit(1);
         if (!voucher) throw new DomainError('BANK_MATCH_TARGET_NOT_FOUND', 'Voucher was not found in this tenant', 404);
+        if (voucher.status !== 'posted')
+          throw new DomainError('BANK_MATCH_TARGET_NOT_POSTED', 'Only a posted voucher (one that reached the ledger) can be reconciled', 422, { field: 'voucherId', status: voucher.status });
+        const voucherIsCredit = voucher.kind === 'receipt';
+        if (voucherIsCredit !== lineIsCredit)
+          throw new DomainError('BANK_MATCH_DIRECTION_MISMATCH', 'A credit bank line reconciles a receipt and a debit line a payment', 422, { field: 'voucherId', lineAmount: lineAmount.toFixed(4), voucherKind: voucher.kind });
+        const bankLocIds = await this.bankCashLocationIds(tx, tenantId, statement.bankAccountId);
+        const onThisBank = voucher.cashLocationId ? bankLocIds.includes(voucher.cashLocationId) : false;
+        if (!onThisBank && !(bankLocIds.length === 0 && BANK_METHODS.includes(voucher.method ?? '')))
+          throw new DomainError('BANK_MATCH_ACCOUNT_MISMATCH', 'The voucher was not paid through this bank account', 422, { field: 'voucherId', method: voucher.method, cashLocationId: voucher.cashLocationId });
+        targetAmount = money(voucher.amount);
       }
       if (input.invoiceId) {
         if (input.invoiceType === 'purchase') {
-          const [invoice] = await tx.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, input.invoiceId))).limit(1);
+          const [invoice] = await tx.select({ id: purchaseInvoices.id, status: purchaseInvoices.status, total: purchaseInvoices.total }).from(purchaseInvoices).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, input.invoiceId))).limit(1);
           if (!invoice) throw new DomainError('BANK_MATCH_TARGET_NOT_FOUND', 'Purchase invoice was not found in this tenant', 404);
+          if (invoice.status !== 'posted') throw new DomainError('BANK_MATCH_TARGET_NOT_POSTED', 'Only a posted invoice can be reconciled', 422, { field: 'invoiceId', status: invoice.status });
           invoiceType = 'purchase';
+          targetAmount = money(invoice.total);
         } else if (input.invoiceType === 'sale') {
-          const [invoice] = await tx.select({ id: salesInvoices.id }).from(salesInvoices).where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, input.invoiceId))).limit(1);
+          const [invoice] = await tx.select({ id: salesInvoices.id, status: salesInvoices.status, total: salesInvoices.total }).from(salesInvoices).where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, input.invoiceId))).limit(1);
           if (!invoice) throw new DomainError('BANK_MATCH_TARGET_NOT_FOUND', 'Sales invoice was not found in this tenant', 404);
+          if (invoice.status !== 'posted') throw new DomainError('BANK_MATCH_TARGET_NOT_POSTED', 'Only a posted invoice can be reconciled', 422, { field: 'invoiceId', status: invoice.status });
           invoiceType = 'sale';
+          targetAmount = money(invoice.total);
         } else {
-          const [sale] = await tx.select({ id: salesInvoices.id }).from(salesInvoices).where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, input.invoiceId))).limit(1);
-          if (sale) invoiceType = 'sale';
-          else {
-            const [purchase] = await tx.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, input.invoiceId))).limit(1);
-            if (purchase) invoiceType = 'purchase';
+          const [sale] = await tx.select({ id: salesInvoices.id, status: salesInvoices.status, total: salesInvoices.total }).from(salesInvoices).where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, input.invoiceId))).limit(1);
+          if (sale) {
+            invoiceType = 'sale';
+            targetAmount = money(sale.total);
+            if (sale.status !== 'posted') throw new DomainError('BANK_MATCH_TARGET_NOT_POSTED', 'Only a posted invoice can be reconciled', 422, { field: 'invoiceId', status: sale.status });
+          } else {
+            const [purchase] = await tx.select({ id: purchaseInvoices.id, status: purchaseInvoices.status, total: purchaseInvoices.total }).from(purchaseInvoices).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, input.invoiceId))).limit(1);
+            if (purchase) {
+              invoiceType = 'purchase';
+              targetAmount = money(purchase.total);
+              if (purchase.status !== 'posted') throw new DomainError('BANK_MATCH_TARGET_NOT_POSTED', 'Only a posted invoice can be reconciled', 422, { field: 'invoiceId', status: purchase.status });
+            }
           }
           if (!invoiceType) throw new DomainError('BANK_MATCH_TARGET_NOT_FOUND', 'Invoice was not found in this tenant', 404);
         }
+        // money comes IN for a sale and goes OUT for a purchase
+        if ((invoiceType === 'sale') !== lineIsCredit)
+          throw new DomainError('BANK_MATCH_DIRECTION_MISMATCH', 'A credit bank line reconciles a sale and a debit line a purchase', 422, { field: 'invoiceId', lineAmount: lineAmount.toFixed(4), invoiceType });
       }
+
+      // one document reconciles one bank line (a split needs an explicit partial match)
+      const targetId = input.voucherId ?? input.invoiceId!;
+      const [elsewhere] = await tx
+        .select({ id: bankStatementLines.id, statementId: bankStatementLines.statementId, lineNo: bankStatementLines.lineNo })
+        .from(bankStatementLines)
+        .where(
+          and(
+            eq(bankStatementLines.tenantId, tenantId),
+            eq(bankStatementLines.status, 'matched'),
+            ne(bankStatementLines.id, line.id),
+            input.voucherId ? eq(bankStatementLines.matchedVoucherId, targetId) : eq(bankStatementLines.matchedInvoiceId, targetId),
+          ),
+        )
+        .limit(1);
+      if (elsewhere && !input.partial)
+        throw new DomainError('BANK_MATCH_TARGET_ALREADY_MATCHED', 'This document already reconciles another bank line', 409, { field: input.voucherId ? 'voucherId' : 'invoiceId', statementId: elsewhere.statementId, lineNo: elsewhere.lineNo });
+
+      const amountsAgree = targetAmount !== null && targetAmount.abs().eq(lineAmount.abs());
+      if (!amountsAgree && !input.partial)
+        throw new DomainError('BANK_MATCH_AMOUNT_MISMATCH', 'The bank line and the document carry different amounts — confirm a partial match explicitly', 422, {
+          field: 'partial',
+          lineAmount: lineAmount.toFixed(4),
+          documentAmount: targetAmount ? targetAmount.toFixed(4) : null,
+        });
+      const partialReason = amountsAgree ? 'مطابقة يدوية' : `مطابقة جزئية يدوية (المستند ${targetAmount ? targetAmount.toFixed(2) : '?'} ≠ السطر ${lineAmount.abs().toFixed(2)})`;
 
       const [updated] = await tx
         .update(bankStatementLines)
@@ -433,8 +509,8 @@ export class BankFeedsService {
           matchedVoucherId: input.voucherId ?? null,
           matchedInvoiceId: input.invoiceId ?? null,
           matchedInvoiceType: invoiceType,
-          matchConfidence: '1.0000',
-          matchReason: 'مطابقة يدوية',
+          matchConfidence: amountsAgree ? '1.0000' : '0.9000',
+          matchReason: elsewhere ? `${partialReason} — المستند مرتبط بسطر آخر أيضاً` : partialReason,
           status: 'matched',
           matchedAt: new Date(),
           matchedBy: actorId(),
@@ -502,7 +578,11 @@ export class BankFeedsService {
         .from(bankStatementLines)
         .where(and(eq(bankStatementLines.tenantId, tenantId), eq(bankStatementLines.statementId, statementId), eq(bankStatementLines.status, 'pending')))
         .orderBy(asc(bankStatementLines.lineNo));
-      const candidates = await this.candidates(tx, tenantId, statement.bankAccountId);
+      // ACC-035 (R33): automatic reconciliation works on bank-side documents only — posted vouchers
+      // paid through this bank account. Invoices are settled *by* vouchers (every payment path now
+      // raises one), so matching a bank line to an invoice total reconciled credit invoices that
+      // were never paid and ignored the receipt that actually hit the bank.
+      const candidates = (await this.candidates(tx, tenantId, statement.bankAccountId)).filter((c) => c.type === 'voucher');
       const rules = await tx
         .select()
         .from(bankReconciliationRules)
@@ -542,6 +622,38 @@ export class BankFeedsService {
         const rule = rules.find((item) => `${line.description} ${line.reference ?? ''}`.toLocaleLowerCase().includes(item.keyword.toLocaleLowerCase()));
         const availableCandidates = candidates.filter((c) => !usedCandidateIds.has(c.id));
         const best = bestBankMatch(lineForScore, availableCandidates);
+        /**
+         * ACC-035: the amount alone (0.65) is a *suggestion*, never a reconciliation — two
+         * receipts of 5.00 on the same day are indistinguishable by amount. A line is confirmed
+         * only when the amount, the direction and at least one corroborating clue (date window,
+         * reference or party name) agree — confidence ≥ 0.80 under `scoreBankMatch`.
+         */
+        const amountAgrees = best ? new Decimal(line.amount).abs().eq(new Decimal(best.candidate.amount).abs()) : false;
+        /**
+         * …and the winner must be *unique*: when another available document scores the same
+         * (e.g. two unreferenced receipts of 5.00 on the same day) the choice would be arbitrary,
+         * so both are left as a suggestion for the accountant to decide.
+         */
+        const tied = best
+          ? availableCandidates.some((c) => c.id !== best.candidate.id && scoreBankMatch(lineForScore, c).rank >= best.score.rank)
+          : false;
+        const confirmed = best && best.score.confidence >= 0.8 && amountAgrees && !tied;
+        if (best && !confirmed) {
+          await tx
+            .update(bankStatementLines)
+            .set({
+              matchConfidence: best.score.confidence.toFixed(4),
+              matchReason: `اقتراح: ${best.candidate.number ?? best.candidate.id} — ${best.score.reason}${tied ? ' — أكثر من مستند بالقرائن نفسها' : ''} (يحتاج تأكيداً يدوياً)`,
+              suggestedAccountId: rule?.accountId ?? null,
+              suggestedCostCenterId: rule?.costCenterId ?? null,
+              updatedAt: new Date(),
+              updatedBy: actorId(),
+              version: line.version + 1,
+            })
+            .where(and(eq(bankStatementLines.tenantId, tenantId), eq(bankStatementLines.id, line.id), eq(bankStatementLines.version, line.version)));
+          suggested += 1;
+          continue;
+        }
         if (best) {
           usedCandidateIds.add(best.candidate.id);
           await tx
@@ -696,22 +808,37 @@ export class BankFeedsService {
     });
   }
 
+  /** 🏦 Ledger account of a bank account: explicit `accountId`, else the account of `cashLocationId` (R33). */
+  private async resolveLedgerAccountId(tx: DrizzleTx, tenantId: string, input: { accountId?: string | null; cashLocationId?: string | null }): Promise<string | undefined> {
+    if (input.accountId) return input.accountId;
+    if (!input.cashLocationId) return undefined;
+    const [loc] = await tx
+      .select({ accountId: cashLocations.accountId })
+      .from(cashLocations)
+      .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.id, input.cashLocationId)))
+      .limit(1);
+    if (!loc) throw new DomainError('CASH_LOCATION_NOT_FOUND', 'Treasury location was not found in this tenant', 404, { field: 'cashLocationId' });
+    return loc.accountId ?? undefined;
+  }
+
+  /** 🏦 The treasury locations that post to the bank account's ledger account (R33). */
+  private async bankCashLocationIds(tx: DrizzleTx, tenantId: string, bankAccountId?: string | null): Promise<string[]> {
+    if (!bankAccountId) return [];
+    const [ba] = await tx
+      .select({ accountId: bankAccounts.accountId })
+      .from(bankAccounts)
+      .where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.id, bankAccountId)))
+      .limit(1);
+    if (!ba?.accountId) return [];
+    const locs = await tx
+      .select({ id: cashLocations.id })
+      .from(cashLocations)
+      .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.accountId, ba.accountId)));
+    return locs.map((l) => l.id);
+  }
+
   private async candidates(tx: DrizzleTx, tenantId: string, bankAccountId?: string): Promise<BankMatchCandidate[]> {
-    let bankCashLocIds: string[] = [];
-    if (bankAccountId) {
-      const [ba] = await tx
-        .select({ accountId: bankAccounts.accountId })
-        .from(bankAccounts)
-        .where(and(eq(bankAccounts.tenantId, tenantId), eq(bankAccounts.id, bankAccountId)))
-        .limit(1);
-      if (ba?.accountId) {
-        const locs = await tx
-          .select({ id: cashLocations.id })
-          .from(cashLocations)
-          .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.accountId, ba.accountId)));
-        bankCashLocIds = locs.map((l) => l.id);
-      }
-    }
+    const bankCashLocIds = await this.bankCashLocationIds(tx, tenantId, bankAccountId);
 
     const [sales, purchases, voucherRows] = await Promise.all([
       tx
@@ -748,12 +875,12 @@ export class BankFeedsService {
           and(
             eq(vouchers.tenantId, tenantId),
             eq(vouchers.status, 'posted'),
+            // ACC-035 (R33): when the bank account is linked to treasury locations, only vouchers
+            // on *those* locations are candidates — a transfer on another bank must not reconcile
+            // this statement. Without a link, fall back to the non-cash methods.
             bankCashLocIds.length
-              ? or(
-                  inArray(vouchers.method, ['bank', 'bank_transfer', 'cheque']),
-                  inArray(vouchers.cashLocationId, bankCashLocIds),
-                )
-              : ne(vouchers.method, 'cash'),
+              ? inArray(vouchers.cashLocationId, bankCashLocIds)
+              : inArray(vouchers.method, BANK_METHODS),
           ),
         )
         .orderBy(desc(vouchers.date))

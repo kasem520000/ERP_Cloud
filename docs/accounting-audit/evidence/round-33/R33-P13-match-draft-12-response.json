@@ -1,0 +1,25 @@
+{
+  "id": "R33-P13-match-draft-12",
+  "at": "2026-10-23T13:36:37.318Z",
+  "method": "POST",
+  "path": "/treasury/bank-statements/01a168fa-42a0-73ce-84e4-3dd6ae49d720/match",
+  "status": 422,
+  "request": {
+    "lineId": "01a168fa-42a8-733f-84a6-aac4355d486d",
+    "voucherId": "01a168fa-35ca-70bc-bc66-0724fe65c8cb"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "BANK_MATCH_TARGET_NOT_POSTED",
+    "detail": "Only a posted voucher (one that reached the ledger) can be reconciled",
+    "traceId": "01a168fa-4fc7-7649-b282-9363590561ae",
+    "errors": [
+      {
+        "field": "voucherId",
+        "status": "draft"
+      }
+    ]
+  }
+}
