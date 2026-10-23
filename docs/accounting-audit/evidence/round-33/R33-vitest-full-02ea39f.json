@@ -1,0 +1,17 @@
+{
+ "commit": "02ea39f",
+ "summary": {
+  "numTotalTestSuites": 534,
+  "numTotalTests": 2038,
+  "numPassedTests": 2012,
+  "numFailedTests": 1,
+  "numPendingTests": 25
+ },
+ "failed": [
+  {
+   "file": "src/modules/ai/ai-help.spec.ts",
+   "test": "assistant help corpus reads ready screens from navigation.ts and keeps the snapshot in step",
+   "message": "AssertionError: expected [ '/accounting/accounts', …(275) ] to include '/inventory/vouchers?kind=issue'"
+  }
+ ]
+}

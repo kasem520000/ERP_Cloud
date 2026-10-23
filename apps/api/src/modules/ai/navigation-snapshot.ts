@@ -855,7 +855,7 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
   {
     "id": "nav:goods-out",
     "title": "صرف مخزني",
-    "href": "/inventory/vouchers?kind=issue",
+    "href": "/inventory/vouchers?kind=stock_out",
     "keywords": [
       "صرف",
       "مخزني",
@@ -863,7 +863,9 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
       "issue",
       "inventory",
       "vouchers",
-      "kind"
+      "kind",
+      "stock",
+      "out"
     ],
     "steps": [
       "افتح «صرف مخزني» من قائمة النظام.",
