@@ -1,0 +1,432 @@
+[
+  {
+    "id": "M00",
+    "title": "journal on non-postable 3122/224 → 422 ACCOUNT_NOT_POSTABLE",
+    "expected": [
+      422,
+      "ACCOUNT_NOT_POSTABLE"
+    ],
+    "actual": [
+      422,
+      "ACCOUNT_NOT_POSTABLE"
+    ],
+    "ok": true
+  },
+  {
+    "id": "M01",
+    "title": "preview 2026-11 → 200/201 with lines",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201 lines=1 nets=R33 مندوب بلا حساب 16:100.0000"
+  },
+  {
+    "id": "M02",
+    "title": "ACC-174 payroll run 2026-11 → 201 draft (a reversed run of the same month must not block it)",
+    "expected": [
+      201,
+      "draft"
+    ],
+    "actual": [
+      201,
+      "draft"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "M03",
+    "title": "ACC-170/176 post with empty body (accrual dated inside the run period) → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": " \"\""
+  },
+  {
+    "id": "M03a",
+    "title": "ACC-176 accrual journal dated inside 2026-11 and in the November period",
+    "expected": [
+      true,
+      "01a16976-3775-7769-b4d1-f318caebd3ff"
+    ],
+    "actual": [
+      true,
+      "01a16976-3775-7769-b4d1-f318caebd3ff"
+    ],
+    "ok": true,
+    "note": "JE-000020 2026-11-01"
+  },
+  {
+    "id": "M03b",
+    "title": "ACC-170 every journal line is on a postable leaf account",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "[[\"22410003\",\"0.0000\",\"100.0000\"],[\"3122001\",\"100.0000\",\"0.0000\"]]"
+  },
+  {
+    "id": "M03c",
+    "title": "ACC-170 no line on 3122 / 224 (summary accounts)",
+    "expected": 0,
+    "actual": 0,
+    "ok": true
+  },
+  {
+    "id": "M03d",
+    "title": "ACC-170 accrual credits each employee's own 2241xxxx account",
+    "expected": [
+      "22410003"
+    ],
+    "actual": [
+      "22410003"
+    ],
+    "ok": true
+  },
+  {
+    "id": "M03e",
+    "title": "ACC-170 salary expense 3122001 debited by the run total",
+    "expected": "100.0000",
+    "actual": "100.0000",
+    "ok": true,
+    "note": "total=100.0000"
+  },
+  {
+    "id": "M04",
+    "title": "pay run → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": " \"\""
+  },
+  {
+    "id": "M04b",
+    "title": "one posted payment voucher per paid employee",
+    "expected": [
+      1,
+      true
+    ],
+    "actual": [
+      1,
+      true
+    ],
+    "ok": true,
+    "note": "PV-000002:100.0000"
+  },
+  {
+    "id": "M04c",
+    "title": "run status paid with voucher_id set",
+    "expected": [
+      "paid",
+      true
+    ],
+    "actual": [
+      "paid",
+      true
+    ],
+    "ok": true
+  },
+  {
+    "id": "M04d",
+    "title": "cash 1211001 and safe sub-ledger both −total",
+    "expected": [
+      "49901.5000",
+      "-98.5000"
+    ],
+    "actual": [
+      "49901.5000",
+      "-98.5000"
+    ],
+    "ok": true
+  },
+  {
+    "id": "M04e-22410003",
+    "title": "employee R33-REP-2-16 (22410003) back to its pre-run balance (accrual −net, payment +net)",
+    "expected": "1.0000",
+    "actual": "1.0000",
+    "ok": true
+  },
+  {
+    "id": "M04f",
+    "title": "payment journals on postable accounts only",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "[[\"1211001\",\"0.0000\",\"100.0000\"],[\"22410003\",\"100.0000\",\"0.0000\"]]"
+  },
+  {
+    "id": "M05",
+    "title": "paying twice → 409 SALARY_ALREADY_PAID",
+    "expected": [
+      409,
+      "SALARY_ALREADY_PAID"
+    ],
+    "actual": [
+      409,
+      "SALARY_ALREADY_PAID"
+    ],
+    "ok": true
+  },
+  {
+    "id": "M05b",
+    "title": "no extra voucher on the replay",
+    "expected": 1,
+    "actual": 1,
+    "ok": true
+  },
+  {
+    "id": "M06",
+    "title": "reverse paid run → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": " \"\""
+  },
+  {
+    "id": "M06b",
+    "title": "all payroll vouchers voided",
+    "expected": [
+      1,
+      true
+    ],
+    "actual": [
+      1,
+      true
+    ],
+    "ok": true,
+    "note": "PV-000002:voided"
+  },
+  {
+    "id": "M06c",
+    "title": "cash and expense back to pre-run balances",
+    "expected": [
+      "50001.5000",
+      "0.0000",
+      "1.5000"
+    ],
+    "actual": [
+      "50001.5000",
+      "0.0000",
+      "1.5000"
+    ],
+    "ok": true
+  },
+  {
+    "id": "M06d-22410003",
+    "title": "employee R33-REP-2-16 unchanged after reverse",
+    "expected": "1.0000",
+    "actual": "1.0000",
+    "ok": true
+  },
+  {
+    "id": "M06e",
+    "title": "run status reversed",
+    "expected": "reversed",
+    "actual": "reversed",
+    "ok": true
+  },
+  {
+    "id": "M07",
+    "title": "ACC-174 a new run for the same month is accepted after the reversal",
+    "expected": [
+      201,
+      "draft"
+    ],
+    "actual": [
+      201,
+      "draft"
+    ],
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "N01",
+    "title": "transfer draft MAIN → VAN-R33-16 3 kg → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "N02",
+    "title": "send → 201/200",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201 "
+  },
+  {
+    "id": "N03",
+    "title": "receive 2 of 3 → 201/200",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201 "
+  },
+  {
+    "id": "N04",
+    "title": "close shortage → 201/200",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201  \"\""
+  },
+  {
+    "id": "N04b",
+    "title": "ACC-169 destination balance = +2 received (the missing kilogram never entered it)",
+    "expected": "2.0000",
+    "actual": "2.0000",
+    "ok": true
+  },
+  {
+    "id": "N04c",
+    "title": "ACC-169 Σ movements of the destination = its balance",
+    "expected": "2.0000",
+    "actual": "2.0000",
+    "ok": true,
+    "note": "before: bal 0.0000 Σtx 0.0000"
+  },
+  {
+    "id": "N04d",
+    "title": "shortage booked as arrival + write-off at the transfer cost",
+    "expected": [
+      "out",
+      "in"
+    ],
+    "actual": [
+      "out",
+      "in"
+    ],
+    "ok": true,
+    "note": "[{\"direction\":\"out\",\"qty\":\"1.0000\",\"unit_cost\":\"1.0000\",\"total_cost\":\"1.0000\",\"costing\":\"outAtOriginalCost\"},{\"direction\":\"in\",\"qty\":\"1.0000\",\"unit_cost\":\"1.0000\",\"total_cost\":\"1.0000\",\"costing\":\"inWithCost\"}]"
+  },
+  {
+    "id": "N04e",
+    "title": "ACC-175 shortage journal Dr 3121004 / Cr 1270003 (in transit) for exactly the un-received value",
+    "expected": [
+      [
+        "1270003",
+        "0.0000",
+        "1.0000"
+      ],
+      [
+        "3121004",
+        "1.0000",
+        "0.0000"
+      ]
+    ],
+    "actual": [
+      [
+        "1270003",
+        "0.0000",
+        "1.0000"
+      ],
+      [
+        "3121004",
+        "1.0000",
+        "0.0000"
+      ]
+    ],
+    "ok": true,
+    "note": "JE-000026 sent 3.0000 received 2.0000 movement 1.0000"
+  },
+  {
+    "id": "N04e2",
+    "title": "ACC-175 this transfer leaves nothing on 1270003",
+    "expected": "0.0000",
+    "actual": "0.0000",
+    "ok": true
+  },
+  {
+    "id": "N04e3",
+    "title": "ACC-175 1270003 (goods in transit) back to its pre-transfer balance",
+    "expected": "0.0000",
+    "actual": "0.0000",
+    "ok": true
+  },
+  {
+    "id": "N04f",
+    "title": "GL 1270001 − Σstock unchanged across send/receive/shortage",
+    "expected": "0.0000",
+    "actual": "0.0000",
+    "ok": true,
+    "note": "GL 192.0000 Σstock 192.0000"
+  },
+  {
+    "id": "N04g",
+    "title": "transfer closed",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "closed"
+  },
+  {
+    "id": "O00",
+    "title": "one rejected + one canceled load order exist (3 kg + 4 kg)",
+    "expected": [
+      "rejected",
+      "canceled"
+    ],
+    "actual": [
+      "rejected",
+      "canceled"
+    ],
+    "ok": true,
+    "note": "201  / 201 "
+  },
+  {
+    "id": "O00b",
+    "title": "MAIN balance restored after reject + cancel (goods never left for good)",
+    "expected": "30.0000",
+    "actual": "30.0000",
+    "ok": true
+  },
+  {
+    "id": "O01",
+    "title": "ACC-157 dashboard main-warehouse balance = stock_balances MAIN",
+    "expected": "30.0000",
+    "actual": "30.0000",
+    "ok": true
+  },
+  {
+    "id": "O01b",
+    "title": "ACC-157 derived main balance (movement ledger of produced items) agrees with the official balance",
+    "expected": [
+      "30.0000",
+      true
+    ],
+    "actual": [
+      "30.0000",
+      true
+    ],
+    "ok": true,
+    "note": "van arithmetic=35.00 other movements=-5.00"
+  },
+  {
+    "id": "O02",
+    "title": "ACC-157 rep performance loadedKg excludes rejected/canceled orders",
+    "expected": "17.0000",
+    "actual": "17.0000",
+    "ok": true,
+    "note": "rejected/canceled orders on board: 2"
+  },
+  {
+    "id": "O02b",
+    "title": "ACC-157 headline totalLoadedKg excludes rejected/canceled orders",
+    "expected": "17.0000",
+    "actual": "17.0000",
+    "ok": true
+  },
+  {
+    "id": "O02c",
+    "title": "ACC-157 rep 1 loadedKg/soldKg on the board = DB (live orders only)",
+    "expected": [
+      "15.0000",
+      "3.0000"
+    ],
+    "actual": [
+      "15.0000",
+      "3.0000"
+    ],
+    "ok": true
+  }
+]

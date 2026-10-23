@@ -1,0 +1,732 @@
+[
+  {
+    "id": "K01",
+    "title": "ACC-171 voucher without date → 422 VOUCHER_INPUT_INVALID",
+    "expected": [
+      422,
+      "VOUCHER_INPUT_INVALID"
+    ],
+    "actual": [
+      422,
+      "VOUCHER_INPUT_INVALID"
+    ],
+    "ok": true
+  },
+  {
+    "id": "K02",
+    "title": "ACC-171 method \"bank\" → 422 VOUCHER_INPUT_INVALID",
+    "expected": [
+      422,
+      "VOUCHER_INPUT_INVALID"
+    ],
+    "actual": [
+      422,
+      "VOUCHER_INPUT_INVALID"
+    ],
+    "ok": true
+  },
+  {
+    "id": "K03",
+    "title": "ACC-171 amount \"abc\" → 422",
+    "expected": 422,
+    "actual": 422,
+    "ok": true,
+    "note": "VOUCHER_INPUT_INVALID"
+  },
+  {
+    "id": "K03b",
+    "title": "ACC-171 missing cashLocationId → 422",
+    "expected": 422,
+    "actual": 422,
+    "ok": true,
+    "note": "VOUCHER_INPUT_INVALID"
+  },
+  {
+    "id": "K04",
+    "title": "ACC-165 sale without invoice: no voucher / JE / invoice_payment created",
+    "expected": [
+      4,
+      30,
+      4
+    ],
+    "actual": [
+      4,
+      30,
+      4
+    ],
+    "ok": true,
+    "note": "201  status=approved settled=false"
+  },
+  {
+    "id": "K04b",
+    "title": "ACC-165 control account 12310001 unchanged",
+    "expected": "0.0000",
+    "actual": "0.0000",
+    "ok": true
+  },
+  {
+    "id": "K05",
+    "title": "SI create → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "K05b",
+    "title": "SI post → 201/200",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201 "
+  },
+  {
+    "id": "K06",
+    "title": "ACC-164 partial 5.00 → 201 approved",
+    "expected": [
+      201,
+      "approved"
+    ],
+    "actual": [
+      201,
+      "approved"
+    ],
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "K06b",
+    "title": "ACC-164 exactly 1 voucher + 1 JE + 1 invoice_payment",
+    "expected": [
+      1,
+      1,
+      1
+    ],
+    "actual": [
+      1,
+      1,
+      1
+    ],
+    "ok": true
+  },
+  {
+    "id": "K06c",
+    "title": "ACC-164 paid_total = 5.0000 (not 10)",
+    "expected": "5.0000",
+    "actual": "5.0000",
+    "ok": true
+  },
+  {
+    "id": "K06d",
+    "title": "ACC-164 bank 1221001 +5.00 once",
+    "expected": "180016.5000",
+    "actual": "180016.5000",
+    "ok": true
+  },
+  {
+    "id": "K06e",
+    "title": "ACC-164 no second sales_payment journal",
+    "expected": 0,
+    "actual": 0,
+    "ok": true
+  },
+  {
+    "id": "K07",
+    "title": "ACC-164 remainder 6.50 accepted (no PAYMENT_EXCEEDS_DUE)",
+    "expected": [
+      201,
+      "approved"
+    ],
+    "actual": [
+      201,
+      "approved"
+    ],
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "K07b",
+    "title": "ACC-164 invoice fully paid 11.5000 / paid",
+    "expected": [
+      "11.5000",
+      "paid"
+    ],
+    "actual": [
+      "11.5000",
+      "paid"
+    ],
+    "ok": true
+  },
+  {
+    "id": "K08",
+    "title": "ACC-032 PI payment → 201 with voucherId",
+    "expected": [
+      201,
+      true
+    ],
+    "actual": [
+      201,
+      true
+    ],
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "K08b",
+    "title": "ACC-032 voucher = payment/supplier/posted 10.0000 with party + cash location",
+    "expected": [
+      "payment",
+      "supplier",
+      "posted",
+      "10.0000",
+      "01a16976-3700-72be-83d3-5f082fc99274",
+      "01a16976-36f6-77fa-8d60-178cf9f3c3df"
+    ],
+    "actual": [
+      "payment",
+      "supplier",
+      "posted",
+      "10.0000",
+      "01a16976-3700-72be-83d3-5f082fc99274",
+      "01a16976-36f6-77fa-8d60-178cf9f3c3df"
+    ],
+    "ok": true,
+    "note": "PV-000003"
+  },
+  {
+    "id": "K08c",
+    "title": "ACC-032 paid_total +10 once",
+    "expected": "20.0000",
+    "actual": "20.0000",
+    "ok": true,
+    "note": "partial"
+  },
+  {
+    "id": "K08d",
+    "title": "ACC-032 AP 22111001 (party) debited 10",
+    "expected": "-210.0000",
+    "actual": "-210.0000",
+    "ok": true
+  },
+  {
+    "id": "K08e",
+    "title": "ACC-032 safe sub-ledger −10",
+    "expected": "-8.5000",
+    "actual": "-8.5000",
+    "ok": true
+  },
+  {
+    "id": "K08f",
+    "title": "ACC-032 exactly 1 voucher + 1 JE",
+    "expected": [
+      1,
+      1
+    ],
+    "actual": [
+      1,
+      1
+    ],
+    "ok": true
+  },
+  {
+    "id": "K09",
+    "title": "ACC-032 idempotent replay: same allocation, no new voucher, paid_total unchanged",
+    "expected": [
+      201,
+      "01a16978-9584-7030-829b-be6acce9c86b",
+      0,
+      "20.0000"
+    ],
+    "actual": [
+      201,
+      "01a16978-9584-7030-829b-be6acce9c86b",
+      0,
+      "20.0000"
+    ],
+    "ok": true
+  },
+  {
+    "id": "L00",
+    "title": "production batch 20 kg → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "L01",
+    "title": "load order 10 kg → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "L02",
+    "title": "confirm receipt 10 → 201/200",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201 "
+  },
+  {
+    "id": "L02b",
+    "title": "VAN-1 +10 kg",
+    "expected": "10.0000",
+    "actual": "10.0000",
+    "ok": true
+  },
+  {
+    "id": "L03",
+    "title": "van cash sale 3 kg @5 → 201 total 17.25",
+    "expected": [
+      201,
+      "17.2500"
+    ],
+    "actual": [
+      201,
+      "17.2500"
+    ],
+    "ok": true,
+    "note": " VTX-00002"
+  },
+  {
+    "id": "L03b",
+    "title": "cash sale paid 17.25 into a cash location",
+    "expected": [
+      "17.2500",
+      true
+    ],
+    "actual": [
+      "17.2500",
+      true
+    ],
+    "ok": true,
+    "note": "01a16976-36f6-77fa-8d60-178cf9f3c3df"
+  },
+  {
+    "id": "L04",
+    "title": "customer return 1 kg → 201 total 5.75 (incl. VAT)",
+    "expected": [
+      201,
+      "5.7500"
+    ],
+    "actual": [
+      201,
+      "5.7500"
+    ],
+    "ok": true,
+    "note": " \"\""
+  },
+  {
+    "id": "L04b",
+    "title": "return document subtotal 5 / tax 0.75 / total 5.75 / paid 5.75",
+    "expected": [
+      "5.0000",
+      "0.7500",
+      "5.7500",
+      "5.7500"
+    ],
+    "actual": [
+      "5.0000",
+      "0.7500",
+      "5.7500",
+      "5.7500"
+    ],
+    "ok": true,
+    "note": "VRT-00002"
+  },
+  {
+    "id": "L04c",
+    "title": "ACC-156 return journal credits cash 5.75 and does not touch 12310001",
+    "expected": [
+      [
+        "5.7500"
+      ],
+      0
+    ],
+    "actual": [
+      [
+        "5.7500"
+      ],
+      0
+    ],
+    "ok": true,
+    "note": "[{\"code\":\"1211001\",\"debit\":\"0.0000\",\"credit\":\"5.7500\",\"party_id\":null},{\"code\":\"1270001\",\"debit\":\"1.0000\",\"credit\":\"0.0000\",\"party_id\":null},{\"code\":\"2222001\",\"debit\":\"0.7500\",\"credit\":\"0.0000\",\"party_id\":null},{\"code\":\"3200004\",\"debit\":\"0.0000\",\"credit\":\"1.0000\",\"party_id\":null},{\"code\":\"4100002\",\"debit\":\"5.0000\",\"credit\":\"0.0000\",\"party_id\":null}]"
+  },
+  {
+    "id": "L04d",
+    "title": "ACC-156 control 12310001 unchanged",
+    "expected": "0.0000",
+    "actual": "0.0000",
+    "ok": true
+  },
+  {
+    "id": "L04e",
+    "title": "ACC-156 cash location sub-ledger −5.75",
+    "expected": "3.0000",
+    "actual": "3.0000",
+    "ok": true
+  },
+  {
+    "id": "L04f",
+    "title": "ACC-153/167 load order: sold 3, customer_returned 1, returned 0, expected_cash 11.50",
+    "expected": [
+      "3.0000",
+      "1.0000",
+      "0.0000",
+      "11.5000"
+    ],
+    "actual": [
+      "3.0000",
+      "1.0000",
+      "0.0000",
+      "11.5000"
+    ],
+    "ok": true
+  },
+  {
+    "id": "L04g",
+    "title": "VAN-1 physical = base +10 −3 +1",
+    "expected": "8.0000",
+    "actual": "8.0000",
+    "ok": true
+  },
+  {
+    "id": "L04h",
+    "title": "dashboard reachable",
+    "expected": 200,
+    "actual": 200,
+    "ok": true,
+    "note": "{\"policy\":{\"allowInternalDeliveryWithoutTax\":false,\"preventSelfApproval\":false,\"shortageValuationBasis\":\"unit_cost\",\"zatcaSeller\":{\"ready\":true,\"missingFields\":[],\"refusalDetail\":null}},\"officialStock\":[{\"itemId\":\"01a16977-86b5-73f2-bad5-51281d56a6a1\",\"itemName\":\"خبز R33\",\"sku\":\"BR-R33\",\"warehouseId\":\"01a16976-36f4-74d5-a384-4bc9eaa97417\",\"warehouseName\":\"المستودع الرئيسي\",\"warehouseCode\":\"MAIN\",\""
+  },
+  {
+    "id": "L05",
+    "title": "submit closing (7 returned of 8 physical) accepted → 201/200",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201  \"\""
+  },
+  {
+    "id": "L05b",
+    "title": "ACC-167 shortage_qty = 1 after submit",
+    "expected": "1.0000",
+    "actual": "1.0000",
+    "ok": true,
+    "note": "pending_closing discrepancy=0.0000"
+  },
+  {
+    "id": "L05c",
+    "title": "ACC-167 guard: sold 3 + returned 9 > loaded 10 + customer return 1 → 422",
+    "expected": 422,
+    "actual": 422,
+    "ok": true,
+    "note": "VALIDATION_FAILED"
+  },
+  {
+    "id": "L06",
+    "title": "approve closing → 201/200",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201  \"\""
+  },
+  {
+    "id": "L06b",
+    "title": "ACC-168 write-off journal Dr 3121004 / Cr 1270001 = stock movement value (1 kg at van average)",
+    "expected": [
+      [
+        "1270001",
+        "0.0000",
+        "1.0000"
+      ],
+      [
+        "3121004",
+        "1.0000",
+        "0.0000"
+      ]
+    ],
+    "actual": [
+      [
+        "1270001",
+        "0.0000",
+        "1.0000"
+      ],
+      [
+        "3121004",
+        "1.0000",
+        "0.0000"
+      ]
+    ],
+    "ok": true,
+    "note": "JE-000039 qty=1.0000 unit=1.0000"
+  },
+  {
+    "id": "L06c",
+    "title": "VAN-1 after approve + count settlement = 0 (legacy ghost kilo written down by the count)",
+    "expected": "0.0000",
+    "actual": "0.0000",
+    "ok": true,
+    "note": "base was 0.0000"
+  },
+  {
+    "id": "L06d",
+    "title": "ACC-168 GL 1270001 − Σstock unchanged versus baseline (no new divergence)",
+    "expected": "0.0000",
+    "actual": "0.0000",
+    "ok": true,
+    "note": "GL 187.0000 Σstock 187.0000"
+  },
+  {
+    "id": "L06e",
+    "title": "load order shortage 1 kg valued at the load unit cost, returned 7, customer_returned 1",
+    "expected": [
+      "1.0000",
+      "1.0000",
+      "7.0000",
+      "1.0000"
+    ],
+    "actual": [
+      "1.0000",
+      "1.0000",
+      "7.0000",
+      "1.0000"
+    ],
+    "ok": true,
+    "note": "settled/policy_configured/settled_officially"
+  },
+  {
+    "id": "L06g",
+    "title": "ACC-172 van_return: out value = in value (no value lost between van and main)",
+    "expected": "7.0000",
+    "actual": "7.0000",
+    "ok": true,
+    "note": "[{\"warehouse_id\":\"01a16976-378e-734b-8db6-78963d1402b8\",\"direction\":\"out\",\"qty\":\"7.0000\",\"unit_cost\":\"1.0000\",\"total_cost\":\"7.0000\"},{\"warehouse_id\":\"01a16976-36f4-74d5-a384-4bc9eaa97417\",\"direction\":\"in\",\"qty\":\"7.0000\",\"unit_cost\":\"1.0000\",\"total_cost\":\"7.0000\"}]"
+  },
+  {
+    "id": "L06f",
+    "title": "MAIN received the 7 kg back (20 produced −10 loaded −2 SI +7 returned = base+15)",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "MAIN 45.0000"
+  },
+  {
+    "id": "L07",
+    "title": "load order 2 (5 kg) → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "L08",
+    "title": "confirm receipt 5 → ok",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201 "
+  },
+  {
+    "id": "L09",
+    "title": "submit closing 2 → ok, shortage 1",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201 "
+  },
+  {
+    "id": "L10",
+    "title": "approve with salary deduction → 201/200",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201  \"\""
+  },
+  {
+    "id": "L10b",
+    "title": "ACC-168 write-off journal exists for custody 2 (Dr 3121004 / Cr 1270001 at stock value)",
+    "expected": [
+      [
+        "1270001",
+        "0.0000",
+        "1.0000"
+      ],
+      [
+        "3121004",
+        "1.0000",
+        "0.0000"
+      ]
+    ],
+    "actual": [
+      [
+        "1270001",
+        "0.0000",
+        "1.0000"
+      ],
+      [
+        "3121004",
+        "1.0000",
+        "0.0000"
+      ]
+    ],
+    "ok": true
+  },
+  {
+    "id": "L10c",
+    "title": "ACC-152 charge journal Dr employee account / Cr 3121004 (not 1270001) at the policy value",
+    "expected": [
+      [
+        "22410002",
+        "1.0000",
+        "0.0000"
+      ],
+      [
+        "3121004",
+        "0.0000",
+        "1.0000"
+      ]
+    ],
+    "actual": [
+      [
+        "22410002",
+        "1.0000",
+        "0.0000"
+      ],
+      [
+        "3121004",
+        "0.0000",
+        "1.0000"
+      ]
+    ],
+    "ok": true,
+    "note": "JE-000043 settled/charged_to_employee"
+  },
+  {
+    "id": "L10d",
+    "title": "ACC-152 inventory relieved exactly once (by the write-off value only)",
+    "expected": "186.0000",
+    "actual": "186.0000",
+    "ok": true
+  },
+  {
+    "id": "L10e",
+    "title": "ACC-152 loss account moves only by (write-off − charge)",
+    "expected": "3.0000",
+    "actual": "3.0000",
+    "ok": true
+  },
+  {
+    "id": "L10f",
+    "title": "employee account + charge",
+    "expected": "2.0000",
+    "actual": "2.0000",
+    "ok": true
+  },
+  {
+    "id": "L11",
+    "title": "employee R33-REP-2 (createAccount:false) → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "L11b",
+    "title": "employee has NO account before the closing (ACC-166 precondition)",
+    "expected": null,
+    "actual": null,
+    "ok": true
+  },
+  {
+    "id": "L12",
+    "title": "warehouse VAN-R33 → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "L13a",
+    "title": "ACC-173 duplicate salesman name → 409 SALESMAN_NAME_TAKEN (was 500)",
+    "expected": [
+      409,
+      "SALESMAN_NAME_TAKEN"
+    ],
+    "actual": [
+      409,
+      "SALESMAN_NAME_TAKEN"
+    ],
+    "ok": true
+  },
+  {
+    "id": "L13",
+    "title": "salesman 2 linked to employee + VAN-R33 → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "L14",
+    "title": "load order 3 (2 kg) → 201",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "L15",
+    "title": "confirm receipt 2 → ok",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201 "
+  },
+  {
+    "id": "L16",
+    "title": "submit closing 3 → ok",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201 "
+  },
+  {
+    "id": "L17",
+    "title": "ACC-166 approve with salary deduction for rep without account → not 500",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "201  \"\""
+  },
+  {
+    "id": "L17b",
+    "title": "ACC-166 employee account auto-created under 2241 with level 4 and a path",
+    "expected": [
+      true,
+      4,
+      true
+    ],
+    "actual": [
+      true,
+      4,
+      true
+    ],
+    "ok": true,
+    "note": "{\"employee_account_id\":\"01a16978-dfc2-70aa-a128-a7e4ecdf94e7\",\"code\":\"22410004\",\"level\":4,\"path\":\"01a16976-3703-75eb-a575-92efea6b89c8.01a16976-3708-7072-a286-5abd4c88ca6a.01a16976-371a-73d8-9989-4ab29cf73ad3.01a16976-3724-7273-8a1a-4bec06ff0b26.01a16978-dfc2-70aa-a128-a7e4ecdf94e7\",\"parent_id\":\"01a16976-3724-7273-8a1a-4bec06ff0b26\"}"
+  },
+  {
+    "id": "L17c",
+    "title": "ACC-166 charge journal posted on the new employee account",
+    "expected": [
+      "22410004",
+      "1.0000"
+    ],
+    "actual": [
+      "22410004",
+      "1.0000"
+    ],
+    "ok": true
+  }
+]

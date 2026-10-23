@@ -1,0 +1,20 @@
+{
+  "id": "R33-M05-payroll-pay-again-16",
+  "at": "2026-10-23T15:54:07.604Z",
+  "method": "POST",
+  "path": "/hrm/payroll/runs/01a16978-2bd8-70d1-8d2b-42246bc88dee/pay",
+  "status": 409,
+  "request": {
+    "branchId": "01a16976-36f2-731c-a530-11a637370467",
+    "cashLocationId": "01a16976-36f6-77fa-8d60-178cf9f3c3df",
+    "method": "cash"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "SALARY_ALREADY_PAID",
+    "detail": "تم صرف رواتب جميع موظفي هذا المسير من قبل",
+    "traceId": "01a16978-3375-7509-8101-7f3b1bff7868"
+  }
+}

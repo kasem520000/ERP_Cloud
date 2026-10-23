@@ -1,0 +1,27 @@
+{
+  "id": "R33-N04-transfer-close-shortage-16",
+  "at": "2026-10-23T15:54:12.609Z",
+  "method": "POST",
+  "path": "/inventory/transfers/01a16978-40c4-77b8-ad9e-9aee8e8ee510/close",
+  "status": 201,
+  "request": {
+    "mode": "shortage",
+    "reason": "R33 عجز مناقلة 1 كجم — قرار المحاسب"
+  },
+  "response": {
+    "transferId": "01a16978-40c4-77b8-ad9e-9aee8e8ee510",
+    "number": "TR-000004",
+    "status": "closed",
+    "mode": "shortage",
+    "value": "1.0000",
+    "returnedQty": "0.0000",
+    "journalEntryId": "01a16978-4a16-709f-875e-069c7dd7e789",
+    "lines": [
+      {
+        "lineNo": 1,
+        "itemId": "01a16977-86b5-73f2-bad5-51281d56a6a1",
+        "qty": "1.0000"
+      }
+    ]
+  }
+}

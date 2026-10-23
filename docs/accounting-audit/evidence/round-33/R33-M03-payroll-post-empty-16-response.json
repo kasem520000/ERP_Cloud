@@ -1,0 +1,70 @@
+{
+  "id": "R33-M03-payroll-post-empty-16",
+  "at": "2026-10-23T15:54:05.717Z",
+  "method": "POST",
+  "path": "/hrm/payroll/runs/01a16978-2bd8-70d1-8d2b-42246bc88dee/post",
+  "status": 201,
+  "request": {},
+  "response": {
+    "data": {
+      "id": "01a16978-2bd8-70d1-8d2b-42246bc88dee",
+      "tenantId": "01a16976-3534-755a-a19a-f7e37286ad69",
+      "periodId": "01a16976-3775-7769-b4d1-f318caebd3ff",
+      "yearMonth": "2026-11",
+      "status": "posted",
+      "currency": "SAR",
+      "summary": {
+        "preview": {
+          "lines": [
+            {
+              "net": "100.0000",
+              "gross": "100.0000",
+              "additions": "0.0000",
+              "components": {
+                "basic": "100"
+              },
+              "deductions": "0.0000",
+              "employeeId": "01a16978-090e-7198-9976-6ab2d1d2940a",
+              "employeeName": "R33 مندوب بلا حساب 16",
+              "unpaidFactor": "1.000000"
+            }
+          ],
+          "yearMonth": "2026-11",
+          "netPayable": "100.0000",
+          "employeeCount": 1
+        }
+      },
+      "journalEntryId": "01a16978-2f2c-7158-89db-8d5eb5316c60",
+      "voucherId": null,
+      "postedAt": "2026-10-23T15:54:06.514Z",
+      "paidAt": null,
+      "reversedAt": null,
+      "reversalReason": null,
+      "createdAt": "2026-10-23T15:54:05.656Z",
+      "createdBy": null,
+      "updatedAt": "2026-10-23T15:54:06.514Z",
+      "updatedBy": null,
+      "version": 1,
+      "legacySource": null,
+      "legacyId": null,
+      "lines": [
+        {
+          "runId": "01a16978-2bd8-70d1-8d2b-42246bc88dee",
+          "lineNo": 1,
+          "tenantId": "01a16976-3534-755a-a19a-f7e37286ad69",
+          "employeeId": "01a16978-090e-7198-9976-6ab2d1d2940a",
+          "components": {
+            "basic": "100"
+          },
+          "additions": "0.0000",
+          "deductions": "0.0000",
+          "gross": "100.0000",
+          "net": "100.0000",
+          "costCenterId": null,
+          "status": "posted",
+          "payslipHtml": "<!doctype html><html dir=\"rtl\"><body><h1>قسيمة راتب 2026-11</h1><p>R33 مندوب بلا حساب 16: 100.0000</p></body></html>"
+        }
+      ]
+    }
+  }
+}

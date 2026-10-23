@@ -1,0 +1,31 @@
+{
+  "id": "R33-M01-payroll-preview-16",
+  "at": "2026-10-23T15:54:04.084Z",
+  "method": "POST",
+  "path": "/hrm/payroll/preview",
+  "status": 201,
+  "request": {
+    "yearMonth": "2026-11"
+  },
+  "response": {
+    "data": {
+      "yearMonth": "2026-11",
+      "employeeCount": 1,
+      "netPayable": "100.0000",
+      "lines": [
+        {
+          "employeeId": "01a16978-090e-7198-9976-6ab2d1d2940a",
+          "employeeName": "R33 مندوب بلا حساب 16",
+          "components": {
+            "basic": "100"
+          },
+          "additions": "0.0000",
+          "deductions": "0.0000",
+          "gross": "100.0000",
+          "net": "100.0000",
+          "unpaidFactor": "1.000000"
+        }
+      ]
+    }
+  }
+}

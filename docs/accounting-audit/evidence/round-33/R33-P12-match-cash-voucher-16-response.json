@@ -1,0 +1,26 @@
+{
+  "id": "R33-P12-match-cash-voucher-16",
+  "at": "2026-10-23T15:55:20.842Z",
+  "method": "POST",
+  "path": "/treasury/bank-statements/01a16979-4783-7260-8c92-3c73f2d84a55/match",
+  "status": 422,
+  "request": {
+    "lineId": "01a16979-4788-7787-aa00-0de691b44146",
+    "voucherId": "01a16979-3497-71fd-a8e7-5ac748c10fe4"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "BANK_MATCH_ACCOUNT_MISMATCH",
+    "detail": "The voucher was not paid through this bank account",
+    "traceId": "01a16979-518b-763c-a1a9-5adbb476b5fb",
+    "errors": [
+      {
+        "field": "voucherId",
+        "method": "cash",
+        "cashLocationId": "01a16976-36f6-77fa-8d60-178cf9f3c3df"
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 {
   "id": "R33-B07-neoleap-config",
-  "at": "2026-10-23T13:22:04.385Z",
+  "at": "2026-10-23T15:53:26.659Z",
   "method": "PUT",
   "path": "/payment-gateways/neoleap",
   "status": 200,
@@ -25,6 +25,6 @@
     "callbackUrl": "",
     "simulation": true,
     "lastTest": null,
-    "updatedAt": "2026-10-23T13:22:05.033Z"
+    "updatedAt": "2026-10-23T15:53:27.448Z"
   }
 }

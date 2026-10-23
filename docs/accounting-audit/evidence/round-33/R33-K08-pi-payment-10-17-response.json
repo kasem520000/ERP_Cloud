@@ -1,0 +1,24 @@
+{
+  "id": "R33-K08-pi-payment-10-17",
+  "at": "2026-10-23T15:54:31.884Z",
+  "method": "POST",
+  "path": "/purchase-invoices/01a16977-8cff-775a-8862-0cb430afb02f/payments",
+  "status": 201,
+  "request": {
+    "amount": "10",
+    "idempotencyKey": "R33-PI1-PAY-10-17",
+    "cashLocationId": "01a16976-36f6-77fa-8d60-178cf9f3c3df",
+    "method": "cash"
+  },
+  "response": {
+    "id": "01a16978-9584-7030-829b-be6acce9c86b",
+    "tenantId": "01a16976-3534-755a-a19a-f7e37286ad69",
+    "partyId": "01a16976-3700-72be-83d3-5f082fc99274",
+    "voucherId": "01a16978-956f-728e-bd22-3d98e1c0b102",
+    "invoiceKind": "purchase",
+    "invoiceId": "01a16977-8cff-775a-8862-0cb430afb02f",
+    "amount": "10.0000",
+    "allocatedAt": "2026-10-23T15:54:32.684Z",
+    "createdBy": null
+  }
+}
