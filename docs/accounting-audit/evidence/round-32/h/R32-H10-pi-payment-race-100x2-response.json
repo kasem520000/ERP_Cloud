@@ -1,0 +1,48 @@
+{
+  "id": "R32-H10-pi-payment-race-100x2",
+  "at": "2026-10-23T08:06:58.930Z",
+  "concurrent": true,
+  "results": [
+    {
+      "method": "POST",
+      "path": "/purchase-invoices/01a16794-6953-701a-a57c-cf2efd9765e6/payments",
+      "status": 422,
+      "request": {
+        "amount": "100",
+        "idempotencyKey": "R32-PI1-RACE-A",
+        "cashLocationId": "01a16790-58e4-767f-8a9e-d49653d519ff",
+        "method": "cash"
+      },
+      "response": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 422,
+        "code": "PAYMENT_EXCEEDS_DUE",
+        "detail": "Payment exceeds purchase invoice balance",
+        "traceId": "01a167cc-8474-749b-8f21-591fbac9ca18"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/purchase-invoices/01a16794-6953-701a-a57c-cf2efd9765e6/payments",
+      "status": 201,
+      "request": {
+        "amount": "100",
+        "idempotencyKey": "R32-PI1-RACE-B",
+        "cashLocationId": "01a16790-58e4-767f-8a9e-d49653d519ff",
+        "method": "cash"
+      },
+      "response": {
+        "id": "01a167cc-8780-7208-ab59-09bb25e61743",
+        "tenantId": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+        "partyId": "01a16790-58ef-7480-a56e-1df58ea70bb4",
+        "voucherId": null,
+        "invoiceKind": "purchase",
+        "invoiceId": "01a16794-6953-701a-a57c-cf2efd9765e6",
+        "amount": "100.0000",
+        "allocatedAt": "2026-10-23T08:06:59.710Z",
+        "createdBy": null
+      }
+    }
+  ]
+}

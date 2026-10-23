@@ -1,0 +1,69 @@
+{
+  "id": "R32-H05-run-read",
+  "at": "2026-10-23T08:06:53.770Z",
+  "method": "GET",
+  "path": "/hrm/payroll/runs/01a167cc-655a-7461-b281-b523d3830e03",
+  "status": 200,
+  "response": {
+    "data": {
+      "id": "01a167cc-655a-7461-b281-b523d3830e03",
+      "tenantId": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+      "periodId": "01a16790-5954-74f8-870d-909d680f1c60",
+      "yearMonth": "2026-10",
+      "status": "posted",
+      "currency": "SAR",
+      "summary": {
+        "preview": {
+          "lines": [
+            {
+              "net": "61.9355",
+              "gross": "61.9355",
+              "additions": "0.0000",
+              "components": {
+                "basic": "120"
+              },
+              "deductions": "0.0000",
+              "employeeId": "01a167cc-5f30-77db-a3e1-75ed1569bb8a",
+              "employeeName": "R32 موظف اختبار معزول",
+              "unpaidFactor": "0.516129"
+            }
+          ],
+          "yearMonth": "2026-10",
+          "netPayable": "61.9355",
+          "employeeCount": 1
+        }
+      },
+      "journalEntryId": "01a167cc-6f8c-774e-b52c-0146bd88bb44",
+      "voucherId": null,
+      "postedAt": "2026-10-23T08:06:53.586Z",
+      "paidAt": null,
+      "reversedAt": null,
+      "reversalReason": null,
+      "createdAt": "2026-10-23T08:06:50.971Z",
+      "createdBy": null,
+      "updatedAt": "2026-10-23T08:06:53.586Z",
+      "updatedBy": null,
+      "version": 1,
+      "legacySource": null,
+      "legacyId": null,
+      "lines": [
+        {
+          "runId": "01a167cc-655a-7461-b281-b523d3830e03",
+          "lineNo": 1,
+          "tenantId": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+          "employeeId": "01a167cc-5f30-77db-a3e1-75ed1569bb8a",
+          "components": {
+            "basic": "120"
+          },
+          "additions": "0.0000",
+          "deductions": "0.0000",
+          "gross": "61.9355",
+          "net": "61.9355",
+          "costCenterId": null,
+          "status": "posted",
+          "payslipHtml": "<!doctype html><html dir=\"rtl\"><body><h1>قسيمة راتب 2026-10</h1><p>R32 موظف اختبار معزول: 61.9355</p></body></html>"
+        }
+      ]
+    }
+  }
+}

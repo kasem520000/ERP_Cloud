@@ -1,0 +1,17 @@
+{
+  "id": "R32-H19-auto-match",
+  "at": "2026-10-23T08:07:57.501Z",
+  "method": "POST",
+  "path": "/treasury/bank-statements/01a167cc-a79e-7217-9b96-06fbf1df538f/auto-match",
+  "status": 201,
+  "request": {},
+  "response": {
+    "data": {
+      "statementId": "01a167cc-a79e-7217-9b96-06fbf1df538f",
+      "scanned": 3,
+      "matched": 2,
+      "suggested": 0,
+      "pending": 1
+    }
+  }
+}

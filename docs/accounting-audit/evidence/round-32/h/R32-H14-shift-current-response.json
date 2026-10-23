@@ -1,0 +1,65 @@
+{
+  "id": "R32-H14-shift-current",
+  "at": "2026-10-23T08:07:03.876Z",
+  "method": "GET",
+  "path": "/shift-closes/current?branch_id=01a16790-58e0-70f5-a712-0f875e9b5deb",
+  "status": 200,
+  "response": {
+    "id": "01a167cc-8e4e-7613-95de-362c8e7ad36c",
+    "tenantId": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+    "branchId": "01a16790-58e0-70f5-a712-0f875e9b5deb",
+    "userId": "01a16790-56f5-777c-97aa-9d95d8069618",
+    "openedAt": "2026-10-23T08:07:01.453Z",
+    "closedAt": null,
+    "status": "open",
+    "number": null,
+    "journalEntryId": null,
+    "postedAt": null,
+    "expectedCash": "0.0000",
+    "countedCash": "0.0000",
+    "diff": "0.0000",
+    "summary": {},
+    "reportHtml": null,
+    "createdAt": "2026-10-23T08:07:01.453Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1,
+    "live": {
+      "vouchers": 0,
+      "vouchersCash": "0.0000",
+      "invoices": 1,
+      "invoiceRows": 1,
+      "sales": {
+        "cash": "5.7500",
+        "card": "0.0000",
+        "bank": "0.0000",
+        "credit": "0.0000"
+      },
+      "returns": {
+        "cash": "0.0000",
+        "card": "0.0000",
+        "bank": "0.0000",
+        "credit": "0.0000"
+      },
+      "expectedCash": "5.7500",
+      "cash": "5.7500",
+      "banks": [],
+      "bankTransfers": "0.0000",
+      "network": "0.0000",
+      "sumCashAndNetwork": "5.7500",
+      "net": "5.7500",
+      "tax": "0.7500",
+      "discount": "0.0000",
+      "postponed": "0.0000",
+      "expenses": {
+        "total": "0.0000",
+        "delivery": "0.0000",
+        "hospitality": "0.0000",
+        "purchases": "0.0000",
+        "insurance": "0.0000",
+        "other": "0.0000"
+      }
+    }
+  }
+}

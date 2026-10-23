@@ -1,0 +1,24 @@
+{
+  "id": "R32-H20-draft-voucher",
+  "at": "2026-10-23T08:07:59.086Z",
+  "method": "POST",
+  "path": "/vouchers",
+  "status": 500,
+  "request": {
+    "branchId": "01a16790-58e0-70f5-a712-0f875e9b5deb",
+    "kind": "receipt",
+    "subtype": "customer",
+    "partyId": "01a16791-b987-7499-9aea-621f9b2a1f7c",
+    "cashLocationId": "01a16790-58e6-707d-b538-355c4afcd5f3",
+    "amount": "2.50",
+    "description": "R32 سند مسودة لمطابقة بنكية"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Internal error",
+    "status": 500,
+    "code": "INTERNAL",
+    "detail": "An unexpected error occurred",
+    "traceId": "01a167cd-6f70-757c-93f1-16a53d540eb9"
+  }
+}

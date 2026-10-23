@@ -1,0 +1,33 @@
+{
+  "id": "R32-H17-bank-account",
+  "at": "2026-10-23T08:07:06.384Z",
+  "method": "POST",
+  "path": "/treasury/bank-accounts",
+  "status": 201,
+  "request": {
+    "bankName": "R32 بنك اختبار",
+    "accountNo": "R32-ACC-001",
+    "iban": "SA00R32TEST0000000001",
+    "openingBalance": "180000",
+    "accountId": null,
+    "cashLocationId": "01a16790-58e6-707d-b538-355c4afcd5f3"
+  },
+  "response": {
+    "data": {
+      "id": "01a167cc-a491-773a-9103-cc631f94bf77",
+      "tenantId": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+      "bankName": "R32 بنك اختبار",
+      "accountNo": "R32-ACC-001",
+      "iban": "SA00•••••••••••••0001",
+      "currency": "SAR",
+      "openingBalance": "180000.0000",
+      "accountId": null,
+      "status": "active",
+      "createdAt": "2026-10-23T08:07:07.153Z",
+      "createdBy": "01a16790-56f5-777c-97aa-9d95d8069618",
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1
+    }
+  }
+}

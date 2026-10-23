@@ -1,0 +1,66 @@
+{
+  "id": "R32-H15-shift-close",
+  "at": "2026-10-23T08:07:04.613Z",
+  "method": "POST",
+  "path": "/shift-closes/01a167cc-8e4e-7613-95de-362c8e7ad36c/close",
+  "status": 201,
+  "request": {
+    "counts": [
+      {
+        "denomination": "5",
+        "count": 1
+      },
+      {
+        "denomination": "0.5",
+        "count": 1
+      },
+      {
+        "denomination": "0.25",
+        "count": 1
+      }
+    ]
+  },
+  "response": {
+    "id": "01a167cc-8e4e-7613-95de-362c8e7ad36c",
+    "number": "CS-000001",
+    "status": "closed",
+    "summary": {
+      "vouchers": 0,
+      "vouchersCash": "0.0000",
+      "invoices": 1,
+      "invoiceRows": 1,
+      "sales": {
+        "cash": "5.7500",
+        "card": "0.0000",
+        "bank": "0.0000",
+        "credit": "0.0000"
+      },
+      "returns": {
+        "cash": "0.0000",
+        "card": "0.0000",
+        "bank": "0.0000",
+        "credit": "0.0000"
+      },
+      "expectedCash": "5.7500",
+      "cash": "5.7500",
+      "banks": [],
+      "bankTransfers": "0.0000",
+      "network": "0.0000",
+      "sumCashAndNetwork": "5.7500",
+      "net": "5.7500",
+      "tax": "0.7500",
+      "discount": "0.0000",
+      "postponed": "0.0000",
+      "expenses": {
+        "total": "0.0000",
+        "delivery": "0.0000",
+        "hospitality": "0.0000",
+        "purchases": "0.0000",
+        "insurance": "0.0000",
+        "other": "0.0000"
+      },
+      "countedCash": "5.7500",
+      "diff": "0.0000"
+    }
+  }
+}

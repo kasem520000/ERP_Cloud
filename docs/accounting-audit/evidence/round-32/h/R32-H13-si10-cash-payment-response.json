@@ -1,0 +1,25 @@
+{
+  "id": "R32-H13-si10-cash-payment",
+  "at": "2026-10-23T08:07:03.064Z",
+  "method": "POST",
+  "path": "/sales/invoices/01a167cc-915c-76d7-826b-1df0a5993ab7/payments",
+  "status": 201,
+  "request": {
+    "method": "cash",
+    "amount": "5.75",
+    "cashLocationId": "01a16790-58e4-767f-8a9e-d49653d519ff",
+    "idempotencyKey": "R32-SI10-CASH-575"
+  },
+  "response": {
+    "id": "01a167cc-97b1-76ff-9f4e-01186ce8725b",
+    "tenantId": "01a16790-56f2-7106-81ae-fc3fdc1f6a88",
+    "invoiceId": "01a167cc-915c-76d7-826b-1df0a5993ab7",
+    "method": "cash",
+    "amount": "5.7500",
+    "cashLocationId": "01a16790-58e4-767f-8a9e-d49653d519ff",
+    "reference": null,
+    "idempotencyKey": "R32-SI10-CASH-575",
+    "createdAt": "2026-10-23T08:07:03.855Z",
+    "createdBy": null
+  }
+}
