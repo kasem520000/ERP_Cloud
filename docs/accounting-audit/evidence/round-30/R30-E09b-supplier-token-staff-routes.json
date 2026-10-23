@@ -1,0 +1,96 @@
+{
+  "note": "supplier token vs staff routes (correct route names)",
+  "results": [
+    {
+      "label": "staff-purchase-invoices",
+      "path": "/purchase-invoices",
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Unauthenticated",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "detail": "Access token is invalid or expired",
+        "traceId": "01a166ed-2dda-76cf-84a3-b102491adb06"
+      }
+    },
+    {
+      "label": "staff-purchase-invoice-own",
+      "path": "/purchase-invoices/01a16674-299e-7271-87fc-ad70107f856b",
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Unauthenticated",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "detail": "Access token is invalid or expired",
+        "traceId": "01a166ed-2fd3-74bc-9e22-b8cc05a633a1"
+      }
+    },
+    {
+      "label": "staff-vouchers",
+      "path": "/vouchers?limit=5",
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Unauthenticated",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "detail": "Access token is invalid or expired",
+        "traceId": "01a166ed-31cd-71e9-ad1e-020749cc40f4"
+      }
+    },
+    {
+      "label": "staff-sales-invoices",
+      "path": "/sales/invoices?limit=5",
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Unauthenticated",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "detail": "Access token is invalid or expired",
+        "traceId": "01a166ed-33e3-71dd-a82c-a2aca91d11fb"
+      }
+    },
+    {
+      "label": "portal-me",
+      "path": "/portal/me",
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Unauthenticated",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "detail": "Access token is invalid or expired",
+        "traceId": "01a166ed-35fc-7281-aa00-63600e7a17c4"
+      }
+    },
+    {
+      "label": "supplier-users-list",
+      "path": "/supplier-portal/users",
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Unauthenticated",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "detail": "Access token is invalid or expired",
+        "traceId": "01a166ed-37f6-77a2-a44d-219c1a319bea"
+      }
+    },
+    {
+      "label": "supplier-rfqs-staff-list",
+      "path": "/supplier-portal/rfqs",
+      "status": 401,
+      "body": {
+        "type": "about:blank",
+        "title": "Unauthenticated",
+        "status": 401,
+        "code": "UNAUTHENTICATED",
+        "detail": "Access token is invalid or expired",
+        "traceId": "01a166ed-39ef-715f-9c0d-644b5730775f"
+      }
+    }
+  ]
+}

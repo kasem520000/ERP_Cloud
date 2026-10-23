@@ -1,0 +1,47 @@
+{
+  "users": [
+    {
+      "id": "01a166e7-5743-75a1-be76-ce0b0284eaff",
+      "partyId": "01a1666d-3bed-7668-9715-4a7e6ae2238f",
+      "email": "supplier@r30.test",
+      "isActive": true,
+      "createdAt": "2026-10-23T03:56:39.617Z"
+    }
+  ],
+  "rfqs": [
+    {
+      "id": "01a166e8-0ccd-7511-a880-44b898b5a5eb",
+      "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
+      "partyId": "01a1666d-3bed-7668-9715-4a7e6ae2238f",
+      "number": "RFQ-000001",
+      "title": "R30 — عرض سعر دقيق 50 كجم",
+      "note": "R30 اختبار معزول — طلب عرض سعر",
+      "status": "responded",
+      "offer": "190.0000",
+      "responseNote": "R30 — سعر الكيس 50 كجم شامل التوصيل",
+      "respondedAt": "2026-10-23T03:59:22.227Z",
+      "createdAt": "2026-10-23T03:57:26.089Z",
+      "createdBy": "01a1666d-3a5a-76cc-841a-3b0bef8e64f3"
+    }
+  ],
+  "uploads": [
+    {
+      "id": "01a166ea-9a8a-7454-a88d-67d827e1744e",
+      "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
+      "partyId": "01a1666d-3bed-7668-9715-4a7e6ae2238f",
+      "referenceNo": "SUP-R30-001",
+      "declaredTotal": "115.0000",
+      "note": "R30 — فاتورة مصرَّح بها من المورّد (ليست فاتورة شراء)",
+      "status": "submitted",
+      "createdAt": "2026-10-23T04:00:13.450Z"
+    }
+  ],
+  "pis": {
+    "type": "about:blank",
+    "title": "Not found",
+    "status": 404,
+    "code": "NOT_FOUND",
+    "detail": "Cannot GET /api/v1/purchases/invoices?limit=20",
+    "traceId": "01a166ea-d44c-74c2-9518-50f3ea3e8e56"
+  }
+}

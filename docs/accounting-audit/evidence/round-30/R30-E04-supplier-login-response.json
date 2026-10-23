@@ -1,0 +1,17 @@
+{
+  "status": 200,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/supplier-portal/auth/login",
+  "request": {
+    "tenantCode": "demo",
+    "email": "supplier@r30.test",
+    "password": "***"
+  },
+  "body": {
+    "data": {
+      "token": "01a1666d-3a57-756c-8d48-a1b0092cc199.7ZWv2ADfm3864pxJWFiZSg1pMFVKlDWF",
+      "expiresAt": "2026-10-23T15:58:16.065Z",
+      "partyId": "01a1666d-3bed-7668-9715-4a7e6ae2238f"
+    }
+  }
+}
