@@ -75,6 +75,10 @@ describe('فاتورة التفصيل — frmViewOrders · AddNewSizes', () => {
         'tailoring.view',
         'tailoring.manage',
         'parties.manage',
+        'accounting.period.close',
+        'accounting.period.view',
+        'accounting.reports.view',
+        'treasury.view',
       ],
     });
     stranger = await createActor(ctx, {
@@ -90,6 +94,10 @@ describe('فاتورة التفصيل — frmViewOrders · AddNewSizes', () => {
     await provisioning.provisionOrgDefaults(stranger.tenantId, { actorUserId: stranger.userId });
     branchId = defaults.branchId;
     cashLocationId = (defaults as unknown as { cashLocationId?: string }).cashLocationId ?? '';
+    // ACC-150: a tailoring payment is a posted receipt voucher, so the dates used below
+    // (2026-03-05/06) need an open fiscal period.
+    const fiscal = await post('/fiscal-years', { name: 'FY2026', startDate: '2026-01-01', endDate: '2026-12-31' });
+    expect(fiscal.status, JSON.stringify(fiscal.body)).toBe(201);
 
     const customer = await post('/parties', { kind: 'customer', name: 'محمد علي', phone: '0551234567' });
     expect(customer.status).toBe(201);
@@ -171,10 +179,11 @@ describe('فاتورة التفصيل — frmViewOrders · AddNewSizes', () => {
     });
     expect(invoice.measurements).toMatchObject({ height1: '170', shoulder: '46', handShape: 'كبك مربع' });
 
-    // 💰 الإجمالي في `frmViewOrders` = sale_price × 1.05 (L88).
-    expect(Number(invoice.totalWithTax)).toBeCloseTo(1050, 4);
+    // 💰 الإجمالي بالضريبة: ACC-149 — the legacy window's fixed `× 1.05` was wrong for a 15 % VAT
+    // tenant; the server now applies 15 % (1000 → 1150).
+    expect(Number(invoice.totalWithTax)).toBeCloseTo(1150, 4);
     // ⏳ الباقي = الإجمالي بالضريبة − المدفوع (L90) — nothing paid yet.
-    expect(Number(invoice.remainingAmount)).toBeCloseTo(1050, 4);
+    expect(Number(invoice.remainingAmount)).toBeCloseTo(1150, 4);
     expect(invoice.payments).toEqual([]);
   });
 
@@ -228,12 +237,23 @@ describe('فاتورة التفصيل — frmViewOrders · AddNewSizes', () => {
     expect(data(delivered.body)).toMatchObject({ statusName: 'تم التسليم' });
   });
 
-  it('💵 إستلام دفعة — بلا صندوق: المدفوع يكبر والباقي ينقص', async () => {
-    const paid = await post(`/tailoring/invoices/${invoiceId}/payments`, { amount: '400', date: '2026-03-05' });
-    expect(paid.status).toBe(201);
+  it('💵 إستلام دفعة — بلا صندوق تُرفض (ACC-150)؛ وبصندوق: المدفوع يكبر والباقي ينقص', async () => {
+    // ACC-150: money cannot be "received" outside the treasury — a payment without a cash
+    // location used to bump `paid` with no voucher and no ledger; it is refused now.
+    const nowhere = await post(`/tailoring/invoices/${invoiceId}/payments`, { amount: '400', date: '2026-03-05' });
+    expect(nowhere.status, JSON.stringify(nowhere.body)).toBe(422);
+    expect(nowhere.body).toMatchObject({ code: 'TAILORING_CASH_LOCATION_REQUIRED' });
+
+    const paid = await post(`/tailoring/invoices/${invoiceId}/payments`, {
+      amount: '400',
+      date: '2026-03-05',
+      cashLocationId,
+      branchId,
+    });
+    expect(paid.status, JSON.stringify(paid.body)).toBe(201);
     expect(Number(data(paid.body).paidAmount)).toBeCloseTo(400, 4);
-    // ⏳ الباقي = 1050 − 400
-    expect(Number(data(paid.body).remainingAmount)).toBeCloseTo(650, 4);
+    // ⏳ الباقي = 1150 − 400
+    expect(Number(data(paid.body).remainingAmount)).toBeCloseTo(750, 4);
     const payments = data(paid.body).payments as Array<Record<string, unknown>>;
     expect(payments).toHaveLength(1);
     expect(payments[0]).toMatchObject({
@@ -241,8 +261,8 @@ describe('فاتورة التفصيل — frmViewOrders · AddNewSizes', () => {
       paidAt: '2026-03-05',
       // «تم استلام دفعة من عملية رقم {code}» (`AddNewSizes` L683).
       note: `تم استلام دفعة من عملية رقم ${invoiceNumber}`,
-      voucherId: null,
     });
+    expect(payments[0].voucherId).toBeTruthy();
 
     const refused = await post(`/tailoring/invoices/${invoiceId}/payments`, { amount: '0' });
     expect(refused.status).toBe(422);
@@ -259,14 +279,19 @@ describe('فاتورة التفصيل — frmViewOrders · AddNewSizes', () => {
       method: 'cash',
       note: 'دفعة نقدية',
     });
-    expect(paid.status).toBe(201);
+    expect(paid.status, JSON.stringify(paid.body)).toBe(201);
     const payments = data(paid.body).payments as Array<Record<string, unknown>>;
     expect(payments).toHaveLength(2);
     const linked = payments.find((row) => row.note === 'دفعة نقدية') as Record<string, unknown>;
     expect(linked.voucherId).toBeTruthy();
     // ✅ المدفوع = 400 + 250 — `Inv_Sub_Tailor.paid` is a running total, so is this.
     expect(Number(data(paid.body).paidAmount)).toBeCloseTo(650, 4);
-    expect(Number(data(paid.body).remainingAmount)).toBeCloseTo(400, 4);
+    expect(Number(data(paid.body).remainingAmount)).toBeCloseTo(500, 4);
+    // ACC-150: the voucher is a *posted* receipt with its journal — not a numberless draft.
+    const voucher = await get(`/vouchers/${linked.voucherId as string}`);
+    expect(voucher.status, JSON.stringify(voucher.body)).toBe(200);
+    expect(data(voucher.body)).toMatchObject({ kind: 'receipt', status: 'posted', amount: '250.0000' });
+    expect(data(voucher.body).journalEntryId).toBeTruthy();
   });
 
   it('📋 عرض الطلبات — البحث بالجوال وبالاسم، و«النتائج»', async () => {
@@ -292,8 +317,8 @@ describe('فاتورة التفصيل — frmViewOrders · AddNewSizes', () => {
     const byStatus = rowsOf((await get(`/tailoring/invoices?statusId=${statusDelivered}`)).body);
     expect(byStatus.map((row) => row.number)).toEqual([invoiceNumber]);
 
-    // 💰 الإجمالي معروض بضريبته في كل صف، كما في الشبكة (L88).
-    expect(Number(byName[0].totalWithTax)).toBeCloseTo(1050, 4);
+    // 💰 الإجمالي معروض بضريبته في كل صف، كما في الشبكة (L88) — 15 % (ACC-149).
+    expect(Number(byName[0].totalWithTax)).toBeCloseTo(1150, 4);
 
     await del(`/tailoring/invoices/${data(second.body).id as string}`);
   });
@@ -320,8 +345,8 @@ describe('فاتورة التفصيل — frmViewOrders · AddNewSizes', () => {
       phone: '0551234567',
       garmentTypeName: 'سعودي',
     });
-    // ⏳ الباقي = 1800 × 1.05 − 650
-    expect(Number(data(updated.body).remainingAmount)).toBeCloseTo(1890 - 650, 4);
+    // ⏳ الباقي = 1800 × 1.15 − 650 (ACC-149)
+    expect(Number(data(updated.body).remainingAmount)).toBeCloseTo(2070 - 650, 4);
   });
 
   it('🗑️ حذف — الفاتورة تغيب، و⏳ الباقي يبقى محسوباً', async () => {
