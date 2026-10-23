@@ -545,12 +545,17 @@ export default function CashTransfersPage() {
             },
           ]}
           footer={[
-            <strong key="label">الإجمالي</strong>,
+            <strong key="label">الإجمالي (المكتمل وقيد النقل)</strong>,
             '',
             '',
             '',
             <strong key="value">
-              {money(rows.reduce((running, row) => running + Number(row.amount ?? 0), 0).toFixed(4))}
+              {money(
+                rows
+                  .filter((row) => row.status === 'received' || row.status === 'sent')
+                  .reduce((running, row) => running + Number(row.amount ?? 0), 0)
+                  .toFixed(4),
+              )}
             </strong>,
             '',
             '',

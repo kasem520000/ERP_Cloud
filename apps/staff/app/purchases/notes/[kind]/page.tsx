@@ -13,6 +13,7 @@ import { useQuery } from '../../../../lib/use-query';
 type Invoice = {
   id: string;
   number: string | null;
+  kind?: string | null;
   branchId: string;
   status: string;
   total: string;
@@ -60,7 +61,7 @@ export default function PurchaseNotePage({ params }: { params: Promise<{ kind: s
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info'; text: string } | undefined>();
 
   const posted = useMemo(
-    () => (invoices.data ?? []).filter((invoice) => invoice.status === 'posted'),
+    () => (invoices.data ?? []).filter((invoice) => invoice.status === 'posted' && (invoice.kind === 'purchase' || !invoice.kind)),
     [invoices.data],
   );
   const selected = posted.find((invoice) => invoice.id === values.invoiceId);

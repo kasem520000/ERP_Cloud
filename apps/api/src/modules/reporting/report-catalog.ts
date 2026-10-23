@@ -4616,23 +4616,58 @@ const definitions: ReportDefinition[] = [
           ? `${f.year}-${pad(Number(f.month))}`
           : undefined;
       return sql`
-        SELECT row_number() OVER (ORDER BY sp.payment_date, sp.number) AS seq,
-               coalesce(sp.number, '—') AS doc_no,
-               coalesce(emp.name, '—') AS employee,
-               round(sp.basic, 2)::text AS basic,
-               round(sp.housing, 2)::text AS housing,
-               round(sp.transport, 2)::text AS transport,
-               round(sp.additions, 2)::text AS additions,
-               round(sp.net + sp.deductions, 2)::text AS gross,
-               round(sp.deductions, 2)::text AS deductions,
-               round(sp.net, 2)::text AS net,
+        SELECT row_number() OVER (ORDER BY q.pay_date, q.doc_no) AS seq,
+               q.doc_no,
+               q.employee,
+               q.basic,
+               q.housing,
+               q.transport,
+               q.additions,
+               q.gross,
+               q.deductions,
+               q.net,
                '1' AS s_count
-        FROM salary_payments sp
-        LEFT JOIN employees emp ON emp.id = sp.employee_id
-        WHERE sp.tenant_id = ${tenantId} AND sp.deleted_at IS NULL
-          AND ${yearMonth ? sql`sp.year_month = ${yearMonth}` : all}
-          AND ${eqIf(sql`sp.branch_id`, f.branchId)}
-        ORDER BY sp.payment_date, sp.number LIMIT 2000`;
+        FROM (
+          SELECT sp.payment_date AS pay_date,
+                 coalesce(sp.number, '—') AS doc_no,
+                 coalesce(emp.name, '—') AS employee,
+                 round(sp.basic, 2)::text AS basic,
+                 round(sp.housing, 2)::text AS housing,
+                 round(sp.transport, 2)::text AS transport,
+                 round(sp.additions, 2)::text AS additions,
+                 round(sp.net + sp.deductions, 2)::text AS gross,
+                 round(sp.deductions, 2)::text AS deductions,
+                 round(sp.net, 2)::text AS net
+          FROM salary_payments sp
+          LEFT JOIN employees emp ON emp.id = sp.employee_id
+          WHERE sp.tenant_id = ${tenantId} AND sp.deleted_at IS NULL
+            AND ${yearMonth ? sql`sp.year_month = ${yearMonth}` : all}
+            AND ${eqIf(sql`sp.branch_id`, f.branchId)}
+          UNION ALL
+          SELECT coalesce(pr.paid_at::date::text, pr.posted_at::date::text, pr.created_at::date::text) AS pay_date,
+                 coalesce(v.number, 'PR-' || pr.year_month) AS doc_no,
+                 coalesce(emp.name, '—') AS employee,
+                 round(coalesce((prl.components->>'basic_salary')::numeric, prl.gross), 2)::text AS basic,
+                 round(coalesce((prl.components->>'housing_allowance')::numeric, 0), 2)::text AS housing,
+                 round(coalesce((prl.components->>'transportation_allowance')::numeric, 0), 2)::text AS transport,
+                 round(prl.additions, 2)::text AS additions,
+                 round(prl.gross, 2)::text AS gross,
+                 round(prl.deductions, 2)::text AS deductions,
+                 round(prl.net, 2)::text AS net
+          FROM payroll_run_lines prl
+          JOIN payroll_runs pr ON pr.id = prl.run_id AND pr.tenant_id = ${tenantId}
+          LEFT JOIN vouchers v ON v.id = pr.voucher_id AND v.tenant_id = ${tenantId}
+          LEFT JOIN employees emp ON emp.id = prl.employee_id
+          WHERE prl.tenant_id = ${tenantId} AND (prl.status = 'paid' OR pr.status = 'paid')
+            AND ${yearMonth ? sql`pr.year_month = ${yearMonth}` : all}
+            AND ${eqIf(sql`emp.branch_id`, f.branchId)}
+            AND prl.employee_id NOT IN (
+              SELECT sp2.employee_id FROM salary_payments sp2
+              WHERE sp2.tenant_id = ${tenantId} AND sp2.deleted_at IS NULL
+              ${yearMonth ? sql`AND sp2.year_month = ${yearMonth}` : sql``}
+            )
+        ) q
+        ORDER BY q.pay_date, q.doc_no LIMIT 2000`;
     },
   },
   {

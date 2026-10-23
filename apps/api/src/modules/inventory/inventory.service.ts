@@ -3305,6 +3305,10 @@ export class InventoryService {
         const baseAvgCost = new Decimal(bal?.averageCost ?? '0');
         const unitCostInCountedUnit = baseAvgCost.mul(factor).toFixed(4);
 
+        const diffQty = new Decimal(line.countedQty).minus(expectedQtyInCountedUnit);
+        const resolvedUnitCost = line.unitCost ?? (Number(unitCostInCountedUnit) > 0 ? unitCostInCountedUnit : '0');
+        const diffValue = diffQty.mul(resolvedUnitCost).abs().toFixed(4);
+
         resolvedLines.push({
           adjustmentId: id,
           lineNo: index + 1,
@@ -3312,8 +3316,10 @@ export class InventoryService {
           itemId: line.itemId,
           expectedQty: expectedQtyInCountedUnit,
           countedQty: line.countedQty,
+          varianceQty: diffQty.toFixed(4),
+          varianceValue: diffValue,
           unitId: line.unitId ?? null,
-          unitCost: line.unitCost ?? (Number(unitCostInCountedUnit) > 0 ? unitCostInCountedUnit : null),
+          unitCost: Number(resolvedUnitCost) > 0 ? resolvedUnitCost : null,
           lotId: lot?.lotId ?? null,
           batchNo: lot?.batchNo ?? null,
           productionDate: lot?.productionDate ?? null,
