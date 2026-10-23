@@ -4615,6 +4615,13 @@ const definitions: ReportDefinition[] = [
         f.year && f.month && Number(f.year) > 0 && Number(f.month) > 0
           ? `${f.year}-${pad(Number(f.month))}`
           : undefined;
+      // ACC-182 (R33): both UNION branches must yield `pay_date` as a `date` — the payroll branch cast it
+      // to `text`, so Postgres refused the UNION and the report answered 500 since the UI-029 extension.
+      // Each run row shows the employee's **own** payment voucher (key `payroll:<run>:<employee>`), falling
+      // back to the run's first voucher; reversed/cancelled/draft runs never count as salaries paid.
+      // The run line stores the employee card's keys (`basic`/`housing`/`transport` — `salaryBreakdown`); the
+      // `*_salary`/`*_allowance` spellings are kept as a fallback for older rows. Before R33 the basic column
+      // of a run row showed the gross and both allowances 0.
       return sql`
         SELECT row_number() OVER (ORDER BY q.pay_date, q.doc_no) AS seq,
                q.doc_no,
@@ -4644,12 +4651,12 @@ const definitions: ReportDefinition[] = [
             AND ${yearMonth ? sql`sp.year_month = ${yearMonth}` : all}
             AND ${eqIf(sql`sp.branch_id`, f.branchId)}
           UNION ALL
-          SELECT coalesce(pr.paid_at::date::text, pr.posted_at::date::text, pr.created_at::date::text) AS pay_date,
-                 coalesce(v.number, 'PR-' || pr.year_month) AS doc_no,
+          SELECT coalesce(pr.paid_at::date, pr.posted_at::date, pr.created_at::date) AS pay_date,
+                 coalesce(ve.number, v.number, 'PR-' || pr.year_month) AS doc_no,
                  coalesce(emp.name, '—') AS employee,
-                 round(coalesce((prl.components->>'basic_salary')::numeric, prl.gross), 2)::text AS basic,
-                 round(coalesce((prl.components->>'housing_allowance')::numeric, 0), 2)::text AS housing,
-                 round(coalesce((prl.components->>'transportation_allowance')::numeric, 0), 2)::text AS transport,
+                 round(coalesce((prl.components->>'basic')::numeric, (prl.components->>'basic_salary')::numeric, prl.gross), 2)::text AS basic,
+                 round(coalesce((prl.components->>'housing')::numeric, (prl.components->>'housing_allowance')::numeric, 0), 2)::text AS housing,
+                 round(coalesce((prl.components->>'transport')::numeric, (prl.components->>'transportation_allowance')::numeric, 0), 2)::text AS transport,
                  round(prl.additions, 2)::text AS additions,
                  round(prl.gross, 2)::text AS gross,
                  round(prl.deductions, 2)::text AS deductions,
@@ -4657,8 +4664,11 @@ const definitions: ReportDefinition[] = [
           FROM payroll_run_lines prl
           JOIN payroll_runs pr ON pr.id = prl.run_id AND pr.tenant_id = ${tenantId}
           LEFT JOIN vouchers v ON v.id = pr.voucher_id AND v.tenant_id = ${tenantId}
+          LEFT JOIN vouchers ve ON ve.tenant_id = ${tenantId}
+            AND ve.idempotency_key = 'payroll:' || pr.id::text || ':' || prl.employee_id::text
           LEFT JOIN employees emp ON emp.id = prl.employee_id
           WHERE prl.tenant_id = ${tenantId} AND (prl.status = 'paid' OR pr.status = 'paid')
+            AND pr.status NOT IN ('reversed', 'cancelled', 'draft')
             AND ${yearMonth ? sql`pr.year_month = ${yearMonth}` : all}
             AND ${eqIf(sql`emp.branch_id`, f.branchId)}
             AND prl.employee_id NOT IN (

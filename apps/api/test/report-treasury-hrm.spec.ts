@@ -153,6 +153,25 @@ describe('التقارير — frmRptKhzna · frmRptSalary · frmRptReseved · f
     cashAccountId = await account('9901', 'صندوق التحقق', 'asset');
     otherAccountId = await account('9902', 'حساب مقابل', 'asset');
 
+    // ═══ 🏦 حركة الصندوق — 500 وارد قبل الفترة و200 صادر بقيد، ثم 1000 قبض و300 صرف ═══
+    // ACC-023 (R33 triage): once an account is bound to a cash location, a *manual* journal on it is
+    // refused (422 MANUAL_JOURNAL_ON_TREASURY_ACCOUNT — use a voucher). The two hand entries therefore
+    // land **before** the boxes are created, i.e. as legacy ledger movements the treasury screen never
+    // wrote — which is exactly what the statement must still show.
+    const journal = async (date: string, lines: Array<Record<string, unknown>>) => {
+      const created = await post('/journal-entries', { branchId, date, lines });
+      expect(created.status).toBe(201);
+      return data(created.body) as { id: string; number: string };
+    };
+    await journal(june(1), [
+      { accountId: cashAccountId, debit: '500', credit: '0' },
+      { accountId: otherAccountId, debit: '0', credit: '500' },
+    ]);
+    await journal(june(20), [
+      { accountId: otherAccountId, debit: '200', credit: '0' },
+      { accountId: cashAccountId, debit: '0', credit: '200' },
+    ]);
+
     const safe = await post('/cash-locations', {
       branchId,
       kind: 'safe',
@@ -172,21 +191,6 @@ describe('التقارير — frmRptKhzna · frmRptSalary · frmRptReseved · f
     });
     expect(salaryBox.status).toBe(201);
     const salaryCashLocationId = data(salaryBox.body).id as string;
-
-    // ═══ 🏦 حركة الصندوق — 500 وارد قبل الفترة، ثم 1000 قبض و300 صرف و200 قيد ═══
-    const journal = async (date: string, lines: Array<Record<string, unknown>>) => {
-      const created = await post('/journal-entries', { branchId, date, lines });
-      expect(created.status).toBe(201);
-      return data(created.body) as { id: string; number: string };
-    };
-    await journal(june(1), [
-      { accountId: cashAccountId, debit: '500', credit: '0' },
-      { accountId: otherAccountId, debit: '0', credit: '500' },
-    ]);
-    await journal(june(20), [
-      { accountId: otherAccountId, debit: '200', credit: '0' },
-      { accountId: cashAccountId, debit: '0', credit: '200' },
-    ]);
 
     const voucher = async (kind: string, gross: string, description: string) => {
       const draft = await post('/vouchers', {
@@ -403,8 +407,13 @@ describe('التقارير — frmRptKhzna · frmRptSalary · frmRptReseved · f
   });
 
   it('🏦 حركة الصندوق — بلا صندوقٍ لا شيء، وبلا فترةٍ لا «رصيد سابق»', async () => {
-    // «اختر صندوقاً.» — the window refuses to run without one, so the report is empty.
-    expect(rowsIn((await report('cash-statement')).body).every((row) => row.operation !== 'سند قبض')).toBe(true);
+    // UI-012 (merged remediation; R33 triage): where the desktop refused to run without a box
+    // («اختر صندوقاً.»), the cloud aggregates **all** boxes — the safe's receipt is there, and the
+    // second box's salary payments make the combined statement longer than the safe's own.
+    const allBoxes = rowsIn((await report('cash-statement')).body);
+    expect(allBoxes.some((row) => row.operation === 'سند قبض')).toBe(true);
+    const safeOnly = rowsIn((await report('cash-statement', `cashLocationId=${cashLocationId}`)).body);
+    expect(allBoxes.length).toBeGreaterThan(safeOnly.length);
 
     const noPeriod = rowsIn((await get(`/reports/cash-statement?cashLocationId=${cashLocationId}`)).body);
     expect(noPeriod.some((row) => row.operation === 'رصيد سابق')).toBe(false);
@@ -413,7 +422,11 @@ describe('التقارير — frmRptKhzna · frmRptSalary · frmRptReseved · f
   });
 
   it('💼 تقرير الرواتب — الإجمالي والصافي وإجمالي الرواتب', async () => {
-    const rows = rowsIn((await report('salary-statement', `month=6&year=${year}`)).body);
+    // ACC-182 (R33): the report answered 500 (`UNION types date and text`) since the UI-029 union —
+    // the status is asserted so a broken query can never again hide behind an empty grid.
+    const response = await report('salary-statement', `month=6&year=${year}`);
+    expect(response.status).toBe(200);
+    const rows = rowsIn(response.body);
     expect(rows).toHaveLength(2);
     const first = rows.find((row) => row.employee === employeeAName);
     expect(first?.doc_no.startsWith('SP-') || first?.doc_no.length > 0).toBe(true);

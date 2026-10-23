@@ -1,0 +1,96 @@
+{
+  "id": "R33-V10-salary-statement-other-branch-24",
+  "at": "2026-10-23T19:11:09.365Z",
+  "method": "GET",
+  "path": "/reports/salary-statement?month=11&year=2026&branchId=00000000-0000-4000-8000-000000000000",
+  "status": 200,
+  "response": {
+    "key": "salary-statement",
+    "titleAr": "تقرير الرواتب",
+    "group": "hrm",
+    "hintAr": "كل إذن صرف راتب بسطر: الراتب الأساسي وبدلاه والحوافز والإجمالي والخصومات والصافي — `frmRptSalary`.",
+    "chart": null,
+    "params": {
+      "branchId": "00000000-0000-4000-8000-000000000000",
+      "month": "11",
+      "year": "2026"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "seq",
+        "labelAr": "م",
+        "type": "int"
+      },
+      {
+        "key": "doc_no",
+        "labelAr": "رقم السند",
+        "type": "text"
+      },
+      {
+        "key": "employee",
+        "labelAr": "👤 الموظف",
+        "type": "text"
+      },
+      {
+        "key": "basic",
+        "labelAr": "الراتب الأساسي",
+        "type": "money"
+      },
+      {
+        "key": "housing",
+        "labelAr": "بدل سكن",
+        "type": "money"
+      },
+      {
+        "key": "transport",
+        "labelAr": "بدل مواصلات",
+        "type": "money"
+      },
+      {
+        "key": "additions",
+        "labelAr": "الحوافز",
+        "type": "money"
+      },
+      {
+        "key": "gross",
+        "labelAr": "💰 الإجمالي",
+        "type": "money"
+      },
+      {
+        "key": "deductions",
+        "labelAr": "الخصومات",
+        "type": "money"
+      },
+      {
+        "key": "net",
+        "labelAr": "💵 صافي الراتب",
+        "type": "money"
+      }
+    ],
+    "rows": [],
+    "totals": {
+      "basic": "0.00",
+      "housing": "0.00",
+      "transport": "0.00",
+      "additions": "0.00",
+      "gross": "0.00",
+      "deductions": "0.00",
+      "net": "0.00"
+    },
+    "grandTotal": [
+      {
+        "key": "net",
+        "labelAr": "إجمالي الرواتب",
+        "amount": "0.00"
+      },
+      {
+        "key": "s_count",
+        "labelAr": "عدد الإيذونات",
+        "amount": "0.00"
+      }
+    ],
+    "rowCount": 0,
+    "generatedAt": "2026-10-23T19:11:10.137Z"
+  }
+}

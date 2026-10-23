@@ -1,0 +1,128 @@
+{
+  "id": "R33-W08-payroll-reverse-dec-28",
+  "at": "2026-10-23T19:20:57.386Z",
+  "method": "POST",
+  "path": "/hrm/payroll/runs/01a16a35-78ce-7155-8e36-d989db773c65/reverse",
+  "status": 201,
+  "request": {
+    "reason": "R33 probe5 Block W — إعادة ديسمبر حراً"
+  },
+  "response": {
+    "data": {
+      "id": "01a16a35-78ce-7155-8e36-d989db773c65",
+      "tenantId": "01a169f7-61ba-747d-b1af-5f1f066e70fc",
+      "periodId": "01a169f7-6334-7659-b4b6-6d986c4a8a7c",
+      "yearMonth": "2026-12",
+      "status": "reversed",
+      "currency": "SAR",
+      "summary": {
+        "preview": {
+          "lines": [
+            {
+              "net": "100.0000",
+              "gross": "100.0000",
+              "additions": "0.0000",
+              "components": {
+                "basic": "100"
+              },
+              "deductions": "0.0000",
+              "employeeId": "01a16a15-f012-76c0-8b53-e57559216204",
+              "employeeName": "R33 مندوب بلا حساب 23",
+              "unpaidFactor": "1.000000"
+            },
+            {
+              "net": "50.0000",
+              "gross": "50.0000",
+              "additions": "0.0000",
+              "components": {
+                "basic": "50"
+              },
+              "deductions": "0.0000",
+              "employeeId": "01a16a31-8a2c-754c-a61c-1997881c6fc1",
+              "employeeName": "R33 موظف جديد بعد المسيّر 26",
+              "unpaidFactor": "1.000000"
+            },
+            {
+              "net": "50.0000",
+              "gross": "50.0000",
+              "additions": "0.0000",
+              "components": {
+                "basic": "50"
+              },
+              "deductions": "0.0000",
+              "employeeId": "01a16a34-f399-76be-8602-7c84dd78062f",
+              "employeeName": "R33 موظف جديد بعد المسيّر 27",
+              "unpaidFactor": "1.000000"
+            }
+          ],
+          "yearMonth": "2026-12",
+          "netPayable": "200.0000",
+          "employeeCount": 3
+        }
+      },
+      "journalEntryId": "01a16a35-7bf0-71a3-8ea7-d2784d168439",
+      "voucherId": "01a16a35-7efe-769e-9a3c-85339e27e875",
+      "postedAt": "2026-10-23T19:20:52.469Z",
+      "paidAt": "2026-10-23T19:20:53.264Z",
+      "reversedAt": "2026-10-23T19:20:58.162Z",
+      "reversalReason": "R33 probe5 Block W — إعادة ديسمبر حراً",
+      "createdAt": "2026-10-23T19:20:51.662Z",
+      "createdBy": null,
+      "updatedAt": "2026-10-23T19:20:58.162Z",
+      "updatedBy": null,
+      "version": 1,
+      "legacySource": null,
+      "legacyId": null,
+      "lines": [
+        {
+          "runId": "01a16a35-78ce-7155-8e36-d989db773c65",
+          "lineNo": 1,
+          "tenantId": "01a169f7-61ba-747d-b1af-5f1f066e70fc",
+          "employeeId": "01a16a15-f012-76c0-8b53-e57559216204",
+          "components": {
+            "basic": "100"
+          },
+          "additions": "0.0000",
+          "deductions": "0.0000",
+          "gross": "100.0000",
+          "net": "100.0000",
+          "costCenterId": null,
+          "status": "reversed",
+          "payslipHtml": "<!doctype html><html dir=\"rtl\"><body><h1>قسيمة راتب 2026-12</h1><p>R33 مندوب بلا حساب 23: 100.0000</p></body></html>"
+        },
+        {
+          "runId": "01a16a35-78ce-7155-8e36-d989db773c65",
+          "lineNo": 2,
+          "tenantId": "01a169f7-61ba-747d-b1af-5f1f066e70fc",
+          "employeeId": "01a16a31-8a2c-754c-a61c-1997881c6fc1",
+          "components": {
+            "basic": "50"
+          },
+          "additions": "0.0000",
+          "deductions": "0.0000",
+          "gross": "50.0000",
+          "net": "50.0000",
+          "costCenterId": null,
+          "status": "reversed",
+          "payslipHtml": "<!doctype html><html dir=\"rtl\"><body><h1>قسيمة راتب 2026-12</h1><p>R33 موظف جديد بعد المسيّر 26: 50.0000</p></body></html>"
+        },
+        {
+          "runId": "01a16a35-78ce-7155-8e36-d989db773c65",
+          "lineNo": 3,
+          "tenantId": "01a169f7-61ba-747d-b1af-5f1f066e70fc",
+          "employeeId": "01a16a34-f399-76be-8602-7c84dd78062f",
+          "components": {
+            "basic": "50"
+          },
+          "additions": "0.0000",
+          "deductions": "0.0000",
+          "gross": "50.0000",
+          "net": "50.0000",
+          "costCenterId": null,
+          "status": "reversed",
+          "payslipHtml": "<!doctype html><html dir=\"rtl\"><body><h1>قسيمة راتب 2026-12</h1><p>R33 موظف جديد بعد المسيّر 27: 50.0000</p></body></html>"
+        }
+      ]
+    }
+  }
+}

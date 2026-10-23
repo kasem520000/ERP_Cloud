@@ -1,0 +1,23 @@
+{
+  "id": "R33-W06-salary-payment-new-hire-dup-30",
+  "at": "2026-10-23T19:22:43.047Z",
+  "method": "POST",
+  "path": "/hrm/salary-payments",
+  "status": 409,
+  "request": {
+    "employeeId": "01a16a37-2591-77a8-bc20-d72427c3eb1a",
+    "yearMonth": "2026-12",
+    "paymentDate": "2026-12-29",
+    "branchId": "01a169f7-62ec-77ff-a049-07df41446dca",
+    "cashLocationId": "01a169f7-62ee-76f0-a8a1-133c9672bf5e",
+    "method": "cash"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "SALARY_PAYMENT_DUPLICATE",
+    "detail": "لقد تم دفع راتب الموظف سابقاً.",
+    "traceId": "01a16a37-2be7-7499-bb67-cafb2bac09f5"
+  }
+}

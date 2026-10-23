@@ -1455,8 +1455,15 @@ export class HrmService implements OnModuleInit {
     if (duplicate) throw new DomainError('SALARY_PAYMENT_DUPLICATE', 'لقد تم دفع راتب الموظف سابقاً.', 409);
 
     // ACC-046: التحقق من عدم صرف راتب الموظف ضمن مسيّر رواتب مدفوع لهذا الشهر
+    // ACC-184 (R33): the paid run blocks the إذن only when **this employee** was on it — a hire who joined
+    // after the month's payroll was paid had no way left to be paid at all (409 on a run he was never in).
     const [paidRun] = await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx.select({ id: payrollRuns.id }).from(payrollRuns).where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.yearMonth, input.yearMonth), eq(payrollRuns.status, 'paid'))).limit(1));
+      tx
+        .select({ id: payrollRuns.id })
+        .from(payrollRuns)
+        .innerJoin(payrollRunLines, and(eq(payrollRunLines.runId, payrollRuns.id), eq(payrollRunLines.employeeId, employee.id)))
+        .where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.yearMonth, input.yearMonth), eq(payrollRuns.status, 'paid')))
+        .limit(1));
     if (paidRun) throw new DomainError('SALARY_PAYMENT_ALREADY_PAID', 'تم صرف راتب هذا الموظف ضمن مسير الرواتب لهذا الشهر', 409);
 
     const [paidRunLine] = await withTenantTx(this.database.db, tenantId, (tx) =>
@@ -1538,16 +1545,36 @@ export class HrmService implements OnModuleInit {
       await withTenantTx(this.database.db, tenantId, async (tx) => {
         await tx.update(salaryPayments).set({ voucherId: posted.id, journalEntryId: posted.journalEntryId ?? null, updatedAt: new Date() }).where(and(eq(salaryPayments.tenantId, tenantId), eq(salaryPayments.id, id)));
         // ACC-048: تحديث حالة سطر مسير الرواتب إلى مدفوع إن وجد
-        await tx
-          .update(payrollRunLines)
-          .set({ status: 'paid' })
+        // ACC-183 (R33): only the employee's line in a *live* run of the **same month** (posted/paid) —
+        // the previous employee-wide update flagged lines of reversed runs, drafts and other months as
+        // paid, so a voided payroll re-appeared in «تقرير الرواتب» and a later run skipped the employee.
+        const sameMonthRuns = await tx
+          .select({ id: payrollRuns.id })
+          .from(payrollRuns)
           .where(
             and(
-              eq(payrollRunLines.tenantId, tenantId),
-              eq(payrollRunLines.employeeId, employee.id),
-              input.runId ? eq(payrollRunLines.runId, input.runId) : undefined,
+              eq(payrollRuns.tenantId, tenantId),
+              eq(payrollRuns.yearMonth, input.yearMonth),
+              inArray(payrollRuns.status, ['posted', 'paid']),
+              input.runId ? eq(payrollRuns.id, input.runId) : undefined,
             ),
           );
+        if (sameMonthRuns.length > 0) {
+          await tx
+            .update(payrollRunLines)
+            .set({ status: 'paid' })
+            .where(
+              and(
+                eq(payrollRunLines.tenantId, tenantId),
+                eq(payrollRunLines.employeeId, employee.id),
+                inArray(
+                  payrollRunLines.runId,
+                  sameMonthRuns.map((run) => run.id),
+                ),
+                ne(payrollRunLines.status, 'reversed'),
+              ),
+            );
+        }
       });
       return this.readSalaryPayment(tenantId, id);
     } catch (error) {
@@ -2108,14 +2135,18 @@ export class HrmService implements OnModuleInit {
         }
       }
 
-      // ACC-047: 3. إبطال سندات الصرف الفردية المرتبطة بالمسيّر أو الشهر
+      // ACC-047: 3. إبطال سندات الصرف الفردية المرتبطة بالمسيّر
+      // ACC-185 (R33): only the أذون issued *against this run* (`run_id`). The month-wide match voided and
+      // soft-deleted independent individual payments of the same month (a hire paid after the run) — cash
+      // that had physically left the safe vanished from the books. Those documents are reversed, if ever,
+      // through their own path (void the voucher, then DELETE /hrm/salary-payments/:id).
       const linkedSalaryPayments = await tx
         .select({ id: salaryPayments.id, voucherId: salaryPayments.voucherId })
         .from(salaryPayments)
         .where(
           and(
             eq(salaryPayments.tenantId, tenantId),
-            or(eq(salaryPayments.runId, id), eq(salaryPayments.yearMonth, current.data.yearMonth)),
+            eq(salaryPayments.runId, id),
             isNull(salaryPayments.deletedAt),
           ),
         );

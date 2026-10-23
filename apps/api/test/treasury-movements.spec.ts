@@ -137,6 +137,15 @@ describe('Treasury movements — حركة الصندوق برصيد متحرك',
     });
     customerId = data(customer.body).id as string;
 
+    // ACC-023 (R33 triage): once the account is bound to a box, a *manual* journal on it is refused
+    // (422 MANUAL_JOURNAL_ON_TREASURY_ACCOUNT — use a voucher). The two hand entries are therefore
+    // posted **before** the box exists — legacy ledger movements the treasury screen never wrote,
+    // which is exactly what a statement built from `vouchers` alone would miss.
+    // 2026-01-05 — an entry the treasury screen never wrote.
+    await postEntry('2026-01-05', 'إيداع افتتاحي', '500');
+    // 2026-01-15 — a hand entry with no time at all.
+    await postEntry('2026-01-15', 'إيداع نقدي من الإدارة', '200');
+
     const safe = await api(ctx.server, 'post', '/api/v1/cash-locations', {
       token: actor.token,
       body: { branchId, kind: 'safe', name: 'الصندوق الرئيسي', accountId: safeAccountId, isDefault: true },
@@ -152,11 +161,8 @@ describe('Treasury movements — حركة الصندوق برصيد متحرك',
     expect(orphan.status).toBe(201);
     accountlessSafeId = data(orphan.body).id as string;
 
-    // 2026-01-05 — an entry the treasury screen never wrote.
-    await postEntry('2026-01-05', 'إيداع افتتاحي', '500');
-    // 2026-01-15 — a hand entry with no time at all, beside a receipt at 09:00 and a
-    // payment at 15:00 on the same day.
-    await postEntry('2026-01-15', 'إيداع نقدي من الإدارة', '200');
+    // 2026-01-15 — beside the hand entry (posted above, with no time at all) sit a receipt at
+    // 09:00 and a payment at 15:00 on the same day.
     await voucher({
       branchId,
       kind: 'receipt',

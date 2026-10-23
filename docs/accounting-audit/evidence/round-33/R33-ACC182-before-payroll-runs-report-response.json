@@ -1,0 +1,15 @@
+{
+  "id": "R33-ACC182-before-payroll-runs-report",
+  "at": "2026-10-23T19:05:41.229Z",
+  "method": "GET",
+  "path": "/reports/payroll-runs?from=2026-01-01&to=2026-12-31",
+  "status": 404,
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 404,
+    "code": "REPORT_NOT_FOUND",
+    "detail": "Report key is not registered",
+    "traceId": "01a16a27-946e-73bd-91e2-8822370a5b2f"
+  }
+}

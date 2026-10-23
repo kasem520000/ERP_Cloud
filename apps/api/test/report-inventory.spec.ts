@@ -289,18 +289,20 @@ describe('التقارير — frmRptInventory · frmRptItems* · frmRptSerial* 
     await makeLot('LOT-PAST', iso(-5), '3');
 
     // 🔢 three serial numbers, each with one movement on the ledger.
+    // ACC-132 (R33 triage): a serial bound to a warehouse needs stock there to cover it
+    // (422 SERIAL_COUNT_EXCEEDS_STOCK) — the numbers are therefore generated unassigned and the
+    // opening ledger lines below put them on the shelf. UI-044: numbers are zero-padded to 4 digits.
     const generated = await post('/inventory/serials/generate', {
       itemId: serialItemId,
       prefix: 'IV4SN-',
       startAt: 1,
       count: 3,
-      warehouseId,
     });
     expect(generated.status).toBe(201);
     const serials = rowsOf((await get(`/inventory/serials?item_id=${serialItemId}`)).body) as Array<{ id: string; serialNo: string }>;
     serialIds = serials.map((row) => row.id);
     serialNos = serials.map((row) => row.serialNo);
-    expect(serialNos).toEqual(['IV4SN-1', 'IV4SN-2', 'IV4SN-3']);
+    expect(serialNos).toEqual(['IV4SN-0001', 'IV4SN-0002', 'IV4SN-0003']);
     const recorded = await post('/inventory/ledger/record', {
       lines: serials.map((row) => ({
         itemId: serialItemId,

@@ -1,0 +1,184 @@
+[
+  {
+    "id": "V01",
+    "title": "ACC-182 salary-statement month=11 → 200 (was 500 INTERNAL before the fix)",
+    "expected": 200,
+    "actual": 200,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "V01b",
+    "title": "month=11 rows = paid run lines + individual payments of that month (the reversed November run is out)",
+    "expected": 3,
+    "actual": 1,
+    "ok": false
+  },
+  {
+    "id": "V01c",
+    "title": "salary-statement without month/year → 200",
+    "expected": 200,
+    "actual": 200,
+    "ok": true,
+    "note": null
+  },
+  {
+    "id": "V02",
+    "title": "payroll run 2026-12 → 201 draft",
+    "expected": [
+      201,
+      "draft"
+    ],
+    "actual": [
+      201,
+      "draft"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "V03",
+    "title": "post run → 201 posted",
+    "expected": [
+      201,
+      "posted"
+    ],
+    "actual": [
+      201,
+      "posted"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "V04",
+    "title": "pay run from the safe → 201 paid",
+    "expected": [
+      201,
+      "paid"
+    ],
+    "actual": [
+      201,
+      "paid"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "V04b",
+    "title": "safe 1211001 credited by Σnet of the run",
+    "expected": "49816.2500",
+    "actual": "49816.2500",
+    "ok": true,
+    "note": "Σnet=100"
+  },
+  {
+    "id": "V05",
+    "title": "month=12 → 200 with one row per paid run line",
+    "expected": [
+      200,
+      1
+    ],
+    "actual": [
+      200,
+      2
+    ],
+    "ok": false,
+    "note": ""
+  },
+  {
+    "id": "V05-R33 مندوب بلا حساب 23",
+    "title": "row of R33 مندوب بلا حساب 23: basic/housing/transport/gross/deductions/net from the run line",
+    "expected": [
+      "100.00",
+      "0.00",
+      "0.00",
+      "100.00",
+      "0.00",
+      "100.00"
+    ],
+    "actual": [
+      "100.00",
+      "0.00",
+      "0.00",
+      "100.00",
+      "0.00",
+      "100.00"
+    ],
+    "ok": true,
+    "note": "doc_no=PV-000005"
+  },
+  {
+    "id": "V05b",
+    "title": "card «إجمالي الرواتب» = Σnet (the window sums الصافي)",
+    "expected": "100.00",
+    "actual": "200.00",
+    "ok": false
+  },
+  {
+    "id": "V05c",
+    "title": "card «عدد الإيذونات» = number of rows",
+    "expected": "1.00",
+    "actual": "2.00",
+    "ok": false
+  },
+  {
+    "id": "V05d",
+    "title": "doc_no of every run row = the run payment voucher number",
+    "expected": [
+      "PV-000007"
+    ],
+    "actual": [
+      "PV-000005",
+      "PV-000007"
+    ],
+    "ok": false
+  },
+  {
+    "id": "V06",
+    "title": "individual salary payment for a month the run already paid → 409 SALARY_PAYMENT_ALREADY_PAID",
+    "expected": [
+      409,
+      "SALARY_PAYMENT_ALREADY_PAID"
+    ],
+    "actual": [
+      409,
+      "SALARY_PAYMENT_ALREADY_PAID"
+    ],
+    "ok": true
+  },
+  {
+    "id": "V07",
+    "title": "reverse the paid run → 201 reversed",
+    "expected": [
+      201,
+      "reversed"
+    ],
+    "actual": [
+      201,
+      "reversed"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "V07b",
+    "title": "safe balance back to the pre-payroll figure after the reversal",
+    "expected": "49916.2500",
+    "actual": "49916.2500",
+    "ok": true
+  },
+  {
+    "id": "V08",
+    "title": "month=12 after the reversal → 200 and 0 rows (reversed lines are not salaries paid)",
+    "expected": [
+      200,
+      0
+    ],
+    "actual": [
+      200,
+      1
+    ],
+    "ok": false
+  }
+]

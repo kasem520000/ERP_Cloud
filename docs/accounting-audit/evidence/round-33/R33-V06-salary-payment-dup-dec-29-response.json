@@ -1,0 +1,23 @@
+{
+  "id": "R33-V06-salary-payment-dup-dec-29",
+  "at": "2026-10-23T19:22:00.187Z",
+  "method": "POST",
+  "path": "/hrm/salary-payments",
+  "status": 409,
+  "request": {
+    "employeeId": "01a16a15-f012-76c0-8b53-e57559216204",
+    "yearMonth": "2026-12",
+    "paymentDate": "2026-12-20",
+    "branchId": "01a169f7-62ec-77ff-a049-07df41446dca",
+    "cashLocationId": "01a169f7-62ee-76f0-a8a1-133c9672bf5e",
+    "method": "cash"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "SALARY_PAYMENT_ALREADY_PAID",
+    "detail": "تم صرف راتب هذا الموظف ضمن مسير الرواتب لهذا الشهر",
+    "traceId": "01a16a36-847b-755d-8002-5157b5c4121f"
+  }
+}

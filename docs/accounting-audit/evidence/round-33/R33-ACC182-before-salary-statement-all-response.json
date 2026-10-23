@@ -1,0 +1,15 @@
+{
+  "id": "R33-ACC182-before-salary-statement-all",
+  "at": "2026-10-23T19:05:39.665Z",
+  "method": "GET",
+  "path": "/reports/salary-statement?",
+  "status": 500,
+  "response": {
+    "type": "about:blank",
+    "title": "Internal error",
+    "status": 500,
+    "code": "INTERNAL",
+    "detail": "An unexpected error occurred",
+    "traceId": "01a16a27-8e52-75f2-94ff-1ce99e604243"
+  }
+}
