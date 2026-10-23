@@ -1,0 +1,78 @@
+{
+  "id": "R33-X02-ar-aging-plus-45-36",
+  "at": "2026-10-23T20:03:34.295Z",
+  "method": "GET",
+  "path": "/reports/ar-aging?to=2026-12-07",
+  "status": 200,
+  "response": {
+    "key": "ar-aging",
+    "titleAr": "أعمار ديون العملاء",
+    "group": "accounting",
+    "hintAr": "المتبقي على كل فاتورة مبيعات مرحّلة موزّعاً على شرائح العمر.",
+    "chart": null,
+    "params": {
+      "to": "2026-12-07"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "party",
+        "labelAr": "العميل",
+        "type": "text"
+      },
+      {
+        "key": "bucket_0_30",
+        "labelAr": "0-30 يوم",
+        "type": "money"
+      },
+      {
+        "key": "bucket_31_60",
+        "labelAr": "31-60",
+        "type": "money"
+      },
+      {
+        "key": "bucket_61_90",
+        "labelAr": "61-90",
+        "type": "money"
+      },
+      {
+        "key": "bucket_90_plus",
+        "labelAr": "أكثر من 90",
+        "type": "money"
+      },
+      {
+        "key": "due",
+        "labelAr": "الإجمالي",
+        "type": "money"
+      }
+    ],
+    "rows": [
+      {
+        "party": "عميل P6 36",
+        "bucket_0_30": "0",
+        "bucket_31_60": "46.0000",
+        "bucket_61_90": "0",
+        "bucket_90_plus": "0",
+        "due": "46.0000"
+      },
+      {
+        "party": "عميل P6 35",
+        "bucket_0_30": "0",
+        "bucket_31_60": "34.5000",
+        "bucket_61_90": "0",
+        "bucket_90_plus": "0",
+        "due": "34.5000"
+      }
+    ],
+    "totals": {
+      "bucket_0_30": "0.00",
+      "bucket_31_60": "80.50",
+      "bucket_61_90": "0.00",
+      "bucket_90_plus": "0.00",
+      "due": "80.50"
+    },
+    "grandTotal": [],
+    "rowCount": 2,
+    "generatedAt": "2026-10-23T20:03:35.072Z"
+  }
+}

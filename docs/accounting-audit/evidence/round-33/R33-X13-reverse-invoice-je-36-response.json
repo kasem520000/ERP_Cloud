@@ -1,0 +1,25 @@
+{
+  "id": "R33-X13-reverse-invoice-je-36",
+  "at": "2026-10-23T20:04:16.106Z",
+  "method": "POST",
+  "path": "/journal-entries/01a16a5c-d19a-7469-af6b-2030ab9668ba/reverse",
+  "status": 409,
+  "request": {
+    "reason": "R33 X13 محاولة عكس قيد فاتورة من شاشة القيود"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "JOURNAL_SOURCE_DOCUMENT_REVERSAL",
+    "detail": "هذا القيد أنشأه مستند (قيد مبيعات) — يُعكس بإلغاء المستند أو عكسه من شاشته لا من شاشة القيود",
+    "traceId": "01a16a5d-366b-75c9-b972-4bc3c0384ad8",
+    "errors": [
+      {
+        "field": "entryId",
+        "sourceType": "sales_invoice",
+        "sourceId": "01a16a5c-cf29-71fb-9f11-e5d4a674a55d"
+      }
+    ]
+  }
+}

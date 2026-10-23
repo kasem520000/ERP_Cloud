@@ -1,0 +1,25 @@
+{
+  "id": "R33-X13-reverse-voucher-je-37",
+  "at": "2026-10-23T20:05:31.668Z",
+  "method": "POST",
+  "path": "/journal-entries/01a16a5d-cddc-7770-b293-7e32a86eb630/reverse",
+  "status": 409,
+  "request": {
+    "reason": "R33 X13 محاولة عكس قيد سند من شاشة القيود"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "JOURNAL_SOURCE_DOCUMENT_REVERSAL",
+    "detail": "هذا القيد أنشأه مستند (voucher) — يُعكس بإلغاء المستند أو عكسه من شاشته لا من شاشة القيود",
+    "traceId": "01a16a5e-5d95-713c-ad50-93c6af71e423",
+    "errors": [
+      {
+        "field": "entryId",
+        "sourceType": "voucher",
+        "sourceId": "01a16a5d-ca9c-776c-aa7e-9e13fbc3b525"
+      }
+    ]
+  }
+}

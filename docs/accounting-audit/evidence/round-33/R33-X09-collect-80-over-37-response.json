@@ -1,0 +1,21 @@
+{
+  "id": "R33-X09-collect-80-over-37",
+  "at": "2026-10-23T20:05:12.194Z",
+  "method": "POST",
+  "path": "/installments/contracts/01a16a5e-0e3e-71c8-b0f4-3d4298aa83a3/collect",
+  "status": 422,
+  "request": {
+    "branchId": "01a16a4d-3dfb-702b-95a6-7a4968382d71",
+    "cashLocationId": "01a16a4d-3dfe-750d-b23e-31c906d41fd7",
+    "paidValue": "80",
+    "method": "cash"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "INSTALLMENT_OVERCOLLECT",
+    "detail": "Payment amount (80.00) exceeds contract remaining due (50.00)",
+    "traceId": "01a16a5e-1183-719d-84d3-9dc660c4c4ff"
+  }
+}

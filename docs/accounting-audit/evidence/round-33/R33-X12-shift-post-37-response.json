@@ -1,0 +1,19 @@
+{
+  "id": "R33-X12-shift-post-37",
+  "at": "2026-10-23T20:05:26.115Z",
+  "method": "POST",
+  "path": "/shift-closes/01a16a5e-353c-715b-96a9-4885a522fbf9/post",
+  "status": 201,
+  "request": {},
+  "response": {
+    "id": "01a16a5e-353c-715b-96a9-4885a522fbf9",
+    "number": "CS-000003",
+    "journalEntryId": "01a16a5e-4aec-719b-96a1-47240a367115",
+    "postedAt": "2026-10-23T20:05:26.897Z",
+    "custodyAccountId": "01a16a4d-3e25-750e-b925-7b878522cd5f",
+    "custodyAmount": "20.0000",
+    "tillAmount": "23.0000",
+    "differenceAmount": "-3.0000",
+    "diff": "-3.0000"
+  }
+}

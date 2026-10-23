@@ -1,11 +1,11 @@
 {
   "id": "R33-B08-production-b0",
-  "at": "2026-10-23T18:13:45.575Z",
+  "at": "2026-10-23T19:47:32.991Z",
   "method": "POST",
   "path": "/van-sales/production-batches",
   "status": 201,
   "request": {
-    "itemId": "01a169f7-fa6c-74bc-a014-319d2d60d84f",
+    "itemId": "01a16a4d-d76c-7428-9bca-bcd1c0326d80",
     "productionDate": "2026-10-23",
     "itemName": "خبز R33",
     "producedQty": "20.0000",
@@ -15,7 +15,7 @@
     "notes": "R33 رصيد افتتاحي للخبز (تمهيد)",
     "components": [
       {
-        "itemId": "01a169f7-f754-726e-927a-d5d16c5d0831",
+        "itemId": "01a16a4d-d445-7305-ad9e-9b875607886f",
         "qty": "10.0000"
       }
     ],
@@ -35,33 +35,33 @@
       },
       "officialStock": [
         {
-          "itemId": "01a169f7-fa6c-74bc-a014-319d2d60d84f",
+          "itemId": "01a16a4d-d76c-7428-9bca-bcd1c0326d80",
           "itemName": "خبز R33",
           "sku": "BR-R33",
-          "warehouseId": "01a169f7-62ed-733e-a5a2-176687c8e085",
+          "warehouseId": "01a16a4d-3dfc-70f4-848e-e5fd44fd11f0",
           "warehouseName": "المستودع الرئيسي",
           "warehouseCode": "MAIN",
-          "branchId": "01a169f7-62ec-77ff-a049-07df41446dca",
+          "branchId": "01a16a4d-3dfb-702b-95a6-7a4968382d71",
           "quantity": "20.0000",
           "value": "20.0000",
           "averageCost": "1.0000"
         },
         {
-          "itemId": "01a169f7-f754-726e-927a-d5d16c5d0831",
+          "itemId": "01a16a4d-d445-7305-ad9e-9b875607886f",
           "itemName": "دقيق R33",
           "sku": "FL-R33",
-          "warehouseId": "01a169f7-62ed-733e-a5a2-176687c8e085",
+          "warehouseId": "01a16a4d-3dfc-70f4-848e-e5fd44fd11f0",
           "warehouseName": "المستودع الرئيسي",
           "warehouseCode": "MAIN",
-          "branchId": "01a169f7-62ec-77ff-a049-07df41446dca",
+          "branchId": "01a16a4d-3dfb-702b-95a6-7a4968382d71",
           "quantity": "90.0000",
           "value": "180.0000",
           "averageCost": "2.0000"
         }
       ],
-      "mainWarehouseId": "01a169f7-62ed-733e-a5a2-176687c8e085",
+      "mainWarehouseId": "01a16a4d-3dfc-70f4-848e-e5fd44fd11f0",
       "postingReadiness": {
-        "branchId": "01a169f7-62ec-77ff-a049-07df41446dca",
+        "branchId": "01a16a4d-3dfb-702b-95a6-7a4968382d71",
         "salesInvoice": true,
         "stockTransfer": true,
         "receiptVoucher": true,
@@ -134,15 +134,15 @@
       },
       "productionBatches": [
         {
-          "id": "01a169f8-0d21-705d-b94d-508b2fd49ce4",
+          "id": "01a16a4d-eb53-74f8-918b-a027635e0fe4",
           "batchNo": "BATCH-R33-B0",
           "productionDate": "2026-10-23",
-          "itemId": "01a169f7-fa6c-74bc-a014-319d2d60d84f",
-          "warehouseId": "01a169f7-62ed-733e-a5a2-176687c8e085",
-          "productionOrderId": "01a169f8-0d07-7282-b236-7e11668c0cff",
+          "itemId": "01a16a4d-d76c-7428-9bca-bcd1c0326d80",
+          "warehouseId": "01a16a4d-3dfc-70f4-848e-e5fd44fd11f0",
+          "productionOrderId": "01a16a4d-eb24-71ca-b277-00b3d0ed3d55",
           "manufacturingOrderId": null,
-          "lotId": "01a169f8-0d16-744c-8c30-9885c93b3a10",
-          "inventoryTransactionId": "01a169f8-0d19-7018-af04-382053009f04",
+          "lotId": "01a16a4d-eb40-75c1-bb80-7fa912d8538e",
+          "inventoryTransactionId": "01a16a4d-eb45-75a8-bb31-048d24c417ba",
           "itemName": "خبز R33",
           "producedQty": "20.00",
           "scrapQty": "0.00",
@@ -167,20 +167,20 @@
       "documents": [],
       "movements": [
         {
-          "id": "01a169f8-0d23-7658-84a5-56ddde71dcf4",
+          "id": "01a16a4d-eb57-75e8-8fbb-ba8454d7f2ab",
           "movementType": "production_in",
           "batchNo": "BATCH-R33-B0",
           "qty": "20.00",
           "unitPrice": "1.00",
           "amount": "20.00",
           "reason": "إنتاج يومي جديد وتوريد للمستودع الرئيسي — خبز R33",
-          "inventoryTransactionId": "01a169f8-0d19-7018-af04-382053009f04",
+          "inventoryTransactionId": "01a16a4d-eb45-75a8-bb31-048d24c417ba",
           "voucherId": null,
           "salesmanName": "—",
           "customerName": "—",
           "actorLabel": "مالك الحساب",
           "approvedByLabel": "",
-          "createdAt": "2026-10-23 18:13:46.401432+00"
+          "createdAt": "2026-10-23 19:47:33.84275+00"
         }
       ]
     }

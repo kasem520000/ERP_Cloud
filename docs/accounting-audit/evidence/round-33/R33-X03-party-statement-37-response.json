@@ -1,0 +1,33 @@
+{
+  "id": "R33-X03-party-statement-37",
+  "at": "2026-10-23T20:04:51.648Z",
+  "method": "GET",
+  "path": "/parties/01a16a5d-a27c-772c-84ce-91da175406ae/statement",
+  "status": 200,
+  "response": {
+    "receivable": "26.0000",
+    "payable": "0.0000",
+    "open": [
+      {
+        "accountId": "01a16a4d-3e3d-711c-80e5-2ea4864dd5d5",
+        "debit": "46.0000",
+        "credit": "0.0000",
+        "date": "2026-10-23",
+        "entryId": "01a16a5d-b4f1-72b7-ae87-5e758f8d871a",
+        "sourceType": "sales_invoice",
+        "sourceId": "01a16a5d-b1c7-70b9-bea3-de5807a770a4",
+        "allocated": "20.0000"
+      },
+      {
+        "accountId": "01a16a4d-3e3d-711c-80e5-2ea4864dd5d5",
+        "debit": "0.0000",
+        "credit": "20.0000",
+        "date": "2026-10-23",
+        "entryId": "01a16a5d-c10c-738b-a10c-11f5334d8e77",
+        "sourceType": "voucher",
+        "sourceId": "01a16a5d-bdf9-7465-b84b-1e3916da3974",
+        "allocated": "20.0000"
+      }
+    ]
+  }
+}

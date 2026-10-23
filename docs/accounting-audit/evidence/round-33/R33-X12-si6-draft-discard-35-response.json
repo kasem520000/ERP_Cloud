@@ -1,0 +1,18 @@
+{
+  "id": "R33-X12-si6-draft-discard-35",
+  "at": "2026-10-23T19:57:23.123Z",
+  "method": "POST",
+  "path": "/sales/invoices/01a16a56-d787-704c-b07b-e6fb49407b5a/void",
+  "status": 409,
+  "request": {
+    "reason": "R33 X12 تنظيف مسودة"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "SALES_INVOICE_INVALID_STATUS",
+    "detail": "Only posted invoices can be voided",
+    "traceId": "01a16a56-e934-763e-bcf6-40f4ded40fbd"
+  }
+}

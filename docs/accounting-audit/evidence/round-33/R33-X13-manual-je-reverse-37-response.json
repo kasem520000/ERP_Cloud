@@ -1,0 +1,16 @@
+{
+  "id": "R33-X13-manual-je-reverse-37",
+  "at": "2026-10-23T20:05:33.233Z",
+  "method": "POST",
+  "path": "/journal-entries/01a16a5e-63ac-75d8-9f37-60f153a6ed59/reverse",
+  "status": 201,
+  "request": {
+    "reason": "R33 X13 عكس قيد يدوي — مسموح"
+  },
+  "response": {
+    "data": {
+      "id": "01a16a5e-66b6-7009-86f5-063f38331879",
+      "reversalOf": "01a16a5e-63ac-75d8-9f37-60f153a6ed59"
+    }
+  }
+}

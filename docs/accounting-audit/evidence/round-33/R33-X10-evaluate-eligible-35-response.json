@@ -1,0 +1,17 @@
+{
+  "id": "R33-X10-evaluate-eligible-35",
+  "at": "2026-10-23T19:57:13.101Z",
+  "method": "POST",
+  "path": "/sales/offers/01a16a56-b91e-75b7-aeb9-4976dfc425d7/evaluate",
+  "status": 201,
+  "request": {
+    "itemId": "01a16a56-2f0a-70f5-baca-e88c2d46cbef",
+    "quantity": "2",
+    "value": "40"
+  },
+  "response": {
+    "eligible": true,
+    "discount": "4.0000",
+    "offerId": "01a16a56-b91e-75b7-aeb9-4976dfc425d7"
+  }
+}

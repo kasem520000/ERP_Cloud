@@ -1327,6 +1327,25 @@ export class AccountingService {
           field: 'entryId',
           reversalId: existing.id,
         });
+      /**
+       * ACC-186: قيدٌ أنشأه مستند (فاتورة، سند، مسيّر رواتب، سند مخزون…) لا يُعكس من شاشة القيود.
+       * العكس هنا يمحو أثر المستند في الأستاذ ويترك المستند نفسه مرحَّلاً: المخزون متحرك،
+       * والفاتورة مسدَّدة، ورصيد الصندوق الفرعي كما هو — فيتفارق الأستاذ عن دفاتره المساعدة.
+       * الطريق الصحيح إلغاء/عكس المستند من شاشته (void/reverse) فيُعكس قيده ودفاتره معاً.
+       * الاستثناء الوحيد المصمَّم: قيد إغلاق الوردية (ACC-100) — `reverseJournalInTx` تزامن
+       * الوردية ورصيد الصندوق معه ثم تعيد الوردية قابلةً للترحيل؛ وعكسُ عكسٍ لمستند مرفوض كذلك.
+       */
+      if (
+        original.sourceType &&
+        original.sourceType !== 'journal_reversal' &&
+        !(original.sourceType === 'shift_close' && !original.reversalOf)
+      )
+        throw new DomainError(
+          'JOURNAL_SOURCE_DOCUMENT_REVERSAL',
+          `هذا القيد أنشأه مستند (${ENTRY_TYPE_LABELS[original.sourceType] ?? original.sourceType}) — يُعكس بإلغاء المستند أو عكسه من شاشته لا من شاشة القيود`,
+          409,
+          { field: 'entryId', sourceType: original.sourceType, sourceId: original.sourceId },
+        );
 
       let date = input.date?.trim();
       let fiscalPeriodId = input.fiscalPeriodId;

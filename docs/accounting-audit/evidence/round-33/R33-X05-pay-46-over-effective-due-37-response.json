@@ -1,0 +1,30 @@
+{
+  "id": "R33-X05-pay-46-over-effective-due-37",
+  "at": "2026-10-23T20:04:58.119Z",
+  "method": "POST",
+  "path": "/sales/invoices/01a16a5d-d101-70b8-b253-0035e7139c07/payments",
+  "status": 422,
+  "request": {
+    "method": "cash",
+    "amount": "46.00",
+    "cashLocationId": "01a16a4d-3dfe-750d-b23e-31c906d41fd7",
+    "idempotencyKey": "r33-x05-over-37"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "PAYMENT_EXCEEDS_DUE",
+    "detail": "Payment exceeds invoice balance",
+    "traceId": "01a16a5d-da88-72eb-8fb7-40796a1cf304",
+    "errors": [
+      {
+        "total": "46.0000",
+        "returned": "23.0000",
+        "due": "23.0000",
+        "paidTotal": "0.0000",
+        "amount": "46.0000"
+      }
+    ]
+  }
+}

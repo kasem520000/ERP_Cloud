@@ -1,0 +1,130 @@
+{
+  "id": "R33-X11-invoice-maintenance-preview-37",
+  "at": "2026-10-23T20:05:19.197Z",
+  "method": "POST",
+  "path": "/settings/invoice-maintenance",
+  "status": 201,
+  "request": {
+    "mode": "preview",
+    "staleDraftDays": 0
+  },
+  "response": {
+    "data": {
+      "id": "01a16a5e-2fe1-76cd-8669-349e915bc2c5",
+      "tenantId": "01a16a4d-3c53-727e-acf9-5d817934dd72",
+      "kind": "invoice_maintenance",
+      "mode": "preview",
+      "status": "ready",
+      "cutoffDate": null,
+      "backupId": null,
+      "findings": {
+        "counts": {
+          "staleDrafts": 11,
+          "numberingGaps": 0,
+          "totalsMismatch": 0,
+          "repairableTotals": 0,
+          "postedWithoutJournal": 0
+        },
+        "staleDrafts": [
+          {
+            "id": "01a16a56-47e1-75db-ad14-029285e99fcd",
+            "kind": "sale",
+            "total": "23.0000",
+            "number": "DRAFT-01a16a56",
+            "status": "draft",
+            "created_at": "2026-10-23 19:56:41.824879+00"
+          },
+          {
+            "id": "01a16a56-9d3b-7686-975e-2799b350089e",
+            "kind": "sale",
+            "total": "41.4000",
+            "number": "DRAFT-01a16a56",
+            "status": "draft",
+            "created_at": "2026-10-23 19:57:03.673303+00"
+          },
+          {
+            "id": "01a16a56-a374-763e-b171-712fe31275bf",
+            "kind": "sale",
+            "total": "23.0000",
+            "number": "DRAFT-01a16a56",
+            "status": "draft",
+            "created_at": "2026-10-23 19:57:05.265703+00"
+          },
+          {
+            "id": "01a16a56-d787-704c-b07b-e6fb49407b5a",
+            "kind": "sale",
+            "total": "23.0000",
+            "number": "DRAFT-01a16a56",
+            "status": "draft",
+            "created_at": "2026-10-23 19:57:18.59924+00"
+          },
+          {
+            "id": "01a16a5c-8943-767d-ac97-b485d249c5bd",
+            "kind": "sale",
+            "total": "23.0000",
+            "number": "DRAFT-01a16a5c",
+            "status": "draft",
+            "created_at": "2026-10-23 20:03:31.778517+00"
+          },
+          {
+            "id": "01a16a5c-de1e-71da-af31-268226715d45",
+            "kind": "sale",
+            "total": "41.4000",
+            "number": "DRAFT-01a16a5c",
+            "status": "draft",
+            "created_at": "2026-10-23 20:03:53.498982+00"
+          },
+          {
+            "id": "01a16a5c-e469-7230-8393-bcdcac9f2b5e",
+            "kind": "sale",
+            "total": "23.0000",
+            "number": "DRAFT-01a16a5c",
+            "status": "draft",
+            "created_at": "2026-10-23 20:03:55.109828+00"
+          },
+          {
+            "id": "01a16a5d-1b66-762d-88ae-18c59ce2ce70",
+            "kind": "sale",
+            "total": "23.0000",
+            "number": "DRAFT-01a16a5d",
+            "status": "draft",
+            "created_at": "2026-10-23 20:04:09.189718+00"
+          },
+          {
+            "id": "01a16a5d-aeaf-7025-bd5d-0d349fafb3bb",
+            "kind": "sale",
+            "total": "23.0000",
+            "number": "DRAFT-01a16a5d",
+            "status": "draft",
+            "created_at": "2026-10-23 20:04:46.895108+00"
+          },
+          {
+            "id": "01a16a5e-02ae-729f-b3cc-7ecefad1f0b9",
+            "kind": "sale",
+            "total": "41.4000",
+            "number": "DRAFT-01a16a5e",
+            "status": "draft",
+            "created_at": "2026-10-23 20:05:08.396056+00"
+          },
+          {
+            "id": "01a16a5e-08ea-7597-b9c4-a14c643132a7",
+            "kind": "sale",
+            "total": "23.0000",
+            "number": "DRAFT-01a16a5e",
+            "status": "draft",
+            "created_at": "2026-10-23 20:05:09.991228+00"
+          }
+        ],
+        "numberingGaps": [],
+        "totalsMismatch": [],
+        "postedWithoutJournal": []
+      },
+      "applied": {},
+      "createdAt": "2026-10-23T20:05:19.966Z",
+      "createdBy": "01a16a4d-3c56-7439-b640-8e730c9a21bd",
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1
+    }
+  }
+}

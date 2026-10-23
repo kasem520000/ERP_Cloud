@@ -1,0 +1,19 @@
+{
+  "id": "R33-X11-invoice-maintenance-preview-35",
+  "at": "2026-10-23T19:57:14.650Z",
+  "method": "POST",
+  "path": "/invoice-maintenance",
+  "status": 404,
+  "request": {
+    "mode": "preview",
+    "staleDraftDays": 0
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Not found",
+    "status": 404,
+    "code": "NOT_FOUND",
+    "detail": "Cannot POST /api/v1/invoice-maintenance",
+    "traceId": "01a16a56-c81b-71fd-b0d2-50f93df9d033"
+  }
+}

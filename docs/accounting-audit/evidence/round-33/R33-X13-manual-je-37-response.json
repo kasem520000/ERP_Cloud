@@ -1,0 +1,52 @@
+{
+  "id": "R33-X13-manual-je-37",
+  "at": "2026-10-23T20:05:32.457Z",
+  "method": "POST",
+  "path": "/journal-entries",
+  "status": 201,
+  "request": {
+    "branchId": "01a16a4d-3dfb-702b-95a6-7a4968382d71",
+    "date": "2026-10-23",
+    "description": "R33 X13 قيد يدوي للعكس",
+    "lines": [
+      {
+        "accountId": "01a16a4d-3e40-75fe-9d4b-f46949a7b821",
+        "debit": "1.00",
+        "credit": "0"
+      },
+      {
+        "accountId": "01a16a4d-3e40-75fe-9d4b-f37423358503",
+        "debit": "0",
+        "credit": "1.00"
+      }
+    ]
+  },
+  "response": {
+    "data": {
+      "id": "01a16a5e-63ac-75d8-9f37-60f153a6ed59",
+      "tenantId": "01a16a4d-3c53-727e-acf9-5d817934dd72",
+      "branchId": "01a16a4d-3dfb-702b-95a6-7a4968382d71",
+      "fiscalPeriodId": "01a16a4d-3e59-7529-94af-83de1b792543",
+      "date": "2026-10-23",
+      "number": "JE-000060",
+      "entryTime": null,
+      "isVat": false,
+      "kind": "manual",
+      "status": "posted",
+      "description": "R33 X13 قيد يدوي للعكس",
+      "sourceType": null,
+      "sourceId": null,
+      "reversalOf": null,
+      "idempotencyKey": null,
+      "postedAt": "2026-10-23T20:05:33.228Z",
+      "postedBy": null,
+      "createdAt": "2026-10-23T20:05:33.225Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "legacySource": null,
+      "legacyId": null
+    }
+  }
+}

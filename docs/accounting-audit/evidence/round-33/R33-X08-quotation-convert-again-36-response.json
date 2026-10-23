@@ -1,0 +1,16 @@
+{
+  "id": "R33-X08-quotation-convert-again-36",
+  "at": "2026-10-23T20:03:55.137Z",
+  "method": "POST",
+  "path": "/sales/quotations/01a16a5c-e148-751b-bce5-21430e24acb9/convert",
+  "status": 409,
+  "request": {},
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "SALES_QUOTATION_ALREADY_CONVERTED",
+    "detail": "This quotation was already converted into an invoice",
+    "traceId": "01a16a5c-e482-71e2-b693-a08a9fd37482"
+  }
+}

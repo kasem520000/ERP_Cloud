@@ -1,0 +1,30 @@
+{
+  "id": "R33-X07-credit-note-11.50-35",
+  "at": "2026-10-23T19:57:00.565Z",
+  "method": "POST",
+  "path": "/sales/invoices/01a16a56-8dcf-737e-ad1f-2ec59dbf97b0/adjustment-notes",
+  "status": 201,
+  "request": {
+    "branchId": "01a16a4d-3dfb-702b-95a6-7a4968382d71",
+    "kind": "credit",
+    "reason": "R33 X07 إشعار دائن 11.50 (ACC-027)",
+    "amount": "11.50"
+  },
+  "response": {
+    "id": "01a16a56-941c-765e-b143-1eb6272f21f2",
+    "tenantId": "01a16a4d-3c53-727e-acf9-5d817934dd72",
+    "invoiceId": "01a16a56-8dcf-737e-ad1f-2ec59dbf97b0",
+    "branchId": "01a16a4d-3dfb-702b-95a6-7a4968382d71",
+    "kind": "credit",
+    "status": "draft",
+    "number": null,
+    "reason": "R33 X07 إشعار دائن 11.50 (ACC-027)",
+    "amount": "11.5000",
+    "postedAt": null,
+    "createdAt": "2026-10-23T19:57:01.340Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1
+  }
+}

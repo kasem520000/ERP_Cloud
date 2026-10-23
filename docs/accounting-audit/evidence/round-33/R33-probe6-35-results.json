@@ -1,0 +1,784 @@
+[
+  {
+    "id": "X00a",
+    "title": "fixture item P6 created",
+    "expected": 201,
+    "actual": 201,
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X00b",
+    "title": "fixture purchase 40 × 12 posted (stock 40, average cost 12)",
+    "expected": [
+      201,
+      201
+    ],
+    "actual": [
+      201,
+      201
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X00c",
+    "title": "fixture payment method NET30 + customer linked to it",
+    "expected": [
+      201,
+      201
+    ],
+    "actual": [
+      201,
+      201
+    ],
+    "ok": true,
+    "note": "NET30-35"
+  },
+  {
+    "id": "X01a",
+    "title": "ACC-110 quantity −1 → 422 SALES_LINE_QUANTITY_INVALID (was 500)",
+    "expected": [
+      422,
+      "SALES_LINE_QUANTITY_INVALID"
+    ],
+    "actual": [
+      422,
+      "SALES_LINE_QUANTITY_INVALID"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X01b",
+    "title": "ACC-110 quantity 0 → 422 SALES_LINE_QUANTITY_INVALID",
+    "expected": [
+      422,
+      "SALES_LINE_QUANTITY_INVALID"
+    ],
+    "actual": [
+      422,
+      "SALES_LINE_QUANTITY_INVALID"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X01c",
+    "title": "ACC-109 unit price −5 → 422 SALES_LINE_PRICE_INVALID",
+    "expected": [
+      422,
+      "SALES_LINE_PRICE_INVALID"
+    ],
+    "actual": [
+      422,
+      "SALES_LINE_PRICE_INVALID"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X01d",
+    "title": "ACC-109 line without taxGroupId/taxRate → VAT 15 % inferred (total 23.00, tax 3.00)",
+    "expected": [
+      201,
+      "23.00",
+      "3.00"
+    ],
+    "actual": [
+      201,
+      "23.00",
+      "3.00"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X02a",
+    "title": "SI1 posted, total 46.00, unpaid",
+    "expected": [
+      201,
+      201,
+      "posted",
+      "46.00",
+      "unpaid"
+    ],
+    "actual": [
+      201,
+      201,
+      "posted",
+      "46.00",
+      "unpaid"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X02b",
+    "title": "ACC-105 due date (valid_until) = invoice date + 30 days from the customer's payment method",
+    "expected": "2026-11-22",
+    "actual": "2026-11-22",
+    "ok": true
+  },
+  {
+    "id": "X02c",
+    "title": "ACC-118 header cost_total = 2 × 12 = 24 and profit = 40 − 24 = 16",
+    "expected": [
+      "24.00",
+      "16.00"
+    ],
+    "actual": [
+      "24.00",
+      "16.00"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X02d",
+    "title": "SI1 journal: one posted entry, AR 12310001 debited 46.00 and tagged with the customer",
+    "expected": [
+      1,
+      "posted",
+      "46.0000",
+      "01a16a56-3b8e-7299-8b89-d0ca6d27bfc9"
+    ],
+    "actual": [
+      1,
+      "posted",
+      "46.0000",
+      "01a16a56-3b8e-7299-8b89-d0ca6d27bfc9"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X02e",
+    "title": "ar-aging as of today: the customer's 46 sits in bucket 0-30",
+    "expected": [
+      "46.00",
+      "46.00"
+    ],
+    "actual": [
+      "46.00",
+      "46.00"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X02f",
+    "title": "ACC-102 ar-aging honours `to`: 45 days later the same 46 moves to bucket 31-60 (aged from the invoice date — policy, see verdicts)",
+    "expected": [
+      "0.00",
+      "46.00"
+    ],
+    "actual": [
+      "0.00",
+      "46.00"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X03a",
+    "title": "ACC-042 posted receipt with allocation → SI1 paid_total 20.00 / partial",
+    "expected": [
+      201,
+      201,
+      "20.00",
+      "partial"
+    ],
+    "actual": [
+      201,
+      201,
+      "20.00",
+      "partial"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X03b",
+    "title": "one payment_allocations row of 20.0000 for the voucher",
+    "expected": [
+      "20.0000"
+    ],
+    "actual": [
+      "20.0000"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X03c",
+    "title": "GL: safe +20, AR −20",
+    "expected": [
+      "50020.00",
+      "26.00"
+    ],
+    "actual": [
+      "50020.00",
+      "26.00"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X03d",
+    "title": "ACC-017 party statement: the invoice line shows allocated 20.0000 (allocation matched on the document, not the entry id)",
+    "expected": [
+      200,
+      "20.0000",
+      "26.0000"
+    ],
+    "actual": [
+      200,
+      "20.0000",
+      "26.0000"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X03e",
+    "title": "ACC-095 voiding the allocated receipt → voided, SI1 back to 0.00 / unpaid",
+    "expected": [
+      201,
+      "voided",
+      "0.00",
+      "unpaid"
+    ],
+    "actual": [
+      201,
+      "voided",
+      "0.00",
+      "unpaid"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X03f",
+    "title": "ACC-095 the allocation row is gone and the voucher's journal nets to zero (original + reversal)",
+    "expected": [
+      0,
+      2,
+      "0.00"
+    ],
+    "actual": [
+      0,
+      2,
+      "0.00"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X03g",
+    "title": "GL back to the pre-receipt balances",
+    "expected": [
+      "50000.00",
+      "46.00"
+    ],
+    "actual": [
+      "50000.00",
+      "46.00"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X04a",
+    "title": "ACC-042 receipt naming the invoice number is allocated on posting → SI1 46.00 / paid",
+    "expected": [
+      201,
+      201,
+      "46.00",
+      "paid"
+    ],
+    "actual": [
+      201,
+      201,
+      "46.00",
+      "paid"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X05a",
+    "title": "SI2 46 posted; credit return 23 posted; SI2 still unpaid (nothing collected yet)",
+    "expected": [
+      201,
+      201,
+      201,
+      201,
+      "unpaid"
+    ],
+    "actual": [
+      201,
+      201,
+      201,
+      201,
+      "unpaid"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X05b",
+    "title": "ACC-082 paying 46 when only 23 remains after the return → 422 PAYMENT_EXCEEDS_DUE",
+    "expected": [
+      422,
+      "PAYMENT_EXCEEDS_DUE"
+    ],
+    "actual": [
+      201,
+      null
+    ],
+    "ok": false
+  },
+  {
+    "id": "X05c",
+    "title": "ACC-082 paying the remaining 23 → payment_status paid (returns subtracted from the due)",
+    "expected": [
+      201,
+      "23.00",
+      "paid"
+    ],
+    "actual": [
+      422,
+      "46.00",
+      "paid"
+    ],
+    "ok": false,
+    "note": "PAYMENT_EXCEEDS_DUE"
+  },
+  {
+    "id": "X05d",
+    "title": "the return document: total 23.00, cost 12.00 (source invoice cost), profit −? not applicable → cost carried",
+    "expected": [
+      "23.00",
+      "12.00"
+    ],
+    "actual": [
+      "23.00",
+      "12.00"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X06a",
+    "title": "cash sale 23 posted and settled: paid_total 23.00 / paid, safe +23",
+    "expected": [
+      201,
+      201,
+      "23.00",
+      "paid",
+      "50115.00"
+    ],
+    "actual": [
+      201,
+      201,
+      "23.00",
+      "paid",
+      "50115.00"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X06b",
+    "title": "ACC-019 cash refund: return posted, refund row cash 23.0000 on the safe, safe GL back to the pre-sale balance",
+    "expected": [
+      201,
+      201,
+      "cash",
+      "23.0000",
+      "01a16a4d-3dfe-750d-b23e-31c906d41fd7",
+      "50092.00"
+    ],
+    "actual": [
+      201,
+      201,
+      "cash",
+      "23.0000",
+      "01a16a4d-3dfe-750d-b23e-31c906d41fd7",
+      "50092.00"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X06c",
+    "title": "ACC-019 the return journal credits the safe 23.0000 (not AR) and the return shows paid 23.00 / paid",
+    "expected": [
+      "23.0000",
+      "23.00",
+      "paid"
+    ],
+    "actual": [
+      null,
+      "23.00",
+      "paid"
+    ],
+    "ok": false
+  },
+  {
+    "id": "X06d",
+    "title": "ACC-028/098 safe sub-ledger balance = GL balance of the safe account",
+    "expected": "50092.00",
+    "actual": "92.00",
+    "ok": false,
+    "note": "{\"tenantId\":\"01a16a4d-3c53-727e-acf9-5d817934dd72\",\"cashLocationId\":\"01a16a4d-3dfe-750d-b23e-31c906d41fd7\",\"currencyCode\":\"SAR\",\"balance\":\"92.0000\",\"updatedAt\":"
+  },
+  {
+    "id": "X07a",
+    "title": "ACC-027 credit note posted with a number and a posted journal: AR credited 11.5000 (base 10 + VAT 1.50 debited)",
+    "expected": [
+      201,
+      201,
+      201,
+      true,
+      1,
+      "11.5000"
+    ],
+    "actual": [
+      201,
+      201,
+      201,
+      true,
+      1,
+      "11.5000"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X07b",
+    "title": "ACC-027 SI4 remaining reduced: paid_total 11.50 / partial; AR −11.50",
+    "expected": [
+      "11.50",
+      "partial",
+      "11.50"
+    ],
+    "actual": [
+      "11.50",
+      "partial",
+      "11.50"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X07c",
+    "title": "credit-note journal is balanced and splits 10.00 base + 1.50 VAT",
+    "expected": [
+      "11.50",
+      "11.50",
+      2
+    ],
+    "actual": [
+      "11.50",
+      "11.50",
+      2
+    ],
+    "ok": true
+  },
+  {
+    "id": "X08a",
+    "title": "ACC-050 quotation 2 × 20 − 4 → 41.40; the converted invoice keeps discount 4 and total 41.40",
+    "expected": [
+      201,
+      "41.40",
+      201,
+      "4.00",
+      "41.40",
+      "sale"
+    ],
+    "actual": [
+      201,
+      "41.40",
+      201,
+      "4.00",
+      "41.40",
+      "sale"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X08b",
+    "title": "ACC-051 two concurrent conversions → exactly one 201 and one invoice",
+    "expected": [
+      1,
+      1
+    ],
+    "actual": [
+      1,
+      1
+    ],
+    "ok": true,
+    "note": "409:SALES_QUOTATION_ALREADY_CONVERTED,201:"
+  },
+  {
+    "id": "X08c",
+    "title": "a third conversion attempt is refused (SALES_QUOTATION_ALREADY_CONVERTED)",
+    "expected": [
+      409,
+      "SALES_QUOTATION_ALREADY_CONVERTED"
+    ],
+    "actual": [
+      409,
+      "SALES_QUOTATION_ALREADY_CONVERTED"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X09a",
+    "title": "ACC-054 collecting 50 → contract 201, receipt voucher posted with a posted journal, safe +50",
+    "expected": [
+      201,
+      201,
+      "posted",
+      "50.0000",
+      "1",
+      "50142.00"
+    ],
+    "actual": [
+      201,
+      201,
+      "posted",
+      "50.0000",
+      "1",
+      "50142.00"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X09b",
+    "title": "ACC-055 collecting 80 when 50 remains → 422 INSTALLMENT_OVERCOLLECT",
+    "expected": [
+      422,
+      "INSTALLMENT_OVERCOLLECT"
+    ],
+    "actual": [
+      422,
+      "INSTALLMENT_OVERCOLLECT"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X09c",
+    "title": "last 50 collected → every schedule line paid, contract closed, safe +100 in total",
+    "expected": [
+      201,
+      true,
+      "50192.00"
+    ],
+    "actual": [
+      201,
+      true,
+      "50192.00"
+    ],
+    "ok": true,
+    "note": "contract status=closed"
+  },
+  {
+    "id": "X09d",
+    "title": "contract status after full collection is a closed state",
+    "expected": true,
+    "actual": true,
+    "ok": true,
+    "note": "closed"
+  },
+  {
+    "id": "X10a",
+    "title": "ACC-135 offer created; the same code again → 409 OFFER_CODE_TAKEN (was 500)",
+    "expected": [
+      201,
+      409,
+      "OFFER_CODE_TAKEN"
+    ],
+    "actual": [
+      201,
+      409,
+      "SALES_OFFER_CODE_TAKEN"
+    ],
+    "ok": false,
+    "note": "OFF-R33-35"
+  },
+  {
+    "id": "X10b",
+    "title": "ACC-136 negative quantity/value → 422 SALES_OFFER_EVALUATION_INVALID",
+    "expected": [
+      422,
+      "SALES_OFFER_EVALUATION_INVALID"
+    ],
+    "actual": [
+      422,
+      "SALES_OFFER_EVALUATION_INVALID"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X10c",
+    "title": "ACC-137 an item outside the offer scope → not eligible (ITEM_NOT_ELIGIBLE)",
+    "expected": [
+      200,
+      false,
+      "ITEM_NOT_ELIGIBLE"
+    ],
+    "actual": [
+      201,
+      false,
+      "ITEM_NOT_ELIGIBLE"
+    ],
+    "ok": false
+  },
+  {
+    "id": "X10d",
+    "title": "ACC-137 the scoped item at the target → eligible, 10 % of 40 = 4.0000",
+    "expected": [
+      200,
+      true,
+      "4.0000"
+    ],
+    "actual": [
+      201,
+      true,
+      "4.0000"
+    ],
+    "ok": false
+  },
+  {
+    "id": "X10e",
+    "title": "ACC-136 percentage discount above 100 → 422 SALES_OFFER_DISCOUNT_INVALID",
+    "expected": [
+      422,
+      "SALES_OFFER_DISCOUNT_INVALID"
+    ],
+    "actual": [
+      422,
+      "SALES_OFFER_DISCOUNT_INVALID"
+    ],
+    "ok": true
+  },
+  {
+    "id": "X11a",
+    "title": "ACC-147 maintenance preview answers 2xx and flags none of this block's invoices as header/line mismatches",
+    "expected": [
+      true,
+      0
+    ],
+    "actual": [
+      false,
+      0
+    ],
+    "ok": false,
+    "note": "keys=type,title,status,code,detail,traceId"
+  },
+  {
+    "id": "X11b",
+    "title": "ACC-148 the stale-draft list carries number/status/kind for our open draft",
+    "expected": [
+      true,
+      "draft",
+      "sale"
+    ],
+    "actual": [
+      false,
+      null,
+      null
+    ],
+    "ok": false,
+    "note": "{}"
+  },
+  {
+    "id": "X12a",
+    "title": "a shift is open for the owner on the branch",
+    "expected": "open",
+    "actual": "open",
+    "ok": true,
+    "note": "01a16a56-ce25-70a8-9da8-67adce62886a"
+  },
+  {
+    "id": "X12b",
+    "title": "ACC-093 a cash invoice posted while the shift is open carries shift_id and cashier_id",
+    "expected": [
+      201,
+      "01a16a56-ce25-70a8-9da8-67adce62886a",
+      true
+    ],
+    "actual": [
+      201,
+      "01a16a56-ce25-70a8-9da8-67adce62886a",
+      true
+    ],
+    "ok": true
+  },
+  {
+    "id": "X12c",
+    "title": "ACC-102 expected cash of the shift counts the posted cash sale (23) and not the draft",
+    "expected": "23.00",
+    "actual": null,
+    "ok": false,
+    "note": "{}"
+  },
+  {
+    "id": "X12d",
+    "title": "ACC-106 close with 20 counted vs 23 expected → diff −3.00 (counted − expected), i.e. a shortage",
+    "expected": [
+      201,
+      "23.00",
+      "20.00",
+      "-3.00"
+    ],
+    "actual": [
+      201,
+      "23.00",
+      "20.00",
+      "-3.00"
+    ],
+    "ok": true,
+    "note": ""
+  },
+  {
+    "id": "X12e",
+    "title": "ACC-106 print-data reports the same sign and amount",
+    "expected": "-3.00",
+    "actual": "-3.00",
+    "ok": true,
+    "note": "{\"shift\":{\"id\":\"01a16a56-ce25-70a8-9da8-67adce62886a\",\"tenantId\":\"01a16a4d-3c53-727e-acf9-5d817934dd72\",\"branchId\":\"01a16a4d-3dfb-702b-95a6-7a4968382d71\",\"userId\":\"01a16a4d-3c56-7439-b640-8e730c9a21bd"
+  },
+  {
+    "id": "X12f",
+    "title": "ACC-106 posting a shortage: Dr فرق الصندوق 3 / Cr الصندوق 3 → safe GL −3",
+    "expected": [
+      201,
+      1,
+      "3.0000",
+      "50212.00"
+    ],
+    "actual": [
+      201,
+      1,
+      "23.0000",
+      "50192.00"
+    ],
+    "ok": false,
+    "note": "[{\"code\":\"1211001\",\"debit\":\"0.0000\",\"credit\":\"23.0000\",\"party\":null},{\"code\":\"1211002\",\"debit\":\"20.0000\",\"credit\":\"0.0000\",\"party\":null},{\"code\":\"3110004\",\"debit\":\"3.0000\",\"credit\":\"0.0000\",\"party\":null}]"
+  },
+  {
+    "id": "X12g",
+    "title": "ACC-028 the safe sub-ledger follows the shortage (balance = GL)",
+    "expected": "50192.00",
+    "actual": "192.00",
+    "ok": false
+  },
+  {
+    "id": "X12h",
+    "title": "ACC-103 a system (shift) entry cannot be reversed from the manual journal screen",
+    "expected": true,
+    "actual": false,
+    "ok": false,
+    "note": "201 "
+  },
+  {
+    "id": "X12i",
+    "title": "cleanup: the draft is voided/removed",
+    "expected": true,
+    "actual": false,
+    "ok": false,
+    "note": "409 SALES_INVOICE_INVALID_STATUS"
+  }
+]

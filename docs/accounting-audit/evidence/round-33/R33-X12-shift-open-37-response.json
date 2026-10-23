@@ -1,0 +1,32 @@
+{
+  "id": "R33-X12-shift-open-37",
+  "at": "2026-10-23T20:05:20.570Z",
+  "method": "POST",
+  "path": "/shift-closes/open",
+  "status": 201,
+  "request": {
+    "branchId": "01a16a4d-3dfb-702b-95a6-7a4968382d71"
+  },
+  "response": {
+    "id": "01a16a5e-353c-715b-96a9-4885a522fbf9",
+    "tenantId": "01a16a4d-3c53-727e-acf9-5d817934dd72",
+    "branchId": "01a16a4d-3dfb-702b-95a6-7a4968382d71",
+    "userId": "01a16a4d-3c56-7439-b640-8e730c9a21bd",
+    "openedAt": "2026-10-23T20:05:21.339Z",
+    "closedAt": null,
+    "status": "open",
+    "number": null,
+    "journalEntryId": null,
+    "postedAt": null,
+    "expectedCash": "0.0000",
+    "countedCash": "0.0000",
+    "diff": "0.0000",
+    "summary": {},
+    "reportHtml": null,
+    "createdAt": "2026-10-23T20:05:21.339Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1
+  }
+}

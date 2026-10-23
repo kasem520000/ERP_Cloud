@@ -1,0 +1,34 @@
+{
+  "id": "R33-X10-offer-duplicate-code-36",
+  "at": "2026-10-23T20:04:00.545Z",
+  "method": "POST",
+  "path": "/sales/offers",
+  "status": 409,
+  "request": {
+    "code": "OFF-R33-36",
+    "name": "عرض كمية R33 36",
+    "validFrom": "2026-10-23",
+    "validTo": "2026-12-22",
+    "status": "active",
+    "targetType": "quantity",
+    "targetValue": "2",
+    "discountType": "percent",
+    "discountValue": "10",
+    "itemIds": [
+      "01a16a5c-70e6-75fd-9e12-e3d933d16c5f"
+    ]
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "An offer with this code already exists",
+    "status": 409,
+    "code": "SALES_OFFER_CODE_TAKEN",
+    "detail": "An offer with this code already exists",
+    "traceId": "01a16a5c-f9a2-757a-8a37-199af68dc1df",
+    "errors": [
+      {
+        "field": "code"
+      }
+    ]
+  }
+}

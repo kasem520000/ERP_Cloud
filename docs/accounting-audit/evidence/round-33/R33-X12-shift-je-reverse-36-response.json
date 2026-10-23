@@ -1,0 +1,16 @@
+{
+  "id": "R33-X12-shift-je-reverse-36",
+  "at": "2026-10-23T20:04:12.943Z",
+  "method": "POST",
+  "path": "/journal-entries/01a16a5d-26df-74eb-8b69-66164df89004/reverse",
+  "status": 201,
+  "request": {
+    "reason": "R33 X12 عكس قيد إغلاق الوردية من شاشة القيود (ACC-100)"
+  },
+  "response": {
+    "data": {
+      "id": "01a16a5d-2d16-7658-93be-101a75bbd0af",
+      "reversalOf": "01a16a5d-26df-74eb-8b69-66164df89004"
+    }
+  }
+}

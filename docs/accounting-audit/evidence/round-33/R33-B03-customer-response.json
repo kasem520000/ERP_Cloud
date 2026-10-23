@@ -1,6 +1,6 @@
 {
   "id": "R33-B03-customer",
-  "at": "2026-10-23T18:13:41.629Z",
+  "at": "2026-10-23T19:47:28.769Z",
   "method": "POST",
   "path": "/parties",
   "status": 201,
@@ -11,8 +11,8 @@
     "phone": "0500000033"
   },
   "response": {
-    "id": "01a169f7-fd83-7049-98d1-5fbbcc10cc38",
-    "tenantId": "01a169f7-61ba-747d-b1af-5f1f066e70fc",
+    "id": "01a16a4d-da94-74aa-87a9-7b894bcd9ab5",
+    "tenantId": "01a16a4d-3c53-727e-acf9-5d817934dd72",
     "code": "000001",
     "kind": "customer",
     "name": "بقالة R33 (آجل)",
@@ -29,7 +29,7 @@
     "isContractor": false,
     "branchId": null,
     "paymentMethodId": null,
-    "createdAt": "2026-10-23T18:13:42.405Z",
+    "createdAt": "2026-10-23T19:47:29.560Z",
     "createdBy": null,
     "updatedAt": null,
     "updatedBy": null,

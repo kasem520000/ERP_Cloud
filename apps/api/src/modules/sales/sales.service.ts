@@ -2142,9 +2142,32 @@ export class SalesService {
       if (!locked || locked.status !== 'posted')
         throw new DomainError('SALES_INVOICE_NOT_POSTED', 'Payments require a posted invoice', 409);
       const paidValue = money(locked.paidTotal).plus(paymentValue);
+      // ACC-082 / ACC-187: المستحق الفعلي = الإجمالي − المردودات والإشعارات الدائنة المرحَّلة على الفاتورة.
+      // كان السقف يُقاس على الإجمالي وحده، فتُقبل دفعة 46 على فاتورة 46 رُدَّ منها 23 (سداد زائد 23)
+      // بينما حالة السداد نفسها تُحسب على المستحق الفعلي — فيتناقض الحارس مع الحالة.
+      const returnedUnderLock = (
+        await tx
+          .select({ total: salesInvoices.total })
+          .from(salesInvoices)
+          .where(
+            and(
+              eq(salesInvoices.tenantId, tenantId),
+              eq(salesInvoices.referenceInvoiceId, invoiceId),
+              inArray(salesInvoices.kind, ['sale_return', 'credit_note']),
+              eq(salesInvoices.status, 'posted'),
+            ),
+          )
+      ).reduce((sum, r) => sum.plus(r.total), new Decimal(0));
+      const dueUnderLock = Decimal.max(0, money(locked.total).minus(returnedUnderLock));
       // ACC-123: تسامح الهللة (0.01) لتفادي رفض الدفعات المقربة إلى أقرب هللة
-      if (paidValue.gt(money(locked.total).plus('0.01')))
-        throw new DomainError('PAYMENT_EXCEEDS_DUE', 'Payment exceeds invoice balance', 422);
+      if (paidValue.gt(dueUnderLock.plus('0.01')))
+        throw new DomainError('PAYMENT_EXCEEDS_DUE', 'Payment exceeds invoice balance', 422, {
+          total: money(locked.total).toFixed(4),
+          returned: returnedUnderLock.toFixed(4),
+          due: dueUnderLock.toFixed(4),
+          paidTotal: money(locked.paidTotal).toFixed(4),
+          amount: paymentValue.toFixed(4),
+        });
       paidTotalAfter = paidValue.toFixed(4);
       invoiceTotal = money(locked.total).toFixed(4);
       const [payment] = await tx

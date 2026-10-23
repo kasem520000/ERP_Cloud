@@ -1,0 +1,16 @@
+{
+  "id": "R33-X13-reverse-invoice-je-probe-35",
+  "at": "2026-10-23T19:59:19.231Z",
+  "method": "POST",
+  "path": "/journal-entries/01a16a56-90fd-7605-8886-5ef61967a2cc/reverse",
+  "status": 201,
+  "request": {
+    "reason": "R33 probe: عكس قيد فاتورة من شاشة القيود"
+  },
+  "response": {
+    "data": {
+      "id": "01a16a58-b1da-7519-a77e-999e88f7f83f",
+      "reversalOf": "01a16a56-90fd-7605-8886-5ef61967a2cc"
+    }
+  }
+}

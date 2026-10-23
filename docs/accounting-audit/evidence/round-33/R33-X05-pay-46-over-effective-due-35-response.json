@@ -1,0 +1,25 @@
+{
+  "id": "R33-X05-pay-46-over-effective-due-35",
+  "at": "2026-10-23T19:56:53.155Z",
+  "method": "POST",
+  "path": "/sales/invoices/01a16a56-6a7c-75ec-89b0-9fb1f332ce04/payments",
+  "status": 201,
+  "request": {
+    "method": "cash",
+    "amount": "46.00",
+    "cashLocationId": "01a16a4d-3dfe-750d-b23e-31c906d41fd7",
+    "idempotencyKey": "r33-x05-over-35"
+  },
+  "response": {
+    "id": "01a16a56-7761-75d9-a016-79eb52740e29",
+    "tenantId": "01a16a4d-3c53-727e-acf9-5d817934dd72",
+    "invoiceId": "01a16a56-6a7c-75ec-89b0-9fb1f332ce04",
+    "method": "cash",
+    "amount": "46.0000",
+    "cashLocationId": "01a16a4d-3dfe-750d-b23e-31c906d41fd7",
+    "reference": null,
+    "idempotencyKey": "r33-x05-over-35",
+    "createdAt": "2026-10-23T19:56:53.982Z",
+    "createdBy": null
+  }
+}

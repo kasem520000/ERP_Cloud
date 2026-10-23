@@ -1,0 +1,17 @@
+{
+  "id": "R33-X10-evaluate-other-item-36",
+  "at": "2026-10-23T20:04:02.092Z",
+  "method": "POST",
+  "path": "/sales/offers/01a16a5c-f99b-72ea-bc93-3e7178ef18b8/evaluate",
+  "status": 201,
+  "request": {
+    "itemId": "01a16a4d-d445-7305-ad9e-9b875607886f",
+    "quantity": "5",
+    "value": "100"
+  },
+  "response": {
+    "eligible": false,
+    "discount": "0",
+    "reason": "ITEM_NOT_ELIGIBLE"
+  }
+}

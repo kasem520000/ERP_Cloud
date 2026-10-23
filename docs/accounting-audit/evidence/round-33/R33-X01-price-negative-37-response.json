@@ -1,0 +1,35 @@
+{
+  "id": "R33-X01-price-negative-37",
+  "at": "2026-10-23T20:04:45.338Z",
+  "method": "POST",
+  "path": "/sales/invoices",
+  "status": 422,
+  "request": {
+    "branchId": "01a16a4d-3dfb-702b-95a6-7a4968382d71",
+    "warehouseId": "01a16a4d-3dfc-70f4-848e-e5fd44fd11f0",
+    "partyId": "01a16a5d-a27c-772c-84ce-91da175406ae",
+    "kind": "sale",
+    "lines": [
+      {
+        "itemId": "01a16a5d-95f8-753c-a5fa-54096e0289a5",
+        "quantity": "1",
+        "unitPrice": "-5",
+        "taxGroupId": "01a16a4d-3e49-76ac-bdc8-11f65fd658b9"
+      }
+    ]
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "SALES_LINE_PRICE_INVALID",
+    "detail": "Line 1 unit price cannot be negative",
+    "traceId": "01a16a5d-a89a-74ec-9422-3c99c36c92cc",
+    "errors": [
+      {
+        "lineNo": 1,
+        "unitPrice": "-5"
+      }
+    ]
+  }
+}
