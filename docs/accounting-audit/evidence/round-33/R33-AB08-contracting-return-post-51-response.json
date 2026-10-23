@@ -1,0 +1,42 @@
+{
+  "id": "R33-AB08-contracting-return-post-51",
+  "at": "2026-10-23T21:51:34.315Z",
+  "method": "POST",
+  "path": "/contracting/returns/01a16abf-7384-760c-8490-e572e87d2b14/post",
+  "status": 201,
+  "request": {},
+  "response": {
+    "data": {
+      "id": "01a16abf-7384-760c-8490-e572e87d2b14",
+      "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+      "projectId": "01a16abf-66ec-732e-a6de-7fea6cd91115",
+      "billId": "01a16abf-6ced-7338-90cb-424551eb67ad",
+      "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+      "number": "CTR-000003",
+      "returnDate": "2026-10-23",
+      "status": "posted",
+      "reason": "R33 P9 مرتجع مقاولات 10",
+      "returnValue": "10.0000",
+      "retentionValue": "1.0000",
+      "netValue": "9.0000",
+      "creditNoteId": "01a16abf-76bb-77b2-a6cb-b2a67f529deb",
+      "postedAt": "2026-10-23T21:51:35.123Z",
+      "cancelledAt": null,
+      "createdAt": "2026-10-23T21:51:34.276Z",
+      "createdBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f",
+      "updatedAt": "2026-10-23T21:51:35.123Z",
+      "updatedBy": "01a16a85-7aff-7179-ae78-44a0d71bd52f",
+      "version": 1,
+      "lines": [
+        {
+          "returnId": "01a16abf-7384-760c-8490-e572e87d2b14",
+          "lineNo": 1,
+          "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+          "termId": "01a16abf-6a09-74e9-94eb-012cd55524de",
+          "returnValue": "10.0000"
+        }
+      ],
+      "retentionJournalEntryId": "01a16abf-76ce-7669-9e17-baf23426095c"
+    }
+  }
+}

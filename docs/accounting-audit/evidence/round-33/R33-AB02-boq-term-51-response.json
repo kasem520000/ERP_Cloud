@@ -1,0 +1,34 @@
+{
+  "id": "R33-AB02-boq-term-51",
+  "at": "2026-10-23T21:51:31.067Z",
+  "method": "POST",
+  "path": "/projects/01a16abf-66ec-732e-a6de-7fea6cd91115/boq",
+  "status": 201,
+  "request": {
+    "code": "T1",
+    "description": "R33 أعمال بند واحد",
+    "qty": "1",
+    "unitValue": "100"
+  },
+  "response": {
+    "id": "01a16abf-6a09-74e9-94eb-012cd55524de",
+    "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+    "projectId": "01a16abf-66ec-732e-a6de-7fea6cd91115",
+    "code": "T1",
+    "description": "R33 أعمال بند واحد",
+    "qty": "1.0000",
+    "unitValue": "100.0000",
+    "estimatedCost": "0.0000",
+    "executionPeriod": null,
+    "previouslyBilled": "0.0000",
+    "createdAt": "2026-10-23T21:51:31.849Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1,
+    "deletedAt": null,
+    "deletedBy": null,
+    "legacySource": null,
+    "legacyId": null
+  }
+}

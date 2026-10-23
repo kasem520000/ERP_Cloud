@@ -1,0 +1,13 @@
+{
+  "id": "R33-AE05-account-cleanup-50",
+  "at": "2026-10-23T21:50:57.797Z",
+  "method": "DELETE",
+  "path": "/accounts/01a16abe-dbe8-7355-ad7a-d2f398cf0006",
+  "status": 200,
+  "response": {
+    "data": {
+      "id": "01a16abe-dbe8-7355-ad7a-d2f398cf0006",
+      "deleted": true
+    }
+  }
+}

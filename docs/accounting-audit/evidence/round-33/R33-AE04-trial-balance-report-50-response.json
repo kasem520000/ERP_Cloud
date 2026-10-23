@@ -1,0 +1,161 @@
+{
+  "id": "R33-AE04-trial-balance-report-50",
+  "at": "2026-10-23T21:50:56.249Z",
+  "method": "GET",
+  "path": "/reports/trial-balance?from=2026-10-23&to=2026-10-23",
+  "status": 200,
+  "response": {
+    "key": "trial-balance",
+    "titleAr": "ميزان المراجعة",
+    "group": "accounting",
+    "hintAr": null,
+    "chart": null,
+    "params": {
+      "from": "2026-10-23",
+      "to": "2026-10-23"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "code",
+        "labelAr": "رقم الحساب",
+        "type": "text"
+      },
+      {
+        "key": "account",
+        "labelAr": "الحساب",
+        "type": "text"
+      },
+      {
+        "key": "debit",
+        "labelAr": "مدين",
+        "type": "money"
+      },
+      {
+        "key": "credit",
+        "labelAr": "دائن",
+        "type": "money"
+      },
+      {
+        "key": "balance",
+        "labelAr": "الرصيد",
+        "type": "money"
+      }
+    ],
+    "rows": [
+      {
+        "code": "1211001",
+        "account": "الصندوق الرئيسي",
+        "debit": "507.0400",
+        "credit": "294.0000",
+        "balance": "213.0400"
+      },
+      {
+        "code": "12310001",
+        "account": "عميل عام",
+        "debit": "506.6000",
+        "credit": "197.0000",
+        "balance": "309.6000"
+      },
+      {
+        "code": "12320001",
+        "account": "محتجزات مستخلصات العملاء",
+        "debit": "10.0000",
+        "credit": "5.0000",
+        "balance": "5.0000"
+      },
+      {
+        "code": "1270001",
+        "account": "حساب بضاعة آخر المدة",
+        "debit": "1340.8326",
+        "credit": "457.4572",
+        "balance": "883.3754"
+      },
+      {
+        "code": "1270003",
+        "account": "بضاعة تحت التحويل",
+        "debit": "28.1758",
+        "credit": "36.1757",
+        "balance": "-7.9999"
+      },
+      {
+        "code": "1290050",
+        "account": "رصيد افتتاحي اختبار R33 50",
+        "debit": "0",
+        "credit": "0",
+        "balance": "100.0000"
+      },
+      {
+        "code": "22111001",
+        "account": "مورد عام",
+        "debit": "29.9000",
+        "credit": "1355.1000",
+        "balance": "-1325.2000"
+      },
+      {
+        "code": "2222001",
+        "account": "ضريبة القيمة المضافة",
+        "debit": "212.7400",
+        "credit": "98.5000",
+        "balance": "114.2400"
+      },
+      {
+        "code": "2222002",
+        "account": "الضريبة الإنتقائية",
+        "debit": "0.0000",
+        "credit": "4.0000",
+        "balance": "-4.0000"
+      },
+      {
+        "code": "22410002",
+        "account": "مندوب الشركة",
+        "debit": "200.0000",
+        "credit": "0.0000",
+        "balance": "200.0000"
+      },
+      {
+        "code": "3121004",
+        "account": "تسويات المخزون",
+        "debit": "46.7500",
+        "credit": "150.0000",
+        "balance": "-103.2500"
+      },
+      {
+        "code": "3200004",
+        "account": "تكلفة المبيعات",
+        "debit": "369.5314",
+        "credit": "137.2969",
+        "balance": "232.2345"
+      },
+      {
+        "code": "4100001",
+        "account": "المبيعات",
+        "debit": "1.0000",
+        "credit": "769.0400",
+        "balance": "-768.0400"
+      },
+      {
+        "code": "4100002",
+        "account": "مردودات المبيعات",
+        "debit": "249.0000",
+        "credit": "0.0000",
+        "balance": "249.0000"
+      },
+      {
+        "code": "4100003",
+        "account": "خصم ممنوح",
+        "debit": "2.0000",
+        "credit": "0.0000",
+        "balance": "2.0000"
+      }
+    ],
+    "totals": {
+      "debit": "3503.5698",
+      "credit": "3503.5698",
+      "balance": "100.00"
+    },
+    "grandTotal": [],
+    "rowCount": 15,
+    "generatedAt": "2026-10-23T21:50:57.019Z"
+  }
+}

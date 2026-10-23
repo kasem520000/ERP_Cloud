@@ -1,0 +1,32 @@
+{
+  "id": "R33-AB00-cost-center-51",
+  "at": "2026-10-23T21:51:29.506Z",
+  "method": "POST",
+  "path": "/cost-centers",
+  "status": 201,
+  "request": {
+    "code": "CC9-51",
+    "nameAr": "مشروع Z9 51",
+    "nameEn": "CC Z9 51"
+  },
+  "response": {
+    "data": {
+      "id": "01a16abf-63e6-74f9-98a7-6335f7517a06",
+      "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+      "code": "CC9-51",
+      "nameAr": "مشروع Z9 51",
+      "nameEn": "CC Z9 51",
+      "parentId": null,
+      "branchId": null,
+      "createdAt": "2026-10-23T21:51:30.279Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "deletedAt": null,
+      "deletedBy": null,
+      "legacySource": null,
+      "legacyId": null
+    }
+  }
+}

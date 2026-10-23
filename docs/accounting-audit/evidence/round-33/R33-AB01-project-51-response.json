@@ -1,0 +1,45 @@
+{
+  "id": "R33-AB01-project-51",
+  "at": "2026-10-23T21:51:30.283Z",
+  "method": "POST",
+  "path": "/projects",
+  "status": 201,
+  "request": {
+    "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+    "code": "PRJ9-51",
+    "name": "مشروع R33 P9 51",
+    "partyId": "01a16a86-256a-71ba-bf3d-2f0dc06bce3d",
+    "retentionPct": "10",
+    "costCenterId": "01a16abf-63e6-74f9-98a7-6335f7517a06"
+  },
+  "response": {
+    "data": {
+      "id": "01a16abf-66ec-732e-a6de-7fea6cd91115",
+      "tenantId": "01a16a85-7afb-710e-94c5-718cb1afc4ba",
+      "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+      "code": "PRJ9-51",
+      "name": "مشروع R33 P9 51",
+      "partyId": "01a16a86-256a-71ba-bf3d-2f0dc06bce3d",
+      "contractorPartyId": null,
+      "status": "active",
+      "startsOn": null,
+      "endsOn": null,
+      "contractValue": "0.0000",
+      "retentionPct": "10.0000",
+      "costCenterId": "01a16abf-63e6-74f9-98a7-6335f7517a06",
+      "summary": {},
+      "createdAt": "2026-10-23T21:51:31.052Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "deletedAt": null,
+      "deletedBy": null,
+      "legacySource": null,
+      "legacyId": null,
+      "stages": [],
+      "boq": [],
+      "requirements": []
+    }
+  }
+}

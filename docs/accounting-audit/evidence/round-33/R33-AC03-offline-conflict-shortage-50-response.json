@@ -1,0 +1,55 @@
+{
+  "id": "R33-AC03-offline-conflict-shortage-50",
+  "at": "2026-10-23T21:50:45.748Z",
+  "method": "POST",
+  "path": "/pos/offline-sync",
+  "status": 201,
+  "request": {
+    "deviceId": "R33-P9-DEV-50",
+    "invoices": [
+      {
+        "offlineId": "R33-P9-OFF-50-2",
+        "deviceId": "R33-P9-DEV-50",
+        "sequenceNo": 2,
+        "payload": {
+          "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+          "warehouseId": "01a16a85-7d3b-703a-934b-daeedd7a2267",
+          "cashCustomerName": "عميل أوفلاين R33",
+          "priceIncludesVat": true,
+          "lines": [
+            {
+              "itemId": "01a16a86-224c-768d-82e2-ace8e13650d5",
+              "quantity": "99999",
+              "unitPrice": "10",
+              "taxRate": "15"
+            }
+          ],
+          "payment": {
+            "method": "cash",
+            "cashLocationId": "01a16a85-7d3e-728f-be93-07c3575d8d67",
+            "tendered": "999990"
+          }
+        }
+      }
+    ]
+  },
+  "response": {
+    "data": {
+      "processed": 1,
+      "synced": 0,
+      "conflicts": 1,
+      "results": [
+        {
+          "offlineId": "R33-P9-OFF-50-2",
+          "sequenceNo": 2,
+          "status": "conflict",
+          "errorCode": "STOCK_INSUFFICIENT",
+          "message": "Stock is insufficient for this movement",
+          "resolution": {
+            "action": "edit-quantity-or-refresh-stock"
+          }
+        }
+      ]
+    }
+  }
+}
