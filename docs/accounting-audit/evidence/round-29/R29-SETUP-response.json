@@ -10,8 +10,8 @@
         "nameAr": "دقيق R29",
         "nameEn": "Flour R29",
         "kind": "stock",
-        "baseUnitId": "01a16504-1409-7773-8ce8-923595461f54",
-        "taxGroupId": "01a16504-140d-706a-a528-adc6b113d560",
+        "baseUnitId": "01a1666d-3c38-702d-b983-02e4185f126b",
+        "taxGroupId": "01a1666d-3c3b-773c-a95f-9d4de0a5f2bd",
         "purchasePrice": "2.0000",
         "salePrice": "0",
         "trackLot": false
@@ -23,7 +23,7 @@
         "status": 400,
         "code": "VALIDATION_FAILED",
         "detail": "Request validation failed",
-        "traceId": "01a16654-09b5-774d-adfd-2891044da499",
+        "traceId": "01a16672-a1ca-7079-bece-1beb2d692cab",
         "errors": [
           {
             "field": "categoryId",
@@ -41,8 +41,8 @@
         "nameAr": "خبز R29",
         "nameEn": "Bread R29",
         "kind": "stock",
-        "baseUnitId": "01a16504-1409-7773-8ce8-923595461f54",
-        "taxGroupId": "01a16504-140d-706a-a528-adc6b113d560",
+        "baseUnitId": "01a1666d-3c38-702d-b983-02e4185f126b",
+        "taxGroupId": "01a1666d-3c3b-773c-a95f-9d4de0a5f2bd",
         "purchasePrice": "0",
         "salePrice": "5.0000",
         "trackLot": true
@@ -54,7 +54,7 @@
         "status": 400,
         "code": "VALIDATION_FAILED",
         "detail": "Request validation failed",
-        "traceId": "01a16654-0cce-76ec-9d35-09de9870e1d8",
+        "traceId": "01a16672-a4e6-73cd-b1d9-2eaea891e135",
         "errors": [
           {
             "field": "categoryId",
@@ -75,8 +75,8 @@
       },
       "status": 201,
       "body": {
-        "id": "01a16654-12d9-739c-bcc8-e7d96aeaa8d2",
-        "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+        "id": "01a16672-aafe-77ce-bba9-27910738ad87",
+        "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
         "code": "000001",
         "kind": "customer",
         "name": "بقالة R29 (آجل)",
@@ -93,7 +93,7 @@
         "isContractor": false,
         "branchId": null,
         "paymentMethodId": null,
-        "createdAt": "2026-10-23T01:15:48.315Z",
+        "createdAt": "2026-10-23T01:49:13.345Z",
         "createdBy": null,
         "updatedAt": null,
         "updatedBy": null,
@@ -117,8 +117,8 @@
       "status": 200,
       "body": [
         {
-          "id": "01a16654-12d9-739c-bcc8-e7d96aeaa8d2",
-          "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+          "id": "01a16672-aafe-77ce-bba9-27910738ad87",
+          "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
           "code": "000001",
           "kind": "customer",
           "name": "بقالة R29 (آجل)",
@@ -135,7 +135,7 @@
           "isContractor": false,
           "branchId": null,
           "paymentMethodId": null,
-          "createdAt": "2026-10-23T01:15:48.315Z",
+          "createdAt": "2026-10-23T01:49:13.345Z",
           "createdBy": null,
           "updatedAt": null,
           "updatedBy": null,
@@ -145,8 +145,8 @@
           "customFields": {}
         },
         {
-          "id": "01a16504-139b-7777-916b-0393425a29c0",
-          "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+          "id": "01a1666d-3bed-7668-9715-4a7e6ae2238f",
+          "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
           "code": "SUPP-GEN",
           "kind": "supplier",
           "name": "مورد عام",
@@ -163,7 +163,7 @@
           "isContractor": false,
           "branchId": null,
           "paymentMethodId": null,
-          "createdAt": "2026-10-22T19:08:48.411Z",
+          "createdAt": "2026-10-23T01:43:17.229Z",
           "createdBy": null,
           "updatedAt": null,
           "updatedBy": null,
@@ -173,8 +173,8 @@
           "customFields": {}
         },
         {
-          "id": "01a16504-1399-742e-af16-f564b9117199",
-          "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+          "id": "01a1666d-3beb-7409-8c8b-399e8fd4b7ec",
+          "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
           "code": "CUST-GEN",
           "kind": "customer",
           "name": "عميل عام",
@@ -190,12 +190,12 @@
           "isOwner": false,
           "isContractor": false,
           "branchId": null,
-          "paymentMethodId": "01a1653a-2823-778d-9d0f-3ab7d28fa277",
-          "createdAt": "2026-10-22T19:08:48.409Z",
+          "paymentMethodId": null,
+          "createdAt": "2026-10-23T01:43:17.227Z",
           "createdBy": null,
-          "updatedAt": "2026-10-22T20:08:04.341Z",
+          "updatedAt": null,
           "updatedBy": null,
-          "version": 2,
+          "version": 1,
           "deletedAt": null,
           "deletedBy": null,
           "customFields": {}
