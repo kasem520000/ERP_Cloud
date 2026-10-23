@@ -1,0 +1,128 @@
+R32 evidence — stock_adjustments (+lines), van_load_orders closing figures and journals JE-000001…023 after the R29 replay on seed 9 (SQL on database-27ac9e48).
+ACC-167: ADJ-000001 (+1 phantom surplus at closing 1) and ADJ-000002 (expected −4 → +4 phantom surplus, JE-000023 Dr 1270001 4.80) come from netSold=max(0, sold−returned); VLO closing 2 carries shortage_qty 5 although nothing was short.
+ACC-168: the 5 kg × 1.20 = 6.00 van_shortage_writeoff of closing 2 left stock_balances with NO journal (shortage_je NULL because salary_deduction_approved=false / rep without employee account).
+
+stock_adjustments:
+  ADJ-000001 posted reason= جرد إغلاق وردية المندوب (مندوب الشركة) VLO-0001 —  wh= VAN-1 je= JE-000021 expected 3.0000 counted 4.0000 variance 1.0000 value 1.2000 unit 1.2000 2026-10-23T07:19:26.895Z
+  ADJ-000002 posted reason= جرد إغلاق وردية المندوب (مندوب الشركة) VLO-0002 —  wh= VAN-1 je= JE-000023 expected -4.0000 counted 0.0000 variance 4.0000 value 4.8000 unit 1.2000 2026-10-23T07:22:43.713Z
+
+van_load_orders:
+  {"number": "VLO-0001", "status": "settled", "sold_qty": "37.0000", "returned_qty": "0.0000", "damaged_qty": "1.0000", "shortage_qty": "1.0000", "expected_cash": "109.2500", "collected_cash": "109.2500", "salary_deduction_approved": true, "shortage_je": "JE-000020", "damage_je": "JE-000019"}
+  {"number": "VLO-0002", "status": "settled", "sold_qty": "2.0000", "returned_qty": "4.0000", "damaged_qty": "0.0000", "shortage_qty": "5.0000", "expected_cash": "5.7500", "collected_cash": "5.7500", "salary_deduction_approved": false, "shortage_je": null, "damage_je": null}
+  {"number": "VLO-0003", "status": "rejected", "sold_qty": "0.0000", "returned_qty": "0.0000", "damaged_qty": "0.0000", "shortage_qty": "0.0000", "expected_cash": "0.0000", "collected_cash": "0.0000", "salary_deduction_approved": false, "shortage_je": null, "damage_je": null}
+
+journals JE-000001…023 (code debit credit party?):
+
+ JE-000001 [None] قيد افتتاحي — رأس المال
+    1160001    Dr 20000.0000 Cr     0.0000 
+    1211001    Dr 50000.0000 Cr     0.0000 
+    1221001    Dr 180000.0000 Cr     0.0000 
+    2110001    Dr     0.0000 Cr 250000.0000 
+
+ JE-000002 [purchase_invoice] Purchase invoice PI-000001
+    1270001    Dr   200.0000 Cr     0.0000 
+    22111001   Dr     0.0000 Cr   230.0000 party
+    2222001    Dr    30.0000 Cr     0.0000 
+
+ JE-000003 [stock_transfer] مناقلة TR-000001 — إرسال إلى بضاعة تحت التحويل
+    1270001    Dr     0.0000 Cr    48.0000 
+    1270003    Dr    48.0000 Cr     0.0000 
+
+ JE-000004 [stock_transfer] مناقلة TR-000002 — إرسال إلى بضاعة تحت التحويل
+    1270001    Dr     0.0000 Cr     7.2000 
+    1270003    Dr     7.2000 Cr     0.0000 
+
+ JE-000005 [stock_transfer] مناقلة TR-000003 — إرسال إلى بضاعة تحت التحويل
+    1270001    Dr     0.0000 Cr     3.6000 
+    1270003    Dr     3.6000 Cr     0.0000 
+
+ JE-000006 [stock_transfer_receipt] مناقلة TR-000001 — استلام
+    1270001    Dr    48.0000 Cr     0.0000 
+    1270003    Dr     0.0000 Cr    48.0000 
+
+ JE-000007 [stock_transfer_receipt] مناقلة TR-000002 — استلام
+    1270001    Dr     6.0000 Cr     0.0000 
+    1270003    Dr     0.0000 Cr     6.0000 
+
+ JE-000008 [stock_transfer_return] إقفال مناقلة TR-000003 — عودة بضاعة إلى مصدرها: R29 المندوب رفض الاستل
+    1270001    Dr     3.6000 Cr     0.0000 
+    1270003    Dr     0.0000 Cr     3.6000 
+
+ JE-000009 [stock_transfer_shortage] إقفال مناقلة TR-000002 — عجز بضاعة تحت التحويل: R29 عجز تحويل 1 كجم — 
+    1270003    Dr     0.0000 Cr     1.2000 
+    3121004    Dr     1.2000 Cr     0.0000 
+
+ JE-000010 [sales_invoice] Sales invoice SI-000001
+    1211001    Dr    57.5000 Cr     0.0000 
+    1270001    Dr     0.0000 Cr    12.0000 
+    2222001    Dr     0.0000 Cr     7.5000 
+    3200004    Dr    12.0000 Cr     0.0000 
+    4100001    Dr     0.0000 Cr    50.0000 
+
+ JE-000011 [sales_invoice] Sales invoice SI-000002
+    12310001   Dr    86.2500 Cr     0.0000 party
+    1270001    Dr     0.0000 Cr    19.2000 
+    2222001    Dr     0.0000 Cr    11.2500 
+    3200004    Dr    19.2000 Cr     0.0000 
+    4100001    Dr     0.0000 Cr    75.0000 
+
+ JE-000012 [sales_invoice] Sales invoice SI-000003
+    1211001    Dr    51.7500 Cr     0.0000 
+    1270001    Dr     0.0000 Cr    12.0000 
+    2222001    Dr     0.0000 Cr     6.7500 
+    3200004    Dr    12.0000 Cr     0.0000 
+    4100001    Dr     0.0000 Cr    50.0000 
+    4100003    Dr     5.0000 Cr     0.0000 
+
+ JE-000013 [sales_invoice] Sales invoice SI-000004
+    12310001   Dr    11.0400 Cr     0.0000 party
+    1270001    Dr     0.0000 Cr     2.4000 
+    2222001    Dr     0.0000 Cr     1.4400 
+    3200004    Dr     2.4000 Cr     0.0000 
+    4100001    Dr     0.0000 Cr     9.6000 
+
+ JE-000014 [sales_invoice] Sales invoice SI-000005
+    1211001    Dr    11.5000 Cr     0.0000 
+    1270001    Dr     0.0000 Cr     2.4000 
+    2222001    Dr     0.0000 Cr     1.5000 
+    3200004    Dr     2.4000 Cr     0.0000 
+    4100001    Dr     0.0000 Cr    10.0000 
+
+ JE-000015 [voucher] سند قبض وتحصيل مديونية للفاتورة VTX-00002
+    1211001    Dr    50.0000 Cr     0.0000 
+    12310001   Dr     0.0000 Cr    50.0000 party
+
+ JE-000016 [voucher] سند قبض وتحصيل مديونية للفاتورة VTX-00002
+    1211001    Dr    20.0000 Cr     0.0000 
+    12310001   Dr     0.0000 Cr    20.0000 party
+
+ JE-000017 [voucher] سند قبض وتحصيل مديونية للفاتورة VTX-00002
+    1221001    Dr    16.2500 Cr     0.0000 
+    12310001   Dr     0.0000 Cr    16.2500 party
+
+ JE-000018 [voucher] R29 سلفة نقدية 20 للمندوب — تُنشئ حساب الموظف
+    1211001    Dr     0.0000 Cr    20.0000 
+    22410002   Dr    20.0000 Cr     0.0000 
+
+ JE-000019 [van_load_order] إثبات تلف معتمد بعد الفحص الفعلي — VLO-0001
+    1270001    Dr     0.0000 Cr     1.2000 
+    3121004    Dr     1.2000 Cr     0.0000 
+
+ JE-000020 [van_shortage_charge] تحميل عجز عهدة على ذمّة المندوب — VLO-0001
+    1270001    Dr     0.0000 Cr     1.2000 
+    22410002   Dr     1.2000 Cr     0.0000 
+
+ JE-000021 [stock_adjustment] تسوية مخزنية ADJ-000001 — جرد إغلاق وردية المندوب (مندوب الشركة) VLO-0
+    1270001    Dr     1.2000 Cr     0.0000 
+    3121004    Dr     0.0000 Cr     1.2000 
+
+ JE-000022 [sales_invoice] Sales invoice SR-000001
+    12310001   Dr     0.0000 Cr     5.7500 
+    1270001    Dr     1.2000 Cr     0.0000 
+    2222001    Dr     0.7500 Cr     0.0000 
+    3200004    Dr     0.0000 Cr     1.2000 
+    4100002    Dr     5.0000 Cr     0.0000 
+
+ JE-000023 [stock_adjustment] تسوية مخزنية ADJ-000002 — جرد إغلاق وردية المندوب (مندوب الشركة) VLO-0
+    1270001    Dr     4.8000 Cr     0.0000 
+    3121004    Dr     0.0000 Cr     4.8000 
