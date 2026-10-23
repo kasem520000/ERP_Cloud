@@ -630,6 +630,28 @@ describe('التقارير — frmRptBalances · frmRptEntries · frmRptIncomeSt
     expect(money(cardOf(report.body, 's_net_vat'))).toBe('142.50');
   });
 
+  it('💸 سداد الموردين — سند الراتب وسند المصروف العام ليسا سداداً لمورّد (R33 ACC-197)', async () => {
+    const salary = await post('/vouchers', {
+      branchId,
+      kind: 'payment',
+      subtype: 'salary',
+      date: todayIso,
+      cashLocationId: safeId,
+      method: 'cash',
+      amount: '900',
+      description: 'راتب موظف — ليس سداداً لمورّد',
+    });
+    expect(salary.status, JSON.stringify(salary.body)).toBe(201);
+    expect((await post(`/vouchers/${data(salary.body).id}/post`, {})).status).toBe(201);
+
+    const rows = rowsIn((await todayReport('supplier-settlements')).body);
+    expect(rows.map((row) => String(row.number)).sort()).toEqual(['PV-000001']);
+    expect(money(rows[0]?.amount)).toBe('345.00');
+    // and the money is still in the treasury report — it was a payment, just not to a supplier
+    const vouchers = rowsIn((await todayReport('cash-movement')).body);
+    expect(vouchers.length).toBeGreaterThan(0);
+  });
+
   it('🧾 الإقرار الضريبي — «ربع سنة» و«شهري» يكتبان الفترة', async () => {
     // The presets overwrite the date boxes (`SetDate`), so a quarter that holds nothing
     // prints thirteen zeroes and «غير مستحق».

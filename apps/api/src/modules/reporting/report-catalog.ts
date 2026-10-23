@@ -2791,13 +2791,22 @@ const definitions: ReportDefinition[] = [
     titleAr: 'سداد الموردين',
     group: 'purchases',
     params: [...PERIOD, PARTY],
+    hintAr: 'سندات الصرف المرحّلة التي تسدّد لمورّد (طرف من نوع مورد أو سند من نوع «مورد»)؛ سندات الرواتب والمصروفات العامة ليست سداداً لمورّد.',
     columns: [date('day', 'التاريخ'), text('party', 'المورد'), text('number', 'السند'), text('method', 'الطريقة'), money('amount', 'المبلغ')],
     totals: ['amount'],
+    /*
+     * R33 ACC-197 — the report was «every posted payment voucher», so four salary vouchers
+     * (200.00) and an expense voucher sat in «سداد الموردين» with a blank supplier, and a
+     * supplier-statement built on it overstated what suppliers were paid. A supplier
+     * settlement is now a payment to a party of kind `supplier`, or a voucher whose own
+     * subtype says it is one — never a salary, never a general expense.
+     */
     build: (tenantId, f) => sql`
       SELECT v.date AS day, coalesce(party.name, '—') AS party, coalesce(v.number, '—') AS number, v.method, v.amount::text
       FROM vouchers v
       LEFT JOIN parties party ON party.id = v.party_id
       WHERE v.tenant_id = ${tenantId} AND v.kind = 'payment' AND v.status = 'posted'
+        AND (party.kind = 'supplier' OR v.subtype = 'supplier')
         AND ${onDate(sql`v.date`, f.from, f.to)} AND ${eqIf(sql`v.party_id`, f.partyId)}
       ORDER BY v.date DESC LIMIT 1000`,
   },
