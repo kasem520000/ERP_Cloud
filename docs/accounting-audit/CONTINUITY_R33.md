@@ -36,22 +36,27 @@
 4. جولة UI (staff + bakery) بلقطات حقيقية للمسارات التي تغيّر سلوك API فيها.
 5. تنفيذ MF-45 (إلغاء مسودة مسيّر) وMF-46 (مسودة القيد اليدوي — بعد قرار المالك).
 
-## 6. الفشل القديم المتبقّي في vitest (من الأساس `0a9dc57`؛ لم يُلمس في R33 حتى `e50e404`)
-| الملف | عدد | العرض (رسالة الفشل) |
-|---|---|---|
-| `test/audit-payroll.spec.ts` | 5 | ترحيل المسيّر → 422 (الاختبار يتوقع 200/201؛ حُرّاس الرواتب الجديدة) |
-| `test/employee-statement.spec.ts` | 3 | ترحيل المسيّر → 422 ثم صفوف الكشف 2 بدل 3 |
-| `test/journal-entry-card.spec.ts` | 8 | إنشاء قيد → 409 (الحقول الجديدة للبطاقة: الوقت/ضريبي/مندوب) |
-| `test/trial-balance.spec.ts` | 2 | `expected false to be true` (إنشاء القيد التمهيدي يفشل) |
-| `test/journal-reversal-consistency.spec.ts` | 1 | إبطال فاتورة بيع: `journal_entry_id` لا يصير null |
-| `test/report-party-statements.spec.ts` | 1 | صف عميل واحد بدل اثنين |
-| `test/treasury-transfers.spec.ts` | 1 | حذف مناقلة خزينة مُرسَلة → 201 (المتوقع 422) |
-| `test/sequences.spec.ts` | 1 | عدّاد لكل فرع/سنة: 3 بدل 1 |
-| `test/tailoring-invoices.spec.ts` | 5 | الإجمالي 1150 بدل 1050 (ضريبة مضافة)؛ دفعة 422/400 |
-| `test/contractor-contracts.spec.ts` | 1 | 400 بدل `paid` |
-| `test/audit-sales-replace.spec.ts` | 3 | إجمالي 230 بدل 200 (ضريبة)؛ 575 بدل 500 |
-| `test/inventory-serials.spec.ts` | 3 | توليد أرقام تسلسلية → 422 |
-| `src/modules/sales/sales.service.spec.ts` | 1 | `DecimalError` في اختبار وحدة المرتجع |
-| `test/audit-salla-webhook.spec.ts` | 1 | سجل تدقيق الويب هوك فارغ |
-| `src/modules/ai/ai-help.spec.ts` | 1 | لقطة شاشات التنقل قديمة |
-| `test/public-help.spec.ts` | 1 | صفوف تدقيق 4 بدل 3 |
+## 6. الفشل القديم في vitest — **فُرِز بالكامل** (17 ملفاً؛ كلها خضراء منفردة بعد `02ea39f`)
+القاعدة التي طُبّقت: اختبار قديم يخالف سياسة/حارساً مدمجاً ومُوثَّقاً → يُحدَّث الاختبار مع تعليق يذكر المعرّف؛ عيب حقيقي → إصلاح كود + معرّف جديد. لا حارس خُفِّف.
+
+| الملف | كان | الحكم | ما تغيّر (commit) |
+|---|---|---|---|
+| `test/remediation-phase1.spec.ts` | 1 | ارتعاش تزامن (ACC-025) | يقبل 201/409 أو 201/201 مع قيد واحد (`b185926`) |
+| `test/audit-payroll.spec.ts` | 5 | اختبار قديم | سطور الترحيل = `summary.preview.netPayable` (حارس `PAYROLL_JOURNAL_AMOUNT_MISMATCH`)؛ سند لكل موظف `payroll:<run>:<emp>` → `LIKE` (ACC-170) (`a3c5bd7`) |
+| `test/employee-statement.spec.ts` | 3 | اختبار قديم | الاستحقاق = صافي المسيّر لا 20000 ثابتة؛ الرصيد يُقارَن صافياً أياً كان جانبه (`a3c5bd7`) |
+| `test/journal-entry-card.spec.ts` | 8 | اختبار قديم | كان يختار أول فترة مفتوحة (ديسمبر) → `FISCAL_PERIOD_DATE_MISMATCH` (حارس ACC-024)؛ الآن الفترة التي تحوي اليوم (`a583114`) |
+| `test/trial-balance.spec.ts` | 2 | اختبار قديم | ACC-139: رصيد افتتاحي أحادي الجانب ⇒ `balanced:false` و«الرصيد 500 مدين» (`a583114`) |
+| `test/journal-reversal-consistency.spec.ts` | 1 | اختبار قديم | كان يقارن أول سطر في المرآة بسطر الإيراد؛ الآن سطراً بسطره بالحساب (`a583114`) |
+| `test/report-party-statements.spec.ts` | 1 | اختبار قديم | `customer-balances` يفترض `partyKind=customer`؛ الموردون بـ`partyKind=all` (`1b6d22a`) |
+| `test/treasury-transfers.spec.ts` | 1 | اختبار قديم (ليس عيباً) | ACC-127: إلغاء مناقلة **مُرسَلة** = إعادتها للمصدر بعكس قيد الإرسال؛ الاختبار يتحقق من الرصيد والمرآة (`1b6d22a`) |
+| `test/sequences.spec.ts` | 1 | اختبار قديم | ACC-100: نطاق جديد يُبذَر من أعلى قيمة للمستأجر؛ أنواع المستندات ذات التفرد العام عدّاد واحد (`5ad3786`) |
+| `test/contractor-contracts.spec.ts` | 1 | اختبار قديم | ACC-058: «صرف» المستخلص = سند مرحَّل بقيد (Dr 2110/Cr 1211)؛ الـfixture احتاج سنة مالية وحسابات (`5ad3786`) |
+| `test/tailoring-invoices.spec.ts` | 5 | اختبار قديم | ACC-149 ضريبة 15 % (`TAX_RATE` ثابت 0.15 — **جزئي**: ليس من إعداد المستأجر)؛ ACC-150 الدفعة سند قبض مرحَّل و`TAILORING_CASH_LOCATION_REQUIRED` (`50b25ba`) |
+| `test/audit-sales-replace.spec.ts` | 3 | اختبار قديم | ACC-153: `total` إجمالي بالضريبة؛ حساب السطور في `subtotal` (`acbd258`) |
+| `test/inventory-serials.spec.ts` | 3 | اختبار قديم | ACC-132 حارس `SERIAL_COUNT_EXCEEDS_STOCK` → الـfixture يُدخل 10 وحدات؛ UI-044 حشو 4 خانات (`acbd258`) |
+| `src/modules/sales/sales.service.spec.ts` | 1 | اختبار قديم | ACC-121 حارس سعر المرتجع يقرأ `unitPrice` من السطر المصدر؛ الـstub احتاجه (`02ea39f`) |
+| `test/audit-salla-webhook.spec.ts` | 1 | اختبار قديم | المسار المدقَّق `integrations/salla/webhooks/<storeId>/orders` → `LIKE`؛ نسب AUD-14 سليم (`02ea39f`) |
+| `src/modules/ai/ai-help.spec.ts` | 1 | ارتعاش/ترتيب | يمرّ منفرداً دون تعديل (يُراقَب في التشغيل الكامل) |
+| `test/public-help.spec.ts` | 1 | **عيب حقيقي → ACC-181** | صوت الزائر المجهول كان يُدقَّق مع IP (طيّ المسار في `describeRoute`)؛ إصلاح `isAnonymousPost()` (`02ea39f`) |
+
+**نتيجة التشغيل الكامل بعد الفرز:** تُكتب هنا من `/tmp/vitest-r33-final.json` (انظر §1).
