@@ -4588,8 +4588,12 @@ const definitions: ReportDefinition[] = [
           (3, 'ضريبة القيمة المضافة على المبيعات', 'سندات القبض', v.receipts_net::numeric, v.receipts_vat::numeric, v.receipts_vat::numeric),
           (4, 'ضريبة القيمة المضافة على المبيعات', 'المبيعات المحلية الخاضعة للنسبة الصفرية', 0::numeric, 0::numeric, 0::numeric),
           (5, 'ضريبة القيمة المضافة على المبيعات', 'المبيعات المعفاة', s.exempt_net::numeric, 0::numeric, 0::numeric),
+          /* R33 ACC-196 — the total line is the sum of the five lines above it, as on the
+             authority's form («إجمالي المبيعات» = standard-rated + other + receipts + zero-rated
+             + exempt). Exempt / zero-rated supplies carry no VAT but they are part of the
+             declared sales base; leaving them out understated the base by the exempt sales. */
           (6, 'ضريبة القيمة المضافة على المبيعات', 'صافي المبيعات',
-             (s.taxed_net + r.net_total + v.receipts_net)::numeric,
+             (s.taxed_net + r.net_total + v.receipts_net + s.exempt_net)::numeric,
              (s.taxed_vat + r.vat_total + v.receipts_vat)::numeric, 0::numeric),
           (7, 'ضريبة القيمة المضافة على المشتريات', 'المشتريات الخاضعة للنسبة الأساسية', p.taxed_net::numeric, p.taxed_vat::numeric, -p.taxed_vat::numeric),
           (8, 'ضريبة القيمة المضافة على المشتريات', 'الإستيرادات الخاضعة للقيمة المضافة بالنسبة الأساسية', 0::numeric, 0::numeric, 0::numeric),
@@ -4600,7 +4604,7 @@ const definitions: ReportDefinition[] = [
           (10, 'ضريبة القيمة المضافة على المشتريات', 'الإستيرادات الخاضعة للقيمة المضافة التي تطبق عليها آلية الاحتساب العكسي', 0::numeric, 0::numeric, 0::numeric),
           (11, 'ضريبة القيمة المضافة على المشتريات', 'المشتريات المعفاة', p.exempt_net::numeric, 0::numeric, 0::numeric),
           (12, 'ضريبة القيمة المضافة على المشتريات', 'صافي المشتريات',
-             (p.taxed_net + v.payments_net + j.net_total)::numeric,
+             (p.taxed_net + v.payments_net + j.net_total + p.exempt_net)::numeric,
              (p.taxed_vat + v.payments_vat + j.vat_total)::numeric, 0::numeric),
           (13, 'صافي ضريبة القيمة المضافة',
              CASE WHEN (s.taxed_vat + r.vat_total + v.receipts_vat) - (p.taxed_vat + v.payments_vat + j.vat_total) > 0

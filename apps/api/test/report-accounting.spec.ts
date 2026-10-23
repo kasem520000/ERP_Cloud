@@ -607,7 +607,8 @@ describe('التقارير — frmRptBalances · frmRptEntries · frmRptIncomeSt
     expect(money(value('المبيعات المعفاة')?.net)).toBe('200.00');
     expect(money(value('المبيعات المعفاة')?.vat)).toBe('0.00');
     expect(money(value('المبيعات المحلية الخاضعة للنسبة الصفرية')?.net)).toBe('0.00');
-    expect(money(value('صافي المبيعات')?.net)).toBe('1900.00');
+    // R33 ACC-196 — the total line sums the five lines above it (exempt 200 included; VAT unchanged).
+    expect(money(value('صافي المبيعات')?.net)).toBe('2100.00');
     expect(money(value('صافي المبيعات')?.vat)).toBe('285.00');
 
     // المشتريات — 500 − 50 خاضعة، و100 معفاة، وسند صرف 300 + 45 والقيد الضريبي 200 + 30.
@@ -616,7 +617,7 @@ describe('التقارير — frmRptBalances · frmRptEntries · frmRptIncomeSt
     expect(money(value('سندات الصرف')?.net)).toBe('500.00');
     expect(money(value('سندات الصرف')?.vat)).toBe('75.00');
     expect(money(value('المشتريات المعفاة')?.net)).toBe('100.00');
-    expect(money(value('صافي المشتريات')?.net)).toBe('950.00');
+    expect(money(value('صافي المشتريات')?.net)).toBe('1050.00');
     expect(money(value('صافي المشتريات')?.vat)).toBe('142.50');
 
     // صافي ضريبة القيمة المضافة = 285 − 142.50.
