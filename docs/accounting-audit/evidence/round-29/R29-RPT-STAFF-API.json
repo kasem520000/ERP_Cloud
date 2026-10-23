@@ -1,0 +1,588 @@
+{
+  "tb": {
+    "key": "trial-balance",
+    "titleAr": "ميزان المراجعة",
+    "group": "accounting",
+    "hintAr": null,
+    "chart": null,
+    "params": {
+      "from": "2026-10-23",
+      "to": "2026-10-23"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "code",
+        "labelAr": "رقم الحساب",
+        "type": "text"
+      },
+      {
+        "key": "account",
+        "labelAr": "الحساب",
+        "type": "text"
+      },
+      {
+        "key": "debit",
+        "labelAr": "مدين",
+        "type": "money"
+      },
+      {
+        "key": "credit",
+        "labelAr": "دائن",
+        "type": "money"
+      },
+      {
+        "key": "balance",
+        "labelAr": "الرصيد",
+        "type": "money"
+      }
+    ],
+    "rows": [
+      {
+        "code": "1211001",
+        "account": "الصندوق الرئيسي",
+        "debit": "140.7500",
+        "credit": "20.0000",
+        "balance": "120.7500"
+      },
+      {
+        "code": "12310001",
+        "account": "عميل عام",
+        "debit": "97.2900",
+        "credit": "25.7500",
+        "balance": "71.5400"
+      },
+      {
+        "code": "1270001",
+        "account": "حساب بضاعة آخر المدة",
+        "debit": "258.8000",
+        "credit": "108.0000",
+        "balance": "150.8000"
+      },
+      {
+        "code": "1270003",
+        "account": "بضاعة تحت التحويل",
+        "debit": "58.8000",
+        "credit": "58.8000",
+        "balance": "0.0000"
+      },
+      {
+        "code": "22111001",
+        "account": "مورد عام",
+        "debit": "0.0000",
+        "credit": "230.0000",
+        "balance": "-230.0000"
+      },
+      {
+        "code": "2222001",
+        "account": "ضريبة القيمة المضافة",
+        "debit": "30.7500",
+        "credit": "28.4400",
+        "balance": "2.3100"
+      },
+      {
+        "code": "22410002",
+        "account": "مندوب الشركة",
+        "debit": "21.2000",
+        "credit": "0.0000",
+        "balance": "21.2000"
+      },
+      {
+        "code": "3121004",
+        "account": "تسويات المخزون",
+        "debit": "2.4000",
+        "credit": "1.2000",
+        "balance": "1.2000"
+      },
+      {
+        "code": "3200004",
+        "account": "تكلفة المبيعات",
+        "debit": "48.0000",
+        "credit": "1.2000",
+        "balance": "46.8000"
+      },
+      {
+        "code": "4100001",
+        "account": "المبيعات",
+        "debit": "0.0000",
+        "credit": "189.6000",
+        "balance": "-189.6000"
+      },
+      {
+        "code": "4100002",
+        "account": "مردودات المبيعات",
+        "debit": "5.0000",
+        "credit": "0.0000",
+        "balance": "5.0000"
+      }
+    ],
+    "totals": {
+      "debit": "662.99",
+      "credit": "662.99",
+      "balance": "0.00"
+    },
+    "grandTotal": [],
+    "rowCount": 11,
+    "generatedAt": "2026-10-23T02:54:58.571Z"
+  },
+  "pl": {
+    "key": "income-statement",
+    "titleAr": "قائمة الدخل التحليلية",
+    "group": "accounting",
+    "hintAr": "الإيرادات موجبة والمصروفات سالبة؛ المجموع هو صافي الربح.",
+    "chart": null,
+    "params": {
+      "from": "2026-10-23",
+      "to": "2026-10-23"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "section",
+        "labelAr": "البند",
+        "type": "text"
+      },
+      {
+        "key": "code",
+        "labelAr": "رقم الحساب",
+        "type": "text"
+      },
+      {
+        "key": "account",
+        "labelAr": "الحساب",
+        "type": "text"
+      },
+      {
+        "key": "amount",
+        "labelAr": "المبلغ",
+        "type": "money"
+      }
+    ],
+    "rows": [
+      {
+        "section": "الإيرادات",
+        "code": "4100001",
+        "account": "المبيعات",
+        "amount": "189.6000"
+      },
+      {
+        "section": "الإيرادات",
+        "code": "4100002",
+        "account": "مردودات المبيعات",
+        "amount": "-5.0000"
+      },
+      {
+        "section": "المصروفات",
+        "code": "3121004",
+        "account": "تسويات المخزون",
+        "amount": "-1.2000"
+      },
+      {
+        "section": "المصروفات",
+        "code": "3200004",
+        "account": "تكلفة المبيعات",
+        "amount": "-46.8000"
+      }
+    ],
+    "totals": {
+      "amount": "136.60"
+    },
+    "grandTotal": [],
+    "rowCount": 4,
+    "generatedAt": "2026-10-23T02:54:59.359Z"
+  },
+  "inv": {
+    "key": "inventory-valuation",
+    "titleAr": "جرد المواد وتقييم المخزون",
+    "group": "inventory",
+    "hintAr": null,
+    "chart": null,
+    "params": {},
+    "layout": null,
+    "columns": [
+      {
+        "key": "sku",
+        "labelAr": "الرمز",
+        "type": "text"
+      },
+      {
+        "key": "item",
+        "labelAr": "الصنف",
+        "type": "text"
+      },
+      {
+        "key": "warehouse",
+        "labelAr": "المستودع",
+        "type": "text"
+      },
+      {
+        "key": "quantity",
+        "labelAr": "الرصيد",
+        "type": "qty"
+      },
+      {
+        "key": "average_cost",
+        "labelAr": "متوسط التكلفة",
+        "type": "money"
+      },
+      {
+        "key": "value",
+        "labelAr": "القيمة",
+        "type": "money"
+      }
+    ],
+    "rows": [
+      {
+        "sku": "BR-R29",
+        "item": "خبز R29",
+        "warehouse": "المستودع الرئيسي",
+        "quantity": "7.0000",
+        "average_cost": "1.2000",
+        "value": "8.4000"
+      },
+      {
+        "sku": "BR-R29",
+        "item": "خبز R29",
+        "warehouse": "مستودع سيارة التوزيع",
+        "quantity": "2.0000",
+        "average_cost": "1.2000",
+        "value": "2.4000"
+      },
+      {
+        "sku": "FL-R29",
+        "item": "دقيق R29",
+        "warehouse": "المستودع الرئيسي",
+        "quantity": "70.0000",
+        "average_cost": "2.0000",
+        "value": "140.0000"
+      }
+    ],
+    "totals": {
+      "quantity": "79.00",
+      "value": "150.80"
+    },
+    "grandTotal": [],
+    "rowCount": 3,
+    "generatedAt": "2026-10-23T02:55:00.142Z"
+  },
+  "levels": [
+    {
+      "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
+      "itemId": "01a16673-5157-7545-8bfb-1484254424fa",
+      "warehouseId": "01a1666d-3be4-7549-b578-c507e93bf106",
+      "quantity": "70.0000",
+      "value": "140.0000",
+      "averageCost": "2.0000",
+      "version": 3,
+      "updatedAt": "2026-10-23T01:57:27.019Z"
+    },
+    {
+      "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
+      "itemId": "01a16673-5488-712e-bb54-e97e2ce7a3df",
+      "warehouseId": "01a1666d-3be4-7549-b578-c507e93bf106",
+      "quantity": "7.0000",
+      "value": "8.4000",
+      "averageCost": "1.2000",
+      "version": 7,
+      "updatedAt": "2026-10-23T02:53:04.176Z"
+    },
+    {
+      "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
+      "itemId": "01a16673-5488-712e-bb54-e97e2ce7a3df",
+      "warehouseId": "01a1666d-3c6d-769c-93b1-29341574970b",
+      "quantity": "2.0000",
+      "value": "2.4000",
+      "averageCost": "1.2000",
+      "version": 12,
+      "updatedAt": "2026-10-23T02:53:04.173Z"
+    }
+  ],
+  "emp": {
+    "employee": {
+      "id": "01a1666d-3c75-776b-bc5f-ab3e81bdc3ca",
+      "employeeNo": "EMP-REP-1",
+      "name": "مندوب الشركة",
+      "accountId": "01a1669f-0fa2-71bc-8ef4-f5fb96362bb1",
+      "accountCode": "22410002",
+      "accountName": "مندوب الشركة"
+    },
+    "branchId": null,
+    "from": "2026-01-01",
+    "to": "2026-10-23",
+    "fullPeriod": false,
+    "summary": {
+      "totalDebit": "21.2000",
+      "totalCredit": "0.0000",
+      "balanceDebit": "21.2000",
+      "balanceCredit": "0.0000"
+    },
+    "rows": [
+      {
+        "seq": 1,
+        "date": "2026-01-01",
+        "entryId": null,
+        "entryNumber": null,
+        "description": "رصيد مرحل من فترة سابقة",
+        "debit": "0.0000",
+        "credit": "0.0000",
+        "employee": "مندوب الشركة",
+        "branchName": null,
+        "entryType": "رصيد سابق",
+        "runningBalance": "0.0000",
+        "balanceStatus": "رصيد متوازن"
+      },
+      {
+        "seq": 2,
+        "date": "2026-10-23",
+        "entryId": "01a1669f-0fb0-728f-9f1e-c0557004a9a8",
+        "entryNumber": "JE-000016",
+        "description": "R29 سلفة نقدية 20 للمندوب — تُنشئ حساب الموظف",
+        "debit": "20.0000",
+        "credit": "0.0000",
+        "employee": "مندوب الشركة",
+        "branchName": "الفرع الرئيسي",
+        "entryType": "قيد اليومية",
+        "runningBalance": "20.0000",
+        "balanceStatus": "مدين"
+      },
+      {
+        "seq": 3,
+        "date": "2026-10-23",
+        "entryId": "01a166a0-15c2-76ae-bb1e-f3b84a1e18f6",
+        "entryNumber": "JE-000018",
+        "description": "تحميل عجز عهدة على ذمّة المندوب — VLO-0001",
+        "debit": "1.2000",
+        "credit": "0.0000",
+        "employee": "مندوب الشركة",
+        "branchName": "الفرع الرئيسي",
+        "entryType": "قيد اليومية",
+        "runningBalance": "21.2000",
+        "balanceStatus": "مدين"
+      }
+    ]
+  },
+  "partyStmt": {
+    "key": "party-statement",
+    "titleAr": "كشف حساب عميل",
+    "group": "accounting",
+    "hintAr": "`frmCustAccountGet`: حركة حساب العميل قيداً قيداً — مجموع مدينه ومجموع دائنه، ورصيده إلى أيّ الجانبين مال. و«🏷️ نوع الحساب» يجعله كشف المورد كذلك، وهي النافذة نفسها في الديسكتوب.",
+    "chart": null,
+    "params": {
+      "from": "2026-10-23",
+      "to": "2026-10-23"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "seq",
+        "labelAr": "م",
+        "type": "int"
+      },
+      {
+        "key": "debit",
+        "labelAr": "مدين",
+        "type": "money"
+      },
+      {
+        "key": "credit",
+        "labelAr": "دائن",
+        "type": "money"
+      },
+      {
+        "key": "party",
+        "labelAr": "العميل / المورد",
+        "type": "text"
+      },
+      {
+        "key": "number",
+        "labelAr": "رقم القيد",
+        "type": "text"
+      },
+      {
+        "key": "day",
+        "labelAr": "تاريخ القيد",
+        "type": "date"
+      },
+      {
+        "key": "note",
+        "labelAr": "البيان",
+        "type": "text"
+      }
+    ],
+    "rows": [
+      {
+        "seq": "1",
+        "debit": "230.00",
+        "credit": "230.00",
+        "party": "مورد عام",
+        "number": "JE-000002",
+        "day": "2026-10-23",
+        "note": "Purchase invoice PI-000001",
+        "s_debit": "348.89",
+        "s_credit": "368.89",
+        "s_bal_debit": "0",
+        "s_bal_credit": "20.0000",
+        "s_count": "1"
+      },
+      {
+        "seq": "2",
+        "debit": "105.45",
+        "credit": "105.45",
+        "party": "بقالة R29 (آجل)",
+        "number": "JE-000011",
+        "day": "2026-10-23",
+        "note": "Sales invoice SI-000002",
+        "s_debit": "0",
+        "s_credit": "0",
+        "s_bal_debit": "0",
+        "s_bal_credit": "0",
+        "s_count": "1"
+      },
+      {
+        "seq": "3",
+        "debit": "13.44",
+        "credit": "13.44",
+        "party": "بقالة R29 (آجل)",
+        "number": "JE-000013",
+        "day": "2026-10-23",
+        "note": "Sales invoice SI-000004",
+        "s_debit": "0",
+        "s_credit": "0",
+        "s_bal_debit": "0",
+        "s_bal_credit": "0",
+        "s_count": "1"
+      },
+      {
+        "seq": "4",
+        "debit": "0.00",
+        "credit": "20.00",
+        "party": "بقالة R29 (آجل)",
+        "number": "JE-000015",
+        "day": "2026-10-23",
+        "note": "سند قبض وتحصيل مديونية للفاتورة VTX-00002",
+        "s_debit": "0",
+        "s_credit": "0",
+        "s_bal_debit": "0",
+        "s_bal_credit": "0",
+        "s_count": "1"
+      }
+    ],
+    "totals": {
+      "debit": "348.89",
+      "credit": "368.89"
+    },
+    "grandTotal": [
+      {
+        "key": "s_debit",
+        "labelAr": "إجمالي المدين",
+        "amount": "348.89"
+      },
+      {
+        "key": "s_credit",
+        "labelAr": "إجمالي الدائن",
+        "amount": "368.89"
+      },
+      {
+        "key": "s_bal_debit",
+        "labelAr": "الرصيد المدين",
+        "amount": "0.00"
+      },
+      {
+        "key": "s_bal_credit",
+        "labelAr": "الرصيد الدائن",
+        "amount": "20.00"
+      },
+      {
+        "key": "s_count",
+        "labelAr": "عدد القيود",
+        "amount": "4.00"
+      }
+    ],
+    "rowCount": 4,
+    "generatedAt": "2026-10-23T02:55:02.376Z"
+  },
+  "cash": [
+    {
+      "id": "01a1666d-3be7-7508-a916-3d3a93e65a50",
+      "branchId": "01a1666d-3be2-74db-8a24-a621e8a1ef87",
+      "kind": "bank",
+      "name": "الحساب البنكي الرئيسي",
+      "accountId": "01a1666d-3c13-7228-9ab2-b772607a0f11",
+      "currencyCode": "SAR",
+      "isDefault": true,
+      "bank": {
+        "iban": "SA00****************0000",
+        "bankName": "البنك الأهلي",
+        "accountNo": "000000000000"
+      },
+      "changeInPos": false,
+      "isActive": true,
+      "notes": null,
+      "custodianIds": [],
+      "version": 1,
+      "createdAt": "2026-10-23T01:43:17.223Z",
+      "updatedAt": "2026-10-23T01:43:17.302Z"
+    },
+    {
+      "id": "01a1666d-3be5-768c-a329-afeee14a88ad",
+      "branchId": "01a1666d-3be2-74db-8a24-a621e8a1ef87",
+      "kind": "safe",
+      "name": "الصندوق الرئيسي",
+      "accountId": "01a1666d-3c12-752e-8cea-850471d92a41",
+      "currencyCode": "SAR",
+      "isDefault": true,
+      "bank": null,
+      "changeInPos": false,
+      "isActive": true,
+      "notes": null,
+      "custodianIds": [],
+      "version": 1,
+      "createdAt": "2026-10-23T01:43:17.222Z",
+      "updatedAt": "2026-10-23T01:43:17.301Z"
+    }
+  ],
+  "vouchers": [
+    {
+      "id": "01a16695-8fef-73a2-955a-d627f2cc6364",
+      "tenantId": "01a1666d-3a57-756c-8d48-a1b0092cc199",
+      "branchId": "01a1666d-3be2-74db-8a24-a621e8a1ef87",
+      "kind": "receipt",
+      "subtype": "customer",
+      "number": "RV-000001",
+      "date": "2026-10-23",
+      "partyId": "01a16672-aafe-77ce-bba9-27910738ad87",
+      "counterAccountId": "01a1666d-3c2d-700f-a203-67f2a5580fcc",
+      "cashLocationId": "01a1666d-3be5-768c-a329-afeee14a88ad",
+      "method": "cash",
+      "amount": "20.0000",
+      "vatAmount": "0.0000",
+      "netAmount": "20.0000",
+      "currency": "SAR",
+      "fxRate": null,
+      "chequeNo": null,
+      "chequeDate": null,
+      "bankName": null,
+      "chequeState": null,
+      "costCenterId": null,
+      "referenceNo": "VTX-00002",
+      "referenceDate": null,
+      "recipient": null,
+      "description": "سند قبض وتحصيل مديونية للفاتورة VTX-00002",
+      "voucherTime": null,
+      "salesmanId": "01a1666d-3c75-776b-bc5f-ab3e81bdc3ca",
+      "foreignAmount": null,
+      "status": "posted",
+      "journalEntryId": "01a16695-8ff9-73cd-88cf-c5967ce42f28",
+      "fiscalPeriodId": null,
+      "postedAt": "2026-10-23T02:27:20.191Z",
+      "voidedAt": null,
+      "idempotencyKey": "van-collection-voucher:01a16687-da13-76dc-ba30-8aae71120449:van-collection:be1bf9b45505487a:39128795a6504e5c",
+      "createdAt": "2026-10-23T02:27:20.167Z",
+      "createdBy": "01a1666d-3a5a-76cc-841a-3b0bef8e64f3",
+      "createdByName": "مالك الحساب",
+      "updatedAt": "2026-10-23T02:27:20.191Z",
+      "updatedBy": "01a1666d-3a5a-76cc-841a-3b0bef8e64f3",
+      "version": 1
+    }
+  ]
+}
