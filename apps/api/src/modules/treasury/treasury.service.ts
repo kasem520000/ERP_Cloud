@@ -420,6 +420,13 @@ export class TreasuryService implements OnModuleInit {
       // 💱 سعر الصرف = المبلغ بالأساس ÷ المبلغ بالعملة الأجنبية — كما في `Receipts.ExchangePrice`
       // عند الديسكتوب (يُحسب من `val1 × exchange_price` في `frmInvBySalesMen` L254).
       fxRate = amount.div(foreign).toFixed(6);
+      // ACC-072 follow-up (R33 — P-M16): a foreign voucher is priced by the client (amount ÷ foreignAmount);
+      // when the tenant keeps a rate table for that currency the implied rate must stay within ±5 % of
+      // the latest rate effective on the voucher date, otherwise the voucher is refused. A currency with
+      // no table rate is still accepted (there is nothing to check against) — documented limit.
+      if (currency !== 'SAR') {
+        await this.assertFxRateWithinToleranceInTx(tx, tenantId, currency, input.date ?? new Date().toISOString().slice(0, 10), amount.div(foreign));
+      }
     }
     if (input.salesmanId) await this.assertSalesmanInTx(tx, tenantId, input.salesmanId);
     const id = newId();
@@ -2921,6 +2928,13 @@ export class TreasuryService implements OnModuleInit {
             );
           computedBalance = money(fxSum?.totalDebit ?? '0').minus(fxSum?.totalCredit ?? '0').toFixed(4);
         }
+        // ACC-060 (R33): report what the rebuild changed — the previous sub-ledger figure and the delta.
+        const [previous] = await tx
+          .select({ balance: cashLocationBalances.balance })
+          .from(cashLocationBalances)
+          .where(and(eq(cashLocationBalances.cashLocationId, cashLocationId), eq(cashLocationBalances.currencyCode, currency)))
+          .limit(1);
+        const previousBalance = previous?.balance ?? '0';
         await tx
           .insert(cashLocationBalances)
           .values({
@@ -2934,11 +2948,49 @@ export class TreasuryService implements OnModuleInit {
             target: [cashLocationBalances.cashLocationId, cashLocationBalances.currencyCode],
             set: { balance: computedBalance, updatedAt: new Date() },
           });
-        return { tenantId, cashLocationId, currencyCode: currency, balance: computedBalance, reconciled: true };
+        return {
+          tenantId,
+          cashLocationId,
+          currencyCode: currency,
+          balance: computedBalance,
+          previousBalance,
+          delta: new Decimal(computedBalance).minus(previousBalance).toFixed(4),
+          source: 'journal ledger',
+          reconciled: true,
+        };
       }
       const balance = await this.getCashBalance(tenantId, cashLocationId, currency);
       return { ...balance, reconciled: true };
     });
+  }
+
+  /** P-M16: compare the voucher's implied rate with the tenant's `fx_rates` table (±5 %). */
+  private async assertFxRateWithinToleranceInTx(tx: DrizzleTx, tenantId: string, currency: string, date: string, implied: Decimal) {
+    const rows = (await tx.execute(sql`
+      SELECT from_code, to_code, rate::text AS rate FROM fx_rates
+      WHERE tenant_id = ${tenantId}::uuid
+        AND ((from_code = ${currency} AND to_code = 'SAR') OR (from_code = 'SAR' AND to_code = ${currency}))
+        AND effective_from <= ${date}::date
+      ORDER BY effective_from DESC, created_at DESC
+      LIMIT 1
+    `)) as unknown;
+    const list: Array<{ from_code: string; to_code: string; rate: string }> = Array.isArray(rows)
+      ? (rows as Array<{ from_code: string; to_code: string; rate: string }>)
+      : (((rows as { rows?: Array<{ from_code: string; to_code: string; rate: string }> }).rows ?? []) as Array<{ from_code: string; to_code: string; rate: string }>);
+    const row = list[0];
+    if (!row) return;
+    const tableRate = row.from_code === currency ? new Decimal(row.rate) : new Decimal(1).div(row.rate);
+    if (!tableRate.isFinite() || tableRate.lte(0)) return;
+    const TOLERANCE_PERCENT = 5;
+    const deviation = implied.minus(tableRate).abs().div(tableRate).mul(100);
+    if (deviation.gt(TOLERANCE_PERCENT)) {
+      throw new DomainError(
+        'FX_RATE_OUT_OF_RANGE',
+        `سعر الصرف الضمني ${implied.toFixed(6)} يبتعد ${deviation.toFixed(2)} % عن سعر الجدول ${tableRate.toFixed(6)} لعملة ${currency} (الحد ${TOLERANCE_PERCENT} %)`,
+        422,
+        { field: 'amount', currency, impliedRate: implied.toFixed(6), tableRate: tableRate.toFixed(6), deviationPercent: deviation.toFixed(2), tolerancePercent: TOLERANCE_PERCENT },
+      );
+    }
   }
 
   private async bumpBalance(
