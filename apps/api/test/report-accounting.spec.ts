@@ -344,8 +344,10 @@ describe('التقارير — frmRptBalances · frmRptEntries · frmRptIncomeSt
       expect(posted.status).toBe(201);
       return data(posted.body) as { id: string; number: string };
     };
-    await voucher('receipt', '1000', '150', 'تحصيل من عميل');
-    await voucher('payment', '300', '45', 'سداد لمورد');
+    // R33 ACC-193 — `amount` is the gross the treasury moves, `vatAmount` the VAT inside it,
+    // so the return prints the base 1000 / 300 and the VAT 150 / 45.
+    await voucher('receipt', '1150', '150', 'تحصيل من عميل');
+    await voucher('payment', '345', '45', 'سداد لمورد');
   });
 
   afterAll(async () => {

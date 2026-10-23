@@ -1355,6 +1355,19 @@ const voucherVat = (alias: string): SQL => sql`sum(CASE
     WHEN ${sql.raw(alias)}.vat_amount > 0 THEN ${sql.raw(alias)}.vat_amount
     ELSE greatest(coalesce(${sql.raw(alias)}.net_amount, 0) - ${sql.raw(alias)}.amount, 0) END)`;
 
+/**
+ * R33 ACC-193 — one voucher's VAT (not summed) and its base. Cloud rows: `amount` is the
+ * gross and `net_amount = amount − vat_amount`. Legacy rows flagged the other way round
+ * (`net_amount` = gross above `amount`) keep the desktop reading: base = amount.
+ */
+const voucherVatOne = (alias: string): SQL => sql`(CASE
+    WHEN ${sql.raw(alias)}.vat_amount > 0 THEN ${sql.raw(alias)}.vat_amount
+    ELSE greatest(coalesce(${sql.raw(alias)}.net_amount, 0) - ${sql.raw(alias)}.amount, 0) END)`;
+const voucherHasVat = (alias: string): SQL => sql`${voucherVatOne(alias)} > 0`;
+const voucherBase = (alias: string): SQL => sql`(CASE
+    WHEN ${sql.raw(alias)}.vat_amount > 0 THEN ${sql.raw(alias)}.amount - ${sql.raw(alias)}.vat_amount
+    ELSE ${sql.raw(alias)}.amount END)`;
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // 💰 «تقارير الخزينة والرواتب والمستخدمين» — `frmRptKhzna` · `frmRptSalary` ·
 //    `frmRptReseved` · `frmrptUsersRecords` · `frmRptRentInvoices`
@@ -4531,13 +4544,17 @@ const definitions: ReportDefinition[] = [
           FROM rental_invoices ri
           WHERE ri.tenant_id = ${tenantId} AND ri.status = 'posted' AND ${date(sql`ri.document_date`)}
         ), v AS (
-          SELECT coalesce(sum(vr.amount) FILTER (WHERE vr.kind = 'receipt'), 0) AS receipts_net,
+          /* R33 ACC-193 — only a سند that carries VAT is a VAT event. A salary, a customer
+             collection or a supplier settlement moves cash, not a taxable supply, so it is
+             neither a sales nor a purchases base. The base is amount − vat (net_amount). */
+          SELECT coalesce(sum(${voucherBase('vr')}) FILTER (WHERE vr.kind = 'receipt'), 0) AS receipts_net,
                  coalesce(${voucherVat('vr')} FILTER (WHERE vr.kind = 'receipt'), 0) AS receipts_vat,
-                 coalesce(sum(vr.amount) FILTER (WHERE vr.kind = 'payment'), 0) AS payments_net,
+                 coalesce(sum(${voucherBase('vr')}) FILTER (WHERE vr.kind = 'payment'), 0) AS payments_net,
                  coalesce(${voucherVat('vr')} FILTER (WHERE vr.kind = 'payment'), 0) AS payments_vat
           FROM vouchers vr
           WHERE vr.tenant_id = ${tenantId} AND vr.status = 'posted' AND ${date(sql`vr.date`)}
             AND ${eqIf(sql`vr.branch_id`, f.branchId)}
+            AND ${voucherHasVat('vr')}
         ), vat_accounts AS (
           SELECT tg.vat_account_id FROM tax_groups tg
           WHERE tg.tenant_id = ${tenantId} AND tg.vat_account_id IS NOT NULL

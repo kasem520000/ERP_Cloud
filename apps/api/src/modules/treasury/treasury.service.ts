@@ -119,6 +119,48 @@ export type MovementRow = {
 
 const money = (value: string) => new Decimal(value);
 
+/**
+ * R33 ACC-193 — the one VAT contract of a سند, as the salesman ledger already documents it:
+ * `amount` is what moves in the treasury (gross), `vat_amount` the VAT inside it, and
+ * `net_amount = amount − vat_amount` the base. A caller may send the base explicitly; it has
+ * to agree with the other two, otherwise the return would report one number and the ledger
+ * another.
+ */
+export function normaliseVoucherVat(
+  gross: Decimal,
+  vatAmount: string | null | undefined,
+  netAmount: string | null | undefined,
+): { vatAmount: string; netAmount: string } {
+  const vat = vatAmount !== undefined && vatAmount !== null && String(vatAmount).trim() !== '' ? money(String(vatAmount).trim()) : new Decimal(0);
+  if (!vat.isFinite() || vat.lt(0) || vat.gte(gross))
+    throw new DomainError('VOUCHER_VAT_INVALID', 'VAT must be zero or positive and smaller than the voucher amount', 422, {
+      field: 'vatAmount',
+    });
+  const base = gross.minus(vat);
+  if (netAmount !== undefined && netAmount !== null && String(netAmount).trim() !== '') {
+    const given = money(String(netAmount).trim());
+    if (!given.isFinite() || given.minus(base).abs().gt(new Decimal('0.005')))
+      throw new DomainError(
+        'VOUCHER_NET_AMOUNT_MISMATCH',
+        'netAmount must equal amount − vatAmount (the base of the voucher)',
+        422,
+        { field: 'netAmount', details: { amount: gross.toFixed(4), vatAmount: vat.toFixed(4), expectedNetAmount: base.toFixed(4) } },
+      );
+  }
+  return { vatAmount: vat.toFixed(4), netAmount: base.toFixed(4) };
+}
+
+/** The gross/VAT/base of a stored voucher under the contract above (legacy rows keep VAT 0 unless flagged). */
+export function voucherSplit(row: { amount: string; vatAmount?: string | null; netAmount?: string | null }): {
+  gross: Decimal;
+  vat: Decimal;
+  base: Decimal;
+} {
+  const gross = money(row.amount);
+  const vat = row.vatAmount && money(row.vatAmount).gt(0) && money(row.vatAmount).lt(gross) ? money(row.vatAmount) : new Decimal(0);
+  return { gross, vat, base: gross.minus(vat) };
+}
+
 const shiftDay = (day: string, days: number) => {
   const at = new Date(`${day}T00:00:00Z`);
   at.setUTCDate(at.getUTCDate() + days);
@@ -382,6 +424,11 @@ export class TreasuryService implements OnModuleInit {
       throw new DomainError('VOUCHER_AMOUNT_INVALID', 'Voucher amount must be positive', 422, { field: 'amount' });
     parseMoney('vatAmount', input.vatAmount, false);
     parseMoney('netAmount', input.netAmount, false);
+    const { vatAmount: vatAmountNormalised, netAmount: netAmountNormalised } = normaliseVoucherVat(
+      amount,
+      input.vatAmount,
+      input.netAmount,
+    );
     parseMoney('foreignAmount', input.foreignAmount, false);
     if (input.method === 'cheque' && !input.chequeNo)
       throw new DomainError('CHEQUE_NO_REQUIRED', 'Cheque vouchers require a cheque number', 422);
@@ -445,8 +492,8 @@ export class TreasuryService implements OnModuleInit {
         cashLocationId: input.cashLocationId,
         method: input.method,
         amount: input.amount,
-        vatAmount: input.vatAmount ?? '0',
-        netAmount: input.netAmount ?? input.amount,
+        vatAmount: vatAmountNormalised,
+        netAmount: netAmountNormalised,
         currency,
         fxRate,
         chequeNo: input.chequeNo,
@@ -546,6 +593,20 @@ export class TreasuryService implements OnModuleInit {
     copy('description', 'trimmed', input.description);
     copy('salesmanId', 'plain', input.salesmanId);
     copy('fiscalPeriodId', 'plain', input.fiscalPeriodId);
+
+    // R33 ACC-193 — the VAT split follows the amount: `net_amount = amount − vat`.
+    if (input.amount !== undefined || input.vatAmount !== undefined || input.netAmount !== undefined) {
+      const gross = money(input.amount !== undefined ? input.amount : row.amount);
+      if (!gross.isFinite() || gross.lte(0))
+        throw new DomainError('VOUCHER_AMOUNT_INVALID', 'Voucher amount must be positive', 422, { field: 'amount' });
+      const split = normaliseVoucherVat(
+        gross,
+        input.vatAmount !== undefined ? input.vatAmount : (row.vatAmount ?? undefined),
+        input.netAmount !== undefined ? input.netAmount : undefined,
+      );
+      patch['vatAmount'] = split.vatAmount;
+      patch['netAmount'] = split.netAmount;
+    }
 
     // 💱 إعادة حساب سعر الصرف عند تغيير amount أو foreignAmount
     const effectiveAmount = input.amount !== undefined ? input.amount : row.amount;
@@ -859,7 +920,12 @@ export class TreasuryService implements OnModuleInit {
       : undefined;
     const fxRate = isForeign ? (voucher.fxRate ?? undefined) : undefined;
 
-    const amount = voucher.netAmount && Number(voucher.netAmount) > 0 ? voucher.netAmount : voucher.amount;
+    // R33 ACC-193 — the treasury moves the gross (what the sub-ledger moves too); the counter
+    // account takes the base; VAT, when the سند carries any, goes to the VAT account of the
+    // posting profile so the return and the ledger report the same tax.
+    const split = voucherSplit(voucher);
+    const amount = split.gross.toFixed(4);
+    const base = split.base.toFixed(4);
     const statement = voucher.description ?? (voucher.kind === 'receipt' ? 'سند قبض' : 'سند صرف');
     const counterLine: JournalLineInput = {
       accountId: counterAccountId,
@@ -869,7 +935,7 @@ export class TreasuryService implements OnModuleInit {
       currencyCode,
       currencyAmount,
       fxRate,
-      ...(voucher.kind === 'receipt' ? { credit: amount } : { debit: amount }),
+      ...(voucher.kind === 'receipt' ? { credit: base } : { debit: base }),
     };
     const treasuryLine: JournalLineInput = {
       accountId: treasuryAccountId,
@@ -879,7 +945,42 @@ export class TreasuryService implements OnModuleInit {
       fxRate,
       ...(voucher.kind === 'receipt' ? { debit: amount } : { credit: amount }),
     };
-    return [treasuryLine, counterLine];
+    if (split.vat.lte(0)) return [treasuryLine, counterLine];
+    const vatAccountId = await this.voucherVatAccount(tx, tenantId, voucher);
+    const vatLine: JournalLineInput = {
+      accountId: vatAccountId,
+      description: `ضريبة ${statement}`,
+      ...(voucher.kind === 'receipt' ? { credit: split.vat.toFixed(4) } : { debit: split.vat.toFixed(4) }),
+    };
+    return [treasuryLine, counterLine, vatLine];
+  }
+
+  /**
+   * R33 ACC-193 — the VAT account of a سند: the voucher profile's own key first, then the
+   * invoice profile of the same side (output VAT for receipts, input VAT for payments).
+   */
+  private async voucherVatAccount(
+    tx: DrizzleTx,
+    tenantId: string,
+    voucher: { kind: string; branchId: string },
+  ): Promise<string> {
+    const receipt = voucher.kind === 'receipt';
+    const key = receipt ? 'vatOutputAccountId' : 'vatInputAccountId';
+    const own = await this.profileAccount(tx, tenantId, voucher.branchId, receipt ? 'receipt_voucher' : 'payment_voucher', key, {
+      required: false,
+    });
+    const fallback =
+      own ?? (await this.profileAccount(tx, tenantId, voucher.branchId, receipt ? 'sales_invoice' : 'purchase_invoice', key, { required: false }));
+    if (!fallback)
+      throw new DomainError(
+        'VOUCHER_VAT_ACCOUNT_REQUIRED',
+        receipt
+          ? 'حساب ضريبة المخرجات غير محدد — اربط vatOutputAccountId في الملف المحاسبي قبل ترحيل سند بضريبة'
+          : 'حساب ضريبة المدخلات غير محدد — اربط vatInputAccountId في الملف المحاسبي قبل ترحيل سند بضريبة',
+        422,
+        { field: key },
+      );
+    return fallback;
   }
 
   async postVoucher(tenantId: string, id: string, input: VoucherPostInput = {}) {
@@ -1334,7 +1435,7 @@ export class TreasuryService implements OnModuleInit {
           (await this.profileAccount(tx, tenantId, row.branchId, docType, 'chequesInHandAccountId', {
             required: false,
           })) ?? cashAccountId;
-        const amount = row.netAmount && Number(row.netAmount) > 0 ? row.netAmount : row.amount;
+        const amount = voucherSplit(row).gross.toFixed(4);
         const statement = row.description?.trim() || `${row.kind === 'receipt' ? 'سند قبض' : 'سند صرف'} ${row.number ?? ''}`.trim();
         await this.accounting.postJournalInTx(tx, tenantId, {
           branchId: row.branchId,
@@ -1364,8 +1465,20 @@ export class TreasuryService implements OnModuleInit {
           (await this.profileAccount(tx, tenantId, row.branchId, docType, 'chequesInHandAccountId', {
             required: false,
           })) ?? cashAccountId;
-        const amount = row.netAmount && Number(row.netAmount) > 0 ? row.netAmount : row.amount;
+        const split = voucherSplit(row);
+        const amount = split.gross.toFixed(4);
+        const base = split.base.toFixed(4);
         const statement = row.description?.trim() || 'شيك مرتجع';
+        // R33 ACC-193 — a bounced سند with VAT gives the VAT back too (mirror of the posting).
+        const vatLines: JournalLineInput[] = split.vat.gt(0)
+          ? [
+              {
+                accountId: await this.voucherVatAccount(tx, tenantId, row),
+                description: `ضريبة ${statement}`,
+                ...(row.kind === 'receipt' ? { debit: split.vat.toFixed(4) } : { credit: split.vat.toFixed(4) }),
+              },
+            ]
+          : [];
         // مرتجع: the cheque never became money, so the debt it was meant to settle returns.
         await this.accounting.postJournalInTx(tx, tenantId, {
           branchId: row.branchId,
@@ -1376,12 +1489,14 @@ export class TreasuryService implements OnModuleInit {
           lines:
             row.kind === 'receipt'
               ? [
-                  { accountId: counterAccountId, debit: amount, description: statement, partyId: row.partyId ?? undefined },
+                  { accountId: counterAccountId, debit: base, description: statement, partyId: row.partyId ?? undefined },
+                  ...vatLines,
                   { accountId: chequesAccountId, credit: amount, description: statement },
                 ]
               : [
                   { accountId: chequesAccountId, debit: amount, description: statement },
-                  { accountId: counterAccountId, credit: amount, description: statement, partyId: row.partyId ?? undefined },
+                  ...vatLines,
+                  { accountId: counterAccountId, credit: base, description: statement, partyId: row.partyId ?? undefined },
                 ],
           sourceType: 'voucher_cheque',
           sourceId: id,

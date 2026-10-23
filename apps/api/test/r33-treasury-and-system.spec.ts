@@ -222,6 +222,61 @@ describe('R33 — money policy (P-M17), FX tolerance (P-M16) and cash sub-ledger
     expect(await cashBalance('USD')).toBe('10.00');
   });
 
+  it('ACC-193 — a voucher that carries VAT posts gross / base / VAT, the sub-ledger moves the gross, and the VAT return lists only VAT-bearing vouchers at their base', async () => {
+    const before = await cashBalance('SAR');
+    const vatReturn = async () => {
+      const res = await req('get', `/reports/vat-return-period?from=${today}&to=${today}`);
+      expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
+      const list = rows(res.body);
+      const line = (label: string) => list.find((r) => String(r.line) === label) as Record<string, string> | undefined;
+      return { receipts: line('سندات القبض'), payments: line('سندات الصرف'), netSales: line('صافي المبيعات') };
+    };
+    const base0 = await vatReturn();
+    // 1) a salary-like payment and a plain receipt (no VAT) are cash movements, not VAT events
+    const plain = await req('post', '/vouchers', { branchId, kind: 'payment', subtype: 'expense', counterAccountId: expenseAccountId, cashLocationId, method: 'cash', date: today, amount: '40.00', description: 'R33 ACC-193 مصروف بلا ضريبة' });
+    expect(plain.status, JSON.stringify(plain.body)).toBe(201);
+    expect((await req('post', `/vouchers/${String(data(plain.body).id)}/post`, {})).status).toBe(201);
+    const after1 = await vatReturn();
+    expect(n2(after1.payments?.net)).toBe(n2(base0.payments?.net));
+    expect(n2(after1.receipts?.net)).toBe(n2(base0.receipts?.net));
+
+    // 2) netAmount that contradicts amount − vatAmount is refused
+    const bad = await req('post', '/vouchers', { branchId, kind: 'receipt', subtype: 'other', counterAccountId: expenseAccountId, cashLocationId, method: 'cash', date: today, amount: '115.00', vatAmount: '15.00', netAmount: '115.00', description: 'R33 ACC-193 خطأ' });
+    expect(bad.status, JSON.stringify(bad.body)).toBe(422);
+    expect((bad.body as { code?: string }).code).toBe('VOUCHER_NET_AMOUNT_MISMATCH');
+    const badVat = await req('post', '/vouchers', { branchId, kind: 'receipt', subtype: 'other', counterAccountId: expenseAccountId, cashLocationId, method: 'cash', date: today, amount: '115.00', vatAmount: '115.00' });
+    expect(badVat.status).toBe(422);
+    expect((badVat.body as { code?: string }).code).toBe('VOUCHER_VAT_INVALID');
+
+    // 3) a receipt of 115 carrying 15 VAT: cash 115 / counter 100 / VAT 15 — and net_amount is derived as 100
+    const vatVoucher = await req('post', '/vouchers', { branchId, kind: 'receipt', subtype: 'other', counterAccountId: expenseAccountId, cashLocationId, method: 'cash', date: today, amount: '115.00', vatAmount: '15.00', description: 'R33 ACC-193 قبض بضريبة' });
+    expect(vatVoucher.status, JSON.stringify(vatVoucher.body)).toBe(201);
+    expect(n2(data(vatVoucher.body).netAmount)).toBe('100.00');
+    const voucherId = String(data(vatVoucher.body).id);
+    const posted = await req('post', `/vouchers/${voucherId}/post`, {});
+    expect(posted.status, JSON.stringify(posted.body)).toBe(201);
+    const entryId = String(data(posted.body).journalEntryId ?? '');
+    expect(entryId).toBeTruthy();
+    const entry = data((await req('get', `/journal-entries/${entryId}`)).body);
+    const lines = (entry.lines as Array<Record<string, unknown>>) ?? [];
+    expect(lines).toHaveLength(3);
+    const debit = lines.reduce((a, l) => a + Number(l.debit ?? 0), 0);
+    const credit = lines.reduce((a, l) => a + Number(l.credit ?? 0), 0);
+    expect(n2(debit)).toBe('115.00');
+    expect(n2(credit)).toBe('115.00');
+    expect(lines.some((l) => n2(l.debit) === '115.00')).toBe(true); // treasury: the gross
+    expect(lines.some((l) => n2(l.credit) === '100.00' && String(l.accountId) === expenseAccountId)).toBe(true); // counter: the base
+    expect(lines.some((l) => n2(l.credit) === '15.00' && String(l.accountId) !== expenseAccountId)).toBe(true); // VAT account
+    // the cash sub-ledger moved the gross too: before − 40 + 115
+    expect(await cashBalance('SAR')).toBe((Number(before) - 40 + 115).toFixed(2));
+    // 4) the VAT return: the receipts line grew by the base 100 and the VAT 15, nothing else
+    const after2 = await vatReturn();
+    expect((Number(after2.receipts?.net) - Number(base0.receipts?.net)).toFixed(2)).toBe('100.00');
+    expect((Number(after2.receipts?.vat) - Number(base0.receipts?.vat)).toFixed(2)).toBe('15.00');
+    expect((Number(after2.netSales?.net) - Number(base0.netSales?.net)).toFixed(2)).toBe('100.00');
+    expect(n2(after2.payments?.net)).toBe(n2(base0.payments?.net));
+  });
+
   it('ACC-060 — recalc-balance rebuilds the SAR row from SAR/null GL lines only and reports previousBalance/delta', async () => {
     const plain = await req('post', '/vouchers', { branchId, kind: 'receipt', subtype: 'other', counterAccountId: expenseAccountId, cashLocationId, method: 'cash', date: today, amount: '25.00', description: 'R33 SAR 25' });
     expect(plain.status, JSON.stringify(plain.body)).toBe(201);
