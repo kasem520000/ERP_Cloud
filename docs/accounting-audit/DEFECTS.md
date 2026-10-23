@@ -981,7 +981,7 @@ RV-000003 / R13-BOUNCE-ISOLATED مبلغ13للعميلCUST-GEN: postخفضARمن
 
 ### UI-040 — LOW — سجل التدقيق يسمّي الإجراء بمعرّف الكيان: `inventory update.01a16577-19c4-…` و`sales update.01a16575-…` بدل `update.post`/`update.send`
 - `GET /audit-log` (`R25-REPORTS-response.json` → `audit-log`). السبب: `audit.interceptor.ts` L102–112 (`route.subResource` يلتقط المعرّف في مسارات مثل `/inventory/vouchers/:id/post`). فاحص J05. الحالة: OPEN.
-- **حالة R33 (المرحلة 2 — فحص كود):** **NOT-RETESTED-R33** — لم يُتحقق منه (تسمية إجراء سجل التدقيق) — يحتاج تحققاً بصرياً.
+- **حالة R33 (المرحلة 2 — تحقق على DB بذرة 15):** **FIXED-VERIFIED-R33** — `audit.interceptor.ts actionForMethod` يبني الإجراء من المسار (`update.post`, `update.return`, `update.payments`, `denied.update.approve`…)؛ استعلام `audit_log` على بذرة 15 (350+ صفاً من كل الفاحصات): **0** إجراء يحوي معرّف كيان (`action ~ '[0-9a-f]{8}-'` → لا صفوف).
 
 ### UI-041 — LOW — تقرير «الأستاذ العام» (`/reports/general-ledger`) يكتب لكل سطر «سند قيد يومية رقم: JE-… - **سداد دفعة من حساب**: …» حتى لأسطر فواتير الشراء والمخزون
 - السبب: الوصف الافتراضي لأسطر القيد في `accounting.service.ts` L2052 حين لا وصف للسطر. الأدلة: `R25-REPORTS-response.json` (`gl-report` الصفوف الأولى). فاحص K-GL-TEXT. الحالة: OPEN.
@@ -1184,11 +1184,11 @@ RV-000003 / R13-BOUNCE-ISOLATED مبلغ13للعميلCUST-GEN: postخفضARمن
 
 ### UI-048 — LOW — مودال «إستلام دفعة» (التفصيل) يختار **أول موقع نقدي** افتراضياً («الحساب البنكي الرئيسي») مع طريقة «نقدي»
 - سند الدفعة 50 سُجِّل على البنك `…3016aa` لا الصندوق الرئيسي. المتوقع الصندوق الافتراضي للفرع أو إلزام الاختيار. الأدلة: `R28-TI-PAY-before.png`، `R28-DB-026` (`vouchers.cash_location_id`). الحالة: OPEN.
-- **حالة R33 (المرحلة 2 — فحص كود):** **NOT-RETESTED-R33** — لم يُتحقق منه (الموقع النقدي الافتراضي في مودال دفعة التفصيل).
+- **حالة R33 (المرحلة 2 — فحص كود):** **CODE-VERIFIED-R33** — `apps/staff/app/tailoring/invoices/page.tsx` س324–331: الافتراضي = الصندوق الافتراضي (`kind === 'safe' && isDefault`) ثم أول صندوق، مع `method: 'cash'` — لا يُختار حساب بنكي بعد الآن.
 
 ### UI-049 — LOW — دفعة تفصيل API بـ`cashLocationId` دون `branchId` → 400 `INVALID_ID` «An identifier in this request is not a valid UUID» بلا اسم الحقل
 - السبب: `addPayment` يمرّر `branchId: input.branchId ?? ''` إلى `createVoucher`. المتوقع 422 يذكر `branchId`. الأدلة: `R28-TI-API-response.json` (`pay-no-branch`). الحالة: OPEN.
-- **حالة R33 (المرحلة 2 — فحص كود):** **NOT-RETESTED-R33** — لم يُتحقق منه (رسالة `INVALID_ID` بلا اسم الحقل).
+- **حالة R33 (المرحلة 2 — فحص كود):** **CODE-VERIFIED-R33** — `tailoring.service.ts addPayment` ~س1822–1855: `cashLocationId` مفقود → 422 `{field:'cashLocationId'}`؛ `branchId` المفقود يُشتق من فرع الصندوق ثم أول فرع، وإلا 422 `BRANCH_REQUIRED` — لا يصل طلب بلا فرع إلى Postgres فلا `INVALID_ID`.
 
 ### إعادة إنتاج وقرارات سياسة في R28 (أدلة مستقلة)
 - **ACC-130 (فجوة الأستاذ/المخزون من حركات الأرفف):** ثابتة عند **88.1024** طوال R28 (1270001 160.9560 مقابل Σ `stock_balances`/تقرير التقييم 249.0584)؛ كل حركات R28 (بيع، شراء، POS) متطابقة أستاذاً ومخزوناً.
