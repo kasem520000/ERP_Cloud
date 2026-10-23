@@ -254,6 +254,25 @@ export class InventoryService {
   ) {
     if (!lines.length)
       throw new DomainError('INVENTORY_LINES_REQUIRED', 'At least one inventory line is required', 422);
+
+    // ACC-107 & ACC-108: Resolve allowNegative against tenant setting if not explicitly overridden
+    let effectiveAllowNegative = options.allowNegative === true;
+    if (!effectiveAllowNegative) {
+      const settingRows = rowsOf<{ value: unknown }>(
+        await tx.execute(sql`
+          SELECT value FROM tenant_settings
+          WHERE tenant_id = ${tenantId}::uuid AND key IN ('allow_negative_stock', 'inventory.allow_negative_stock')
+          LIMIT 1
+        `),
+      );
+      if (settingRows.length > 0) {
+        const val = settingRows[0]?.value;
+        if (val === true || val === 'true' || val === 1 || val === '1') {
+          effectiveAllowNegative = true;
+        }
+      }
+    }
+
     const created: string[] = [];
     for (const line of lines) {
       const quantity = new Decimal(line.qty);
@@ -297,7 +316,7 @@ export class InventoryService {
       const unitCost = enteredCost.div(factor);
       const nextQty =
         line.direction === 'in' ? currentQty.plus(baseQuantity) : currentQty.minus(baseQuantity);
-      if (nextQty.lt(0) && !options.allowNegative) {
+      if (nextQty.lt(0) && !effectiveAllowNegative) {
         throw new DomainError('STOCK_INSUFFICIENT', 'Stock is insufficient for this movement', 422, {
           field: 'lines',
         });
@@ -798,8 +817,8 @@ export class InventoryService {
     tenantId: string,
     filters: { itemId?: string; status?: string; warehouseId?: string; q?: string } = {},
   ) {
-    return withTenantTx(this.database.db, tenantId, (tx) =>
-      tx
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const rows = await tx
         .select()
         .from(itemSerials)
         .where(
@@ -812,8 +831,25 @@ export class InventoryService {
             filters.q?.trim() ? ilike(itemSerials.serialNo, `%${filters.q!.trim()}%`) : undefined,
           ),
         )
-        .orderBy(asc(itemSerials.serialNo)),
-    );
+        .orderBy(asc(itemSerials.serialNo));
+
+      // UI-045: كشف الأرقام التسلسلية التي دخلت عبر مرتجع مبيعات ليعكس التقرير عداد المرتجع بدقة
+      const returnedLinks = await tx
+        .select({ serialId: stockDocumentSerials.serialId })
+        .from(stockDocumentSerials)
+        .where(
+          and(
+            eq(stockDocumentSerials.tenantId, tenantId),
+            inArray(stockDocumentSerials.docType, ['sales_return', 'stock_return']),
+          ),
+        );
+      const returnedIds = new Set(returnedLinks.map((l) => l.serialId));
+
+      return rows.map((r) => ({
+        ...r,
+        returned: returnedIds.has(r.id),
+      }));
+    });
   }
 
   /**
@@ -832,7 +868,8 @@ export class InventoryService {
     if (!Number.isFinite(count) || count < 1 || count > 500)
       throw new DomainError('SERIAL_COUNT_INVALID', 'Generate between 1 and 500 serials at a time', 422, { field: 'count' });
 
-    const width = String(startAt + count - 1).length;
+    // UI-044: حشو الأصفار بعرض 4 خانات على الأقل لضمان التناسق والفرز
+    const width = Math.max(4, String(startAt + count - 1).length);
     const serialNos = Array.from({ length: count }, (_, index) => `${prefix}${String(startAt + index).padStart(width, '0')}`);
 
     return withTenantTx(this.database.db, tenantId, async (tx) => {
@@ -841,6 +878,43 @@ export class InventoryService {
         .from(items)
         .where(and(eq(items.tenantId, tenantId), eq(items.id, input.itemId), isNull(items.deletedAt)));
       if (!item) throw new DomainError('ITEM_NOT_FOUND', 'The item was not found', 404);
+
+      // ACC-132: التحقق من وجود رصيد مخزني متاح يغطي عدد الأرقام التسلسلية المراد توليدها
+      if (input.warehouseId) {
+        const [bal] = await tx
+          .select({ quantity: stockBalances.quantity })
+          .from(stockBalances)
+          .where(
+            and(
+              eq(stockBalances.tenantId, tenantId),
+              eq(stockBalances.warehouseId, input.warehouseId),
+              eq(stockBalances.itemId, input.itemId),
+            ),
+          );
+        const currentQty = new Decimal(bal?.quantity ?? '0');
+        const [activeSerials] = await tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(itemSerials)
+          .where(
+            and(
+              eq(itemSerials.tenantId, tenantId),
+              eq(itemSerials.itemId, input.itemId),
+              eq(itemSerials.warehouseId, input.warehouseId),
+              isNull(itemSerials.deletedAt),
+              inArray(itemSerials.status, ['available', 'reserved']),
+            ),
+          );
+        const existingActiveCount = activeSerials?.count ?? 0;
+        const availableSlots = currentQty.minus(existingActiveCount);
+        if (new Decimal(count).gt(availableSlots)) {
+          throw new DomainError(
+            'SERIAL_COUNT_EXCEEDS_STOCK',
+            `Cannot generate ${count} serials: warehouse has ${currentQty.toFixed(0)} units with ${existingActiveCount} active serials (${Decimal.max(0, availableSlots).toFixed(0)} slots remaining)`,
+            422,
+            { field: 'count', availableSlots: availableSlots.toNumber() },
+          );
+        }
+      }
 
       const existing = await tx
         .select({ serialNo: itemSerials.serialNo })
@@ -1425,14 +1499,14 @@ export class InventoryService {
       const value = await this.valueOfMovements(tx, tenantId, transferId, 'stock_transfer_receipt');
       let receivedJournalEntryId: string | undefined;
       if (value.gt(0)) {
-        const branchId =
-          transfer.branchId ??
-          (
-            await tx
-              .select({ branchId: warehouses.branchId })
-              .from(warehouses)
-              .where(and(eq(warehouses.tenantId, tenantId), eq(warehouses.id, transfer.toWarehouseId)))
-          )[0]?.branchId;
+        // ACC-112: The receive journal entry belongs to the destination branch where stock is received
+        const destBranch = (
+          await tx
+            .select({ branchId: warehouses.branchId })
+            .from(warehouses)
+            .where(and(eq(warehouses.tenantId, tenantId), eq(warehouses.id, transfer.toWarehouseId)))
+        )[0];
+        const branchId = destBranch?.branchId ?? transfer.branchId;
         if (!branchId)
           throw new DomainError(
             'TRANSFER_BRANCH_REQUIRED',
@@ -1706,8 +1780,30 @@ export class InventoryService {
             lotId: line.lotId ?? undefined,
             costing: 'returnAtOriginalCost',
           });
-          serialIds.push(...(line.serialIds ?? []));
+        } else if (input.mode === 'shortage') {
+          // UI-026: قيد سطر حركة مخزنية للعجز لتمكين تتبع الفاقد من تقرير حركة الصنف ومستندات المخزون
+          await tx.insert(inventoryTransactions).values({
+            id: newId(),
+            tenantId,
+            itemId: line.itemId,
+            warehouseId: transfer.toWarehouseId,
+            occurredAt: new Date(),
+            docType: 'stock_transfer_shortage',
+            docId: transferId,
+            lineId: newId(),
+            direction: 'out',
+            qty: outstanding.toFixed(4),
+            baseQty: outstanding.mul(factor).toFixed(4),
+            unitId: line.unitId ?? null,
+            factor: factor.toFixed(6),
+            unitCost: line.unitCost ?? '0',
+            totalCost: outstanding.mul(factor).mul(new Decimal(line.unitCost ?? '0')).toFixed(4),
+            costing: 'shortage',
+            lotId: line.lotId ?? null,
+            metadata: { reason: input.reason ?? 'عجز في المناقلة' },
+          });
         }
+        serialIds.push(...(line.serialIds ?? []));
       }
 
       if (movements.length) await this.recordInTx(tx, tenantId, movements, { allowNegative: true });
@@ -1719,6 +1815,14 @@ export class InventoryService {
           ['reserved'],
           'available',
           transfer.fromWarehouseId,
+        );
+      } else if (input.mode === 'shortage' && serialIds.length) {
+        await this.transitionSerialsInTx(
+          tx,
+          tenantId,
+          serialIds,
+          ['reserved'],
+          'sold',
         );
       }
 
@@ -1968,6 +2072,7 @@ export class InventoryService {
       productionDate?: string | null;
       expiryDate?: string | null;
     }>,
+    mode?: 'issue' | 'receive' | 'return' | 'transfer' | 'adjust' | 'receipt',
   ): Promise<
     Map<
       number,
@@ -2048,6 +2153,15 @@ export class InventoryService {
           );
         lot = found;
         if (!lot) {
+          // ACC-066: لا يجوز إنشاء دفعة جديدة تلقائياً عند الصرف أو البيع (issue)
+          if (mode === 'issue') {
+            throw new DomainError(
+              'LOT_NOT_FOUND',
+              `الدفعة ${batchNo} غير مسجلة لهذا الصنف — لا يمكن الصرف من دفعة غير موجودة`,
+              422,
+              { field: 'batchNo', batchNo, itemId: line.itemId },
+            );
+          }
           const [created] = await tx
             .insert(itemLots)
             .values({
@@ -2069,6 +2183,18 @@ export class InventoryService {
         }
       }
       if (!lot) continue;
+
+      // ACC-071: التحقق من عدم انتهاء صلاحية الدفعة عند الصرف
+      const today = new Date().toISOString().slice(0, 10);
+      const effectiveExpiry = lot.expiryDate || expiryDate;
+      if (mode === 'issue' && effectiveExpiry && effectiveExpiry < today) {
+        throw new DomainError(
+          'LOT_EXPIRED',
+          `الدفعة ${lot.lotNo} منتهية الصلاحية (${effectiveExpiry}) — لا يمكن صرفها أو بيعها`,
+          422,
+          { field: 'expiryDate', expiryDate: effectiveExpiry, lotNo: lot.lotNo },
+        );
+      }
 
       // التاريخ المخالف يُرفض؛ والفارغ يُملأ — فالسطر يقول ما على العبوة ولا يناقض ما سُجّل.
       const given = { productionDate, expiryDate };
@@ -2246,6 +2372,21 @@ export class InventoryService {
     },
   ): Promise<string[]> {
     const numbers = (input.serialNos ?? []).map((value) => String(value).trim()).filter(Boolean);
+
+    // ACC-128: فحص أن الصنف المتتبَّع بالأرقام التسلسلية يحمل أرقاماً عند تحريك المخزون
+    const [item] = await tx
+      .select({ trackSerial: items.trackSerial })
+      .from(items)
+      .where(and(eq(items.tenantId, tenantId), eq(items.id, input.itemId)));
+    if (item?.trackSerial && !numbers.length) {
+      throw new DomainError(
+        'INVENTORY_SERIAL_REQUIRED',
+        'This item is tracked by serial — scan a serial',
+        422,
+        { field: 'serialNos' },
+      );
+    }
+
     if (!numbers.length) return [];
     if (new Set(numbers).size !== numbers.length)
       throw new DomainError('SERIAL_DUPLICATE', 'The same serial number appears twice on this line', 422, {
@@ -2497,7 +2638,7 @@ export class InventoryService {
 
     // الدفعة أولاً: الأرقام التسلسلية تُربط بالدفعة (`item_serials.lot_id`)، فحسمُ الرقم
     // قبل الدفعة يكتب رابطاً فارغاً.
-    const lots = await this.resolveUploadedLots(tx, tenantId, input.lines);
+    const lots = await this.resolveUploadedLots(tx, tenantId, input.lines, input.mode);
 
     for (const [index, line] of input.lines.entries()) {
       let lot = lots.get(index) ?? {
@@ -2557,6 +2698,19 @@ export class InventoryService {
               .where(and(eq(itemSerials.tenantId, tenantId), inArray(itemSerials.id, serialIds)));
           }
         }
+      }
+      if (lot.lotId) {
+        await tx
+          .update(inventoryTransactions)
+          .set({ lotId: lot.lotId })
+          .where(
+            and(
+              eq(inventoryTransactions.tenantId, tenantId),
+              eq(inventoryTransactions.docId, input.docId),
+              eq(inventoryTransactions.itemId, line.itemId),
+              isNull(inventoryTransactions.lotId),
+            ),
+          );
       }
       resolved.set(index, { ...lot, serialIds });
     }
@@ -2663,7 +2817,12 @@ export class InventoryService {
       // 📁 R5: batches are resolved (or created) here, on save — the line keeps what the
       // pack says and the movement reads `lot_id`. Resolved before `assertStockable` so a
       // line that names a batch satisfies the lot requirement the same way a picked lot does.
-      const lots = await this.resolveUploadedLots(tx, tenantId, input.lines);
+      const lots = await this.resolveUploadedLots(
+        tx,
+        tenantId,
+        input.lines,
+        input.kind === 'stock_out' ? 'issue' : 'receive',
+      );
       const catalogue = await this.assertStockable(
         tx,
         tenantId,
@@ -2677,12 +2836,29 @@ export class InventoryService {
         `stock_voucher:${input.kind}`,
         prefix,
       );
-      const draftTotalCost = input.lines.reduce((sum, line) => {
-        const fallbackPrice = catalogue.get(line.itemId)?.purchasePrice ?? '0';
-        const unitCost = new Decimal(line.unitCost ?? fallbackPrice ?? 0);
-        const qty = new Decimal(line.qty || 0);
-        return sum.plus(qty.mul(unitCost));
-      }, new Decimal(0));
+
+      const balances = await tx
+        .select({ itemId: stockBalances.itemId, averageCost: stockBalances.averageCost })
+        .from(stockBalances)
+        .where(
+          and(
+            eq(stockBalances.tenantId, tenantId),
+            eq(stockBalances.warehouseId, input.warehouseId),
+            inArray(stockBalances.itemId, input.lines.map((l) => l.itemId)),
+          ),
+        );
+      const avgCostByItem = new Map(balances.map((b) => [b.itemId, b.averageCost]));
+
+      // For stock_out vouchers, lines are issued at moving-average cost determined at posting time.
+      // Draft issue vouchers have zero totalCost until posted, consistent with lineCost = 0.
+      const draftTotalCost = input.kind === 'stock_out'
+        ? new Decimal(0)
+        : input.lines.reduce((sum, line) => {
+            const fallbackPrice = catalogue.get(line.itemId)?.purchasePrice ?? '0';
+            const unitCost = new Decimal(line.unitCost ?? fallbackPrice ?? 0);
+            const qty = new Decimal(line.qty || 0);
+            return sum.plus(qty.mul(unitCost));
+          }, new Decimal(0));
       const [voucher] = await tx
         .insert(stockVouchers)
         .values({
@@ -2716,7 +2892,10 @@ export class InventoryService {
       await tx.insert(stockVoucherLines).values(
         input.lines.map((line, index) => {
           const lot = lots.get(index);
-          const fallbackPrice = catalogue.get(line.itemId)?.purchasePrice ?? null;
+          const itemAvg = avgCostByItem.get(line.itemId);
+          const fallbackPrice = (input.kind === 'stock_out' && itemAvg && Number(itemAvg) > 0)
+            ? itemAvg
+            : (catalogue.get(line.itemId)?.purchasePrice ?? null);
           const resolvedUnitCost = line.unitCost ?? (input.kind !== 'stock_out' ? fallbackPrice : null);
           const lineCost =
             resolvedUnitCost !== null && resolvedUnitCost !== undefined
@@ -2729,7 +2908,7 @@ export class InventoryService {
             itemId: line.itemId,
             qty: line.qty,
             unitId: line.unitId ?? null,
-            unitCost: resolvedUnitCost,
+            unitCost: resolvedUnitCost ? String(resolvedUnitCost) : null,
             lineCost,
             lotId: lot?.lotId ?? null,
             batchNo: lot?.batchNo ?? null,
@@ -2829,6 +3008,13 @@ export class InventoryService {
         throw new DomainError('INVENTORY_VOUCHER_INVALID_STATUS', 'Only draft vouchers can be posted', 409);
       if (!voucher.lines.length)
         throw new DomainError('INVENTORY_LINES_REQUIRED', 'At least one stock line is required', 422);
+
+      // ACC-097 & ACC-103: التحقق من قفل فترة المخزون فوراً قبل تحريك أي كميات أو أرقام تسلسلية
+      const resolvedFiscalPeriodId =
+        options.fiscalPeriodId ??
+        (await this.accounting.openPeriodForDateInTx(tx, tenantId, voucher.voucherDate));
+      await this.accounting.assertModuleUnlocked(tx, tenantId, resolvedFiscalPeriodId, 'inventory');
+
       const allowNegative = options.allowNegative === true && this.canOverrideNegative();
 
       const catalogue = await this.assertStockable(tx, tenantId, voucher.lines);
@@ -2905,9 +3091,7 @@ export class InventoryService {
 
       let journalEntryId: string | undefined;
       if (value.abs().gt(0)) {
-        const fiscalPeriodId =
-          options.fiscalPeriodId ??
-          (await this.accounting.openPeriodForDateInTx(tx, tenantId, voucher.voucherDate));
+        const fiscalPeriodId = resolvedFiscalPeriodId;
         const entry = await this.accounting.postJournalInTx(tx, tenantId, {
           branchId: voucher.branchId,
           fiscalPeriodId,
@@ -2963,11 +3147,43 @@ export class InventoryService {
             eq(stockVouchers.status, 'draft'),
           ),
         );
-      if (journalEntryId)
-        await tx
-          .update(stockVoucherLines)
-          .set({ lineCost: sql`${stockVoucherLines.qty} * COALESCE(${stockVoucherLines.unitCost}, 0)` })
-          .where(and(eq(stockVoucherLines.tenantId, tenantId), eq(stockVoucherLines.voucherId, id)));
+
+      // UI-005: Update voucher lines with the real moving unitCost and lineCost from inventoryTransactions
+      const txns = await tx
+        .select({
+          itemId: inventoryTransactions.itemId,
+          unitCost: inventoryTransactions.unitCost,
+          totalCost: inventoryTransactions.totalCost,
+          factor: inventoryTransactions.factor,
+        })
+        .from(inventoryTransactions)
+        .where(
+          and(
+            eq(inventoryTransactions.tenantId, tenantId),
+            eq(inventoryTransactions.docId, id),
+          ),
+        );
+      const costByItem = new Map(txns.map((t) => [t.itemId, t]));
+      for (const line of voucher.lines) {
+        const txn = costByItem.get(line.itemId);
+        if (txn) {
+          const lineUnitCost = new Decimal(txn.unitCost).mul(txn.factor ?? '1').toFixed(4);
+          const lineTotalCost = new Decimal(line.qty).mul(lineUnitCost).toFixed(4);
+          await tx
+            .update(stockVoucherLines)
+            .set({
+              unitCost: lineUnitCost,
+              lineCost: lineTotalCost,
+            })
+            .where(
+              and(
+                eq(stockVoucherLines.tenantId, tenantId),
+                eq(stockVoucherLines.voucherId, id),
+                eq(stockVoucherLines.lineNo, line.lineNo),
+              ),
+            );
+        }
+      }
       return this.getVoucherInTx(tx, tenantId, id);
     });
   }
@@ -2988,6 +3204,7 @@ export class InventoryService {
         itemId: movement.itemId,
         warehouseId: movement.warehouseId,
         qty: movement.qty,
+        unitId: movement.unitId ?? undefined,
         unitCost: movement.unitCost ?? '0',
         direction: movement.direction === 'out' ? 'in' : 'out',
         docType: 'stock_voucher_void',
@@ -3054,27 +3271,64 @@ export class InventoryService {
           createdBy: getRequestContext().tenant?.userId,
         })
         .returning();
-      await tx.insert(stockAdjustmentLines).values(
-        input.lines.map((line, index) => {
-          const lot = lots.get(index);
-          return {
-            adjustmentId: id,
-            lineNo: index + 1,
-            tenantId,
-            itemId: line.itemId,
-            expectedQty: '0',
-            countedQty: line.countedQty,
-            unitId: line.unitId ?? null,
-            unitCost: line.unitCost ?? null,
-            lotId: lot?.lotId ?? null,
-            batchNo: lot?.batchNo ?? null,
-            productionDate: lot?.productionDate ?? null,
-            expiryDate: lot?.expiryDate ?? null,
-            serialNos: (line.serialNos ?? []).map((value) => String(value).trim()).filter(Boolean),
-            note: line.note,
-          };
-        }),
-      );
+      const balances = await tx
+        .select({
+          itemId: stockBalances.itemId,
+          quantity: stockBalances.quantity,
+          averageCost: stockBalances.averageCost,
+        })
+        .from(stockBalances)
+        .where(
+          and(
+            eq(stockBalances.tenantId, tenantId),
+            eq(stockBalances.warehouseId, input.warehouseId),
+            inArray(stockBalances.itemId, input.lines.map((l) => l.itemId)),
+          ),
+        );
+      const balanceMap = new Map(balances.map((b) => [b.itemId, b]));
+
+      const resolvedLines = [];
+      for (const [index, line] of input.lines.entries()) {
+        const lot = lots.get(index);
+        const { factor } = await this.resolveUnit(tx, tenantId, {
+          itemId: line.itemId,
+          warehouseId: input.warehouseId,
+          qty: '1',
+          unitId: line.unitId ?? undefined,
+          direction: 'in',
+          docType: 'stock_adjustment',
+          docId: id,
+        });
+        const bal = balanceMap.get(line.itemId);
+        const baseQty = new Decimal(bal?.quantity ?? '0');
+        const expectedQtyInCountedUnit = baseQty.div(factor).toFixed(4);
+        const baseAvgCost = new Decimal(bal?.averageCost ?? '0');
+        const unitCostInCountedUnit = baseAvgCost.mul(factor).toFixed(4);
+
+        const diffQty = new Decimal(line.countedQty).minus(expectedQtyInCountedUnit);
+        const resolvedUnitCost = line.unitCost ?? (Number(unitCostInCountedUnit) > 0 ? unitCostInCountedUnit : '0');
+        const diffValue = diffQty.mul(resolvedUnitCost).abs().toFixed(4);
+
+        resolvedLines.push({
+          adjustmentId: id,
+          lineNo: index + 1,
+          tenantId,
+          itemId: line.itemId,
+          expectedQty: expectedQtyInCountedUnit,
+          countedQty: line.countedQty,
+          varianceQty: diffQty.toFixed(4),
+          varianceValue: diffValue,
+          unitId: line.unitId ?? null,
+          unitCost: Number(resolvedUnitCost) > 0 ? resolvedUnitCost : null,
+          lotId: lot?.lotId ?? null,
+          batchNo: lot?.batchNo ?? null,
+          productionDate: lot?.productionDate ?? null,
+          expiryDate: lot?.expiryDate ?? null,
+          serialNos: (line.serialNos ?? []).map((value) => String(value).trim()).filter(Boolean),
+          note: line.note,
+        });
+      }
+      await tx.insert(stockAdjustmentLines).values(resolvedLines);
       return { ...adjustment, lines: await this.adjustmentLines(tx, tenantId, id) };
     });
   }

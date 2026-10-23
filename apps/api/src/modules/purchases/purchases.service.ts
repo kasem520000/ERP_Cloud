@@ -7,6 +7,7 @@ import {
   accounts,
   inventoryTransactions,
   items,
+  itemSerials,
   journalEntries,
   parties,
   paymentAllocations,
@@ -192,6 +193,65 @@ export class PurchasesService {
       }
       const [supplier] = await tx.select().from(parties).where(and(eq(parties.tenantId, tenantId), eq(parties.id, resolvedPartyId)));
       if (!supplier || !['supplier', 'both'].includes(supplier.kind)) throw new DomainError('PURCHASE_SUPPLIER_REQUIRED', 'Purchase invoices require a supplier party', 422);
+
+      // ACC-022 & ACC-124: التحقق من سقف كمية وسعر مرتجع المشتريات عند الإنشاء
+      if (input.kind === 'purchase_return' && input.referenceInvoiceId) {
+        const refLines = await tx
+          .select()
+          .from(purchaseInvoiceLines)
+          .where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.invoiceId, input.referenceInvoiceId)));
+        const sourceMap = new Map<string, Decimal>();
+        const sourcePriceMap = new Map<string, Decimal>();
+        for (const rl of refLines) {
+          sourceMap.set(rl.itemId, (sourceMap.get(rl.itemId) ?? new Decimal(0)).plus(rl.quantity));
+          sourcePriceMap.set(rl.itemId, Decimal.max(sourcePriceMap.get(rl.itemId) ?? new Decimal(0), money(rl.unitPrice)));
+        }
+
+        const priorReturns = await tx
+          .select()
+          .from(purchaseInvoices)
+          .where(
+            and(
+              eq(purchaseInvoices.tenantId, tenantId),
+              eq(purchaseInvoices.referenceInvoiceId, input.referenceInvoiceId),
+              eq(purchaseInvoices.kind, 'purchase_return'),
+              inArray(purchaseInvoices.status, ['draft', 'posted']),
+            ),
+          );
+        const returnedMap = new Map<string, Decimal>();
+        for (const pr of priorReturns) {
+          const prLines = await tx
+            .select()
+            .from(purchaseInvoiceLines)
+            .where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.invoiceId, pr.id)));
+          for (const prl of prLines) {
+            returnedMap.set(prl.itemId, (returnedMap.get(prl.itemId) ?? new Decimal(0)).plus(prl.quantity));
+          }
+        }
+
+        for (const line of input.lines) {
+          const originalQty = sourceMap.get(line.itemId) ?? new Decimal(0);
+          const alreadyReturned = returnedMap.get(line.itemId) ?? new Decimal(0);
+          const returnQty = money(line.quantity);
+          if (alreadyReturned.plus(returnQty).gt(originalQty)) {
+            throw new DomainError(
+              'PURCHASE_RETURN_QTY_EXCEEDED',
+              'Return quantity exceeds the remaining purchase invoice quantity',
+              422,
+            );
+          }
+          const maxPrice = sourcePriceMap.get(line.itemId);
+          if (maxPrice && money(line.unitPrice).gt(maxPrice.plus('0.0001'))) {
+            throw new DomainError(
+              'PURCHASE_RETURN_PRICE_EXCEEDED',
+              'Return unit price cannot exceed original purchase price',
+              422,
+              { itemId: line.itemId, returnPrice: line.unitPrice, originalPrice: maxPrice.toFixed(4) },
+            );
+          }
+        }
+      }
+
       await tx.insert(purchaseInvoices).values({ id, tenantId, createdBy: tryGetAuthContext()?.userId, branchId: input.branchId, warehouseId: input.warehouseId, partyId: resolvedPartyId, costCenterId: input.costCenterId ?? null, referenceInvoiceId: input.referenceInvoiceId, kind: input.kind ?? 'purchase', supplierReferenceNo: input.supplierReferenceNo, supplierReferenceDate: input.supplierReferenceDate, currency: input.currency ?? 'SAR', priceIncludesVat: input.priceIncludesVat ?? false, landedCostAlloc: input.landedCostAlloc ?? 'value', invoiceDiscount: totals.discount, extraTax: totals.extraTax, withholding: totals.withholding, subtotal: totals.subtotal, taxTotal: totals.tax, total: totals.total, status: 'draft' });
       if (input.lines.length > 0) {
         await tx.insert(purchaseInvoiceLines).values(
@@ -395,30 +455,121 @@ export class PurchasesService {
     }
 
     await withTenantTx(this.database.db, tenantId, async (tx) => {
-      const [locked] = await tx.select().from(purchaseInvoices).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, id), eq(purchaseInvoices.status, 'draft')));
+      const [locked] = await tx
+        .select()
+        .from(purchaseInvoices)
+        .where(
+          and(
+            eq(purchaseInvoices.tenantId, tenantId),
+            eq(purchaseInvoices.id, id),
+            eq(purchaseInvoices.status, 'draft'),
+          ),
+        )
+        .for('update');
       if (!locked) throw new DomainError('PURCHASE_INVOICE_INVALID_STATUS', 'Only draft purchases can be posted', 409);
       const lines = await tx.select().from(purchaseInvoiceLines).where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.invoiceId, id)));
+
+      // ACC-022 & ACC-124: فحص حرس كمية وسعر مردود الشراء مقابل الفاتورة المرجعية والمردودات السابقة
+      if (locked.kind === 'purchase_return' && locked.referenceInvoiceId) {
+        const sourceLines = await tx
+          .select()
+          .from(purchaseInvoiceLines)
+          .where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.invoiceId, locked.referenceInvoiceId)));
+        const sourceMap = new Map<string, Decimal>();
+        const sourcePriceMap = new Map<string, Decimal>();
+        for (const sl of sourceLines) {
+          sourceMap.set(sl.itemId, (sourceMap.get(sl.itemId) ?? new Decimal(0)).plus(sl.quantity));
+          sourcePriceMap.set(sl.itemId, Decimal.max(sourcePriceMap.get(sl.itemId) ?? new Decimal(0), money(sl.unitPrice)));
+        }
+
+        const priorReturns = await tx
+          .select({ id: purchaseInvoices.id })
+          .from(purchaseInvoices)
+          .where(
+            and(
+              eq(purchaseInvoices.tenantId, tenantId),
+              eq(purchaseInvoices.referenceInvoiceId, locked.referenceInvoiceId),
+              eq(purchaseInvoices.kind, 'purchase_return'),
+              eq(purchaseInvoices.status, 'posted'),
+              sql`${purchaseInvoices.id} <> ${id}`,
+            ),
+          );
+        const returnedMap = new Map<string, Decimal>();
+        for (const pr of priorReturns) {
+          const prLines = await tx
+            .select()
+            .from(purchaseInvoiceLines)
+            .where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.invoiceId, pr.id)));
+          for (const prl of prLines) {
+            returnedMap.set(prl.itemId, (returnedMap.get(prl.itemId) ?? new Decimal(0)).plus(prl.quantity));
+          }
+        }
+
+        for (const line of lines) {
+          const originalQty = sourceMap.get(line.itemId) ?? new Decimal(0);
+          const alreadyReturned = returnedMap.get(line.itemId) ?? new Decimal(0);
+          const returnQty = money(line.quantity);
+          if (alreadyReturned.plus(returnQty).gt(originalQty)) {
+            throw new DomainError(
+              'PURCHASE_RETURN_QTY_EXCEEDED',
+              'Return quantity exceeds the remaining purchase invoice quantity',
+              422,
+            );
+          }
+          const maxPrice = sourcePriceMap.get(line.itemId);
+          if (maxPrice && money(line.unitPrice).gt(maxPrice.plus('0.0001'))) {
+            throw new DomainError(
+              'PURCHASE_RETURN_PRICE_EXCEEDED',
+              'Return unit price cannot exceed original purchase price',
+              422,
+              { itemId: line.itemId, returnPrice: line.unitPrice, originalPrice: maxPrice.toFixed(4) },
+            );
+          }
+        }
+      }
+
       const costs = await tx.select().from(purchaseInvoiceCosts).where(and(eq(purchaseInvoiceCosts.tenantId, tenantId), eq(purchaseInvoiceCosts.invoiceId, id)));
       const allocation = allocateLandedCost({ method: landedCostMethod(locked.landedCostAlloc), lines: lines.map((line) => ({ lineId: line.id, itemId: line.itemId, quantity: line.quantity, net: line.net })), costs: costs.filter((cost) => cost.allocationTarget === 'inventory').map((cost) => ({ amount: cost.amount })) });
       const byLine = new Map(allocation.lines.map((line) => [line.lineId, line]));
       const docType = locked.kind === 'purchase_return' ? 'purchase_return' : 'purchase_invoice';
       const isReturn = locked.kind === 'purchase_return';
+
+      const today = (posting as any).date?.trim() || new Date().toISOString().slice(0, 10);
+      const resolvedFiscalPeriodId = posting.fiscalPeriodId ?? (await this.accounting.openPeriodForDateInTx(tx, tenantId, today));
+      // ACC-053 & ACC-103: التحقق من قفل فترة المشتريات فوراً قبل تحريك أي كميات أو أرقام تسلسلية
+      await this.accounting.assertModuleUnlocked(tx, tenantId, resolvedFiscalPeriodId, 'purchases');
+
       // Services never touch the stock ledger — only `stock`-kind lines move.
       const itemRows = await tx
-        .select({ id: items.id, kind: items.kind })
+        .select({ id: items.id, kind: items.kind, trackSerial: items.trackSerial })
         .from(items)
         .where(and(eq(items.tenantId, tenantId), inArray(items.id, lines.map((line) => line.itemId))));
+      const serialTracked = new Set(itemRows.filter((row) => row.trackSerial).map((row) => row.id));
+      // ACC-128: فحص أن كل صنف متتبَّع بالأرقام التسلسلية يحمل أرقاماً مطابقة للكمية
+      for (const line of lines) {
+        if (serialTracked.has(line.itemId)) {
+          const sNos = (line.serialNos ?? []).map((s) => String(s).trim()).filter(Boolean);
+          if (!sNos.length) {
+            throw new DomainError(
+              'INVENTORY_SERIAL_REQUIRED',
+              'This item is tracked by serial — scan a serial',
+              422,
+              { field: 'serialNos', itemId: line.itemId },
+            );
+          }
+        }
+      }
       const stockable = new Set(itemRows.filter((row) => row.kind === 'stock').map((row) => row.id));
       const stocked = lines.filter((line) => stockable.has(line.itemId) && money(line.quantity).gt(0));
       if (stocked.length && !locked.warehouseId) throw new DomainError('PURCHASE_WAREHOUSE_REQUIRED', 'Posting purchases requires a warehouse', 422);
-      const inventoryLines: InventoryLine[] = stocked.map((line) => { const allocated = byLine.get(line.id); return { itemId: line.itemId, warehouseId: locked.warehouseId ?? '', qty: line.quantity, unitCost: allocated?.effectiveUnitCost ?? line.unitPrice, direction: isReturn ? 'out' : 'in', docType, docId: id, lineId: line.id, costing: isReturn ? 'outAtAvg' : 'inWithCost' }; });
-      if (inventoryLines.length) await this.inventory.recordInTx(tx, tenantId, inventoryLines);
+
       /**
-       * R8 — الأرقام التسلسلية والدفعات على سطور الفاتورة بعد حركة المخزون: الإدخال
-       * يُنشئ الأرقام ويبحث عن الدفعة أو يُنشئها، والمرتجع يُخرج الرقم من الرفّ.
+       * R8 & ACC-133: حل الأرقام التسلسلية والدفعات أولاً حتى تُنشأ في item_serials وتُمرر
+       * معرّفاتها إلى recordInTx ليُسجَّل serial_id على inventory_transactions غير القابل للتعديل
        */
+      let resolved: Map<number, { lotId: string | null; batchNo: string | null; productionDate: string | null; expiryDate: string | null; serialIds: string[] }> | undefined;
       if (stocked.length && locked.warehouseId) {
-        const resolved = await this.inventory.resolveInvoiceLineNumbers(tx, tenantId, {
+        resolved = await this.inventory.resolveInvoiceLineNumbers(tx, tenantId, {
           docType,
           docId: id,
           warehouseId: locked.warehouseId,
@@ -449,21 +600,39 @@ export class PurchasesService {
             .where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.id, line.id)));
         }
       }
+
+      const inventoryLines: InventoryLine[] = stocked.map((line, index) => {
+        const allocated = byLine.get(line.id);
+        const numbers = resolved?.get(index);
+        return {
+          itemId: line.itemId,
+          warehouseId: locked.warehouseId ?? '',
+          qty: line.quantity,
+          unitCost: allocated?.effectiveUnitCost ?? line.unitPrice,
+          direction: isReturn ? 'out' : 'in',
+          docType,
+          docId: id,
+          lineId: line.id,
+          costing: isReturn ? 'outAtAvg' : 'inWithCost',
+          lotId: numbers?.lotId ?? line.lotId ?? undefined,
+          serialId: numbers?.serialIds?.[0],
+        };
+      });
+      if (inventoryLines.length) await this.inventory.recordInTx(tx, tenantId, inventoryLines);
       for (const line of lines) {
         const allocated = byLine.get(line.id);
         await tx.update(purchaseInvoiceLines).set({ allocatedCost: allocated?.allocatedCost ?? '0', landedTotal: allocated?.landedTotal ?? line.net, unitCostAtPost: allocated?.effectiveUnitCost ?? line.unitPrice, updatedAt: new Date() }).where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.id, line.id)));
       }
-      const today = new Date().toISOString().slice(0, 10);
       const numbered = await this.sequences.next({ tenantId, branchId: locked.branchId, docType }, tx, { prefix: isReturn ? 'PR-' : 'PI-', padding: 6 });
       const additionalCostTotal = costs.reduce((sum, cost) => sum.plus(cost.amount), new Decimal(0)).toFixed(4);
       const postedTotal = money(locked.total).plus(additionalCostTotal).toFixed(4);
       let journalEntryId: string | null = null;
       if (posting.journalLines?.length) {
-        const journal = await this.accounting.postJournalInTx(tx, tenantId, { branchId: locked.branchId, fiscalPeriodId: posting.fiscalPeriodId!, date: today, description: `Purchase invoice ${id}`, lines: posting.journalLines, sourceType: docType, sourceId: id });
+        const journal = await this.accounting.postJournalInTx(tx, tenantId, { branchId: locked.branchId, fiscalPeriodId: resolvedFiscalPeriodId, date: today, description: `Purchase invoice ${id}`, lines: posting.journalLines, sourceType: docType, sourceId: id });
         journalEntryId = journal?.id ?? null;
       } else if (money(postedTotal).abs().gt(0)) {
         const profile = await this.profiles.resolvePostProfileInTx(tx, tenantId, locked.branchId, docType);
-        const fiscalPeriodId = posting.fiscalPeriodId ?? (await this.accounting.openPeriodForDateInTx(tx, tenantId, today));
+        const fiscalPeriodId = resolvedFiscalPeriodId;
         const mapping = profile.mapping as unknown as Record<string, string | null | undefined>;
         // Returns relieve at the current average: the journal credits exactly what
         // the ledger relieved, and any price-vs-average drift lands in COGS.
@@ -504,7 +673,7 @@ export class PurchasesService {
       if (settled) {
         await tx.insert(paymentAllocations).values({ id: newId(), tenantId, partyId: locked.partyId, invoiceKind: locked.kind, invoiceId: id, amount: postedTotal });
       }
-      await tx.update(purchaseInvoices).set({ status: 'posted', number: numbered.display, additionalCostTotal, total: postedTotal, paidTotal: settled ? postedTotal : locked.paidTotal, paymentStatus: money(postedTotal).isZero() || settled ? 'paid' : 'unpaid', journalEntryId, postedAt: new Date() }).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, id), eq(purchaseInvoices.status, 'draft')));
+      await tx.update(purchaseInvoices).set({ status: 'posted', number: numbered.display, additionalCostTotal, total: postedTotal, paidTotal: settled ? postedTotal : locked.paidTotal, paymentStatus: money(postedTotal).isZero() || settled ? 'paid' : 'unpaid', journalEntryId, postedAt: (posting as any).date ? new Date((posting as any).date) : new Date() }).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, id), eq(purchaseInvoices.status, 'draft')));
     });
     return this.get(tenantId, id);
   }
@@ -575,7 +744,7 @@ export class PurchasesService {
     const journal: JournalLineInput[] = [];
     const leg = (accountId: string, debit: Decimal, credit: Decimal, extra?: { partyId?: string | null; costCenterId?: string | null; description?: string }): void => {
       if (debit.abs().lte(0) && credit.abs().lte(0)) return;
-      journal.push({ accountId, debit: debit.toFixed(4), credit: credit.toFixed(4), partyId: (extra?.partyId ?? locked.partyId) ?? undefined, costCenterId: extra?.costCenterId ?? undefined, description: extra?.description });
+      journal.push({ accountId, debit: debit.toFixed(4), credit: credit.toFixed(4), partyId: extra?.partyId ?? undefined, costCenterId: extra?.costCenterId ?? undefined, description: extra?.description });
     };
 
     // Stored line nets already carry the header-discount share (pro-rata by gross,
@@ -647,10 +816,10 @@ export class PurchasesService {
       .map((line) => ({ amount: money(line.net).abs(), costCenterId: centerOf(line) }));
 
     if (!isReturn) {
-      legByCenter(need('inventoryAccountId'), stockedLanded.plus(stockedDiscount), stockedRows, locked.partyId);
+      legByCenter(need('inventoryAccountId'), stockedLanded.plus(stockedDiscount), stockedRows, null);
       // الرجل غير المخزنية تتبع وزن بواقي البنود بلا خصمٍ محمَّل عليه (الخصم غير المخزني
       // يُبنى على `nonstockNet` نفسه).
-      legByCenter(need('purchasesAccountId'), nonstockNet.plus(nonstockDiscount), nonstockRows, locked.partyId);
+      legByCenter(need('purchasesAccountId'), nonstockNet.plus(nonstockDiscount), nonstockRows, null);
       if (tax.abs().gt(0)) leg(need('vatInputAccountId'), tax, new Decimal(0));
       if (extra.abs().gt(0)) leg(need('exciseTaxAccountId'), extra, new Decimal(0));
       for (const cost of expenseCosts) leg(cost.accountId!, money(cost.amount), new Decimal(0), { costCenterId: cost.costCenterId, description: cost.name });
@@ -661,8 +830,8 @@ export class PurchasesService {
       // value — no contra leg; only services use the purchase-return account.
       // The price-vs-average drift is a COGS gain/loss, skipped when zero.
       leg(settlementAccount, total, new Decimal(0), { partyId: settlementParty });
-      creditByCenter(need('inventoryAccountId'), relievedValue, stockedRows, locked.partyId);
-      creditByCenter(need('purchaseReturnAccountId'), nonstockNet.plus(nonstockDiscount), nonstockRows, locked.partyId);
+      creditByCenter(need('inventoryAccountId'), relievedValue, stockedRows, null);
+      creditByCenter(need('purchaseReturnAccountId'), nonstockNet.plus(nonstockDiscount), nonstockRows, null);
       if (nonstockDiscount.gt(0)) leg(need('discountReceivedAccountId'), nonstockDiscount, new Decimal(0));
       if (tax.abs().gt(0)) leg(need('vatInputAccountId'), new Decimal(0), tax);
       if (extra.abs().gt(0)) leg(need('exciseTaxAccountId'), new Decimal(0), extra);
@@ -780,10 +949,47 @@ export class PurchasesService {
     const amount = money(input.amount);
     if (!amount.isFinite() || amount.lte(0)) throw new DomainError('PAYMENT_AMOUNT_INVALID', 'Payment amount must be positive', 422);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const paidTotal = money(invoice.paidTotal).plus(amount);
-      if (paidTotal.gt(money(invoice.total).plus('0.0001'))) throw new DomainError('PAYMENT_EXCEEDS_DUE', 'Payment exceeds purchase invoice balance', 422);
-      const [allocation] = await tx.insert(paymentAllocations).values({ id: newId(), tenantId, partyId: invoice.partyId, voucherId: input.voucherId, invoiceKind: invoice.kind, invoiceId, amount: input.amount }).returning();
-      await tx.update(purchaseInvoices).set({ paidTotal: paidTotal.toFixed(4), paymentStatus: paidTotal.gte(money(invoice.total)) ? 'paid' : 'partial', updatedAt: new Date() }).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, invoiceId)));
+      // ACC-033: قفل صف الفاتورة لضمان عدم تجاوز السداد عند التزامن
+      const [locked] = await tx
+        .select()
+        .from(purchaseInvoices)
+        .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, invoiceId)))
+        .for('update');
+      if (!locked || locked.status !== 'posted') throw new DomainError('PURCHASE_INVOICE_NOT_POSTED', 'Payments require a posted purchase invoice', 409);
+      const paidTotal = money(locked.paidTotal).plus(amount);
+      // ACC-123: تسامح الهللة (0.01) لتفادي رفض الدفعات المقربة إلى أقرب هللة
+      if (paidTotal.gt(money(locked.total).plus('0.01'))) throw new DomainError('PAYMENT_EXCEEDS_DUE', 'Payment exceeds purchase invoice balance', 422);
+      const [allocation] = await tx.insert(paymentAllocations).values({ id: newId(), tenantId, partyId: locked.partyId, voucherId: input.voucherId, invoiceKind: locked.kind, invoiceId, amount: input.amount }).returning();
+      if (!allocation) throw new DomainError('ALLOCATION_FAILED', 'Failed to create allocation', 500);
+
+      // ACC-032: إنشاء قيد GL محاسبي لسداد فاتورة المشتريات
+      if (!input.voucherId && locked.partyId) {
+        const profile = await this.profiles.resolvePostProfileInTx(tx, tenantId, locked.branchId, 'purchase_invoice');
+        const mapping = profile.mapping as unknown as Record<string, string | null | undefined>;
+        const payableAccountId = mapping.payableAccountId;
+        const cashAccountId = mapping.cashAccountId ?? mapping.bankAccountId;
+        if (payableAccountId && cashAccountId) {
+          const today = new Date().toISOString().slice(0, 10);
+          await this.accounting.postJournalInTx(tx, tenantId, {
+            branchId: locked.branchId,
+            fiscalPeriodId: await this.accounting.openPeriodForDateInTx(tx, tenantId, today),
+            date: today,
+            description: `سداد فاتورة مشتريات ${locked.number ?? locked.id}`,
+            lines: [
+              { accountId: payableAccountId, debit: input.amount, partyId: locked.partyId, description: `سداد فاتورة ${locked.number ?? ''}` },
+              { accountId: cashAccountId, credit: input.amount, description: `سداد فاتورة ${locked.number ?? ''}` },
+            ],
+            sourceType: 'purchase_payment',
+            sourceId: allocation.id,
+            idempotencyKey: `purchase-pay-je:${allocation.id}`,
+          });
+        }
+      }
+
+      // ACC-123: تسامح الهللة (0.01) عند تحديد حالة السداد لتفادي بقاء الفاتورة مفتوحة
+      const remaining = money(locked.total).minus(paidTotal);
+      const paymentStatus = (remaining.lte(0) || remaining.abs().lte('0.0099')) ? 'paid' : 'partial';
+      await tx.update(purchaseInvoices).set({ paidTotal: paidTotal.toFixed(4), paymentStatus, updatedAt: new Date() }).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, invoiceId)));
       return allocation;
     });
   }
@@ -819,6 +1025,66 @@ export class PurchasesService {
     if (note.status !== 'draft') throw new DomainError('PURCHASE_NOTE_INVALID_STATUS', 'Only draft adjustment notes can be posted', 409);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const allocated = await this.sequences.next({ tenantId, branchId: note.branchId, docType: `purchase_note_${note.kind}` }, tx, { prefix: note.kind === 'credit' ? 'PCN-' : 'PDN-', padding: 6 });
+
+      // ACC-027: ترحيل قيد محاسبي لإشعار المشتريات وتحديث رصيد الفاتورة والذمة
+      if (note.invoiceId) {
+        const [inv] = await tx.select().from(purchaseInvoices).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, note.invoiceId)));
+        if (inv && inv.partyId) {
+          const profile = await this.profiles.resolvePostProfileInTx(tx, tenantId, note.branchId, 'purchase_invoice');
+          const mapping = profile.mapping as unknown as Record<string, string | null | undefined>;
+          const payableAccountId = mapping.payableAccountId;
+          const purchaseReturnAccountId = mapping.purchaseReturnAccountId ?? mapping.purchasesAccountId;
+          const vatInputAccountId = mapping.vatInputAccountId;
+
+          if (payableAccountId && purchaseReturnAccountId && vatInputAccountId) {
+            const today = new Date().toISOString().slice(0, 10);
+            const base = money(note.amount).div('1.15').toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+            const vat = money(note.amount).minus(base);
+
+            const lines = note.kind === 'debit'
+              ? [
+                  { accountId: payableAccountId, debit: money(note.amount).toFixed(4), partyId: inv.partyId, description: `إشعار مدين ${allocated.display}` },
+                  { accountId: purchaseReturnAccountId, credit: base.toFixed(4), description: `إشعار مدين ${allocated.display} - ${note.reason}` },
+                  { accountId: vatInputAccountId, credit: vat.toFixed(4), description: `ضريبة إشعار مدين ${allocated.display}` },
+                ]
+              : [
+                  { accountId: mapping.purchasesAccountId ?? purchaseReturnAccountId, debit: base.toFixed(4), description: `إشعار دائن ${allocated.display} - ${note.reason}` },
+                  { accountId: vatInputAccountId, debit: vat.toFixed(4), description: `ضريبة إشعار دائن ${allocated.display}` },
+                  { accountId: payableAccountId, credit: money(note.amount).toFixed(4), partyId: inv.partyId, description: `إشعار دائن ${allocated.display}` },
+                ];
+
+            await this.accounting.postJournalInTx(tx, tenantId, {
+              branchId: note.branchId,
+              fiscalPeriodId: await this.accounting.openPeriodForDateInTx(tx, tenantId, today),
+              date: today,
+              description: `تسوية إشعار ${note.kind === 'debit' ? 'مدين' : 'دائن'} ${allocated.display} على فاتورة شراء ${inv.number ?? inv.id}`,
+              lines,
+              sourceType: note.kind === 'debit' ? 'purchase_debit_note' : 'purchase_credit_note',
+              sourceId: id,
+              idempotencyKey: `purchase-note-je:${id}`,
+            });
+
+            if (note.kind === 'debit') {
+              const newPaid = money(inv.paidTotal).plus(note.amount);
+              await tx.update(purchaseInvoices).set({
+                paidTotal: newPaid.toFixed(4),
+                paymentStatus: newPaid.gte(money(inv.total)) ? 'paid' : 'partial',
+                updatedAt: new Date(),
+              }).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, inv.id)));
+
+              await tx.insert(paymentAllocations).values({
+                id: newId(),
+                tenantId,
+                partyId: inv.partyId,
+                invoiceKind: 'debit_note',
+                invoiceId: inv.id,
+                amount: note.amount,
+              });
+            }
+          }
+        }
+      }
+
       const [posted] = await tx
         .update(purchaseAdjustmentNotes)
         .set({ status: 'posted', number: allocated.display, postedAt: new Date(), updatedAt: new Date(), updatedBy: tryGetAuthContext()?.userId })

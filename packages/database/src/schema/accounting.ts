@@ -146,6 +146,9 @@ export const journalEntries = pgTable(
     journalTenantDateIdx: index('journal_entries_tenant_date_idx').on(table.tenantId, table.date),
     journalSourceIdx: index('journal_entries_source_idx').on(table.tenantId, table.sourceType, table.sourceId),
     journalIdempotencyKey: uniqueIndex('journal_entries_idempotency_key').on(table.tenantId, table.idempotencyKey),
+    journalTenantNumberKey: uniqueIndex('journal_entries_tenant_number_key')
+      .on(table.tenantId, table.number)
+      .where(sql`number IS NOT NULL`),
   }),
 );
 

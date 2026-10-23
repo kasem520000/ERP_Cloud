@@ -23,6 +23,7 @@ export function calculatePayrollLine(input: PayrollEmployeeInput): PayrollLineRe
   const adjustedBase = base.mul(unpaidFactor);
   const additions = (input.adjustments ?? []).filter((entry) => entry.kind === 'addition').reduce((sum, entry) => sum.plus(new Decimal(entry.valueText)), new Decimal(0));
   const deductions = (input.adjustments ?? []).filter((entry) => entry.kind === 'deduction').reduce((sum, entry) => sum.plus(new Decimal(entry.valueText)), new Decimal(0));
-  const net = Decimal.max(0, adjustedBase.plus(additions).minus(deductions));
-  return { employeeId: input.id, employeeName: input.name, components: input.components, additions: additions.toFixed(4), deductions: deductions.toFixed(4), gross: adjustedBase.toFixed(4), net: net.toFixed(4), unpaidFactor: unpaidFactor.toFixed(6) };
+  const gross = adjustedBase.plus(additions);
+  const net = Decimal.max(0, gross.minus(deductions));
+  return { employeeId: input.id, employeeName: input.name, components: input.components, additions: additions.toFixed(4), deductions: deductions.toFixed(4), gross: gross.toFixed(4), net: net.toFixed(4), unpaidFactor: unpaidFactor.toFixed(6) };
 }

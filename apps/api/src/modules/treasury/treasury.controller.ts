@@ -10,8 +10,13 @@ export class TreasuryController {
   constructor(private readonly treasury: TreasuryService) {}
   @Get('vouchers')
   @RequiresPermission('treasury.view')
-  vouchers(@Query('from') from?: string, @Query('to') to?: string, @Query('q') q?: string) {
-    return this.treasury.vouchers(getTenantContext().tenantId, { from, to, q });
+  vouchers(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('q') q?: string,
+    @Query('kind') kind?: string,
+  ) {
+    return this.treasury.vouchers(getTenantContext().tenantId, { from, to, q, kind });
   }
   @Get('vouchers/:id') @RequiresPermission('treasury.view') getVoucher(@Param('id') id: string) { return this.treasury.getVoucher(getTenantContext().tenantId, id); }
   @Post('vouchers') @RequiresPermission('treasury.voucher.create') createVoucher(@Body() body: VoucherInput) { return this.treasury.createVoucher(getTenantContext().tenantId, body); }
@@ -104,5 +109,6 @@ export class TreasuryController {
     });
   }
   @Get('cash-locations/:id/balance') @RequiresPermission('treasury.view') cashLocationBalance(@Param('id') id: string, @Query('currency') currency?: string) { return this.treasury.getCashBalance(getTenantContext().tenantId, id, currency); }
-  @Post('cash-locations/:id/recalc-balance') @RequiresPermission('treasury.transfer.manage') recalc(@Param('id') id: string, @Query('currency') currency?: string) { return this.treasury.recalcCashBalance(getTenantContext().tenantId, id, currency); }
+  @Post('cash-locations/:id/recalc-balance') @RequiresPermission('treasury.transfer.manage') recalcBalance(@Param('id') id: string, @Query('currency') currency?: string) { return this.treasury.recalcCashBalance(getTenantContext().tenantId, id, currency); }
+  @Post('cash-locations/:id/recalc') @RequiresPermission('treasury.transfer.manage') recalc(@Param('id') id: string, @Query('currency') currency?: string) { return this.treasury.recalcCashBalance(getTenantContext().tenantId, id, currency); }
 }

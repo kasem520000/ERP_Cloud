@@ -133,7 +133,7 @@ export const bomLines = pgTable(
   }),
 );
 
-export type RecipeLine = { componentItemId: string; qty: string; scrapPercent: string };
+export type RecipeLine = { componentItemId: string; qty: string; scrapPercent: string; unitCost?: string };
 
 /**
  * Light manufacturing order. `recipe` is copied from the BOM at creation so a later

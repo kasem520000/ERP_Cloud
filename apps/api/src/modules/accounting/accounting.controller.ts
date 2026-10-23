@@ -130,15 +130,22 @@ export class AccountingController {
 
   @Post('fiscal-periods/:id/reopen')
   @RequiresPermission('accounting.period.reopen')
-  async reopenPeriod(@Param('id') id: string, @Body() body: { reason: string }) {
-    await this.accounting.reopenPeriod(getTenantContext().tenantId, id, body.reason);
+  async reopenPeriod(@Param('id') id: string, @Body() body: { reason?: string }) {
+    await this.accounting.reopenPeriod(getTenantContext().tenantId, id, body?.reason);
     return { data: { id, status: 'open' } };
   }
 
   @Post('fiscal-periods/:id/modules/:module/lock')
   @RequiresPermission('accounting.period.close')
   async lockModule(@Param('id') id: string, @Param('module') module: string) {
-    return { data: await this.accounting.lockModule(getTenantContext().tenantId, id, module) };
+    return {
+      data: await this.accounting.lockModule(
+        getTenantContext().tenantId,
+        id,
+        module,
+        tryGetAuthContext()?.userId,
+      ),
+    };
   }
 
   @Post('fiscal-periods/:id/modules/:module/unlock')
@@ -271,13 +278,15 @@ export class AccountingController {
   async listCostCenters(
     @Query('q') q?: string,
     @Query('branch_id') branchId?: string,
-    @Query('with_balances') withBalances?: string,
+    @Query('with_balances') withBalancesSnake?: string,
+    @Query('withBalances') withBalancesCamel?: string,
   ) {
+    const withBalances = on(withBalancesSnake) || on(withBalancesCamel);
     return {
       data: await this.accounting.listCostCenters(getTenantContext().tenantId, {
         q,
         branchId,
-        withBalances: on(withBalances),
+        withBalances,
       }),
     };
   }
@@ -444,7 +453,10 @@ export class AccountingController {
 
   @Post('journal-entries/:id/reverse')
   @RequiresPermission('accounting.journal.reverse')
-  async reverseJournal(@Param('id') id: string, @Body() body: { branchId: string; fiscalPeriodId: string; date: string; reason: string }) {
+  async reverseJournal(
+    @Param('id') id: string,
+    @Body() body: { branchId?: string; fiscalPeriodId?: string; date?: string; reason: string },
+  ) {
     return { data: await this.accounting.reverseJournal(getTenantContext().tenantId, id, body) };
   }
 }

@@ -507,13 +507,25 @@ export class PosService {
       }
       seenDeviceSequences.add(sequenceKey);
 
-      const [existing] = await withTenantTx(this.database.db, tenantId, (tx) =>
+      let [existing] = await withTenantTx(this.database.db, tenantId, (tx) =>
         tx
           .select()
           .from(offlineQueue)
           .where(and(eq(offlineQueue.tenantId, tenantId), eq(offlineQueue.offlineId, offlineId)))
           .limit(1),
       );
+      // ACC-145: Check sequence mismatch before returning already-synced status
+      if (existing && existing.sequenceNo !== sequenceNo) {
+        results.push({
+          offlineId,
+          sequenceNo,
+          status: 'conflict',
+          errorCode: 'POS_OFFLINE_ID_SEQUENCE_MISMATCH',
+          message: 'The same offlineId was submitted with another sequence number',
+          resolution: { action: 'restore-original-sequence', sequenceNo: existing.sequenceNo },
+        });
+        continue;
+      }
       if (existing?.status === 'synced') {
         results.push({
           offlineId,
@@ -527,16 +539,36 @@ export class PosService {
         });
         continue;
       }
-      if (existing && existing.sequenceNo !== sequenceNo) {
-        results.push({
-          offlineId,
-          sequenceNo,
-          status: 'conflict',
-          errorCode: 'POS_OFFLINE_ID_SEQUENCE_MISMATCH',
-          message: 'The same offlineId was submitted with another sequence number',
-          resolution: { action: 'restore-original-sequence', sequenceNo: existing.sequenceNo },
-        });
-        continue;
+
+      // ACC-052: إذا كانت العملية قيد المعالجة بواسطة طلب متزامن، انتظر حتى اكتمالها
+      if (existing && existing.status === 'pending') {
+        for (let attempt = 0; attempt < 30; attempt++) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          const [poll] = await withTenantTx(this.database.db, tenantId, (tx) =>
+            tx
+              .select()
+              .from(offlineQueue)
+              .where(and(eq(offlineQueue.tenantId, tenantId), eq(offlineQueue.offlineId, offlineId)))
+              .limit(1),
+          );
+          if (poll && poll.status !== 'pending') {
+            existing = poll;
+            break;
+          }
+        }
+        if (existing.status === 'synced') {
+          results.push({
+            offlineId,
+            sequenceNo,
+            status: existing.status,
+            invoiceId: existing.invoiceId,
+            number: existing.invoiceNumber,
+            errorCode: existing.errorCode,
+            message: existing.errorDetail,
+            resolution: { action: 'remove-local-copy' },
+          });
+          continue;
+        }
       }
 
       const [latest] = await withTenantTx(this.database.db, tenantId, (tx) =>
@@ -548,15 +580,55 @@ export class PosService {
           .limit(1),
       );
       if (!existing && latest && sequenceNo <= latest.sequenceNo) {
-        results.push({
-          offlineId,
-          sequenceNo,
-          status: 'conflict',
-          errorCode: 'POS_OFFLINE_SEQUENCE_OLD',
-          message: `Sequence ${sequenceNo} is not newer than the last accepted sequence ${latest.sequenceNo}`,
-          resolution: { action: 'refresh-device-sequence', lastAcceptedSequence: latest.sequenceNo },
-        });
-        continue;
+        const [recheck] = await withTenantTx(this.database.db, tenantId, (tx) =>
+          tx
+            .select()
+            .from(offlineQueue)
+            .where(and(eq(offlineQueue.tenantId, tenantId), eq(offlineQueue.offlineId, offlineId)))
+            .limit(1),
+        );
+        if (recheck) {
+          existing = recheck;
+          if (existing.status === 'pending') {
+            for (let attempt = 0; attempt < 30; attempt++) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+              const [poll] = await withTenantTx(this.database.db, tenantId, (tx) =>
+                tx
+                  .select()
+                  .from(offlineQueue)
+                  .where(and(eq(offlineQueue.tenantId, tenantId), eq(offlineQueue.offlineId, offlineId)))
+                  .limit(1),
+              );
+              if (poll && poll.status !== 'pending') {
+                existing = poll;
+                break;
+              }
+            }
+          }
+          if (existing.status === 'synced') {
+            results.push({
+              offlineId,
+              sequenceNo,
+              status: existing.status,
+              invoiceId: existing.invoiceId,
+              number: existing.invoiceNumber,
+              errorCode: existing.errorCode,
+              message: existing.errorDetail,
+              resolution: { action: 'remove-local-copy' },
+            });
+            continue;
+          }
+        } else {
+          results.push({
+            offlineId,
+            sequenceNo,
+            status: 'conflict',
+            errorCode: 'POS_OFFLINE_SEQUENCE_OLD',
+            message: `Sequence ${sequenceNo} is not newer than the last accepted sequence ${latest.sequenceNo}`,
+            resolution: { action: 'refresh-device-sequence', lastAcceptedSequence: latest.sequenceNo },
+          });
+          continue;
+        }
       }
 
       const incomingPayload =
@@ -587,25 +659,71 @@ export class PosService {
             .where(and(eq(offlineQueue.tenantId, tenantId), eq(offlineQueue.offlineId, offlineId))),
         );
       } else {
-        await withTenantTx(this.database.db, tenantId, (tx) =>
-          tx.insert(offlineQueue).values({
-            id: newId(),
-            tenantId,
-            deviceId,
-            offlineId,
-            sequenceNo,
-            status: conflict ? 'conflict' : 'pending',
-            payload: rawPayload as unknown as Record<string, unknown>,
-            createdBy: userId,
-            createdAt:
-              invoice.createdAt && !Number.isNaN(Date.parse(invoice.createdAt))
-                ? new Date(invoice.createdAt)
-                : new Date(),
-            updatedAt: new Date(),
-            errorCode: conflict?.code,
-            errorDetail: conflict?.message,
-          }),
-        );
+        try {
+          await withTenantTx(this.database.db, tenantId, (tx) =>
+            tx.insert(offlineQueue).values({
+              id: newId(),
+              tenantId,
+              deviceId,
+              offlineId,
+              sequenceNo,
+              status: conflict ? 'conflict' : 'pending',
+              payload: rawPayload as unknown as Record<string, unknown>,
+              createdBy: userId,
+              createdAt:
+                invoice.createdAt && !Number.isNaN(Date.parse(invoice.createdAt))
+                  ? new Date(invoice.createdAt)
+                  : new Date(),
+              updatedAt: new Date(),
+              errorCode: conflict?.code,
+              errorDetail: conflict?.message,
+            }),
+          );
+        } catch (err: any) {
+          // ACC-052: التقاط تعارض الفهرس الفريد عند التزامن والانتظار حتى اكتمال ترحيل الطلب الأول
+          let concurrentQueue: typeof offlineQueue.$inferSelect | undefined;
+          for (let attempt = 0; attempt < 30; attempt++) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            const [poll] = await withTenantTx(this.database.db, tenantId, (tx) =>
+              tx
+                .select()
+                .from(offlineQueue)
+                .where(and(eq(offlineQueue.tenantId, tenantId), eq(offlineQueue.offlineId, offlineId)))
+                .limit(1),
+            );
+            if (poll && poll.status !== 'pending') {
+              concurrentQueue = poll;
+              break;
+            }
+          }
+          if (concurrentQueue) {
+            existing = concurrentQueue;
+          } else {
+            const [fallback] = await withTenantTx(this.database.db, tenantId, (tx) =>
+              tx
+                .select()
+                .from(offlineQueue)
+                .where(and(eq(offlineQueue.tenantId, tenantId), eq(offlineQueue.offlineId, offlineId)))
+                .limit(1),
+            );
+            if (fallback) existing = fallback;
+            else throw err;
+          }
+        }
+      }
+
+      if (existing?.status === 'synced') {
+        results.push({
+          offlineId,
+          sequenceNo,
+          status: existing.status,
+          invoiceId: existing.invoiceId,
+          number: existing.invoiceNumber,
+          errorCode: existing.errorCode,
+          message: existing.errorDetail,
+          resolution: { action: 'remove-local-copy' },
+        });
+        continue;
       }
       if (conflict) {
         if (existing) {
@@ -663,6 +781,8 @@ export class PosService {
                 status: 'synced',
                 invoiceId: postedAlready.id,
                 invoiceNumber: postedAlready.number,
+                errorCode: null,
+                errorDetail: null,
                 updatedAt: new Date(),
                 syncedAt: new Date(),
               })
@@ -691,6 +811,8 @@ export class PosService {
               status: 'synced',
               invoiceId: posted.data.invoiceId,
               invoiceNumber: posted.data.number,
+              errorCode: null,
+              errorDetail: null,
               updatedAt: new Date(),
               syncedAt: new Date(),
             })
@@ -706,6 +828,45 @@ export class PosService {
           change: posted.data.change,
         });
       } catch (error) {
+        // ACC-052: التحقق إذا كانت العملية قد نُفذت بالفعل بواسطة طلب متزامن
+        const replayOrderType = `offline-pos:${offlineId}`;
+        const [concurrentPosted] = await withTenantTx(this.database.db, tenantId, (tx) =>
+          tx
+            .select({
+              id: salesInvoices.id,
+              number: salesInvoices.number,
+              status: salesInvoices.status,
+              total: salesInvoices.total,
+            })
+            .from(salesInvoices)
+            .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.orderType, replayOrderType)))
+            .limit(1),
+        );
+        if (concurrentPosted && concurrentPosted.status === 'posted') {
+          await withTenantTx(this.database.db, tenantId, (tx) =>
+            tx
+              .update(offlineQueue)
+              .set({
+                status: 'synced',
+                invoiceId: concurrentPosted.id,
+                invoiceNumber: concurrentPosted.number,
+                updatedAt: new Date(),
+                syncedAt: new Date(),
+              })
+              .where(and(eq(offlineQueue.tenantId, tenantId), eq(offlineQueue.offlineId, offlineId))),
+          );
+          results.push({
+            offlineId,
+            sequenceNo,
+            status: 'synced',
+            invoiceId: concurrentPosted.id,
+            number: concurrentPosted.number,
+            total: concurrentPosted.total,
+            change: '0.0000',
+          });
+          continue;
+        }
+
         const code = error instanceof DomainError ? error.code : 'INTERNAL';
         const message = error instanceof Error ? error.message : 'Offline invoice could not be posted';
         await withTenantTx(this.database.db, tenantId, (tx) =>

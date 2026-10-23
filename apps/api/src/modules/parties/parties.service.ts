@@ -4,7 +4,7 @@ import { Decimal } from 'decimal.js';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 
 import { DomainError, errorCodes, newId } from '@erp/contracts';
-import { accounts, journalEntries, journalEntryLines, parties, partyContacts, paymentAllocations, paymentMethods, withTenantTx, type DatabaseHandle } from '@erp/database';
+import { accounts, journalEntries, journalEntryLines, parties, partyContacts, paymentAllocations, paymentMethods, purchaseInvoices, salesInvoices, vouchers, withTenantTx, type DatabaseHandle } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
@@ -168,27 +168,175 @@ export class PartiesService {
 
   async allocate(tenantId: string, input: AllocationInput) {
     const amount = new Decimal(input.amount);
-    const total = input.invoiceTotal === undefined ? null : new Decimal(input.invoiceTotal);
-    const allocated = new Decimal(input.alreadyAllocated ?? '0');
-    if (!amount.isFinite() || amount.lte(0) || (total && allocated.plus(amount).gt(total))) {
-      throw new DomainError('ALLOCATION_EXCEEDS_OPEN_AMOUNT', 'Allocation exceeds the invoice open amount', 422);
+    if (!amount.isFinite() || amount.lte(0)) {
+      throw new DomainError('ALLOCATION_AMOUNT_INVALID', 'Allocation amount must be positive', 422);
     }
+
     const id = newId();
     await withTenantTx(this.database.db, tenantId, async (tx) => {
-      const existing = await tx.select({ amount: paymentAllocations.amount }).from(paymentAllocations).where(and(eq(paymentAllocations.tenantId, tenantId), eq(paymentAllocations.invoiceKind, input.invoiceKind), eq(paymentAllocations.invoiceId, input.invoiceId)));
-      const persisted = existing.reduce((sum, row) => sum.plus(row.amount), new Decimal(0));
-      if (total && persisted.plus(amount).gt(total)) throw new DomainError('ALLOCATION_EXCEEDS_OPEN_AMOUNT', 'Allocation exceeds the invoice open amount', 422);
-      await tx.insert(paymentAllocations).values({ id, tenantId, partyId: input.partyId, voucherId: input.voucherId, invoiceKind: input.invoiceKind, invoiceId: input.invoiceId, amount: amount.toFixed(4) });
+      // ACC-049: 1. التحقق من وجود السند وحالته والطرف
+      if (input.voucherId) {
+        const [voucher] = await tx
+          .select()
+          .from(vouchers)
+          .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, input.voucherId)))
+          .for('update');
+        if (!voucher) throw new DomainError('VOUCHER_NOT_FOUND', 'Voucher was not found', 404);
+        if (voucher.status !== 'posted') throw new DomainError('VOUCHER_NOT_POSTED', 'Cannot allocate an unposted voucher', 422);
+        if (voucher.partyId && voucher.partyId !== input.partyId) {
+          throw new DomainError('ALLOCATION_PARTY_MISMATCH', 'Voucher party does not match allocation party', 422);
+        }
+
+        // 2. التحقق من رصيد السند المتاح
+        const existingVoucherAllocs = await tx
+          .select({ amount: paymentAllocations.amount })
+          .from(paymentAllocations)
+          .where(and(eq(paymentAllocations.tenantId, tenantId), eq(paymentAllocations.voucherId, input.voucherId)));
+        const voucherAllocatedTotal = existingVoucherAllocs.reduce((sum, r) => sum.plus(r.amount), new Decimal(0));
+        const voucherRemaining = Decimal.max(0, new Decimal(voucher.amount).minus(voucherAllocatedTotal));
+        if (amount.gt(voucherRemaining)) {
+          throw new DomainError('ALLOCATION_EXCEEDS_VOUCHER_AMOUNT', 'Allocation exceeds available voucher balance', 422);
+        }
+      }
+
+      // ACC-049: 3. التحقق من وجود الفاتورة ومطابقتها للطرف ومتبقي رصيدها
+      let invoiceTotal = new Decimal(0);
+      let invoicePaidTotal = new Decimal(0);
+      let invoicePartyId: string | null = null;
+      let invoiceStatus = '';
+
+      if (input.invoiceKind === 'sale' || input.invoiceKind === 'sales') {
+        const [inv] = await tx
+          .select({
+            total: salesInvoices.total,
+            paidTotal: salesInvoices.paidTotal,
+            partyId: salesInvoices.partyId,
+            status: salesInvoices.status,
+          })
+          .from(salesInvoices)
+          .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, input.invoiceId)))
+          .for('update');
+        if (!inv) throw new DomainError('INVOICE_NOT_FOUND', 'Sales invoice was not found', 404);
+        invoiceTotal = new Decimal(inv.total);
+        invoicePaidTotal = new Decimal(inv.paidTotal ?? '0');
+        invoicePartyId = inv.partyId;
+        invoiceStatus = inv.status;
+      } else if (input.invoiceKind === 'purchase') {
+        const [inv] = await tx
+          .select({
+            total: purchaseInvoices.total,
+            paidTotal: purchaseInvoices.paidTotal,
+            partyId: purchaseInvoices.partyId,
+            status: purchaseInvoices.status,
+          })
+          .from(purchaseInvoices)
+          .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, input.invoiceId)))
+          .for('update');
+        if (!inv) throw new DomainError('INVOICE_NOT_FOUND', 'Purchase invoice was not found', 404);
+        invoiceTotal = new Decimal(inv.total);
+        invoicePaidTotal = new Decimal(inv.paidTotal ?? '0');
+        invoicePartyId = inv.partyId;
+        invoiceStatus = inv.status;
+      } else {
+        throw new DomainError('INVALID_INVOICE_KIND', 'Invoice kind must be sale or purchase', 422);
+      }
+
+      if (invoicePartyId && invoicePartyId !== input.partyId) {
+        throw new DomainError('ALLOCATION_PARTY_MISMATCH', 'Invoice party does not match allocation party', 422);
+      }
+      if (invoiceStatus === 'draft' || invoiceStatus === 'voided' || invoiceStatus === 'cancelled') {
+        throw new DomainError('INVOICE_NOT_POSTED', 'Cannot allocate payment to unposted or voided invoice', 422);
+      }
+
+      const invoiceRemaining = Decimal.max(0, invoiceTotal.minus(invoicePaidTotal));
+      if (amount.gt(invoiceRemaining)) {
+        throw new DomainError('ALLOCATION_EXCEEDS_INVOICE_BALANCE', 'Allocation exceeds open invoice balance', 422);
+      }
+
+      await tx.insert(paymentAllocations).values({
+        id,
+        tenantId,
+        partyId: input.partyId,
+        voucherId: input.voucherId,
+        invoiceKind: input.invoiceKind,
+        invoiceId: input.invoiceId,
+        amount: amount.toFixed(4),
+      });
+
+      // ACC-049: 4. تحديث المدفوع وحالة السداد في الفاتورة
+      const newPaid = invoicePaidTotal.plus(amount);
+      const newPaymentStatus = newPaid.gte(invoiceTotal) ? 'paid' : (newPaid.gt(0) ? 'partial' : 'unpaid');
+      if (input.invoiceKind === 'sale' || input.invoiceKind === 'sales') {
+        await tx
+          .update(salesInvoices)
+          .set({
+            paidTotal: newPaid.toFixed(4),
+            paymentStatus: newPaymentStatus,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, input.invoiceId)));
+      } else if (input.invoiceKind === 'purchase') {
+        await tx
+          .update(purchaseInvoices)
+          .set({
+            paidTotal: newPaid.toFixed(4),
+            paymentStatus: newPaymentStatus,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, input.invoiceId)));
+      }
     });
     return { id, ...input, amount: amount.toFixed(4) };
   }
   async partyBalance(tenantId: string, partyId: string, asOf?: string) {
     // رصيد صفرٌ لعميلٍ غير موجود رقمٌ كاذب؛ والكشف مثله. الغياب يُعلَن قبل الحساب.
     await this.get(tenantId, partyId);
-    const rows = await withTenantTx(this.database.db, tenantId, (tx) => tx.select({ accountId: journalEntryLines.accountId, debit: journalEntryLines.debit, credit: journalEntryLines.credit, date: journalEntries.date, entryId: journalEntries.id }).from(journalEntryLines).innerJoin(journalEntries, eq(journalEntryLines.entryId, journalEntries.id)).where(and(eq(journalEntryLines.tenantId, tenantId), eq(journalEntryLines.partyId, partyId), eq(journalEntries.status, 'posted'), asOf ? sql`${journalEntries.date} <= ${asOf}` : undefined)));
+    const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .select({
+          accountId: journalEntryLines.accountId,
+          debit: journalEntryLines.debit,
+          credit: journalEntryLines.credit,
+          date: journalEntries.date,
+          entryId: journalEntries.id,
+          sourceType: journalEntries.sourceType,
+          sourceId: journalEntries.sourceId,
+        })
+        .from(journalEntryLines)
+        .innerJoin(journalEntries, eq(journalEntryLines.entryId, journalEntries.id))
+        .where(
+          and(
+            eq(journalEntryLines.tenantId, tenantId),
+            eq(journalEntryLines.partyId, partyId),
+            eq(journalEntries.status, 'posted'),
+            asOf ? sql`${journalEntries.date} <= ${asOf}` : undefined,
+          ),
+        ),
+    );
     const total = rows.reduce((sum, row) => sum.plus(new Decimal(row.debit).minus(row.credit)), new Decimal(0));
-    const allocations = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(paymentAllocations).where(and(eq(paymentAllocations.tenantId, tenantId), eq(paymentAllocations.partyId, partyId))));
-    return { receivable: total.toFixed(4), payable: '0.0000', open: rows.map((row) => ({ ...row, allocated: allocations.filter((a) => a.invoiceId === row.entryId).reduce((sum, a) => sum.plus(a.amount), new Decimal(0)).toFixed(4) })) };
+    const allocations = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .select()
+        .from(paymentAllocations)
+        .where(and(eq(paymentAllocations.tenantId, tenantId), eq(paymentAllocations.partyId, partyId))),
+    );
+    // ACC-017: مطابقة التخصيص عبر sourceId للمستند (الفاتورة أو السند) بدلاً من معرّف القيد
+    return {
+      receivable: total.toFixed(4),
+      payable: '0.0000',
+      open: rows.map((row) => ({
+        ...row,
+        allocated: allocations
+          .filter(
+            (a) =>
+              a.invoiceId === row.sourceId ||
+              a.invoiceId === row.entryId ||
+              (row.sourceId && a.voucherId === row.sourceId),
+          )
+          .reduce((sum, a) => sum.plus(a.amount), new Decimal(0))
+          .toFixed(4),
+      })),
+    };
   }
   async assertCreditAvailable(tenantId: string, partyId: string, newAmount: string, override = false) {
     const party = await this.get(tenantId, partyId);

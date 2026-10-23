@@ -52,8 +52,8 @@ export type InvoiceTotals = {
 type Int = bigint;
 const ten = (scale: number): Int => 10n ** BigInt(scale);
 
-function parse(value: string, scale: number): Int {
-  const normalized = value.trim();
+function parse(value: string | number, scale: number): Int {
+  const normalized = typeof value === 'number' ? value.toString() : String(value ?? '0').trim();
   const [wholePart = '0', fraction = ''] = normalized.replace(/^\+/, '').split('.');
   const negative = wholePart.startsWith('-');
   const wholeValue = BigInt(negative ? wholePart.slice(1) || '0' : wholePart || '0');
@@ -119,16 +119,41 @@ export function calculateInvoiceTotals(input: InvoiceTotalsInput): InvoiceTotals
     }
   }
 
+  // ACC-114: Under KSA VAT regulations, excise tax (extraTax) is part of the taxable base for VAT.
+  // Distribute excise tax across lines pro-rata by gross to augment the VAT taxable base.
+  const extraTaxTotal = parse(input.extraTax ?? '0', scale);
+  const extraShares = new Array<Int>(prepared.length).fill(0n);
+  if (extraTaxTotal !== 0n && prepared.length > 0) {
+    const totalGross = prepared.reduce((sum, line) => sum + (line.gross > 0n ? line.gross : 0n), 0n);
+    if (totalGross > 0n) {
+      for (let index = 0; index < prepared.length; index += 1) {
+        const base = prepared[index]!.gross > 0n ? prepared[index]!.gross : 0n;
+        extraShares[index] = divRound(extraTaxTotal * base, totalGross);
+      }
+      const distributed = extraShares.reduce((sum, share) => sum + share, 0n);
+      const remainder = extraTaxTotal - distributed;
+      if (remainder !== 0n) {
+        let target = 0;
+        for (let index = 1; index < prepared.length; index += 1) {
+          if (prepared[index]!.gross > prepared[target]!.gross) target = index;
+        }
+        extraShares[target] = (extraShares[target] ?? 0n) + remainder;
+      }
+    }
+  }
+
   const lines = prepared.map((line, index) => {
     const share = shares[index] ?? 0n;
+    const extraShare = extraShares[index] ?? 0n;
     // The share reduces the VAT-inclusive base, exactly as the desktop subtracts the
     // header discount from the gross sum before extracting VAT.
     const base = line.net - share;
+    const vatBase = base + extraShare;
     const tax = input.priceIncludesVat
-      ? divRound(base * line.taxRate, 100n * unit + line.taxRate)
-      : divRound(base * line.taxRate, 100n * unit);
-    const taxableNet = input.priceIncludesVat ? base - tax : base;
-    const total = input.priceIncludesVat ? base : base + tax;
+      ? divRound(vatBase * line.taxRate, 100n * unit + line.taxRate)
+      : divRound(vatBase * line.taxRate, 100n * unit);
+    const taxableNet = input.priceIncludesVat ? vatBase - tax : base;
+    const total = input.priceIncludesVat ? base + extraShare : base + tax + extraShare;
     return { gross: format(line.gross, scale), discount: format(line.discount, scale), net: format(taxableNet, scale), tax: format(tax, scale), total: format(total, scale), headerDiscountShare: format(share, scale) };
   });
   const subtotal = lines.reduce((sum, line) => sum + parse(line.net, scale), 0n);

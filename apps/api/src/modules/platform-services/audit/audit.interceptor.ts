@@ -77,10 +77,28 @@ export type RouteDescriptor = {
   subResource: string | null;
 };
 
+const TWO_SEGMENT_COLLECTIONS = new Set([
+  'inventory/vouchers',
+  'inventory/serials',
+  'inventory/lots',
+  'sales/invoices',
+  'sales/quotations',
+  'sales/offers',
+  'sales/salesmen',
+  'sales/adjustment-notes',
+  'purchase/invoices',
+  'organization/catalog',
+  'organization/company-profile',
+]);
+
 /**
  * `/api/v1/roles/{id}/permissions` → `{ resource: 'roles', entityId: '{id}',
  * subResource: 'permissions' }`. The version prefix is stripped so the audit trail is
  * stable across API versions.
+ *
+ * For two-segment collection paths like `/api/v1/inventory/vouchers/{id}/post`, it resolves
+ * `{ resource: 'inventory/vouchers', entityId: '{id}', subResource: 'post' }` so that
+ * the action is correctly identified as `update.post` instead of treating `{id}` as a sub-resource.
  */
 export function describeRoute(rawPath: string): RouteDescriptor {
   const path = rawPath.split('?')[0] ?? '';
@@ -91,6 +109,22 @@ export function describeRoute(rawPath: string): RouteDescriptor {
 
   if (segments[0] === 'api') segments.shift();
   if (segments[0]?.match(/^v\d+$/)) segments.shift();
+
+  if (segments.length >= 4) {
+    return {
+      resource: `${segments[0]}/${segments[1]}`,
+      entityId: segments[2] ?? null,
+      subResource: segments[3] ?? null,
+    };
+  }
+
+  if (segments.length === 3 && TWO_SEGMENT_COLLECTIONS.has(`${segments[0]}/${segments[1]}`)) {
+    return {
+      resource: `${segments[0]}/${segments[1]}`,
+      entityId: segments[2] ?? null,
+      subResource: null,
+    };
+  }
 
   return {
     resource: segments[0] ?? 'unknown',
@@ -140,10 +174,10 @@ export class AuditInterceptor implements NestInterceptor {
           void this.onSettled(method, route, authAction, response.statusCode, body, undefined);
         },
         error: (error: unknown) => {
-          // Only auth events are audited on failure; everything else would turn a
-          // validation typo into audit-log noise.
-          if (authAction) {
-            void this.onSettled(method, route, authAction, statusOf(error), undefined, error);
+          // ACC-076: Auth events and 403 Forbidden events are audited on failure
+          const status = statusOf(error);
+          if (authAction || status === 403) {
+            void this.onSettled(method, route, authAction, status, undefined, error);
           }
         },
       }),
@@ -190,6 +224,23 @@ export class AuditInterceptor implements NestInterceptor {
         entity: 'auth',
         entityId: context.auth?.userId ?? identity.userId ?? null,
         meta,
+      });
+      return;
+    }
+
+    // ACC-076: 403 authorization failures are audited as denied actions
+    if (status === 403) {
+      await this.audit.record({
+        tenantId: context.tenant?.tenantId ?? context.auditTenantId ?? null,
+        actorUserId: context.auth?.userId ?? null,
+        membershipId: context.auth?.membershipId ?? null,
+        action: `denied.${actionForMethod(method, route)}`,
+        entity: route.resource,
+        entityId: route.entityId,
+        meta: {
+          ...meta,
+          error: error instanceof Error ? error.message : String(error ?? 'Forbidden'),
+        },
       });
       return;
     }

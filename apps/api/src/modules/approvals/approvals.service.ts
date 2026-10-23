@@ -400,6 +400,14 @@ export class ApprovalService {
       if (!this.canActorAct(current, userId, roleKeys)) {
         throw new DomainError(errorCodes.FORBIDDEN, 'This approval is not assigned to you', 403);
       }
+      if (request.createdBy && request.createdBy === userId) {
+        throw new DomainError(
+          'CANNOT_SELF_APPROVE',
+          'لا يجوز لمُنشئ الطلب اعتماد طلبه بنفسه — يجب أن يعتمد الطلب شخصٌ آخر',
+          403,
+          { field: 'userId', createdBy: request.createdBy, userId },
+        );
+      }
 
       const [existingDecision] = await tx
         .select({ id: approvalDecisions.id })
@@ -819,6 +827,7 @@ export class ApprovalService {
           current &&
           current.action === 'approve' &&
           userId &&
+          (!request.createdBy || request.createdBy !== userId) &&
           this.canActorAct(current, userId, roleKeys),
       ),
     };
@@ -894,8 +903,29 @@ export class ApprovalService {
     tenantId: string,
     steps: ApprovalStepInput[],
   ): Promise<void> {
+    const rawIds = [...new Set(steps.map((step) => step.approver_user_id).filter((id): id is string => Boolean(id)))];
+    if (!rawIds.length) return;
+
+    // ACC-099 & UI-034: حل معرّفات العضويات إذا مررت بالخطأ بدل معرّفات المستخدمين
+    const memberRows = await tx
+      .select({ id: memberships.id, userId: memberships.userId })
+      .from(memberships)
+      .where(
+        and(
+          eq(memberships.tenantId, tenantId),
+          inArray(memberships.id, rawIds),
+          eq(memberships.status, 'active'),
+          isNull(memberships.deletedAt),
+        ),
+      );
+    const memberToUser = new Map(memberRows.map((m) => [m.id, m.userId]));
+    for (const step of steps) {
+      if (step.approver_user_id && memberToUser.has(step.approver_user_id)) {
+        step.approver_user_id = memberToUser.get(step.approver_user_id)!;
+      }
+    }
+
     const userIds = [...new Set(steps.map((step) => step.approver_user_id).filter((id): id is string => Boolean(id)))];
-    if (!userIds.length) return;
     const rows = await tx
       .select({ userId: memberships.userId })
       .from(memberships)

@@ -383,7 +383,7 @@ const inventory: ModuleNode = {
         // «فاتورة إخراج» في الديسكتوب هي شاشة صرف مخزني (Goods issue) عبر `/inventory/vouchers`،
         // لا فاتورة بيع. كانت تشير إلى `/sales/invoices/new`، فكان عنوان الترويسة يقول «فاتورة إخراج»
         // بينما الشاشة المفتوحة «فاتورة مبيعات» — تعارضٌ يراه المستخدم أول سطر.
-        screen('goods-out', 'صرف مخزني', 'Goods issue', '/inventory/vouchers?kind=issue', 'ready', {
+        screen('goods-out', 'صرف مخزني', 'Goods issue', '/inventory/vouchers?kind=stock_out', 'ready', {
           permission: 'sales.invoice.create',
           endpoint: 'POST /sales/invoices',
         }),

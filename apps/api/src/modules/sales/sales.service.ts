@@ -5,15 +5,23 @@ import { calculateInvoiceTotals, DomainError, errorCodes, newId } from '@erp/con
 import {
   accounts,
   branches,
+  cashLocations,
+  cashLocationBalances,
   einvoiceCredentials,
   einvoiceSettings,
   employees,
   inventoryTransactions,
   invoicePayments,
   items,
+  itemSerials,
   journalEntries,
+  journalEntryLines,
   offers,
+  offerItems,
+  offerParties,
   parties,
+  paymentAllocations,
+  paymentMethods,
   salesAdjustmentNotes,
   salesInvoiceLines,
   salesInvoices,
@@ -35,7 +43,7 @@ import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
 import { DomainEventsService } from '../../events/domain-events.service.js';
 import { WebhookPublisher } from '../developer/webhook-publisher.service.js';
 import { UsageService } from '../usage/index.js';
-import { AccountingService } from '../accounting/accounting.service.js';
+import { AccountingService, type JournalLineInput } from '../accounting/accounting.service.js';
 import { splitByCostCenter } from '../../common/cost-center-split.js';
 import { InventoryService, type InventoryLine } from '../inventory/inventory.service.js';
 import { PostingProfilesService } from '../organization/posting-profiles/posting-profiles.service.js';
@@ -129,6 +137,7 @@ export type PostingInput = {
     debit?: string;
     credit?: string;
     partyId?: string;
+    costCenterId?: string;
     description?: string;
   }[];
   inventoryLines?: InventoryLine[];
@@ -255,6 +264,22 @@ export class SalesService {
 
   private readonly logger = new Logger(SalesService.name);
 
+  private async bumpCashLocationBalance(
+    tx: DrizzleTx,
+    tenantId: string,
+    cashLocationId: string,
+    currencyCode: string,
+    delta: string,
+  ) {
+    await tx
+      .insert(cashLocationBalances)
+      .values({ tenantId, cashLocationId, currencyCode, balance: delta, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [cashLocationBalances.cashLocationId, cashLocationBalances.currencyCode],
+        set: { balance: sql`${cashLocationBalances.balance} + ${delta}`, updatedAt: new Date() },
+      });
+  }
+
   async list(tenantId: string) {
     const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
@@ -305,6 +330,46 @@ export class SalesService {
     // بائع ورقم ضريبي ثابتين لا يخصّان المستأجر — فالأصدق أن يعود `null` وتقول الشاشة
     // «لم تُصدر بعد» بدل رمزٍ يفشل أيُّ ماسح.
     const qrCode = invoice.zatcaQr || null;
+
+    // UI-008: احتساب الكميات المرتجعة والمتبقية القابلة للإرجاع لكل سطر
+    const returnedMap = new Map<string, Decimal>();
+    if (invoice.kind === 'sale') {
+      const returnInvoices = await tx
+        .select({ id: salesInvoices.id })
+        .from(salesInvoices)
+        .where(
+          and(
+            eq(salesInvoices.tenantId, tenantId),
+            eq(salesInvoices.referenceInvoiceId, id),
+            eq(salesInvoices.kind, 'sale_return'),
+            eq(salesInvoices.status, 'posted'),
+          ),
+        );
+      for (const ret of returnInvoices) {
+        const retLines = await tx
+          .select({ itemId: salesInvoiceLines.itemId, quantity: salesInvoiceLines.quantity })
+          .from(salesInvoiceLines)
+          .where(and(eq(salesInvoiceLines.tenantId, tenantId), eq(salesInvoiceLines.invoiceId, ret.id)));
+        for (const rl of retLines) {
+          if (rl.itemId) {
+            returnedMap.set(rl.itemId, (returnedMap.get(rl.itemId) ?? new Decimal(0)).plus(rl.quantity));
+          }
+        }
+      }
+    }
+
+    const linesWithReturns = lines.map((line) => {
+      const returned = line.itemId ? (returnedMap.get(line.itemId) ?? new Decimal(0)) : new Decimal(0);
+      const available = line.itemId ? Decimal.max(0, new Decimal(line.quantity).minus(returned)) : new Decimal(0);
+      return {
+        ...line,
+        returnedQuantity: returned.toFixed(4),
+        availableQuantity: available.toFixed(4),
+        returnedQty: returned.toFixed(4),
+        availableQty: available.toFixed(4),
+      };
+    });
+
     return {
       ...invoice,
       qrCode,
@@ -312,7 +377,7 @@ export class SalesService {
       partyTaxNo,
       taxInvoiceType: isStandardTaxInvoice ? 'standard' : 'simplified',
       taxInvoiceTypeLabelAr: isStandardTaxInvoice ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة',
-      lines,
+      lines: linesWithReturns,
       payments,
     };
   }
@@ -341,6 +406,43 @@ export class SalesService {
       throw new DomainError('SALES_LINES_REQUIRED', 'At least one invoice line is required', 422);
     if (!input.partyId && !input.cashCustomerName)
       throw new DomainError('SALES_CUSTOMER_REQUIRED', 'Party or cash customer name is required', 422);
+
+    for (let i = 0; i < input.lines.length; i++) {
+      const line = input.lines[i]!;
+      const qty = new Decimal(line.quantity ?? 0);
+      if (qty.lte(0)) {
+        throw new DomainError(
+          'SALES_LINE_QUANTITY_INVALID',
+          `Line ${i + 1} quantity must be strictly greater than zero`,
+          422,
+          { lineNo: i + 1, quantity: line.quantity },
+        );
+      }
+      const price = new Decimal(line.unitPrice ?? 0);
+      if (price.lt(0)) {
+        throw new DomainError(
+          'SALES_LINE_PRICE_INVALID',
+          `Line ${i + 1} unit price cannot be negative`,
+          422,
+          { lineNo: i + 1, unitPrice: line.unitPrice },
+        );
+      }
+      if (line.taxRate !== undefined && line.taxRate !== null && line.taxRate !== '') {
+        const rate = new Decimal(line.taxRate);
+        if (rate.lt(0) || rate.gt(100)) {
+          throw new DomainError(
+            'SALES_TAX_RATE_INVALID',
+            `Line ${i + 1} tax rate must be between 0 and 100`,
+            422,
+            { lineNo: i + 1, taxRate: line.taxRate },
+          );
+        }
+      } else {
+        // ACC-109: Default to standard 15% VAT rate when omitted on sales line
+        line.taxRate = '15';
+      }
+    }
+
     const totals = calculateInvoiceTotals({
       lines: input.lines,
       priceIncludesVat: input.priceIncludesVat,
@@ -377,7 +479,7 @@ export class SalesService {
         discountRate: line.discountRate ?? '0',
         discountAmount: calculated.discount,
         taxGroupId: line.taxGroupId,
-        taxRate: line.taxRate ?? '0',
+        taxRate: line.taxRate ?? '15',
         net: calculated.net,
         tax: calculated.tax,
         total: calculated.total,
@@ -401,7 +503,83 @@ export class SalesService {
       input.costCenterId,
       ...input.lines.map((line) => line.costCenterId),
     ]);
+
+    // ACC-121: التحقق من عدم تجاوز سعر الوحدة المرتجع لسعر البيع الأصلي
+    if (input.kind === 'sale_return' && input.referenceInvoiceId) {
+      const refLines = await tx
+        .select({ itemId: salesInvoiceLines.itemId, unitPrice: salesInvoiceLines.unitPrice })
+        .from(salesInvoiceLines)
+        .where(
+          and(
+            eq(salesInvoiceLines.tenantId, tenantId),
+            eq(salesInvoiceLines.invoiceId, input.referenceInvoiceId),
+          ),
+        );
+      const sourcePrices = new Map<string, Decimal>();
+      for (const rl of refLines) {
+        if (rl.itemId) {
+          sourcePrices.set(
+            rl.itemId,
+            Decimal.max(sourcePrices.get(rl.itemId) ?? new Decimal(0), money(rl.unitPrice)),
+          );
+        }
+      }
+      for (const line of input.lines) {
+        if (line.itemId) {
+          const maxPrice = sourcePrices.get(line.itemId);
+          if (maxPrice && money(line.unitPrice).gt(maxPrice.plus('0.0001'))) {
+            throw new DomainError(
+              'SALES_RETURN_PRICE_EXCEEDED',
+              'Return unit price cannot exceed original sale price',
+              422,
+              { itemId: line.itemId, returnPrice: line.unitPrice, originalPrice: maxPrice.toFixed(4) },
+            );
+          }
+        }
+      }
+    }
     const id = newId();
+    const actorUserId = tryGetAuthContext()?.userId;
+    let resolvedShiftId = input.shiftId ?? null;
+    let resolvedCashierId = input.cashierId ?? null;
+    if (!resolvedShiftId && actorUserId) {
+      const [openShift] = await tx
+        .select({ id: shiftCloses.id, userId: shiftCloses.userId })
+        .from(shiftCloses)
+        .where(
+          and(
+            eq(shiftCloses.tenantId, tenantId),
+            eq(shiftCloses.branchId, input.branchId),
+            eq(shiftCloses.userId, actorUserId),
+            eq(shiftCloses.status, 'open'),
+          ),
+        )
+        .limit(1);
+      if (openShift) {
+        resolvedShiftId = openShift.id;
+        resolvedCashierId = openShift.userId;
+      }
+    }
+
+    let validUntil = input.validUntil;
+    if (!validUntil && input.partyId) {
+      const [party] = await tx
+        .select({ paymentMethodId: parties.paymentMethodId })
+        .from(parties)
+        .where(and(eq(parties.tenantId, tenantId), eq(parties.id, input.partyId)));
+      if (party?.paymentMethodId) {
+        const [pm] = await tx
+          .select({ dueDays: paymentMethods.dueDays })
+          .from(paymentMethods)
+          .where(and(eq(paymentMethods.tenantId, tenantId), eq(paymentMethods.id, party.paymentMethodId)));
+        if (pm?.dueDays && pm.dueDays > 0) {
+          const d = new Date();
+          d.setDate(d.getDate() + pm.dueDays);
+          validUntil = d.toISOString().slice(0, 10);
+        }
+      }
+    }
+
     await tx
       .insert(salesInvoices)
       .values({
@@ -414,15 +592,15 @@ export class SalesService {
         salesmanId: input.salesmanId,
         costCenterId: input.costCenterId ?? null,
         kind: input.kind ?? 'sale',
-        validUntil: input.validUntil,
+        validUntil,
         currency: input.currency ?? 'SAR',
         priceIncludesVat: input.priceIncludesVat ?? false,
         cashCustomerName: input.cashCustomerName,
         cashCustomerMobile: input.cashCustomerMobile,
         orderType: input.orderType,
-        shiftId: input.shiftId ?? null,
-        cashierId: input.cashierId ?? null,
-        createdBy: tryGetAuthContext()?.userId,
+        shiftId: resolvedShiftId,
+        cashierId: resolvedCashierId,
+        createdBy: actorUserId,
         invoiceDiscount: totals.discount,
         extraTax: totals.extraTax,
         withholding: totals.withholding,
@@ -631,6 +809,27 @@ export class SalesService {
     const direction = invoice.kind === 'sale_return' ? 'in' : 'out';
     const numeric = lines.filter((line) => line.itemId);
     if (!numeric.length) return;
+
+    // ACC-128: فحص أن كل صنف متتبَّع بالأرقام التسلسلية يحمل أرقاماً مطابقة للكمية
+    const itemRows = await tx
+      .select({ id: items.id, trackSerial: items.trackSerial })
+      .from(items)
+      .where(and(eq(items.tenantId, tenantId), inArray(items.id, numeric.map((l) => l.itemId as string))));
+    const serialTracked = new Set(itemRows.filter((r) => r.trackSerial).map((r) => r.id));
+    for (const line of numeric) {
+      if (line.itemId && serialTracked.has(line.itemId)) {
+        const sNos = (line.serialNos ?? []).map((s) => String(s).trim()).filter(Boolean);
+        if (!sNos.length) {
+          throw new DomainError(
+            'INVENTORY_SERIAL_REQUIRED',
+            'This item is tracked by serial — scan a serial',
+            422,
+            { field: 'serialNos', itemId: line.itemId },
+          );
+        }
+      }
+    }
+
     const docType = invoice.kind === 'sale_return' ? 'sales_return' : 'sales_invoice';
     const resolved = await this.inventory.resolveInvoiceLineNumbers(tx, tenantId, {
       docType,
@@ -895,7 +1094,8 @@ export class SalesService {
           eq(salesInvoices.id, id),
           eq(salesInvoices.status, 'draft'),
         ),
-      );
+      )
+      .for('update');
     if (!locked)
       throw new DomainError('SALES_INVOICE_INVALID_STATUS', 'Only draft invoices can be posted', 409);
     const prefix =
@@ -912,7 +1112,89 @@ export class SalesService {
       { prefix, padding: 6 },
     );
     const number = allocated.display;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = (posting as any).date?.trim() || new Date().toISOString().slice(0, 10);
+    const needsJournal = Boolean(posting.journalLines?.length || money(locked.total).abs().gt(0));
+    const resolvedFiscalPeriodId =
+      posting.fiscalPeriodId ??
+      (needsJournal ? await this.accounting.openPeriodForDateInTx(tx, tenantId, today) : null);
+    if (resolvedFiscalPeriodId) {
+      // ACC-053: التحقق من قفل فترة المبيعات
+      await this.accounting.assertModuleUnlocked(tx, tenantId, resolvedFiscalPeriodId, 'sales');
+    }
+
+    // ACC-062: التحقق من حد ائتمان العميل عند ترحيل فاتورة بيع آجلة
+    const isCreditPost =
+      (posting.settlement === undefined || posting.settlement === 'credit') &&
+      locked.kind === 'sale' &&
+      Boolean(locked.partyId);
+    if (isCreditPost) {
+      const [customer] = await tx
+        .select({ creditLimit: parties.creditLimit })
+        .from(parties)
+        .where(and(eq(parties.tenantId, tenantId), eq(parties.id, locked.partyId!), isNull(parties.deletedAt)))
+        .limit(1);
+      if (customer?.creditLimit && Number(customer.creditLimit) > 0) {
+        const rows = await tx
+          .select({
+            debit: journalEntryLines.debit,
+            credit: journalEntryLines.credit,
+          })
+          .from(journalEntryLines)
+          .innerJoin(journalEntries, eq(journalEntryLines.entryId, journalEntries.id))
+          .where(
+            and(
+              eq(journalEntryLines.tenantId, tenantId),
+              eq(journalEntryLines.partyId, locked.partyId!),
+              eq(journalEntries.status, 'posted'),
+            ),
+          );
+        const currentReceivable = rows.reduce(
+          (sum, row) => sum.plus(new Decimal(row.debit).minus(row.credit)),
+          new Decimal(0),
+        );
+        const limit = new Decimal(customer.creditLimit);
+        if (currentReceivable.plus(new Decimal(locked.total)).gt(limit)) {
+          throw new DomainError(
+            'CREDIT_LIMIT_EXCEEDED',
+            `Credit limit exceeded for customer: current balance ${currentReceivable.toFixed(2)}, new amount ${locked.total}, limit ${limit.toFixed(2)}`,
+            422,
+            { currentReceivable: currentReceivable.toFixed(4), newAmount: locked.total, creditLimit: customer.creditLimit },
+          );
+        }
+      }
+    }
+
+    // ACC-128: التحقق المسبق من وجود أرقام تسلسلية لكل صنف متتبَّع قبل تحريك المخزون
+    if (locked.warehouseId && (locked.kind === 'sale' || locked.kind === 'sale_return')) {
+      const allLines = await this.linesInTx(tx, tenantId, id);
+      const numericLines = allLines.filter((l) => l.itemId && money(l.quantity).gt(0));
+      if (numericLines.length) {
+        const itemRows = await tx
+          .select({ id: items.id, trackSerial: items.trackSerial })
+          .from(items)
+          .where(and(eq(items.tenantId, tenantId), inArray(items.id, numericLines.map((l) => l.itemId as string))));
+        const serialTracked = new Set(itemRows.filter((r) => r.trackSerial).map((r) => r.id));
+        for (const line of numericLines) {
+          if (line.itemId && serialTracked.has(line.itemId)) {
+            const sNos = (line.serialNos ?? []).map((s) => String(s).trim()).filter(Boolean);
+            if (!sNos.length) {
+              throw new DomainError(
+                'INVENTORY_SERIAL_REQUIRED',
+                'This item is tracked by serial — scan a serial',
+                422,
+                { field: 'serialNos', itemId: line.itemId },
+              );
+            }
+          }
+        }
+      }
+    }
+
+    /**
+     * R8 & ACC-133: حسم الأرقام التسلسلية والدفعات على سطور الفاتورة قبل حركة المخزون
+     * لتمرير معرّف الرقم التسلسلي إلى recordAutoStock ليُسجَّل في قيد حركة المخزون غير القابل للتعديل
+     */
+    await this.resolveLineNumbers(tx, tenantId, locked, await this.linesInTx(tx, tenantId, id));
 
     if (posting.inventoryLines?.length) {
       await this.inventory.recordInTx(
@@ -928,18 +1210,10 @@ export class SalesService {
       await this.recordAutoStock(tx, tenantId, locked);
     }
 
-    /**
-     * R8 — الأرقام التسلسلية والدفعات على سطور الفاتورة، **بعد** حركة المخزون: السطر
-     * الذي لم يتحرّك (صنفٌ غير مخزني، أو بيعٌ بلا مستودع) لا يُطالَب بأرقام، والسطر
-     * الذي تحرّك يُحسم رقمه الآن — تُصرف القطعة في البيع وتعود في المرتجع — وتُكتب
-     * الدفعة المحسومة على السطر نفسه.
-     */
-    await this.resolveLineNumbers(tx, tenantId, locked, await this.linesInTx(tx, tenantId, id));
-
     if (posting.journalLines?.length) {
       await this.accounting.postJournalInTx(tx, tenantId, {
         branchId: locked.branchId,
-        fiscalPeriodId: posting.fiscalPeriodId!,
+        fiscalPeriodId: resolvedFiscalPeriodId!,
         date: today,
         description: `Sales invoice ${number}`,
         lines: posting.journalLines,
@@ -956,8 +1230,7 @@ export class SalesService {
               ? 'debit_note'
               : 'sales_invoice';
       const profile = await this.profiles.resolvePostProfileInTx(tx, tenantId, locked.branchId, docType);
-      const fiscalPeriodId =
-        posting.fiscalPeriodId ?? (await this.accounting.openPeriodForDateInTx(tx, tenantId, today));
+      const fiscalPeriodId = resolvedFiscalPeriodId!;
       /**
        * R9 — سطور الفاتورة بمبالغها ومراكزها: صافي السطر يوزّع الإيراد، وتكلفته توزّع
        * رجلَي التكلفة، و`costCenterId` على السطر يسبق مركز الرأس. وهذا الاستعلام يقرأ
@@ -973,6 +1246,20 @@ export class SalesService {
         .where(and(eq(salesInvoiceLines.tenantId, tenantId), eq(salesInvoiceLines.invoiceId, id)));
       const cogsTotal = costRows.reduce((sum, row) => sum.plus(row.costTotal ?? '0'), new Decimal(0));
       const mapping = profile.mapping as unknown as Record<string, string | null | undefined>;
+      if (!posting.settlementAccountId && posting.settlementCashLocationId) {
+        const [cl] = await tx
+          .select({ accountId: cashLocations.accountId })
+          .from(cashLocations)
+          .where(
+            and(
+              eq(cashLocations.tenantId, tenantId),
+              eq(cashLocations.id, posting.settlementCashLocationId),
+              isNull(cashLocations.deletedAt),
+            ),
+          )
+          .limit(1);
+        if (cl?.accountId) posting.settlementAccountId = cl.accountId;
+      }
       const settlementAccountIds = [
         ...(posting.settlement !== undefined &&
         posting.settlement !== 'credit' &&
@@ -1051,6 +1338,22 @@ export class SalesService {
       posting.settlement !== 'credit' &&
       money(locked.total).gt(0) &&
       splitTenders.length === 0;
+    let resolvedSettlementLocId = posting.settlementCashLocationId;
+    if (!resolvedSettlementLocId && posting.settlementAccountId) {
+      const [loc] = await tx
+        .select({ id: cashLocations.id })
+        .from(cashLocations)
+        .where(
+          and(
+            eq(cashLocations.tenantId, tenantId),
+            eq(cashLocations.accountId, posting.settlementAccountId),
+            isNull(cashLocations.deletedAt),
+          ),
+        )
+        .limit(1);
+      if (loc) resolvedSettlementLocId = loc.id;
+    }
+
     if (settled) {
       await tx.insert(invoicePayments).values({
         id: newId(),
@@ -1058,11 +1361,52 @@ export class SalesService {
         invoiceId: id,
         method: posting.settlement!,
         amount: locked.total,
-        cashLocationId: posting.settlementCashLocationId ?? null,
+        cashLocationId: resolvedSettlementLocId ?? null,
         reference: number,
         idempotencyKey: `sales-settle:${id}`,
       });
+      // ACC-018: تحريك رصيد الخزينة الفرعي للصندوق فورياً عند البيع النقدي
+      if (resolvedSettlementLocId) {
+        await this.bumpCashLocationBalance(
+          tx,
+          tenantId,
+          resolvedSettlementLocId,
+          locked.currency ?? 'SAR',
+          locked.total,
+        );
+      }
     }
+
+    // ACC-018 & ACC-019: سداد المردود النقدي فورياً وخصمه من رصيد الصندوق
+    const isReturnSettled =
+      isReturnKind &&
+      !posting.journalLines?.length &&
+      posting.settlement !== undefined &&
+      posting.settlement !== 'credit' &&
+      money(locked.total).gt(0) &&
+      splitTenders.length === 0;
+    if (isReturnSettled) {
+      await tx.insert(invoicePayments).values({
+        id: newId(),
+        tenantId,
+        invoiceId: id,
+        method: posting.settlement!,
+        amount: money(locked.total).abs().toFixed(4),
+        cashLocationId: resolvedSettlementLocId ?? null,
+        reference: number,
+        idempotencyKey: `sales-return-settle:${id}`,
+      });
+      if (resolvedSettlementLocId) {
+        await this.bumpCashLocationBalance(
+          tx,
+          tenantId,
+          resolvedSettlementLocId,
+          locked.currency ?? 'SAR',
+          `-${money(locked.total).abs().toFixed(4)}`,
+        );
+      }
+    }
+
     /**
      * R4 — صفٌّ لكل طريقة. ولو كُتب صفٌّ واحد بمجموع الطرق لضاع التمييز الذي بُنيت له
      * `invoice_payments.method`: جردُ اليومية يفرز الكاش عن الشبكة عن التحويل، وصفٌّ
@@ -1070,7 +1414,7 @@ export class SalesService {
      */
     if (splitTenders.length && !isReturnKind && !posting.journalLines?.length) {
       let tenderNo = 0;
-      for (const tender of splitTenders)
+      for (const tender of splitTenders) {
         await tx.insert(invoicePayments).values({
           id: newId(),
           tenantId,
@@ -1081,26 +1425,76 @@ export class SalesService {
           reference: tender.reference ?? number,
           idempotencyKey: `sales-settle:${id}:${tenderNo++}`,
         });
+        if (tender.cashLocationId) {
+          await this.bumpCashLocationBalance(
+            tx,
+            tenantId,
+            tender.cashLocationId,
+            locked.currency ?? 'SAR',
+            tender.amount,
+          );
+        }
+      }
     }
     const tenderedTotal = splitTenders.reduce((sum, tender) => sum.plus(tender.amount), new Decimal(0));
     const paymentStatus =
-      locked.total === '0' || settled || (splitTenders.length > 0 && tenderedTotal.gte(money(locked.total)))
+      locked.total === '0' || settled || isReturnSettled || (splitTenders.length > 0 && tenderedTotal.gte(money(locked.total)))
         ? 'paid'
         : splitTenders.length > 0 && tenderedTotal.gt(0)
           ? 'partial'
           : 'unpaid';
+
+    // ACC-001: احتساب إجمالي تكلفة الفاتورة وربحها الفعلي على رأس الفاتورة
+    const [headerCost] = await tx
+      .select({
+        totalCost: sql<string>`coalesce(sum(${salesInvoiceLines.costTotal}), 0)::text`,
+      })
+      .from(salesInvoiceLines)
+      .where(and(eq(salesInvoiceLines.tenantId, tenantId), eq(salesInvoiceLines.invoiceId, id)));
+    const costTotal = money(headerCost?.totalCost ?? '0').toFixed(4);
+    const profit = money(locked.subtotal).minus(costTotal).toFixed(4);
+
+    // ACC-093: ختم الفاتورة بمعرف الوردية المفتوحة والكاشير عند الترحيل
+    let resolvedShiftId = locked.shiftId;
+    let resolvedCashierId = locked.cashierId;
+    if (!resolvedShiftId) {
+      const actorUserId = tryGetAuthContext()?.userId ?? locked.createdBy;
+      if (actorUserId) {
+        const [openShift] = await tx
+          .select({ id: shiftCloses.id, userId: shiftCloses.userId })
+          .from(shiftCloses)
+          .where(
+            and(
+              eq(shiftCloses.tenantId, tenantId),
+              eq(shiftCloses.branchId, locked.branchId),
+              eq(shiftCloses.userId, actorUserId),
+              eq(shiftCloses.status, 'open'),
+            ),
+          )
+          .limit(1);
+        if (openShift) {
+          resolvedShiftId = openShift.id;
+          resolvedCashierId = openShift.userId;
+        }
+      }
+    }
+
     await tx
       .update(salesInvoices)
       .set({
         status: 'posted',
         number,
-        postedAt: new Date(),
-        paidTotal: settled
+        postedAt: (posting as any).date ? new Date((posting as any).date) : new Date(),
+        shiftId: resolvedShiftId,
+        cashierId: resolvedCashierId,
+        paidTotal: settled || isReturnSettled
           ? locked.total
           : splitTenders.length
             ? tenderedTotal.toFixed(4)
             : locked.paidTotal,
         paymentStatus,
+        costTotal,
+        profit,
       })
       .where(
         and(
@@ -1109,6 +1503,39 @@ export class SalesService {
           eq(salesInvoices.status, 'draft'),
         ),
       );
+
+    // ACC-082: إذا كان المستند مردود مبيعات أو إشعار دائن لفاتورة مرجعية، تحديث حالة سداد الفاتورة الأصلية
+    if ((locked.kind === 'sale_return' || locked.kind === 'credit_note') && locked.referenceInvoiceId) {
+      const [ref] = await tx
+        .select()
+        .from(salesInvoices)
+        .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, locked.referenceInvoiceId)))
+        .limit(1);
+      if (ref) {
+        const returnRows = await tx
+          .select({ total: salesInvoices.total })
+          .from(salesInvoices)
+          .where(
+            and(
+              eq(salesInvoices.tenantId, tenantId),
+              eq(salesInvoices.referenceInvoiceId, ref.id),
+              inArray(salesInvoices.kind, ['sale_return', 'credit_note']),
+              eq(salesInvoices.status, 'posted'),
+            ),
+          );
+        const totalReturns = returnRows.reduce((sum, r) => sum.plus(r.total), new Decimal(0));
+        const effectiveDue = Decimal.max(0, money(ref.total).minus(totalReturns));
+        const refPaid = money(ref.paidTotal);
+        // ACC-123: تسامح الهللة (0.01) عند تحديد حالة السداد لتفادي بقاء الفاتورة مفتوحة بسبب كسور الهللة
+        const remaining = effectiveDue.minus(refPaid);
+        const newStatus = (remaining.lte(0) || remaining.abs().lte('0.0099')) ? 'paid' : refPaid.gt(0) ? 'partial' : 'unpaid';
+        await tx
+          .update(salesInvoices)
+          .set({ paymentStatus: newStatus, updatedAt: new Date() })
+          .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, ref.id)));
+      }
+    }
+
     return this.getInTx(tx, tenantId, id);
   }
 
@@ -1182,6 +1609,21 @@ export class SalesService {
 
     const movements: InventoryLine[] = [];
     for (const line of stocked) {
+      let serialId: string | undefined;
+      const sNos = (line.serialNos ?? []).map((s) => String(s).trim()).filter(Boolean);
+      if (sNos.length) {
+        const [sRow] = await tx
+          .select({ id: itemSerials.id })
+          .from(itemSerials)
+          .where(
+            and(
+              eq(itemSerials.tenantId, tenantId),
+              eq(itemSerials.itemId, line.itemId!),
+              inArray(itemSerials.serialNo, sNos),
+            ),
+          );
+        if (sRow) serialId = sRow.id;
+      }
       if (locked.kind === 'sale_return') {
         let unitCost = sourceCost.get(line.itemId!);
         if (!unitCost || unitCost.lte(0)) {
@@ -1207,6 +1649,8 @@ export class SalesService {
           docId: locked.id,
           lineId: line.id,
           costing: 'returnAtOriginalCost',
+          lotId: line.lotId ?? undefined,
+          serialId,
         });
       } else {
         movements.push({
@@ -1218,6 +1662,8 @@ export class SalesService {
           docId: locked.id,
           lineId: line.id,
           costing: 'outAtAvg',
+          lotId: line.lotId ?? undefined,
+          serialId,
         });
       }
     }
@@ -1270,6 +1716,7 @@ export class SalesService {
       withholding: string | null;
       total: string;
       partyId: string | null;
+      currency?: string | null;
       /** R9 — مركز الرأس: الافتراضي لكل سطرٍ لا يذكر مركزاً (`InvoiceOper.cs` L2461). */
       costCenterId?: string | null;
     },
@@ -1281,7 +1728,7 @@ export class SalesService {
     settlements?: { method: 'cash' | 'card' | 'bank'; amount: string; accountId: string }[],
     /** R9 — سطور الفاتورة بأبعادها: الصافي والتكلفة والمركز. */
     plainCosts: Array<{ net: string | null; costTotal: string | null; costCenterId: string | null }> = [],
-  ): { accountId: string; debit?: string; credit?: string; partyId?: string; costCenterId?: string; description?: string }[] {
+  ): JournalLineInput[] {
     const need = (key: string): string => {
       const accountId = mapping[key];
       if (!accountId)
@@ -1329,7 +1776,7 @@ export class SalesService {
     const documentTotal = money(locked.total);
     const gross = money(locked.subtotal).plus(discount);
     const isReturn = locked.kind === 'sale_return' || locked.kind === 'credit_note';
-    const lines: { accountId: string; debit?: string; credit?: string; partyId?: string; costCenterId?: string; description?: string }[] = [];
+    const lines: JournalLineInput[] = [];
     /**
      * رجلُ قيدٍ واحدة. `costCenterId` تُمرَّر للأرجل التي **تصنّف مالاً** — الإيراد
      * والتكلفة والمخزون — ولا تُمرَّر لرجل الذمة ولا الصندوق ولا الضريبة: الذمة ليست
@@ -1340,7 +1787,7 @@ export class SalesService {
       accountId: string,
       debit: Decimal,
       credit: Decimal,
-      partyId: string | null = locked.partyId,
+      partyId: string | null = null,
       costCenterId?: string | null,
     ): void => {
       if (debit.abs().lte(0) && credit.abs().lte(0)) return;
@@ -1350,6 +1797,8 @@ export class SalesService {
         credit: credit.toFixed(4),
         partyId: partyId ?? undefined,
         costCenterId: costCenterId ?? undefined,
+        currencyCode: locked.currency ?? 'SAR',
+        currencyAmount: (debit.abs().gt(0) ? debit : credit).toFixed(4),
       });
     };
     const effectiveCenter = (value: string | null): string | null => value ?? locked.costCenterId ?? null;
@@ -1391,14 +1840,14 @@ export class SalesService {
       // R9 — الإيراد يُوزَّع على المراكز بنسبة صافي كل سطر (والباقي بعد التقريب على آخر
       // مركز)، وسطرٌ لا مركز له يأخذ مركز الرأس. وبلا مراكز تبقى رجلٌ واحدة كما كانت.
       this.legByCostCenter(
-        (costCenterId, share) => leg(need('salesAccountId'), new Decimal(0), share, locked.partyId, costCenterId),
+        (costCenterId, share) => leg(need('salesAccountId'), new Decimal(0), share, null, costCenterId),
         gross,
         revenueRows,
-        () => leg(need('salesAccountId'), new Decimal(0), gross),
+        () => leg(need('salesAccountId'), new Decimal(0), gross, null),
       );
-      if (discount.gt(0)) leg(need('discountGivenAccountId'), discount, new Decimal(0));
-      if (tax.abs().gt(0)) leg(need('vatOutputAccountId'), new Decimal(0), tax);
-      if (extra.abs().gt(0)) leg(need('exciseTaxAccountId'), new Decimal(0), extra);
+      if (discount.gt(0)) leg(need('discountGivenAccountId'), discount, new Decimal(0), null);
+      if (tax.abs().gt(0)) leg(need('vatOutputAccountId'), new Decimal(0), tax, null);
+      if (extra.abs().gt(0)) leg(need('exciseTaxAccountId'), new Decimal(0), extra, null);
     } else {
       if (tenders.length) {
         for (const tender of tenders) leg(tender.accountId, new Decimal(0), money(tender.amount), null);
@@ -1407,43 +1856,43 @@ export class SalesService {
         leg(settlementAccount, new Decimal(0), documentTotal, settlementParty);
       }
       this.legByCostCenter(
-        (costCenterId, share) => leg(need('salesReturnAccountId'), share, new Decimal(0), locked.partyId, costCenterId),
+        (costCenterId, share) => leg(need('salesReturnAccountId'), share, new Decimal(0), null, costCenterId),
         gross,
         revenueRows,
-        () => leg(need('salesReturnAccountId'), gross, new Decimal(0)),
+        () => leg(need('salesReturnAccountId'), gross, new Decimal(0), null),
       );
-      if (discount.gt(0)) leg(need('discountGivenAccountId'), new Decimal(0), discount);
-      if (tax.abs().gt(0)) leg(need('vatOutputAccountId'), tax, new Decimal(0));
-      if (extra.abs().gt(0)) leg(need('exciseTaxAccountId'), extra, new Decimal(0));
+      if (discount.gt(0)) leg(need('discountGivenAccountId'), new Decimal(0), discount, null);
+      if (tax.abs().gt(0)) leg(need('vatOutputAccountId'), tax, new Decimal(0), null);
+      if (extra.abs().gt(0)) leg(need('exciseTaxAccountId'), extra, new Decimal(0), null);
     }
     if (cogsTotal.abs().gt(0)) {
       // R9 — رجلَا التكلفة (المصروف والمخزون) تُوسمان بمركز السطر الذي جاءت منه التكلفة،
       // فكشف مركز الكلفة يقرأ التكلفة الحقيقية لا الإيراد وحده.
       if (!isReturn) {
         this.legByCostCenter(
-          (costCenterId, share) => leg(need('cogsAccountId'), share, new Decimal(0), locked.partyId, costCenterId),
+          (costCenterId, share) => leg(need('cogsAccountId'), share, new Decimal(0), null, costCenterId),
           cogsTotal,
           cogsRows,
-          () => leg(need('cogsAccountId'), cogsTotal, new Decimal(0)),
+          () => leg(need('cogsAccountId'), cogsTotal, new Decimal(0), null),
         );
         this.legByCostCenter(
-          (costCenterId, share) => leg(need('inventoryAccountId'), new Decimal(0), share, locked.partyId, costCenterId),
+          (costCenterId, share) => leg(need('inventoryAccountId'), new Decimal(0), share, null, costCenterId),
           cogsTotal,
           cogsRows,
-          () => leg(need('inventoryAccountId'), new Decimal(0), cogsTotal),
+          () => leg(need('inventoryAccountId'), new Decimal(0), cogsTotal, null),
         );
       } else {
         this.legByCostCenter(
-          (costCenterId, share) => leg(need('inventoryAccountId'), share, new Decimal(0), locked.partyId, costCenterId),
+          (costCenterId, share) => leg(need('inventoryAccountId'), share, new Decimal(0), null, costCenterId),
           cogsTotal,
           cogsRows,
-          () => leg(need('inventoryAccountId'), cogsTotal, new Decimal(0)),
+          () => leg(need('inventoryAccountId'), cogsTotal, new Decimal(0), null),
         );
         this.legByCostCenter(
-          (costCenterId, share) => leg(need('cogsAccountId'), new Decimal(0), share, locked.partyId, costCenterId),
+          (costCenterId, share) => leg(need('cogsAccountId'), new Decimal(0), share, null, costCenterId),
           cogsTotal,
           cogsRows,
-          () => leg(need('cogsAccountId'), new Decimal(0), cogsTotal),
+          () => leg(need('cogsAccountId'), new Decimal(0), cogsTotal, null),
         );
       }
     }
@@ -1549,7 +1998,7 @@ export class SalesService {
       await this.assertShiftOpen(tx, tenantId, invoice);
       const today = new Date().toISOString().slice(0, 10);
       const [entry] = await tx
-        .select({ id: journalEntries.id })
+        .select({ id: journalEntries.id, fiscalPeriodId: journalEntries.fiscalPeriodId })
         .from(journalEntries)
         .where(
           and(
@@ -1558,6 +2007,9 @@ export class SalesService {
             eq(journalEntries.sourceId, id),
           ),
         );
+      if (entry?.fiscalPeriodId) {
+        await this.accounting.assertModuleUnlocked(tx, tenantId, entry.fiscalPeriodId, 'sales');
+      }
       if (entry) {
         /**
          * 🔁 العكس الرسمي الموحَّد — `AccountingService.reverseJournalInTx`: المرآة وحدها،
@@ -1690,7 +2142,8 @@ export class SalesService {
       if (!locked || locked.status !== 'posted')
         throw new DomainError('SALES_INVOICE_NOT_POSTED', 'Payments require a posted invoice', 409);
       const paidValue = money(locked.paidTotal).plus(paymentValue);
-      if (paidValue.gt(money(locked.total).plus('0.0001')))
+      // ACC-123: تسامح الهللة (0.01) لتفادي رفض الدفعات المقربة إلى أقرب هللة
+      if (paidValue.gt(money(locked.total).plus('0.01')))
         throw new DomainError('PAYMENT_EXCEEDS_DUE', 'Payment exceeds invoice balance', 422);
       paidTotalAfter = paidValue.toFixed(4);
       invoiceTotal = money(locked.total).toFixed(4);
@@ -1704,14 +2157,104 @@ export class SalesService {
           amount: input.amount,
           cashLocationId: input.cashLocationId,
           reference: input.reference,
-          idempotencyKey: input.idempotencyKey,
+          idempotencyKey: input.idempotencyKey ?? newId(),
         })
         .returning();
+
+      let cashAccountId: string | undefined;
+      let currencyCode = invoice.currency ?? 'SAR';
+      if (input.cashLocationId) {
+        const [loc] = await tx
+          .select({ accountId: cashLocations.accountId, currencyCode: cashLocations.currencyCode })
+          .from(cashLocations)
+          .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.id, input.cashLocationId)));
+        cashAccountId = loc?.accountId ?? undefined;
+        if (loc?.currencyCode) currencyCode = loc.currencyCode;
+      }
+      const profile = await this.profiles.resolvePostProfileInTx(tx, tenantId, invoice.branchId, 'sales_invoice');
+      const mapping = profile.mapping as unknown as Record<string, string | null | undefined>;
+      if (!cashAccountId) {
+        cashAccountId = (input.method === 'bank' || input.method === 'card'
+          ? mapping.bankAccountId ?? mapping.cashAccountId
+          : mapping.cashAccountId) ?? undefined;
+      }
+      const receivableAccountId = mapping.receivableAccountId;
+
+      // ACC-031: إنشاء قيد GL محاسبي للتحصيل وتحديث رصيد الصندوق الفرعي
+      if (cashAccountId && receivableAccountId && payment) {
+        const today = new Date().toISOString().slice(0, 10);
+        await this.accounting.postJournalInTx(tx, tenantId, {
+          branchId: invoice.branchId,
+          fiscalPeriodId: await this.accounting.openPeriodForDateInTx(tx, tenantId, today),
+          date: today,
+          description: `سداد دفعة فاتورة مبيعات ${invoice.number ?? invoice.id}`,
+          lines: [
+            {
+              accountId: cashAccountId,
+              debit: input.amount,
+              description: `تحصيل فاتورة ${invoice.number ?? ''}`,
+              currencyCode,
+              currencyAmount: input.amount,
+            },
+            {
+              accountId: receivableAccountId,
+              credit: input.amount,
+              partyId: invoice.partyId ?? undefined,
+              description: `تحصيل فاتورة ${invoice.number ?? ''}`,
+              currencyCode,
+              currencyAmount: input.amount,
+            },
+          ],
+          sourceType: 'sales_payment',
+          sourceId: payment.id,
+          idempotencyKey: `sales-pay-je:${payment.id}`,
+        });
+      }
+
+      if (input.cashLocationId) {
+        await this.bumpCashLocationBalance(
+          tx,
+          tenantId,
+          input.cashLocationId,
+          currencyCode,
+          input.amount,
+        );
+      }
+
+      if (invoice.partyId) {
+        await tx.insert(paymentAllocations).values({
+          id: newId(),
+          tenantId,
+          partyId: invoice.partyId,
+          invoiceKind: invoice.kind,
+          invoiceId,
+          amount: input.amount,
+        });
+      }
+
+      // ACC-082: احتساب مردودات المبيعات وإشعارات الخصم المرتبطة بالفاتورة
+      const returnRows = await tx
+        .select({ total: salesInvoices.total })
+        .from(salesInvoices)
+        .where(
+          and(
+            eq(salesInvoices.tenantId, tenantId),
+            eq(salesInvoices.referenceInvoiceId, invoiceId),
+            inArray(salesInvoices.kind, ['sale_return', 'credit_note']),
+            eq(salesInvoices.status, 'posted'),
+          ),
+        );
+      const returnedTotal = returnRows.reduce((sum, r) => sum.plus(r.total), new Decimal(0));
+      const effectiveDue = Decimal.max(0, money(invoice.total).minus(returnedTotal));
+      // ACC-123: تسامح الهللة (0.01) عند تحديد حالة السداد
+      const remaining = effectiveDue.minus(paidValue);
+      const newStatus = (remaining.lte(0) || remaining.abs().lte('0.0099')) ? 'paid' : 'partial';
+
       await tx
         .update(salesInvoices)
         .set({
           paidTotal: paidValue.toFixed(4),
-          paymentStatus: paidValue.gte(money(invoice.total)) ? 'paid' : 'partial',
+          paymentStatus: newStatus,
           updatedAt: new Date(),
         })
         .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, invoiceId)));
@@ -1748,6 +2291,7 @@ export class SalesService {
       throw new DomainError('SALES_RETURN_SOURCE_INVALID', 'A return cannot reference another return', 422);
 
     const sourceQuantities = new Map<string, Decimal>();
+    const sourcePrices = new Map<string, Decimal>();
     const requested = new Map<string, Decimal>();
     for (const line of input.lines) {
       if (!line.itemId)
@@ -1759,11 +2303,31 @@ export class SalesService {
       requested.set(line.itemId, (requested.get(line.itemId) ?? new Decimal(0)).plus(quantity));
     }
     for (const line of source.lines)
-      if (line.itemId)
+      if (line.itemId) {
         sourceQuantities.set(
           line.itemId,
           (sourceQuantities.get(line.itemId) ?? new Decimal(0)).plus(line.quantity),
         );
+        sourcePrices.set(
+          line.itemId,
+          Decimal.max(sourcePrices.get(line.itemId) ?? new Decimal(0), money(line.unitPrice)),
+        );
+      }
+
+    // ACC-121: حارس سعر الوحدة في المرتجع مقابل الفاتورة الأصلية
+    for (const line of input.lines) {
+      if (line.itemId) {
+        const maxPrice = sourcePrices.get(line.itemId);
+        if (maxPrice && money(line.unitPrice).gt(maxPrice.plus('0.0001'))) {
+          throw new DomainError(
+            'SALES_RETURN_PRICE_EXCEEDED',
+            'Return unit price cannot exceed original sale price',
+            422,
+            { itemId: line.itemId, returnPrice: line.unitPrice, originalPrice: maxPrice.toFixed(4) },
+          );
+        }
+      }
+    }
 
     const returned = await withTenantTx(this.database.db, tenantId, async (tx) => {
       const returnInvoices = await tx
@@ -1800,9 +2364,28 @@ export class SalesService {
           422,
         );
     }
+
+    // ACC-063: اشتقاق حصة خصم الفاتورة لكل سطر مرتجع بنسبة القيمة
+    let returnInvoiceDiscount = input.invoiceDiscount;
+    if (returnInvoiceDiscount === undefined && source.invoiceDiscount && money(source.invoiceDiscount).gt(0)) {
+      const sourceSubtotal = money(source.subtotal ?? '0');
+      if (sourceSubtotal.gt(0)) {
+        const returnLinesNet = input.lines.reduce((sum, line) => {
+          const qty = money(line.quantity ?? '0');
+          const unitPrice = money(line.unitPrice ?? '0');
+          const discRate = money(line.discountRate ?? '0');
+          const gross = qty.mul(unitPrice);
+          const lineNet = discRate.gt(0) ? gross.mul(new Decimal(1).minus(discRate.div(100))) : gross;
+          return sum.plus(lineNet);
+        }, new Decimal(0));
+        returnInvoiceDiscount = money(source.invoiceDiscount).mul(returnLinesNet).div(sourceSubtotal).toFixed(4);
+      }
+    }
+
     return this.create(tenantId, {
       ...input,
       kind: 'sale_return',
+      invoiceDiscount: returnInvoiceDiscount,
       partyId: input.partyId ?? source.partyId ?? undefined,
       referenceInvoiceId: sourceId,
     } as SalesInvoiceInput & { referenceInvoiceId: string });
@@ -1813,6 +2396,12 @@ export class SalesService {
     offerId: string,
     input: { itemId: string; quantity: string; value: string },
   ) {
+    if (money(input.quantity).lt(0) || money(input.value).lt(0)) {
+      throw new DomainError('SALES_OFFER_EVALUATION_INVALID', 'Quantity and value cannot be negative', 422);
+    }
+    if (money(input.quantity).isZero() || money(input.value).isZero()) {
+      return { eligible: false, discount: '0', reason: 'TARGET_NOT_MET' };
+    }
     const [offer] = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
         .select()
@@ -1823,14 +2412,27 @@ export class SalesService {
     const now = Date.now();
     if (offer.status !== 'active' || now < offer.validFrom.getTime() || now > offer.validTo.getTime())
       return { eligible: false, discount: '0', reason: 'OFFER_NOT_VALID' };
+
+    // ACC-137: Scope offer to specific items if offer_items rows exist
+    const scopedItems = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .select({ itemId: offerItems.itemId })
+        .from(offerItems)
+        .where(and(eq(offerItems.tenantId, tenantId), eq(offerItems.offerId, offerId))),
+    );
+    if (scopedItems.length > 0 && !scopedItems.some((r) => r.itemId === input.itemId)) {
+      return { eligible: false, discount: '0', reason: 'ITEM_NOT_ELIGIBLE' };
+    }
+
     const target = money(offer.targetValue);
     const eligible =
       offer.targetType === 'value' ? money(input.value).gte(target) : money(input.quantity).gte(target);
     if (!eligible) return { eligible: false, discount: '0', reason: 'TARGET_NOT_MET' };
-    const discount =
+    let discount =
       offer.discountType === 'percent'
         ? money(input.value).mul(offer.discountValue).div(100)
         : Decimal.min(money(offer.discountValue), money(input.value));
+    discount = Decimal.max(0, Decimal.min(discount, money(input.value)));
     return { eligible: true, discount: discount.toFixed(4), offerId };
   }
 
@@ -1855,6 +2457,103 @@ export class SalesService {
         tx,
         { prefix: note.kind === 'credit' ? 'SCN-' : 'SDN-', padding: 6 },
       );
+
+      // ACC-027: ترحيل قيد محاسبي للإشعار وتحديث رصيد الفاتورة والذمة
+      let invoicePartyId: string | null = null;
+      if (note.invoiceId) {
+        const [inv] = await tx
+          .select()
+          .from(salesInvoices)
+          .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, note.invoiceId)));
+        if (inv) {
+          invoicePartyId = inv.partyId;
+          const profile = await this.profiles.resolvePostProfileInTx(tx, tenantId, note.branchId, 'sales_invoice');
+          const mapping = profile.mapping as unknown as Record<string, string | null | undefined>;
+          const receivableAccountId = mapping.receivableAccountId;
+          const salesReturnAccountId = mapping.salesReturnAccountId ?? mapping.salesAccountId;
+          const vatOutputAccountId = mapping.vatOutputAccountId;
+
+          if (receivableAccountId && salesReturnAccountId && vatOutputAccountId) {
+            const today = new Date().toISOString().slice(0, 10);
+            const base = money(note.amount).div('1.15').toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+            const vat = money(note.amount).minus(base);
+
+            const lines =
+              note.kind === 'credit'
+                ? [
+                    {
+                      accountId: salesReturnAccountId,
+                      debit: base.toFixed(4),
+                      description: `إشعار دائن ${allocated.display} - ${note.reason}`,
+                    },
+                    {
+                      accountId: vatOutputAccountId,
+                      debit: vat.toFixed(4),
+                      description: `ضريبة إشعار دائن ${allocated.display}`,
+                    },
+                    {
+                      accountId: receivableAccountId,
+                      credit: money(note.amount).toFixed(4),
+                      partyId: invoicePartyId ?? undefined,
+                      description: `إشعار دائن ${allocated.display}`,
+                    },
+                  ]
+                : [
+                    {
+                      accountId: receivableAccountId,
+                      debit: money(note.amount).toFixed(4),
+                      partyId: invoicePartyId ?? undefined,
+                      description: `إشعار مدين ${allocated.display}`,
+                    },
+                    {
+                      accountId: mapping.salesAccountId ?? salesReturnAccountId,
+                      credit: base.toFixed(4),
+                      description: `إشعار مدين ${allocated.display} - ${note.reason}`,
+                    },
+                    {
+                      accountId: vatOutputAccountId,
+                      credit: vat.toFixed(4),
+                      description: `ضريبة إشعار مدين ${allocated.display}`,
+                    },
+                  ];
+
+            await this.accounting.postJournalInTx(tx, tenantId, {
+              branchId: note.branchId,
+              fiscalPeriodId: await this.accounting.openPeriodForDateInTx(tx, tenantId, today),
+              date: today,
+              description: `تسوية إشعار ${note.kind === 'credit' ? 'دائن' : 'مدين'} ${allocated.display} على فاتورة ${inv.number ?? inv.id}`,
+              lines,
+              sourceType: note.kind === 'credit' ? 'credit_note' : 'debit_note',
+              sourceId: id,
+              idempotencyKey: `sales-note-je:${id}`,
+            });
+
+            if (note.kind === 'credit') {
+              const newPaid = money(inv.paidTotal).plus(note.amount);
+              await tx
+                .update(salesInvoices)
+                .set({
+                  paidTotal: newPaid.toFixed(4),
+                  paymentStatus: newPaid.gte(money(inv.total)) ? 'paid' : 'partial',
+                  updatedAt: new Date(),
+                })
+                .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, inv.id)));
+
+              if (invoicePartyId) {
+                await tx.insert(paymentAllocations).values({
+                  id: newId(),
+                  tenantId,
+                  partyId: invoicePartyId,
+                  invoiceKind: 'credit_note',
+                  invoiceId: inv.id,
+                  amount: note.amount,
+                });
+              }
+            }
+          }
+        }
+      }
+
       const [posted] = await tx
         .update(salesAdjustmentNotes)
         .set({
@@ -1879,7 +2578,11 @@ export class SalesService {
   }
 
   async printData(tenantId: string, id: string) {
-    return this.get(tenantId, id);
+    const data = await this.get(tenantId, id);
+    return {
+      ...data,
+      dueDate: (data as any).validUntil ?? null,
+    };
   }
 
   /**
@@ -1921,49 +2624,68 @@ export class SalesService {
    * same quote cannot be billed twice.
    */
   async convertQuotation(tenantId: string, id: string, input: { warehouseId?: string } = {}) {
-    const quotation = await this.get(tenantId, id);
-    if (quotation.kind !== 'quotation')
-      throw new DomainError('SALES_QUOTATION_EXPECTED', 'This document is not a quotation', 422);
-    if (quotation.status === 'converted')
-      throw new DomainError(
-        'SALES_QUOTATION_ALREADY_CONVERTED',
-        'This quotation was already converted into an invoice',
-        409,
-      );
-    if (quotation.status !== 'draft')
-      throw new DomainError('SALES_QUOTATION_INVALID_STATUS', 'Only an open quotation can be converted', 409);
-    if (quotation.validUntil && quotation.validUntil < new Date().toISOString().slice(0, 10)) {
-      throw new DomainError('SALES_QUOTATION_EXPIRED', 'This quotation expired; issue a new one', 422);
-    }
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      // ACC-051: قفل صف عرض السعر لمنع تحويل متزامن مكرر
+      const [quotation] = await tx
+        .select()
+        .from(salesInvoices)
+        .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, id)))
+        .for('update');
+      if (!quotation) throw new DomainError('NOT_FOUND', 'Quotation not found', 404);
+      if (quotation.kind !== 'quotation')
+        throw new DomainError('SALES_QUOTATION_EXPECTED', 'This document is not a quotation', 422);
+      if (quotation.status === 'converted' || quotation.convertedInvoiceId)
+        throw new DomainError(
+          'SALES_QUOTATION_ALREADY_CONVERTED',
+          'This quotation was already converted into an invoice',
+          409,
+        );
+      if (quotation.status !== 'draft')
+        throw new DomainError('SALES_QUOTATION_INVALID_STATUS', 'Only an open quotation can be converted', 409);
+      if (quotation.validUntil && quotation.validUntil < new Date().toISOString().slice(0, 10)) {
+        throw new DomainError('SALES_QUOTATION_EXPIRED', 'This quotation expired; issue a new one', 422);
+      }
 
-    const invoice = await this.create(tenantId, {
-      branchId: quotation.branchId,
-      warehouseId: input.warehouseId ?? quotation.warehouseId ?? undefined,
-      partyId: quotation.partyId ?? undefined,
-      salesmanId: quotation.salesmanId ?? undefined,
-      cashCustomerName: quotation.cashCustomerName ?? undefined,
-      cashCustomerMobile: quotation.cashCustomerMobile ?? undefined,
-      currency: quotation.currency,
-      priceIncludesVat: quotation.priceIncludesVat,
-      referenceInvoiceId: quotation.id,
-      kind: 'sale',
-      lines: quotation.lines.map((line) => ({
-        itemId: line.itemId ?? undefined,
-        description: line.description ?? undefined,
-        quantity: line.quantity,
-        unitPrice: line.unitPrice,
-        discountRate: line.discountRate,
-        taxRate: line.taxRate,
-        taxGroupId: line.taxGroupId ?? undefined,
-      })),
-    });
+      const qLines = await tx
+        .select()
+        .from(salesInvoiceLines)
+        .where(and(eq(salesInvoiceLines.tenantId, tenantId), eq(salesInvoiceLines.invoiceId, id)))
+        .orderBy(salesInvoiceLines.lineNo);
 
-    await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx
+      // ACC-050: نقل خصم الفاتورة وخصومات الأسطر ومراكز التكلفة للفاتورة الناتجة
+      const invoiceId = await this.createInTx(tx, tenantId, {
+        branchId: quotation.branchId,
+        warehouseId: input.warehouseId ?? quotation.warehouseId ?? undefined,
+        partyId: quotation.partyId ?? undefined,
+        salesmanId: quotation.salesmanId ?? undefined,
+        costCenterId: quotation.costCenterId ?? undefined,
+        cashCustomerName: quotation.cashCustomerName ?? undefined,
+        cashCustomerMobile: quotation.cashCustomerMobile ?? undefined,
+        currency: quotation.currency,
+        priceIncludesVat: quotation.priceIncludesVat,
+        invoiceDiscount: quotation.invoiceDiscount ?? undefined,
+        extraTax: quotation.extraTax ?? undefined,
+        withholding: quotation.withholding ?? undefined,
+        referenceInvoiceId: quotation.id,
+        kind: 'sale',
+        lines: qLines.map((line) => ({
+          itemId: line.itemId ?? undefined,
+          description: line.description ?? undefined,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          discountRate: line.discountRate ?? undefined,
+          discountAmount: line.discountAmount ?? undefined,
+          taxRate: line.taxRate ?? undefined,
+          taxGroupId: line.taxGroupId ?? undefined,
+          costCenterId: line.costCenterId ?? undefined,
+        })),
+      });
+
+      const updated = await tx
         .update(salesInvoices)
         .set({
           status: 'converted',
-          convertedInvoiceId: invoice.id,
+          convertedInvoiceId: invoiceId,
           updatedAt: new Date(),
           updatedBy: tryGetAuthContext()?.userId,
         })
@@ -1972,11 +2694,21 @@ export class SalesService {
             eq(salesInvoices.tenantId, tenantId),
             eq(salesInvoices.id, id),
             eq(salesInvoices.status, 'draft'),
+            isNull(salesInvoices.convertedInvoiceId),
           ),
-        ),
-    );
+        )
+        .returning({ id: salesInvoices.id });
 
-    return invoice;
+      if (updated.length === 0) {
+        throw new DomainError(
+          'SALES_QUOTATION_ALREADY_CONVERTED',
+          'This quotation was already converted into an invoice',
+          409,
+        );
+      }
+
+      return this.getInTx(tx, tenantId, invoiceId);
+    });
   }
 
   async createAdjustmentNote(
@@ -2046,6 +2778,7 @@ export class SalesService {
     input: Omit<typeof offers.$inferInsert, 'id' | 'tenantId' | 'validFrom' | 'validTo'> & {
       validFrom: string | Date;
       validTo: string | Date;
+      itemIds?: string[];
     },
   ) {
     const validFrom = input.validFrom instanceof Date ? input.validFrom : new Date(input.validFrom);
@@ -2054,20 +2787,62 @@ export class SalesService {
       throw new DomainError('SALES_OFFER_INVALID_PERIOD', 'Offer validity dates are invalid', 422);
     if (validTo < validFrom)
       throw new DomainError('SALES_OFFER_INVALID_PERIOD', 'Offer end date precedes its start date', 422);
-    const [offer] = await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx
-        .insert(offers)
-        .values({
-          ...input,
-          validFrom,
-          validTo,
-          id: newId(),
-          tenantId,
-          createdBy: tryGetAuthContext()?.userId,
-        })
-        .returning(),
-    );
-    return offer;
+
+    const discountVal = money(input.discountValue ?? '0');
+    if (discountVal.lte(0)) {
+      throw new DomainError('SALES_OFFER_DISCOUNT_INVALID', 'Discount value must be greater than zero', 422, {
+        field: 'discountValue',
+      });
+    }
+    if (input.discountType === 'percent' && discountVal.gt(100)) {
+      throw new DomainError('SALES_OFFER_DISCOUNT_INVALID', 'Percentage discount cannot exceed 100%', 422, {
+        field: 'discountValue',
+      });
+    }
+    const targetVal = money(input.targetValue ?? '0');
+    if (targetVal.lte(0)) {
+      throw new DomainError('SALES_OFFER_TARGET_INVALID', 'Target value must be greater than zero', 422, {
+        field: 'targetValue',
+      });
+    }
+
+    const offerId = newId();
+    const { itemIds, ...offerData } = input;
+    try {
+      const offer = await withTenantTx(this.database.db, tenantId, async (tx) => {
+        const [inserted] = await tx
+          .insert(offers)
+          .values({
+            ...offerData,
+            discountValue: discountVal.toFixed(4),
+            targetValue: targetVal.toFixed(4),
+            validFrom,
+            validTo,
+            id: offerId,
+            tenantId,
+            createdBy: tryGetAuthContext()?.userId,
+          })
+          .returning();
+        if (itemIds?.length) {
+          await tx.insert(offerItems).values(
+            itemIds.map((itemId) => ({
+              tenantId,
+              offerId,
+              itemId,
+            })),
+          );
+        }
+        return inserted!;
+      });
+      return offer;
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        throw new DomainError('SALES_OFFER_CODE_TAKEN', 'An offer with this code already exists', 409, {
+          field: 'code',
+        });
+      }
+      throw err;
+    }
   }
   /**
    * 👤 عميل نقدي — `Form_WPF/frmCashCustomer.xaml.cs` (`SearchCustomers`).
@@ -2473,6 +3248,7 @@ export class SalesService {
             kind: salesInvoices.kind,
             date: sql<string>`${salesInvoices.postedAt}::date`,
             subtotal: salesInvoices.subtotal,
+            total: salesInvoices.total,
             /**
              * `AvrgCost = SUM(val × AvrgCost)` L257 — the cost of what left the
              * warehouse. It lives on the lines (`recordAutoStock` writes it at
@@ -2547,8 +3323,15 @@ export class SalesService {
            * «عمولة التحصيل فقط إذا كان نوع الدفع موجودًا» L331 — the desktop reads
            * `Inv.pay_type`; the cloud's settled half of an invoice is its `paid_total`
            * (a cash/card/bank posting fills it at once, and `addPayment` adds to it).
+           * ACC-122: عمولة التحصيل تُحسب بالنسبة للمبلغ المحصّل فعلياً لا لكامل الفاتورة عند الدفع الجزئي
            */
-          const settled = new Decimal(invoice.paidTotal ?? '0').gt(0);
+          const paidTotal = new Decimal(invoice.paidTotal ?? '0');
+          const invoiceTotal = new Decimal(invoice.total ?? '0');
+          const collectedShare = invoiceTotal.gt(0)
+            ? Decimal.min(new Decimal(1), Decimal.max(new Decimal(0), paidTotal.div(invoiceTotal)))
+            : new Decimal(0);
+          const collectedValue = value.mul(collectedShare);
+          const settled = collectedShare.gt(0);
           push({
             movementType: invoiceLabel(invoice.kind, invoice.isPos),
             date: invoice.date,
@@ -2561,7 +3344,7 @@ export class SalesService {
             value: value.toFixed(4),
             salesCommission: pct(card.commissionRate, value).toFixed(4),
             collectionCommission: settled
-              ? pct(card.collectionCommissionRate, value).toFixed(4)
+              ? pct(card.collectionCommissionRate, collectedValue).toFixed(4)
               : '0.0000',
             profitCommission: profitBase.gt(0)
               ? pct(card.profitCommissionRate, profitBase).toFixed(4)

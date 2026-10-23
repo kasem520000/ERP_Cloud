@@ -169,7 +169,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
           changeInPos: isBank ? form.changeInPos : undefined,
           bank: bankBlock(),
           notes: notes.trim() || undefined,
-          custodianIds: custodians,
+          custodianIds: custodians.length > 0 ? custodians : undefined,
         });
         setForm({ ...BLANK, branchId: form.branchId });
         setCustodians([]);
@@ -315,6 +315,24 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                   ))}
                 </select>
               </DocField>
+              {!isBank && (
+                <DocField label="الموظف المسئول">
+                  <select
+                    className="input"
+                    value={custodians[0] ?? ''}
+                    onChange={(event) =>
+                      setCustodians(event.target.value ? [event.target.value] : [])
+                    }
+                  >
+                    <option value="">— اختر موظفاً مسئولاً —</option>
+                    {employeeRows.map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} · {employee.employeeNo}
+                      </option>
+                    ))}
+                  </select>
+                </DocField>
+              )}
             </DocHead>
 
             {isBank && (

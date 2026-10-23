@@ -374,8 +374,26 @@ export class SupplierPortalService {
       throw new DomainError('DECLARED_TOTAL_INVALID', 'إجمالي الفاتورة يجب أن يكون أكبر من صفر', 422);
     }
     const id = newId();
-    await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx.insert(supplierInvoiceUploads).values({
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const [existing] = await tx
+        .select({ id: supplierInvoiceUploads.id })
+        .from(supplierInvoiceUploads)
+        .where(
+          and(
+            eq(supplierInvoiceUploads.tenantId, tenantId),
+            eq(supplierInvoiceUploads.partyId, user.partyId),
+            eq(supplierInvoiceUploads.referenceNo, referenceNo),
+          ),
+        )
+        .limit(1);
+      if (existing) {
+        throw new DomainError(
+          'SUPPLIER_INVOICE_REFERENCE_DUPLICATE',
+          'تم رفع فاتورة بهذا المرجع مسبقاً لهذا المورد',
+          409,
+        );
+      }
+      await tx.insert(supplierInvoiceUploads).values({
         id,
         tenantId,
         partyId: user.partyId,
@@ -383,8 +401,8 @@ export class SupplierPortalService {
         declaredTotal: declared.toFixed(4),
         note: input.note?.trim() ?? '',
         status: 'submitted',
-      }),
-    );
+      });
+    });
     return { id, referenceNo, declaredTotal: declared.toFixed(4), status: 'submitted' };
   }
 

@@ -12,7 +12,7 @@ import { dateText, moneyText } from '../../../lib/format';
 import { useAsync } from '../../../lib/use-async';
 
 const PAYMENT_AR: Record<string, string> = { unpaid: 'غير مسددة', partial: 'مسددة جزئياً', paid: 'مسددة' };
-const KIND_AR: Record<string, string> = { sale: 'فاتورة مبيعات', return: 'مردود مبيعات' };
+const KIND_AR: Record<string, string> = { sale: 'فاتورة مبيعات', return: 'مردود مبيعات', sale_return: 'مردود مبيعات' };
 
 function Invoices() {
   const [range, setRange] = useState<{ from: string; to: string }>({ from: '', to: '' });
@@ -132,11 +132,17 @@ function Invoices() {
               {
                 key: 'status',
                 header: 'الحالة',
-                cell: (invoice) => (
-                  <span className={`badge ${invoice.payment_status === 'paid' ? 'paid' : 'open'}`}>
-                    {PAYMENT_AR[invoice.payment_status] ?? invoice.payment_status}
-                  </span>
-                ),
+                cell: (invoice) => {
+                  const isReturn = invoice.kind === 'sale_return' || invoice.kind === 'return';
+                  if (isReturn) {
+                    return <span className="badge paid">إشعار دائن</span>;
+                  }
+                  return (
+                    <span className={`badge ${invoice.payment_status === 'paid' ? 'paid' : 'open'}`}>
+                      {PAYMENT_AR[invoice.payment_status] ?? invoice.payment_status}
+                    </span>
+                  );
+                },
               },
               {
                 key: 'open',

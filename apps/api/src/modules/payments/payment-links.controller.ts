@@ -32,6 +32,12 @@ export class PaymentLinksController {
     return this.links.listLinks(getTenantContext().tenantId, invoiceId);
   }
 
+  @Get('payments/links/:id')
+  @RequiresPermission('payments.links.manage')
+  get(@Param('id') id: string) {
+    return this.links.getLink(getTenantContext().tenantId, id);
+  }
+
   @Post('payments/links')
   @RequiresPermission('payments.links.manage')
   create(@Body() body: CreateLinkInput) {

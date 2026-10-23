@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
 import { DomainError, newId } from '@erp/contracts';
 import { backupRuns, restoreRuns, withTenantTx, type DatabaseHandle, type DrizzleTx } from '@erp/database';
 
@@ -25,12 +25,26 @@ const NEVER_BACKED_UP = new Set([
   'refresh_tokens', 'sessions', 'password_reset_tokens', 'login_attempts',
 ]);
 
+/** ACC-079: Child tables that belong to a tenant via parent foreign key */
+const DEPENDENT_TABLES: Record<string, (tenantId: string) => SQL> = {
+  approval_steps: (tenantId) =>
+    sql`SELECT to_jsonb(s) AS row FROM approval_steps s JOIN approval_workflows w ON w.id = s.workflow_id WHERE w.tenant_id = ${tenantId}::uuid`,
+  approval_decisions: (tenantId) =>
+    sql`SELECT to_jsonb(d) AS row FROM approval_decisions d JOIN approval_requests r ON r.id = d.request_id WHERE r.tenant_id = ${tenantId}::uuid`,
+};
+
 /** A logical export is not a database dump; past this size it is a false promise. */
 const MAX_BACKUP_ROWS = 50_000;
 
 type Snapshot = Record<string, Array<Record<string, unknown>>>;
 
-const asJsonParam = (value: unknown) => (value !== null && typeof value === 'object' ? JSON.stringify(value) : value);
+const asJsonParam = (table: string, column: string, value: unknown) => {
+  if (value === null || value === undefined) return null;
+  if (table === 'tenant_settings' && column === 'value') {
+    return JSON.stringify(value);
+  }
+  return typeof value === 'object' ? JSON.stringify(value) : value;
+};
 
 /**
  * النسخ الإحتياطي و إستعادة البيانات.
@@ -82,7 +96,10 @@ export class BackupService {
       let totalRows = 0;
 
       for (const table of tables) {
-        const result = await tx.execute(sql`SELECT to_jsonb(t) AS row FROM ${sql.identifier(table)} t`);
+        const query = DEPENDENT_TABLES[table]
+          ? DEPENDENT_TABLES[table](tenantId)
+          : sql`SELECT to_jsonb(t) AS row FROM ${sql.identifier(table)} t`;
+        const result = await tx.execute(query);
         const rows = result.rows.map((row) => (row as { row: Record<string, unknown> }).row);
         if (!rows.length) continue;
         totalRows += rows.length;
@@ -151,16 +168,51 @@ export class BackupService {
     let skipped = 0;
 
     if (mode === 'dry_run') {
-      const existing = await withTenantTx(this.database.db, tenantId, async (tx) => {
-        const counts: Record<string, number> = {};
-        for (const table of tableNames) {
-          const result = await tx.execute(sql`SELECT count(*)::int AS count FROM ${sql.identifier(table)}`);
-          counts[table] = Number((result.rows[0] as { count: number }).count);
+      let simInserted = 0;
+      let simSkipped = 0;
+      let dryPending = [...tableNames];
+      await withTenantTx(this.database.db, tenantId, async (tx) => {
+        await tx.execute(sql`SAVEPOINT restore_dry_run`);
+        try {
+          for (let pass = 0; pass < 4 && dryPending.length; pass += 1) {
+            const failed: string[] = [];
+            for (const table of dryPending) {
+              try {
+                const rows = snapshot[table]!;
+                if (!rows.length) {
+                  summary[table] = { rows: 0, inserted: 0, skipped: 0 };
+                  continue;
+                }
+                const before = Number((((await tx.execute(sql`SELECT count(*)::int AS count FROM ${sql.identifier(table)}`)).rows[0]) as { count: number }).count);
+                const columns = Object.keys(rows[0]!);
+                const columnList = sql.join(columns.map((column) => sql.identifier(column)), sql`, `);
+                for (const row of rows) {
+                  const values = columns.map((column) => (column === 'tenant_id' ? tenantId : asJsonParam(table, column, row[column] ?? null)));
+                  await tx.execute(sql`
+                    INSERT INTO ${sql.identifier(table)} (${columnList})
+                    VALUES (${sql.join(values.map((value) => sql`${value}`), sql`, `)})
+                    ON CONFLICT DO NOTHING
+                  `);
+                }
+                const after = Number((((await tx.execute(sql`SELECT count(*)::int AS count FROM ${sql.identifier(table)}`)).rows[0]) as { count: number }).count);
+                const insertedRows = after - before;
+                const skippedRows = rows.length - insertedRows;
+                simInserted += insertedRows;
+                simSkipped += skippedRows;
+                summary[table] = { rows: rows.length, inserted: insertedRows, skipped: skippedRows };
+              } catch (error) {
+                failed.push(table);
+                summary[table] = { rows: snapshot[table]!.length, inserted: 0, skipped: snapshot[table]!.length, error: error instanceof Error ? error.message.slice(0, 300) : String(error) };
+              }
+            }
+            if (failed.length === dryPending.length) break;
+            dryPending = failed;
+          }
+        } finally {
+          await tx.execute(sql`ROLLBACK TO SAVEPOINT restore_dry_run`);
         }
-        return counts;
       });
-      for (const table of tableNames) summary[table] = { rows: snapshot[table]!.length, inserted: 0, skipped: 0 };
-      return this.recordRestore(tenantId, input.backupId, 'dry_run', { tables: summary, existingRows: existing }, 0, 0);
+      return this.recordRestore(tenantId, input.backupId, 'dry_run', { tables: summary, unresolved: dryPending }, simInserted, simSkipped);
     }
 
     // Foreign keys make table order matter, and the snapshot does not carry a dependency
@@ -214,7 +266,7 @@ export class BackupService {
       const columnList = sql.join(columns.map((column) => sql.identifier(column)), sql`, `);
       for (const row of rows) {
         // Force the tenant: a snapshot from another file cannot smuggle rows across.
-        const values = columns.map((column) => (column === 'tenant_id' ? tenantId : asJsonParam(row[column] ?? null)));
+        const values = columns.map((column) => (column === 'tenant_id' ? tenantId : asJsonParam(table, column, row[column] ?? null)));
         await tx.execute(sql`
           INSERT INTO ${sql.identifier(table)} (${columnList})
           VALUES (${sql.join(values.map((value) => sql`${value}`), sql`, `)})
@@ -245,6 +297,12 @@ export class BackupService {
       WHERE c.table_schema = 'public' AND c.column_name = 'tenant_id' AND t.table_type = 'BASE TABLE'
       ORDER BY c.table_name
     `);
-    return (result.rows as Array<{ table_name: string }>).map((row) => row.table_name).filter((table) => !NEVER_BACKED_UP.has(table));
+    const tables = (result.rows as Array<{ table_name: string }>).map((row) => row.table_name).filter((table) => !NEVER_BACKED_UP.has(table));
+    for (const depTable of Object.keys(DEPENDENT_TABLES)) {
+      if (!tables.includes(depTable) && !NEVER_BACKED_UP.has(depTable)) {
+        tables.push(depTable);
+      }
+    }
+    return tables;
   }
 }

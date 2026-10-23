@@ -136,6 +136,7 @@ type RepPerformance = {
   damagedKg: string;
   shortageKg: string;
   shortageSar: string;
+  salaryDeductionSar?: string;
   custodyRemainingKg: string;
   revenueSar: string;
   collectedSar: string;
@@ -1612,7 +1613,17 @@ export default function VanSalesPage() {
                   key: 'c7',
                   header: 'خصم الراتب (SAR)',
                   ltr: true,
-                  cell: (rep) => <>{rep.shortageSar} SAR</>,
+                  cell: (rep) => (
+                    <>
+                      {rep.salaryDeductionSar ?? '0.00'} SAR
+                      {Number(rep.shortageSar) > 0 &&
+                        Number(rep.salaryDeductionSar ?? 0) === 0 && (
+                          <span className="block text-xs text-muted-foreground">
+                            (عجز {rep.shortageSar} SAR لم يُحمَّل)
+                          </span>
+                        )}
+                    </>
+                  ),
                 },
                 {
                   key: 'c8',

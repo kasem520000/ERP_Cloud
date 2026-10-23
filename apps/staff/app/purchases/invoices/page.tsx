@@ -67,7 +67,15 @@ export default function PurchaseInvoicesPage() {
 
   const all = invoices.data ?? [];
   const posted = all.filter((row) => row.status === 'posted');
-  const outstanding = posted.reduce((sum, row) => sum + Number(row.total) - Number(row.paidTotal), 0);
+  // ACC-026: خصم المردودات من إجمالي المشتريات ومستحقات الموردين
+  const signedTotal = (row: (typeof posted)[number]) =>
+    row.kind === 'purchase_return' ? -Number(row.total) : Number(row.total);
+  const signedDue = (row: (typeof posted)[number]) =>
+    row.kind === 'purchase_return'
+      ? -(Number(row.total) - Number(row.paidTotal))
+      : Number(row.total) - Number(row.paidTotal);
+  const totalPurchases = posted.reduce((sum, row) => sum + signedTotal(row), 0);
+  const outstanding = posted.reduce((sum, row) => sum + signedDue(row), 0);
 
   return (
     <Screen
@@ -78,13 +86,13 @@ export default function PurchaseInvoicesPage() {
         { label: 'إجمالي الفواتير', value: all.length, hint: 'مرحّلة ومسودات' },
         {
           label: 'قيمة المشتريات',
-          value: money(posted.reduce((sum, row) => sum + Number(row.total), 0)),
-          hint: 'المرحّل فقط، شامل الضريبة',
+          value: money(totalPurchases),
+          hint: 'المرحّل بالصافي بعد المردودات، شامل الضريبة',
         },
         {
           label: 'مستحق للموردين',
           value: money(outstanding),
-          hint: 'المتبقي على الفواتير المرحّلة',
+          hint: 'المتبقي على الفواتير المرحّلة بالصافي بعد المردودات',
           tone: outstanding > 0 ? 'warn' : 'up',
         },
         {

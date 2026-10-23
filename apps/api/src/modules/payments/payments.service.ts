@@ -1,15 +1,26 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { Decimal } from 'decimal.js';
 import { dataEncryptionKey } from '@erp/config';
-import { DomainError, newId } from '@erp/contracts';
-import { paymentGatewaySettings, paymentGatewayTransactions, withTenantTx, type DatabaseHandle } from '@erp/database';
+import { DomainError, errorCodes, newId } from '@erp/contracts';
+import {
+  branches,
+  cashLocations,
+  invoicePayments,
+  paymentGatewaySettings,
+  paymentGatewayTransactions,
+  salesInvoices,
+  vouchers,
+  withTenantTx,
+  type DatabaseHandle,
+} from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { getRequestContext } from '../../request-context/request-context.js';
 import { SalesService } from '../sales/sales.service.js';
+import { TreasuryService } from '../treasury/treasury.service.js';
 
 import {
   GATEWAY_PROVIDERS,
@@ -145,6 +156,7 @@ export class PaymentsService {
   constructor(
     @Inject(DATABASE_HANDLE) private readonly database: DatabaseHandle,
     private readonly sales: SalesService,
+    private readonly treasury: TreasuryService,
   ) {}
 
   // ── 💳 إعدادات البوابة («إعدادات جيديا» + GroupBox «NeoLeap») ─────────────────────────
@@ -412,31 +424,177 @@ export class PaymentsService {
 
   // ── internals ─────────────────────────────────────────────────────────────────────
 
-  /** An approved sale is money in — write it on the invoice once, and remember that we did. */
+  /** An approved sale is money in — write it on the invoice once, record the receipt voucher, and mark settled. */
   private async settleIfApproved(tenantId: string, row: typeof paymentGatewayTransactions.$inferSelect, result: GatewayResult) {
-    if (result.status !== 'approved' || !row.invoiceId || row.settled) {
+    if (result.status !== 'approved' || row.settled) {
       return { transaction: this.toTransaction(row), settled: row.settled };
     }
     try {
-      await this.sales.addPayment(tenantId, row.invoiceId, {
-        method: 'card',
-        amount: money(row.amount).toFixed(2),
-        idempotencyKey: row.reference,
-        reference: result.approvalCode ?? result.sessionId ?? row.reference,
-      });
+      let targetBranchId = row.branchId;
+      let partyId: string | null = null;
+      let invoiceNumber: string | null = null;
+      let invoiceCurrency = 'SAR';
+
+      if (row.invoiceId) {
+        const invoice = await this.sales.get(tenantId, row.invoiceId);
+        targetBranchId = invoice.branchId ?? targetBranchId;
+        partyId = invoice.partyId;
+        invoiceNumber = invoice.number ?? invoice.id;
+        invoiceCurrency = invoice.currency || 'SAR';
+      }
+
+      const cashLocationsRows = await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .select()
+          .from(cashLocations)
+          .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.isActive, true), isNull(cashLocations.deletedAt))),
+      );
+      const chosenCashLoc =
+        (targetBranchId ? cashLocationsRows.find((c) => (c.kind === 'bank' || c.kind === 'pos') && c.branchId === targetBranchId) : null) ||
+        (targetBranchId ? cashLocationsRows.find((c) => c.branchId === targetBranchId && c.isDefault) : null) ||
+        (targetBranchId ? cashLocationsRows.find((c) => c.branchId === targetBranchId) : null) ||
+        cashLocationsRows.find((c) => c.kind === 'bank' || c.kind === 'pos') ||
+        cashLocationsRows.find((c) => c.isDefault) ||
+        cashLocationsRows[0];
+
+      if (!targetBranchId) {
+        targetBranchId = chosenCashLoc?.branchId ?? null;
+      }
+      if (!targetBranchId) {
+        const [defaultBranch] = await withTenantTx(this.database.db, tenantId, (tx) =>
+          tx.select({ id: branches.id }).from(branches).where(eq(branches.tenantId, tenantId)).limit(1),
+        );
+        targetBranchId = defaultBranch?.id ?? null;
+      }
+
+      const amountStr = money(row.amount).toFixed(2);
+      const idempotencyKey = `card-gw:${row.provider}:${row.reference}`;
+
+      if (chosenCashLoc && targetBranchId) {
+        await this.receipt(tenantId, {
+          idempotencyKey,
+          branchId: targetBranchId,
+          partyId,
+          cashLocationId: chosenCashLoc.id,
+          amount: amountStr,
+          currency: row.currency || invoiceCurrency,
+          invoiceId: row.invoiceId ?? undefined,
+          description: row.invoiceId
+            ? `سند قبض دفع إلكتروني (${PROVIDER_LABELS[row.provider as GatewayProvider] ?? row.provider}) فاتورة ${invoiceNumber}`
+            : `سند قبض دفع إلكتروني (${PROVIDER_LABELS[row.provider as GatewayProvider] ?? row.provider}) غير مخصص — مرجع ${row.reference}`,
+          reference: result.approvalCode ?? result.sessionId ?? row.reference,
+        });
+      }
+
+      if (row.invoiceId) {
+        const [inv] = await withTenantTx(this.database.db, tenantId, (tx) =>
+          tx
+            .select({ paidTotal: salesInvoices.paidTotal, total: salesInvoices.total })
+            .from(salesInvoices)
+            .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, row.invoiceId!))),
+        );
+        const remaining = inv ? money(inv.total).minus(inv.paidTotal) : money(0);
+        if (remaining.gt(0)) {
+          await this.sales.addPayment(tenantId, row.invoiceId, {
+            method: 'card',
+            amount: amountStr,
+            idempotencyKey: row.reference,
+            reference: result.approvalCode ?? result.sessionId ?? row.reference,
+            cashLocationId: chosenCashLoc?.id,
+          });
+        } else {
+          await withTenantTx(this.database.db, tenantId, (tx) =>
+            tx
+              .insert(invoicePayments)
+              .values({
+                id: newId(),
+                tenantId,
+                invoiceId: row.invoiceId!,
+                method: 'card',
+                amount: amountStr,
+                cashLocationId: chosenCashLoc?.id ?? null,
+                reference: result.approvalCode ?? result.sessionId ?? row.reference,
+                idempotencyKey: row.reference,
+              })
+              .onConflictDoNothing(),
+          );
+        }
+      }
+
+      const [updated] = await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .update(paymentGatewayTransactions)
+          .set({ settled: true })
+          .where(and(eq(paymentGatewayTransactions.tenantId, tenantId), eq(paymentGatewayTransactions.id, row.id)))
+          .returning(),
+      );
+      return { transaction: this.toTransaction(updated ?? row), settled: true };
     } catch (error) {
       const message = (error as Error).message ?? String(error);
       this.logger.warn(`card settlement failed for ${row.reference}: ${message}`);
       return { transaction: this.toTransaction(row), settled: false, settlementError: message };
     }
-    const [updated] = await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx
-        .update(paymentGatewayTransactions)
-        .set({ settled: true })
-        .where(and(eq(paymentGatewayTransactions.tenantId, tenantId), eq(paymentGatewayTransactions.id, row.id)))
-        .returning(),
-    );
-    return { transaction: this.toTransaction(updated ?? row), settled: true };
+  }
+
+  private async receipt(
+    tenantId: string,
+    input: {
+      idempotencyKey: string;
+      branchId: string;
+      partyId: string | null;
+      cashLocationId: string;
+      amount: string;
+      currency: string;
+      invoiceId?: string;
+      description: string;
+      reference: string;
+    },
+  ) {
+    const loadExisting = () =>
+      withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .select()
+          .from(vouchers)
+          .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.idempotencyKey, input.idempotencyKey)))
+          .limit(1),
+      );
+    let voucher = (await loadExisting())[0];
+    if (!voucher) {
+      try {
+        voucher = await this.treasury.createVoucher(tenantId, {
+          branchId: input.branchId,
+          kind: 'receipt',
+          subtype: input.partyId ? 'customer' : 'other',
+          date: new Date().toISOString().slice(0, 10),
+          partyId: input.partyId ?? undefined,
+          cashLocationId: input.cashLocationId,
+          method: 'card',
+          amount: input.amount,
+          netAmount: input.amount,
+          currency: input.currency,
+          description: input.description,
+          referenceNo: input.reference,
+          idempotencyKey: input.idempotencyKey,
+        });
+      } catch (error) {
+        voucher = (await loadExisting())[0];
+        if (!voucher) throw error;
+      }
+    }
+    if (!voucher) throw new DomainError(errorCodes.INTERNAL, 'تعذّر إنشاء سند القبض', 500);
+    if (voucher.status === 'draft') {
+      try {
+        return await this.treasury.postVoucher(tenantId, voucher.id, {
+          allocations: input.partyId && input.invoiceId
+            ? [{ partyId: input.partyId, invoiceKind: 'sales', invoiceId: input.invoiceId, amount: input.amount }]
+            : [],
+        });
+      } catch (error) {
+        this.logger.warn(`receipt ${voucher.id} stayed draft: ${(error as Error).message}`);
+        return voucher;
+      }
+    }
+    return voucher;
   }
 
   private async settings(tenantId: string, provider: GatewayProvider) {

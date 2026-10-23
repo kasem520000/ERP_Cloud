@@ -1,5 +1,5 @@
 /* eslint-disable no-restricted-syntax */
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Optional, type OnModuleInit } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { alias } from 'drizzle-orm/pg-core';
 import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
@@ -9,6 +9,7 @@ import {
   cashLocationBalances,
   cashLocations,
   cashTransfers,
+  currencies,
   employees,
   expenseTypes,
   journalEntries,
@@ -20,6 +21,7 @@ import {
   shiftCloses,
   cashCountLines,
   invoicePayments,
+  purchaseInvoices,
   salesInvoices,
   users,
   vouchers,
@@ -36,6 +38,7 @@ import { WebhookPublisher } from '../developer/webhook-publisher.service.js';
 import { PostingProfilesService } from '../organization/posting-profiles/posting-profiles.service.js';
 import { SequencesService } from '../platform-services/index.js';
 import { FileAttachmentRegistry } from '../platform-services/files/file-attachments.js';
+import { ApprovalService } from '../approvals/approvals.service.js';
 
 export type VoucherInput = {
   branchId: string;
@@ -181,6 +184,7 @@ export class TreasuryService implements OnModuleInit {
     // P-C11 — `shift.closed`: من ينتظر تقرير الوردية يعرف بغلاقها بلا أن يسأل.
     private readonly webhooks: WebhookPublisher,
     private readonly attachments: FileAttachmentRegistry,
+    @Optional() private readonly approvals?: ApprovalService,
   ) {}
 
   onModuleInit(): void {
@@ -200,11 +204,12 @@ export class TreasuryService implements OnModuleInit {
    * `frmSandQ`'s 🔍 panel: 📅 من تاريخ / 📅 إلى تاريخ, 📋 كل الفترة, and a search by
    * 🔢 الرقم or رقم المرجع (`ReceiptOper.LoadReceipts`, `Class/ReceiptOper.cs:496`).
    */
-  vouchers(tenantId: string, filters: { from?: string; to?: string; q?: string } = {}) {
+  vouchers(tenantId: string, filters: { from?: string; to?: string; q?: string; kind?: string } = {}) {
     /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
     validateDayFilters(filters as Record<string, unknown>, FROM_TO_LABELS_AR, 'TREASURY_DATE_INVALID');
 
     const q = filters.q?.trim();
+    const kind = (filters.kind || (filters as any).type)?.trim();
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const rows = await tx
         .select({
@@ -257,6 +262,7 @@ export class TreasuryService implements OnModuleInit {
             eq(vouchers.tenantId, tenantId),
             filters.from ? gte(vouchers.date, filters.from) : undefined,
             filters.to ? lte(vouchers.date, filters.to) : undefined,
+            kind ? eq(vouchers.kind, kind) : undefined,
             q
               ? or(
                   ilike(vouchers.number, `%${q}%`),
@@ -343,6 +349,30 @@ export class TreasuryService implements OnModuleInit {
       throw new DomainError('VOUCHER_AMOUNT_INVALID', 'Voucher amount must be positive', 422);
     if (input.method === 'cheque' && !input.chequeNo)
       throw new DomainError('CHEQUE_NO_REQUIRED', 'Cheque vouchers require a cheque number', 422);
+
+    const currency = (input.currency ?? 'SAR').toUpperCase().trim();
+    if (currency !== 'SAR') {
+      const [curr] = await tx
+        .select({ code: currencies.code })
+        .from(currencies)
+        .where(
+          and(
+            eq(currencies.tenantId, tenantId),
+            eq(currencies.code, currency),
+            eq(currencies.isActive, true),
+          ),
+        )
+        .limit(1);
+      if (!curr) {
+        throw new DomainError(
+          'CURRENCY_NOT_ACTIVE',
+          `Currency ${currency} is not active for this tenant`,
+          422,
+          { field: 'currency' },
+        );
+      }
+    }
+
     const voucherTime = normaliseTime(input.voucherTime);
     let fxRate: string | null = null;
     if (input.foreignAmount !== undefined && input.foreignAmount !== '') {
@@ -374,7 +404,7 @@ export class TreasuryService implements OnModuleInit {
         amount: input.amount,
         vatAmount: input.vatAmount ?? '0',
         netAmount: input.netAmount ?? input.amount,
-        currency: input.currency ?? 'SAR',
+        currency,
         fxRate,
         chequeNo: input.chequeNo,
         chequeDate: input.chequeDate,
@@ -414,6 +444,32 @@ export class TreasuryService implements OnModuleInit {
         throw new DomainError('VOUCHER_FOREIGN_AMOUNT_INVALID', 'Foreign amount must be positive', 422, {
           field: 'foreignAmount',
         });
+    }
+    if (input.currency !== undefined) {
+      const cur = input.currency.toUpperCase().trim();
+      if (cur !== 'SAR') {
+        const [curr] = await withTenantTx(this.database.db, tenantId, (tx) =>
+          tx
+            .select({ code: currencies.code })
+            .from(currencies)
+            .where(
+              and(
+                eq(currencies.tenantId, tenantId),
+                eq(currencies.code, cur),
+                eq(currencies.isActive, true),
+              ),
+            )
+            .limit(1),
+        );
+        if (!curr) {
+          throw new DomainError(
+            'CURRENCY_NOT_ACTIVE',
+            `Currency ${cur} is not active for this tenant`,
+            422,
+            { field: 'currency' },
+          );
+        }
+      }
     }
     const patch: Record<string, unknown> = { updatedAt: new Date(), updatedBy: tryGetAuthContext()?.userId ?? null };
     const assignments = {
@@ -536,6 +592,35 @@ export class TreasuryService implements OnModuleInit {
         voucher.kind === 'receipt'
           ? (party?.receivableAccountId ?? undefined)
           : (party?.payableAccountId ?? undefined);
+    }
+    // ACC-040: عند غياب الحساب المقابل لسند الراتب، يوجّه لحساب الرواتب المستحقة (224...) بدلاً من ذمم الموردين
+    if (!counterAccountId && voucher.subtype === 'salary') {
+      counterAccountId = await this.profileAccount(
+        tx,
+        tenantId,
+        voucher.branchId,
+        docType,
+        'salaryPayableAccountId',
+        { required: false },
+      );
+      if (!counterAccountId) {
+        const [accrued] = await tx
+          .select({ id: accounts.id })
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.tenantId, tenantId),
+              eq(accounts.type, 'liability'),
+              or(
+                sql`${accounts.code} LIKE '224%'`,
+                sql`${accounts.nameAr} LIKE '%رواتب مستحقة%'`,
+              ),
+              isNull(accounts.deletedAt),
+            ),
+          )
+          .limit(1);
+        counterAccountId = accrued?.id;
+      }
     }
     if (!counterAccountId)
       counterAccountId = await this.profileAccount(
@@ -701,11 +786,33 @@ export class TreasuryService implements OnModuleInit {
     voucher: typeof vouchers.$inferSelect,
   ): Promise<JournalLineInput[]> {
     const { cashAccountId, counterAccountId } = await this.voucherAccounts(tx, tenantId, voucher);
-    const treasuryAccountId =
-      voucher.method === 'cheque'
-        ? ((await this.profileAccount(tx, tenantId, voucher.branchId, voucher.kind === 'receipt' ? 'receipt_voucher' : 'payment_voucher', 'chequesInHandAccountId', { required: false })) ??
-          cashAccountId)
-        : cashAccountId;
+    let treasuryAccountId = cashAccountId;
+    if (voucher.method === 'cheque') {
+      const docType = voucher.kind === 'receipt' ? 'receipt_voucher' : 'payment_voucher';
+      const chequesAccountId =
+        (await this.profileAccount(tx, tenantId, voucher.branchId, docType, 'chequesInHandAccountId', { required: false })) ??
+        (voucher.kind === 'payment'
+          ? await this.profileAccount(tx, tenantId, voucher.branchId, docType, 'chequesPayableAccountId', { required: false })
+          : undefined);
+      if (!chequesAccountId) {
+        throw new DomainError(
+          'TREASURY_CHEQUES_ACCOUNT_REQUIRED',
+          voucher.kind === 'receipt'
+            ? 'حساب أوراق القبض غير محدد — يرجى ربط حساب أوراق القبض في الملف المحاسبي قبل ترحيل الشيك'
+            : 'حساب أوراق الدفع غير محدد — يرجى ربط حساب أوراق الدفع في الملف المحاسبي قبل ترحيل الشيك',
+          422,
+          { field: 'chequesInHandAccountId' },
+        );
+      }
+      treasuryAccountId = chequesAccountId;
+    }
+    const isForeign = voucher.currency && voucher.currency !== 'SAR';
+    const currencyCode = isForeign ? voucher.currency : undefined;
+    const currencyAmount = isForeign
+      ? (voucher.foreignAmount && Number(voucher.foreignAmount) > 0 ? voucher.foreignAmount : undefined)
+      : undefined;
+    const fxRate = isForeign ? (voucher.fxRate ?? undefined) : undefined;
+
     const amount = voucher.netAmount && Number(voucher.netAmount) > 0 ? voucher.netAmount : voucher.amount;
     const statement = voucher.description ?? (voucher.kind === 'receipt' ? 'سند قبض' : 'سند صرف');
     const counterLine: JournalLineInput = {
@@ -713,17 +820,43 @@ export class TreasuryService implements OnModuleInit {
       costCenterId: voucher.costCenterId ?? undefined,
       partyId: voucher.partyId ?? undefined,
       description: statement,
+      currencyCode,
+      currencyAmount,
+      fxRate,
       ...(voucher.kind === 'receipt' ? { credit: amount } : { debit: amount }),
     };
     const treasuryLine: JournalLineInput = {
       accountId: treasuryAccountId,
       description: statement,
+      currencyCode,
+      currencyAmount,
+      fxRate,
       ...(voucher.kind === 'receipt' ? { debit: amount } : { credit: amount }),
     };
     return [treasuryLine, counterLine];
   }
 
   async postVoucher(tenantId: string, id: string, input: VoucherPostInput = {}) {
+    const voucher = await this.getVoucher(tenantId, id);
+    if (voucher.status === 'posted') return voucher;
+    if (voucher.status !== 'draft')
+      throw new DomainError('VOUCHER_INVALID_STATUS', 'Only draft vouchers can be posted', 409);
+
+    if (this.approvals) {
+      await this.approvals.ensureApprovalRequired(tenantId, 'voucher', id, {
+        amount: voucher.amount,
+        branchId: voucher.branchId,
+        costCenterId: voucher.costCenterId,
+        posting: input as unknown as Record<string, unknown>,
+      });
+    }
+
+    return withTenantTx(this.database.db, tenantId, (tx) => this.postVoucherInTx(tx, tenantId, id, input)).then(() =>
+      this.getVoucher(tenantId, id),
+    );
+  }
+
+  async postApprovedVoucher(tenantId: string, id: string, input: VoucherPostInput = {}) {
     return withTenantTx(this.database.db, tenantId, (tx) => this.postVoucherInTx(tx, tenantId, id, input)).then(() =>
       this.getVoucher(tenantId, id),
     );
@@ -744,7 +877,6 @@ export class TreasuryService implements OnModuleInit {
       .from(vouchers)
       .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, id)));
     if (!existing) throw new DomainError('VOUCHER_NOT_FOUND', 'Voucher was not found', 404);
-    if (existing.status === 'posted') return existing;
     if (existing.status !== 'draft')
       throw new DomainError('VOUCHER_INVALID_STATUS', 'Only draft vouchers can be posted', 409);
     if (input.journalLines?.length && !input.fiscalPeriodId && !existing.fiscalPeriodId)
@@ -761,8 +893,14 @@ export class TreasuryService implements OnModuleInit {
     const [locked] = await tx
       .select()
       .from(vouchers)
-      .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, id), eq(vouchers.status, 'draft')));
+      .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, id), eq(vouchers.status, 'draft')))
+      .for('update');
     if (!locked) throw new DomainError('VOUCHER_INVALID_STATUS', 'Only draft vouchers can be posted', 409);
+    const fiscalPeriodId =
+      input.fiscalPeriodId ??
+      locked.fiscalPeriodId ??
+      (await this.accounting.openPeriodForDateInTx(tx, tenantId, locked.date));
+    await this.accounting.assertModuleUnlocked(tx, tenantId, fiscalPeriodId, 'treasury');
     const allocated = await this.sequences.next(
       { tenantId, branchId: locked.branchId, docType: `${locked.kind}_voucher` },
       tx,
@@ -775,10 +913,7 @@ export class TreasuryService implements OnModuleInit {
     if (lines.length) {
       const journal = await this.accounting.postJournalInTx(tx, tenantId, {
         branchId: locked.branchId,
-        fiscalPeriodId:
-          input.fiscalPeriodId ??
-          locked.fiscalPeriodId ??
-          (await this.accounting.openPeriodForDateInTx(tx, tenantId, locked.date)),
+        fiscalPeriodId,
         date: locked.date,
         description:
           locked.description?.trim() ||
@@ -789,14 +924,19 @@ export class TreasuryService implements OnModuleInit {
       });
       journalEntryId = journal?.id ?? null;
     }
-    if (locked.method !== 'cheque')
+    if (locked.method !== 'cheque') {
+      const balanceAmount =
+        locked.currency && locked.currency !== 'SAR' && locked.foreignAmount && Number(locked.foreignAmount) > 0
+          ? locked.foreignAmount
+          : locked.amount;
       await this.bumpBalance(
         tx,
         tenantId,
         locked.cashLocationId,
         locked.currency,
-        locked.kind === 'receipt' ? locked.amount : `-${locked.amount}`,
+        locked.kind === 'receipt' ? balanceAmount : `-${balanceAmount}`,
       );
+    }
     for (const allocation of input.allocations ?? []) {
       if (money(allocation.amount).lte(0) || money(allocation.amount).gt(money(locked.amount)))
         throw new DomainError(
@@ -804,6 +944,94 @@ export class TreasuryService implements OnModuleInit {
           'Allocation amount is outside voucher bounds',
           422,
         );
+
+      // ACC-090: التحقق من عدم تجاوز المتبقي على الفاتورة قبل التخصيص
+      if (allocation.invoiceId) {
+        const normalizedKind = (allocation.invoiceKind ?? '').toLowerCase().trim();
+        const isPurchase = ['purchase', 'purchases', 'purchase_invoice'].includes(normalizedKind);
+        const isSale = ['sale', 'sales', 'sales_invoice'].includes(normalizedKind);
+
+        if (isPurchase) {
+          const [pInv] = await tx
+            .select({ total: purchaseInvoices.total, paidTotal: purchaseInvoices.paidTotal, id: purchaseInvoices.id })
+            .from(purchaseInvoices)
+            .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, allocation.invoiceId)))
+            .for('update');
+          if (!pInv) {
+            throw new DomainError('INVOICE_NOT_FOUND', 'Purchase invoice not found', 404);
+          }
+          const returnRows = await tx
+            .select({ total: purchaseInvoices.total })
+            .from(purchaseInvoices)
+            .where(
+              and(
+                eq(purchaseInvoices.tenantId, tenantId),
+                eq(purchaseInvoices.referenceInvoiceId, pInv.id),
+                inArray(purchaseInvoices.kind, ['purchase_return', 'debit_note']),
+                eq(purchaseInvoices.status, 'posted'),
+              ),
+            );
+          const totalReturns = returnRows.reduce((sum, r) => sum.plus(r.total ?? '0'), new Decimal(0));
+          const netTotal = Decimal.max(0, money(pInv.total).minus(totalReturns));
+          const remaining = Decimal.max(0, netTotal.minus(pInv.paidTotal));
+          if (remaining.lte(0) || money(allocation.amount).gt(remaining)) {
+            throw new DomainError(
+              'ALLOCATION_AMOUNT_EXCEEDS_INVOICE_BALANCE',
+              `Allocation amount ${allocation.amount} exceeds remaining purchase invoice balance (${remaining.toFixed(4)})`,
+              422,
+            );
+          }
+          const newPaid = money(pInv.paidTotal).plus(allocation.amount);
+          await tx
+            .update(purchaseInvoices)
+            .set({
+              paidTotal: newPaid.toFixed(4),
+              paymentStatus: newPaid.gte(netTotal) ? 'paid' : 'partial',
+              updatedAt: new Date(),
+            })
+            .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, allocation.invoiceId)));
+        } else if (isSale) {
+          const [sInv] = await tx
+            .select({ total: salesInvoices.total, paidTotal: salesInvoices.paidTotal, id: salesInvoices.id })
+            .from(salesInvoices)
+            .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, allocation.invoiceId)))
+            .for('update');
+          if (!sInv) {
+            throw new DomainError('INVOICE_NOT_FOUND', 'Sales invoice not found', 404);
+          }
+          const returnRows = await tx
+            .select({ total: salesInvoices.total })
+            .from(salesInvoices)
+            .where(
+              and(
+                eq(salesInvoices.tenantId, tenantId),
+                eq(salesInvoices.referenceInvoiceId, sInv.id),
+                inArray(salesInvoices.kind, ['sale_return', 'credit_note']),
+                eq(salesInvoices.status, 'posted'),
+              ),
+            );
+          const totalReturns = returnRows.reduce((sum, r) => sum.plus(r.total ?? '0'), new Decimal(0));
+          const netTotal = Decimal.max(0, money(sInv.total).minus(totalReturns));
+          const remaining = Decimal.max(0, netTotal.minus(sInv.paidTotal));
+          if (remaining.lte(0) || money(allocation.amount).gt(remaining)) {
+            throw new DomainError(
+              'ALLOCATION_AMOUNT_EXCEEDS_INVOICE_BALANCE',
+              `Allocation amount ${allocation.amount} exceeds remaining sales invoice balance (${remaining.toFixed(4)})`,
+              422,
+            );
+          }
+          const newPaid = money(sInv.paidTotal).plus(allocation.amount);
+          await tx
+            .update(salesInvoices)
+            .set({
+              paidTotal: newPaid.toFixed(4),
+              paymentStatus: newPaid.gte(netTotal) ? 'paid' : 'partial',
+              updatedAt: new Date(),
+            })
+            .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, allocation.invoiceId)));
+        }
+      }
+
       await tx
         .insert(paymentAllocations)
         .values({
@@ -815,6 +1043,74 @@ export class TreasuryService implements OnModuleInit {
           invoiceId: allocation.invoiceId,
           amount: allocation.amount,
         });
+    }
+
+    // ACC-042: إذا لم يرسل المستخدم تخصيصات صريحة، والبيان يذكر رقم فاتورة صريح مقابل السداد
+    if (!input.allocations?.length) {
+      const descText = `${locked.description ?? ''} ${locked.referenceNo ?? ''}`;
+      const siMatch = /SI-\d{6}/i.exec(descText);
+      const piMatch = /PI-\d{6}/i.exec(descText);
+      if (siMatch && locked.kind === 'receipt') {
+        const [inv] = await tx
+          .select({ id: salesInvoices.id, total: salesInvoices.total, paidTotal: salesInvoices.paidTotal, partyId: salesInvoices.partyId })
+          .from(salesInvoices)
+          .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.number, siMatch[0].toUpperCase()), eq(salesInvoices.status, 'posted')))
+          .for('update');
+        if (inv && inv.partyId && (!locked.partyId || locked.partyId === inv.partyId)) {
+          const due = Decimal.max(0, money(inv.total).minus(inv.paidTotal));
+          const allocAmount = Decimal.min(money(locked.amount), due);
+          if (allocAmount.gt(0)) {
+            await tx.insert(paymentAllocations).values({
+              id: newId(),
+              tenantId,
+              partyId: inv.partyId,
+              voucherId: id,
+              invoiceKind: 'sale',
+              invoiceId: inv.id,
+              amount: allocAmount.toFixed(4),
+            });
+            const newPaid = money(inv.paidTotal).plus(allocAmount);
+            await tx
+              .update(salesInvoices)
+              .set({
+                paidTotal: newPaid.toFixed(4),
+                paymentStatus: newPaid.gte(money(inv.total)) ? 'paid' : 'partial',
+                updatedAt: new Date(),
+              })
+              .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, inv.id)));
+          }
+        }
+      } else if (piMatch && locked.kind === 'payment') {
+        const [inv] = await tx
+          .select({ id: purchaseInvoices.id, total: purchaseInvoices.total, paidTotal: purchaseInvoices.paidTotal, partyId: purchaseInvoices.partyId })
+          .from(purchaseInvoices)
+          .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.number, piMatch[0].toUpperCase()), eq(purchaseInvoices.status, 'posted')))
+          .for('update');
+        if (inv && inv.partyId && (!locked.partyId || locked.partyId === inv.partyId)) {
+          const due = Decimal.max(0, money(inv.total).minus(inv.paidTotal));
+          const allocAmount = Decimal.min(money(locked.amount), due);
+          if (allocAmount.gt(0)) {
+            await tx.insert(paymentAllocations).values({
+              id: newId(),
+              tenantId,
+              partyId: inv.partyId,
+              voucherId: id,
+              invoiceKind: 'purchase',
+              invoiceId: inv.id,
+              amount: allocAmount.toFixed(4),
+            });
+            const newPaid = money(inv.paidTotal).plus(allocAmount);
+            await tx
+              .update(purchaseInvoices)
+              .set({
+                paidTotal: newPaid.toFixed(4),
+                paymentStatus: newPaid.gte(money(inv.total)) ? 'paid' : 'partial',
+                updatedAt: new Date(),
+              })
+              .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, inv.id)));
+          }
+        }
+      }
     }
     await tx
       .update(vouchers)
@@ -830,24 +1126,128 @@ export class TreasuryService implements OnModuleInit {
     return { ...existing, status: 'posted' as const, number: allocated.display, journalEntryId };
   }
 
-  async voidVoucher(tenantId: string, id: string, reason: string) {
+  async voidVoucherInTx(tx: DrizzleTx, tenantId: string, id: string, reason: string) {
     if (!reason.trim()) throw new DomainError('VOUCHER_VOID_REASON_REQUIRED', 'Void reason is required', 422);
-    const row = await this.getVoucher(tenantId, id);
+    const [row] = await tx
+      .select()
+      .from(vouchers)
+      .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, id)))
+      .for('update');
+    if (!row) throw new DomainError('VOUCHER_NOT_FOUND', 'Voucher was not found', 404);
     if (row.status !== 'posted')
       throw new DomainError('VOUCHER_INVALID_STATUS', 'Only posted vouchers can be voided', 409);
+
+    if (row.fiscalPeriodId) {
+      await this.accounting.assertModuleUnlocked(tx, tenantId, row.fiscalPeriodId, 'treasury');
+    }
+
+    // Reverse all posted journal entries linked to this voucher (including original and any duplicates from prior concurrency)
+    const linkedEntries = await tx
+      .select({ id: journalEntries.id })
+      .from(journalEntries)
+      .where(
+        and(
+          eq(journalEntries.tenantId, tenantId),
+          eq(journalEntries.status, 'posted'),
+          isNull(journalEntries.reversalOf),
+          or(
+            row.journalEntryId ? eq(journalEntries.id, row.journalEntryId) : undefined,
+            and(
+              inArray(journalEntries.sourceType, ['voucher', 'treasury_voucher', 'payment_voucher', 'receipt_voucher']),
+              eq(journalEntries.sourceId, id),
+            ),
+          ),
+        ),
+      );
+
+    for (const entry of linkedEntries) {
+      await this.accounting.reverseJournalInTx(tx, tenantId, entry.id, {
+        reason: `إلغاء السند ${row.number ?? id}: ${reason}`,
+        sourceType: 'voucher',
+        sourceId: id,
+        date: row.date,
+        branchId: row.branchId,
+        fiscalPeriodId: row.fiscalPeriodId ?? undefined,
+        ifAlreadyReversed: 'reuse',
+      });
+    }
+
+    const reversalCount = Math.max(1, linkedEntries.length);
+    const isForeign = row.currency && row.currency !== 'SAR' && row.foreignAmount && Number(row.foreignAmount) > 0;
+    const baseRowAmount = isForeign ? row.foreignAmount! : row.amount;
+    const restoreAmount = money(baseRowAmount).mul(reversalCount).toFixed(4);
+
+    if (row.method !== 'cheque')
+      await this.bumpBalance(
+        tx,
+        tenantId,
+        row.cashLocationId,
+        row.currency,
+        row.kind === 'receipt' ? `-${restoreAmount}` : restoreAmount,
+      );
+
+    // ACC-042: إلغاء التخصيصات وإعادة رصيد الفواتير المرتبطة بالسند
+    const existingAllocations = await tx
+      .select()
+      .from(paymentAllocations)
+      .where(and(eq(paymentAllocations.tenantId, tenantId), eq(paymentAllocations.voucherId, id)));
+    for (const alloc of existingAllocations) {
+      if (alloc.invoiceId) {
+        const normalizedKind = (alloc.invoiceKind ?? '').toLowerCase().trim();
+        const isPurchase = ['purchase', 'purchases', 'purchase_invoice'].includes(normalizedKind);
+        const isSale = ['sale', 'sales', 'sales_invoice'].includes(normalizedKind);
+
+        if (isPurchase) {
+          const [pInv] = await tx
+            .select({ paidTotal: purchaseInvoices.paidTotal, total: purchaseInvoices.total })
+            .from(purchaseInvoices)
+            .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, alloc.invoiceId)))
+            .for('update');
+          if (pInv) {
+            const restoredPaid = Decimal.max(0, money(pInv.paidTotal).minus(alloc.amount));
+            await tx
+              .update(purchaseInvoices)
+              .set({
+                paidTotal: restoredPaid.toFixed(4),
+                paymentStatus: restoredPaid.gte(money(pInv.total)) ? 'paid' : (restoredPaid.gt(0) ? 'partial' : 'unpaid'),
+                updatedAt: new Date(),
+              })
+              .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, alloc.invoiceId)));
+          }
+        } else if (isSale) {
+          const [sInv] = await tx
+            .select({ paidTotal: salesInvoices.paidTotal, total: salesInvoices.total })
+            .from(salesInvoices)
+            .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, alloc.invoiceId)))
+            .for('update');
+          if (sInv) {
+            const restoredPaid = Decimal.max(0, money(sInv.paidTotal).minus(alloc.amount));
+            await tx
+              .update(salesInvoices)
+              .set({
+                paidTotal: restoredPaid.toFixed(4),
+                paymentStatus: restoredPaid.gte(money(sInv.total)) ? 'paid' : (restoredPaid.gt(0) ? 'partial' : 'unpaid'),
+                updatedAt: new Date(),
+              })
+              .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, alloc.invoiceId)));
+          }
+        }
+      }
+    }
+    await tx
+      .delete(paymentAllocations)
+      .where(and(eq(paymentAllocations.tenantId, tenantId), eq(paymentAllocations.voucherId, id)));
+
+    await tx
+      .update(vouchers)
+      .set({ status: 'voided', voidedAt: new Date(), updatedAt: new Date() })
+      .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, id)));
+  }
+
+  async voidVoucher(tenantId: string, id: string, reason: string) {
+    if (!reason.trim()) throw new DomainError('VOUCHER_VOID_REASON_REQUIRED', 'Void reason is required', 422);
     await withTenantTx(this.database.db, tenantId, async (tx) => {
-      if (row.method !== 'cheque')
-        await this.bumpBalance(
-          tx,
-          tenantId,
-          row.cashLocationId,
-          row.currency,
-          row.kind === 'receipt' ? `-${row.amount}` : row.amount,
-        );
-      await tx
-        .update(vouchers)
-        .set({ status: 'voided', voidedAt: new Date(), updatedAt: new Date() })
-        .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, id)));
+      await this.voidVoucherInTx(tx, tenantId, id, reason);
     });
     return this.getVoucher(tenantId, id);
   }
@@ -927,12 +1327,12 @@ export class TreasuryService implements OnModuleInit {
           lines:
             row.kind === 'receipt'
               ? [
-                  { accountId: counterAccountId, debit: amount, description: statement },
+                  { accountId: counterAccountId, debit: amount, description: statement, partyId: row.partyId ?? undefined },
                   { accountId: chequesAccountId, credit: amount, description: statement },
                 ]
               : [
                   { accountId: chequesAccountId, debit: amount, description: statement },
-                  { accountId: counterAccountId, credit: amount, description: statement },
+                  { accountId: counterAccountId, credit: amount, description: statement, partyId: row.partyId ?? undefined },
                 ],
           sourceType: 'voucher_cheque',
           sourceId: id,
@@ -1030,11 +1430,9 @@ export class TreasuryService implements OnModuleInit {
   }
 
   /**
-   * 🗑️ حذف / إلغاء — `frmSafesTransfer` keeps `IS_Deleted` on the row rather than
-   * erasing it, and only a transfer nobody has sent can be dropped: once the money has
-   * left the source safe, the only honest way back is a transfer in the other direction.
-   * The status written is `voided`, the word migration `0011` already allows for a
-   * document that was written and then abandoned — no new state was invented here.
+   * 🗑️ حذف / إلغاء المناقلة النقدية:
+   * - إذا كانت مسودة (`draft`): تُعلم كـ `voided` بلا قيود.
+   * - إذا كانت مرسلة (`sent`): يُعكس قيد الإرسال ويعاد رصيد الصندوق المرسل، وتصبح `cancelled` (ACC-127).
    */
   async cancelTransfer(tenantId: string, id: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
@@ -1043,12 +1441,35 @@ export class TreasuryService implements OnModuleInit {
         .from(cashTransfers)
         .where(and(eq(cashTransfers.tenantId, tenantId), eq(cashTransfers.id, id)));
       if (!row) throw new DomainError('CASH_TRANSFER_NOT_FOUND', 'Cash transfer was not found', 404);
-      if (row.status !== 'draft')
+      if (row.status !== 'draft' && row.status !== 'sent')
         throw new DomainError(
           'CASH_TRANSFER_INVALID_STATE',
-          'Only a draft transfer can be cancelled — send it back instead',
+          'Only a draft or sent transfer can be cancelled',
           422,
         );
+
+      if (row.status === 'draft') {
+        await tx
+          .update(cashTransfers)
+          .set({ status: 'voided', updatedAt: new Date() })
+          .where(and(eq(cashTransfers.tenantId, tenantId), eq(cashTransfers.id, id)));
+        return { id, status: 'voided' };
+      }
+
+      // ACC-127: إلغاء التحويل المرسل يعكس قيد الإرسال ويعيد النقد للصندوق المصدر
+      if (row.sentJournalEntryId) {
+        const today = new Date().toISOString().slice(0, 10);
+        await this.accounting.reverseJournalInTx(tx, tenantId, row.sentJournalEntryId, {
+          reason: `إلغاء مناقلة نقدية ${row.number ?? id}`,
+          date: today,
+          branchId: row.branchId,
+          sourceType: 'cash_transfer',
+          sourceId: id,
+          actorId: tryGetAuthContext()?.userId ?? null,
+          ifAlreadyReversed: 'reuse',
+        });
+      }
+      await this.bumpBalance(tx, tenantId, row.fromCashLocationId, row.currency, row.amount);
       await tx
         .update(cashTransfers)
         .set({ status: 'voided', updatedAt: new Date() })
@@ -1067,7 +1488,8 @@ export class TreasuryService implements OnModuleInit {
             eq(cashTransfers.id, id),
             eq(cashTransfers.status, 'draft'),
           ),
-        );
+        )
+        .for('update');
       if (!row) throw new DomainError('CASH_TRANSFER_INVALID_STATE', 'Only draft transfers can be sent', 422);
       const allocated = await this.sequences.next(
         { tenantId, branchId: row.branchId, docType: 'cash_transfer' },
@@ -1138,7 +1560,8 @@ export class TreasuryService implements OnModuleInit {
             eq(cashTransfers.id, id),
             eq(cashTransfers.status, 'sent'),
           ),
-        );
+        )
+        .for('update');
       if (!row)
         throw new DomainError('CASH_TRANSFER_INVALID_STATE', 'Only sent transfers can be received', 422);
       /**
@@ -1313,7 +1736,7 @@ export class TreasuryService implements OnModuleInit {
   private async shiftTakings(
     tx: DrizzleTx,
     tenantId: string,
-    shift: { id: string; branchId: string; openedAt: Date },
+    shift: { id: string; branchId: string; openedAt: Date; userId?: string | null },
   ) {
     const posted = await tx
       .select()
@@ -1325,6 +1748,9 @@ export class TreasuryService implements OnModuleInit {
           eq(vouchers.status, 'posted'),
           eq(vouchers.method, 'cash'),
           sql`${vouchers.postedAt} >= ${shift.openedAt}`,
+          shift.userId
+            ? or(eq(vouchers.createdBy, shift.userId), isNull(vouchers.createdBy))
+            : undefined,
         ),
       );
     const voucherCash = posted.reduce(
@@ -1348,8 +1774,19 @@ export class TreasuryService implements OnModuleInit {
           eq(salesInvoices.tenantId, tenantId),
           eq(salesInvoices.branchId, shift.branchId),
           gte(invoicePayments.createdAt, shift.openedAt),
-          ne(salesInvoices.status, 'voided'),
-          or(eq(salesInvoices.shiftId, shift.id), isNull(salesInvoices.shiftId)),
+          eq(salesInvoices.status, 'posted'),
+          or(
+            eq(salesInvoices.shiftId, shift.id),
+            and(
+              isNull(salesInvoices.shiftId),
+              shift.userId
+                ? or(
+                    eq(salesInvoices.cashierId, shift.userId),
+                    eq(salesInvoices.createdBy, shift.userId),
+                  )
+                : sql`false`,
+            ),
+          ),
         ),
       );
 
@@ -1414,9 +1851,20 @@ export class TreasuryService implements OnModuleInit {
         and(
           eq(salesInvoices.tenantId, tenantId),
           eq(salesInvoices.branchId, shift.branchId),
-          ne(salesInvoices.status, 'voided'),
+          eq(salesInvoices.status, 'posted'),
           gte(salesInvoices.createdAt, shift.openedAt),
-          or(eq(salesInvoices.shiftId, shift.id), isNull(salesInvoices.shiftId)),
+          or(
+            eq(salesInvoices.shiftId, shift.id),
+            and(
+              isNull(salesInvoices.shiftId),
+              shift.userId
+                ? or(
+                    eq(salesInvoices.cashierId, shift.userId),
+                    eq(salesInvoices.createdBy, shift.userId),
+                  )
+                : sql`false`,
+            ),
+          ),
         ),
       );
 
@@ -1965,7 +2413,7 @@ export class TreasuryService implements OnModuleInit {
        */
       const counted = money(row.countedCash);
       const expected = money(row.expectedCash);
-      const difference = expected.minus(counted);
+      const diff = money(row.diff ?? counted.minus(expected));
       if (!expected.abs().gt(0) && !counted.abs().gt(0))
         throw new DomainError(
           'SHIFT_BALANCED',
@@ -2015,7 +2463,7 @@ export class TreasuryService implements OnModuleInit {
                 description: `نقدي في الصندوق ${employeeName}`,
               },
         );
-      if (difference.abs().gt(0)) {
+      if (diff.abs().gt(0)) {
         /**
          * 📉 الفرق — and if the tenant named a difference account, it is the one that
          * moves; otherwise the legs above already balance and nothing is invented here.
@@ -2039,19 +2487,21 @@ export class TreasuryService implements OnModuleInit {
             422,
             { field: 'cashDifferenceAccountId' },
           );
+        // ACC-106: توحيد إشارة الفرق بين الإغلاق والترحيل (diff = المعدود - المتوقع)
+        // العجز (diff < 0) يمثل مصروفاً (مدين)، والزيادة (diff > 0) تمثل إيراداً (دائن)
         lines.push(
-          difference.gt(0)
+          diff.lt(0)
             ? {
                 accountId: differenceAccountId,
-                debit: difference.toFixed(4),
+                debit: diff.abs().toFixed(4),
                 credit: '0',
-                description: `فرق بالصندوق ${employeeName}`,
+                description: `فرق بالصندوق (عجز) ${employeeName}`,
               }
             : {
                 accountId: differenceAccountId,
                 debit: '0',
-                credit: difference.abs().toFixed(4),
-                description: `فرق بالصندوق ${employeeName}`,
+                credit: diff.toFixed(4),
+                description: `فرق بالصندوق (زيادة) ${employeeName}`,
               },
         );
       }
@@ -2075,6 +2525,26 @@ export class TreasuryService implements OnModuleInit {
       });
 
       const postedAt = new Date();
+
+      // ACC-028: تحديث الرصيد الفرعي للصندوق بمقدار النقد الخارج إلى عهدة الإغلاق
+      if (expected.abs().gt(0) && cashAccountId) {
+        const [loc] = await tx
+          .select({ id: cashLocations.id, currencyCode: cashLocations.currencyCode })
+          .from(cashLocations)
+          .where(
+            and(
+              eq(cashLocations.tenantId, tenantId),
+              eq(cashLocations.accountId, cashAccountId),
+              isNull(cashLocations.deletedAt),
+            ),
+          )
+          .limit(1);
+        if (loc) {
+          const delta = expected.gt(0) ? `-${expected.toFixed(4)}` : expected.abs().toFixed(4);
+          await this.bumpBalance(tx, tenantId, loc.id, loc.currencyCode ?? 'SAR', delta);
+        }
+      }
+
       /**
        * 🧾 العهدة تُكتب على الإغلاق نفسه: الشاشة تعرض ما دخل العهدة، ومنه يُورَّد
        * بسند قبضٍ حسابُه المقابل «عهدة الإغلاق» — فلا يبقى رصيدٌ لا يُصفّى.
@@ -2083,7 +2553,7 @@ export class TreasuryService implements OnModuleInit {
         custodyAccountId,
         custodyAmount: counted.toFixed(4),
         tillAmount: expected.toFixed(4),
-        differenceAmount: difference.toFixed(4),
+        differenceAmount: diff.toFixed(4),
       };
       await tx
         .update(shiftCloses)
@@ -2367,8 +2837,66 @@ export class TreasuryService implements OnModuleInit {
     );
   }
   async recalcCashBalance(tenantId: string, cashLocationId: string, currency = 'SAR') {
-    const balance = await this.getCashBalance(tenantId, cashLocationId, currency);
-    return { ...balance, reconciled: true };
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const [loc] = await tx
+        .select({ id: cashLocations.id, accountId: cashLocations.accountId })
+        .from(cashLocations)
+        .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.id, cashLocationId)))
+        .limit(1);
+      if (loc?.accountId) {
+        let computedBalance = '0.0000';
+        if (currency === 'SAR') {
+          const [glSum] = await tx
+            .select({
+              totalDebit: sql<string>`coalesce(sum(${journalEntryLines.debit}), 0)`,
+              totalCredit: sql<string>`coalesce(sum(${journalEntryLines.credit}), 0)`,
+            })
+            .from(journalEntryLines)
+            .innerJoin(journalEntries, eq(journalEntries.id, journalEntryLines.entryId))
+            .where(
+              and(
+                eq(journalEntryLines.tenantId, tenantId),
+                eq(journalEntryLines.accountId, loc.accountId),
+                eq(journalEntries.status, 'posted'),
+              ),
+            );
+          computedBalance = money(glSum?.totalDebit ?? '0').minus(glSum?.totalCredit ?? '0').toFixed(4);
+        } else {
+          const [fxSum] = await tx
+            .select({
+              totalDebit: sql<string>`coalesce(sum(case when ${journalEntryLines.debit} > 0 then coalesce(${journalEntryLines.currencyAmount}, 0) else 0 end), 0)`,
+              totalCredit: sql<string>`coalesce(sum(case when ${journalEntryLines.credit} > 0 then coalesce(${journalEntryLines.currencyAmount}, 0) else 0 end), 0)`,
+            })
+            .from(journalEntryLines)
+            .innerJoin(journalEntries, eq(journalEntries.id, journalEntryLines.entryId))
+            .where(
+              and(
+                eq(journalEntryLines.tenantId, tenantId),
+                eq(journalEntryLines.accountId, loc.accountId),
+                eq(journalEntryLines.currencyCode, currency),
+                eq(journalEntries.status, 'posted'),
+              ),
+            );
+          computedBalance = money(fxSum?.totalDebit ?? '0').minus(fxSum?.totalCredit ?? '0').toFixed(4);
+        }
+        await tx
+          .insert(cashLocationBalances)
+          .values({
+            tenantId,
+            cashLocationId,
+            currencyCode: currency,
+            balance: computedBalance,
+            updatedAt: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: [cashLocationBalances.cashLocationId, cashLocationBalances.currencyCode],
+            set: { balance: computedBalance, updatedAt: new Date() },
+          });
+        return { tenantId, cashLocationId, currencyCode: currency, balance: computedBalance, reconciled: true };
+      }
+      const balance = await this.getCashBalance(tenantId, cashLocationId, currency);
+      return { ...balance, reconciled: true };
+    });
   }
 
   private async bumpBalance(

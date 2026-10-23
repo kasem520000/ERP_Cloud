@@ -44,7 +44,7 @@ export type ContractorPaymentInput = {
   advanceRecovery?: string;
   notes?: string;
 };
-export type PayInput = { cashLocationId: string; method?: 'cash' | 'cheque' | 'bank_transfer' | 'card'; chequeNo?: string; chequeDate?: string; bankName?: string; date?: string };
+export type PayInput = { cashLocationId: string; method?: 'cash' | 'cheque' | 'bank_transfer' | 'card'; chequeNo?: string; chequeDate?: string; bankName?: string; date?: string; fiscalPeriodId?: string };
 export type OfferLineInput = { code?: string; description: string; qty?: string; unitValue: string };
 export type OfferInput = {
   partyId: string;
@@ -106,8 +106,16 @@ export class ContractingService {
       const ids = rows.map((row) => row.id);
       const lines = await tx.select().from(contractorContractLines).where(and(eq(contractorContractLines.tenantId, tenantId), inArray(contractorContractLines.contractId, ids)));
       const payments = await tx.select().from(contractorPayments).where(and(eq(contractorPayments.tenantId, tenantId), inArray(contractorPayments.contractId, ids)));
+      const projectIds = Array.from(new Set(rows.map((r) => r.projectId).filter(Boolean)));
+      const projectList = projectIds.length
+        ? await tx.select().from(projects).where(and(eq(projects.tenantId, tenantId), inArray(projects.id, projectIds)))
+        : [];
+      const projectMap = new Map(projectList.map((p) => [p.id, p]));
+
       return rows.map((row) => ({
         ...row,
+        projectName: projectMap.get(row.projectId)?.name ?? null,
+        projectCode: projectMap.get(row.projectId)?.code ?? null,
         lines: lines.filter((line) => line.contractId === row.id).sort((a, b) => a.lineNo - b.lineNo),
         ...this.contractTotals(row, payments.filter((payment) => payment.contractId === row.id)),
       }));
@@ -207,8 +215,8 @@ export class ContractingService {
 
   async listPayments(tenantId: string, filters: { contractId?: string; status?: string } = {}) {
     await this.projectsService.ensureEnabled(tenantId);
-    return withTenantTx(this.database.db, tenantId, (tx) =>
-      tx
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const rows = await tx
         .select()
         .from(contractorPayments)
         .where(and(
@@ -217,7 +225,33 @@ export class ContractingService {
           filters.status ? eq(contractorPayments.status, filters.status) : undefined,
         ))
         .orderBy(desc(contractorPayments.createdAt))
-        .limit(200));
+        .limit(200);
+
+      const contractIds = Array.from(new Set(rows.map((r) => r.contractId).filter(Boolean)));
+      const contracts = contractIds.length
+        ? await tx.select().from(contractorContracts).where(and(eq(contractorContracts.tenantId, tenantId), inArray(contractorContracts.id, contractIds)))
+        : [];
+      const contractMap = new Map(contracts.map((c) => [c.id, c]));
+
+      const projectIds = Array.from(new Set(contracts.map((c) => c.projectId).filter(Boolean)));
+      const projectList = projectIds.length
+        ? await tx.select().from(projects).where(and(eq(projects.tenantId, tenantId), inArray(projects.id, projectIds)))
+        : [];
+      const projectMap = new Map(projectList.map((p) => [p.id, p]));
+
+      return rows.map((row) => {
+        const c = contractMap.get(row.contractId);
+        const p = c ? projectMap.get(c.projectId) : undefined;
+        return {
+          ...row,
+          contractTitle: c?.title,
+          contractNumber: c?.number,
+          projectId: c?.projectId,
+          projectName: p?.name ?? null,
+          projectCode: p?.code ?? null,
+        };
+      });
+    });
   }
 
   async createPayment(tenantId: string, contractId: string, input: ContractorPaymentInput) {
@@ -305,29 +339,37 @@ export class ContractingService {
     const payment = await withTenantTx(this.database.db, tenantId, (tx) => this.loadPayment(tx, tenantId, paymentId));
     if (payment.status !== 'approved') throw new DomainError('CONTRACTOR_PAYMENT_INVALID_STATUS', 'Only an approved payment can be paid', 409);
     const contract = await this.getContract(tenantId, payment.contractId);
-    if (!contract.projectBranchId) throw new DomainError('PROJECT_BRANCH_REQUIRED', 'The project needs a branch before money can leave the treasury', 422);
-
-    const voucher = await this.treasury.createVoucher(tenantId, {
-      branchId: contract.projectBranchId,
-      kind: 'payment',
-      subtype: 'supplier',
-      date: input.date ?? payment.paymentDate,
-      partyId: contract.contractorPartyId,
-      cashLocationId: input.cashLocationId,
-      method: input.method ?? 'bank_transfer',
-      amount: payment.netAmount,
-      netAmount: payment.netAmount,
-      chequeNo: input.chequeNo,
-      chequeDate: input.chequeDate,
-      bankName: input.bankName,
-      referenceNo: payment.number,
-      recipient: contract.title,
-    });
+    const projectBranchId = contract.projectBranchId;
+    if (!projectBranchId) throw new DomainError('PROJECT_BRANCH_REQUIRED', 'The project needs a branch before money can leave the treasury', 422);
 
     return withTenantTx(this.database.db, tenantId, async (tx) => {
+      // ACC-058: إنشاء وترحيل سند الصرف فعلياً داخل المعاملة
+      const voucher = await this.treasury.createVoucherInTx(tx, tenantId, {
+        branchId: projectBranchId,
+        kind: 'payment',
+        subtype: 'supplier',
+        date: input.date ?? payment.paymentDate,
+        partyId: contract.contractorPartyId,
+        cashLocationId: input.cashLocationId,
+        method: input.method ?? 'bank_transfer',
+        amount: payment.netAmount,
+        netAmount: payment.netAmount,
+        chequeNo: input.chequeNo,
+        chequeDate: input.chequeDate,
+        bankName: input.bankName,
+        referenceNo: payment.number,
+        recipient: contract.title ?? 'مقاول',
+      });
+      if (!voucher) throw new DomainError('INTERNAL', 'Failed to create contractor payment voucher', 500);
+
+      const postedVoucher = await this.treasury.postVoucherInTx(tx, tenantId, voucher.id, {
+        fiscalPeriodId: input.fiscalPeriodId,
+      });
+
       await tx.update(contractorPayments)
-        .set({ status: 'paid', paidAt: new Date(), voucherId: voucher?.id, updatedAt: new Date(), updatedBy: tryGetAuthContext()?.userId })
+        .set({ status: 'paid', paidAt: new Date(), voucherId: postedVoucher.id, updatedAt: new Date(), updatedBy: tryGetAuthContext()?.userId })
         .where(and(eq(contractorPayments.tenantId, tenantId), eq(contractorPayments.id, paymentId)));
+
       // Recovery only becomes real when the money actually moves.
       if (dec(payment.advanceRecovery).gt(0)) {
         await tx.update(contractorContracts)

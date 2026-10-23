@@ -149,6 +149,13 @@ export class VanSalesController {
     return { data: await this.vanSales.upsertCustomerPrice(tenantId, body ?? {}, userId) };
   }
 
+  @Get('load-orders/:id')
+  @RequiresPermission('van_sales.view')
+  async readLoadOrder(@Param('id') id: string) {
+    const { tenantId } = getTenantContext();
+    return { data: await this.vanSales.readLoadOrder(tenantId, id) };
+  }
+
   @Post('load-orders')
   @RequiresPermission('van_sales.load.manage')
   async createLoadOrder(

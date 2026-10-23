@@ -123,8 +123,19 @@ export default function CollectionPage() {
         apiList<AccountOption>('/accounts'),
       ]);
       const missing: string[] = [];
-      if (cashResult.status === 'fulfilled') setCashLocations(cashResult.value);
-      else missing.push('الصناديق النقدية');
+      if (cashResult.status === 'fulfilled') {
+        const locations = cashResult.value;
+        setCashLocations(locations);
+        const defaultLoc = locations.find((l) => l.isDefault) ?? locations[0];
+        if (defaultLoc) {
+          setDraft((current) => ({
+            ...current,
+            cashLocationId: current.cashLocationId || defaultLoc.id,
+          }));
+        }
+      } else {
+        missing.push('الصناديق النقدية');
+      }
       if (accountsResult.status === 'fulfilled') setAccounts(accountsResult.value);
       else missing.push('دليل الحسابات');
       setLookupWarning(

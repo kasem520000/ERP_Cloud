@@ -120,14 +120,15 @@ export class MaintenanceService {
     const staleDays = input.staleDraftDays ?? 30;
 
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      // 1. Stored header totals that disagree with the sum of their own lines.
+      // 1. Stored header totals that disagree with the sum of their own lines (+ extraTax / withholding).
       const mismatched = (await tx.execute(sql`
         SELECT si.id, si.number, si.status, si.kind, si.total::text AS stored_total,
-               coalesce(sum(line.total), 0)::text AS line_total
+               (coalesce(sum(line.total), 0) - coalesce(si.withholding, 0))::text AS line_total
         FROM sales_invoices si
         LEFT JOIN sales_invoice_lines line ON line.invoice_id = si.id
-        GROUP BY si.id, si.number, si.status, si.kind, si.total
-        HAVING abs(si.total - coalesce(sum(line.total), 0)) > 0.005
+        GROUP BY si.id, si.number, si.status, si.kind, si.total, si.extra_tax, si.withholding
+        HAVING abs(si.total - (coalesce(sum(line.total), 0) - coalesce(si.withholding, 0))) > 0.005
+           AND abs(si.total - (coalesce(sum(line.total), 0) + coalesce(si.extra_tax, 0) - coalesce(si.withholding, 0))) > 0.005
         ORDER BY si.created_at DESC
         LIMIT 200
       `)).rows as Array<{ id: string; number: string | null; status: string; kind: string; stored_total: string; line_total: string }>;
@@ -160,14 +161,19 @@ export class MaintenanceService {
         HAVING (max(seq) - min(seq) + 1 - count(*)) > 0
       `)).rows as Array<{ prefix: string; first_seq: string; last_seq: string; issued: number; missing: number }>;
 
-      // 4. Drafts nobody came back to.
+      // 4. Drafts nobody came back to (ACC-148: populate number, status, kind so stale drafts are identifiable).
       const stale = (await tx.execute(sql`
-        SELECT id, number, created_at, total::text AS total
+        SELECT id,
+               coalesce(number, 'DRAFT-' || substring(id::text, 1, 8)) AS number,
+               status,
+               kind,
+               created_at,
+               total::text AS total
         FROM sales_invoices
         WHERE status = 'draft' AND created_at < now() - (${staleDays}::text || ' days')::interval
         ORDER BY created_at
         LIMIT 200
-      `)).rows as Array<{ id: string; number: string | null; created_at: string; total: string }>;
+      `)).rows as Array<{ id: string; number: string; status: string; kind: string; created_at: string; total: string }>;
 
       const repairable = mismatched.filter((row) => row.status === 'draft');
       const findings = {

@@ -199,8 +199,8 @@ function TailoringInvoices() {
     setDraft((current) => (current ? { ...current, ...patch } : current));
 
   const totalOf = (current: Draft | null) => Number(current?.unitPrice || 0) * Number(current?.quantity || 1);
-  // الصافي (مع الضريبة) — `CreateInvoice` L419 `txtTotVAT = الإجمالي × 0.05`.
-  const withTaxOf = (gross: number) => gross + gross * 0.05;
+  // الصافي (مع الضريبة) — احتساب ضريبة القيمة المضافة 15%
+  const withTaxOf = (gross: number) => gross + gross * 0.15;
 
   async function save() {
     if (!draft) return;
@@ -321,7 +321,11 @@ function TailoringInvoices() {
       amount: Number(invoice.remainingAmount).toString(),
       date: today(),
       cashLocationId:
-        (safes.data ?? []).find((safe) => safe.isDefault)?.id ?? (safes.data ?? [])[0]?.id ?? '',
+        (safes.data ?? []).find((safe) => safe.kind === 'safe' && safe.isDefault)?.id ??
+        (safes.data ?? []).find((safe) => safe.kind === 'safe')?.id ??
+        (safes.data ?? []).find((safe) => safe.isDefault)?.id ??
+        (safes.data ?? [])[0]?.id ??
+        '',
       branchId:
         (branches.data ?? []).find((branch) => branch.isDefault)?.id ?? (branches.data ?? [])[0]?.id ?? '',
       method: 'cash',

@@ -155,9 +155,10 @@ function VouchersScreen() {
     if (to) params.set('to', to);
     if (q.trim()) params.set('q', q.trim());
     else if (highlightedId) params.set('q', highlightedId);
+    params.set('kind', kind);
     const suffix = params.toString();
     return `/vouchers${suffix ? `?${suffix}` : ''}`;
-  }, [from, to, q, highlightedId]);
+  }, [from, to, q, highlightedId, kind]);
 
   const vouchers = useQuery<Voucher[]>(() => apiList<Voucher>(query), [query]);
   const branches = useQuery<Branch[]>(() => listBranches(), []);
@@ -198,12 +199,15 @@ function VouchersScreen() {
   );
 
   const totals = useMemo(() => {
+    const active = rows.filter((row) => row.status !== 'voided');
     const posted = rows.filter((row) => row.status === 'posted');
     // Money is summed as text and only rendered — a float here would round someone's cash.
     const addUp = (list: Voucher[]) =>
       list.reduce((running, row) => running.plus(row.amount ?? '0'), new Decimal('0'));
     return {
-      count: rows.length,
+      count: active.length,
+      totalCount: rows.length,
+      voided: rows.filter((row) => row.status === 'voided').length,
       drafts: rows.filter((row) => row.status === 'draft').length,
       posted: posted.length,
       postedTotal: addUp(posted),
@@ -716,7 +720,10 @@ function VouchersScreen() {
               '',
               '',
               money(
-                rows.reduce((running, row) => running.plus(row.amount ?? '0'), new Decimal('0')).toFixed(4),
+                rows
+                  .filter((row) => row.status !== 'voided')
+                  .reduce((running, row) => running.plus(row.amount ?? '0'), new Decimal('0'))
+                  .toFixed(4),
               ),
               '',
               '',
@@ -767,17 +774,17 @@ function VouchersScreen() {
               },
               {
                 key: 'amount',
-                header: 'المبلغ',
+                header: 'المبلغ (ر.س)',
                 align: 'num',
-                cell: (row) => money(row.amount, row.currency),
+                cell: (row) => money(row.amount, 'SAR'),
               },
               {
                 key: 'foreign',
                 header: 'أجنبي',
                 align: 'num',
                 cell: (row) =>
-                  row.foreignAmount
-                    ? `${money(row.foreignAmount, row.currency)}${row.fxRate ? ` @${Number(row.fxRate).toFixed(4)}` : ''}`
+                  row.currency && row.currency !== 'SAR'
+                    ? `${money(row.foreignAmount ?? row.amount, row.currency)}${row.fxRate ? ` @${Number(row.fxRate).toFixed(4)}` : ''}`
                     : '—',
               },
               {
@@ -847,12 +854,18 @@ function VouchersScreen() {
                         className="btn sm danger"
                         type="button"
                         disabled={busy}
-                        onClick={() =>
+                        onClick={() => {
+                          const reason = window.prompt('يرجى إدخال سبب إلغاء السند:');
+                          if (reason === null) return;
+                          if (!reason.trim()) {
+                            alert('سبب الإلغاء مطلوب');
+                            return;
+                          }
                           run(
-                            () => apiPost(`/vouchers/${row.id}/void`, { reason: 'إلغاء من شاشة السندات' }),
+                            () => apiPost(`/vouchers/${row.id}/void`, { reason: reason.trim() }),
                             'تم إلغاء السند.',
-                          )
-                        }
+                          );
+                        }}
                       >
                         إلغاء
                       </button>

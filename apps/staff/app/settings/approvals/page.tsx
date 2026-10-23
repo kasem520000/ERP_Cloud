@@ -30,7 +30,7 @@ const entityLabels: Record<ApprovalEntity, string> = {
 
 type NoticeState = { kind: 'ok' | 'danger' | 'info' | 'warn'; text: string };
 type RoleOption = { id: string; name: string };
-type MembershipOption = { id: string; displayName: string; status?: string };
+type MembershipOption = { id: string; userId?: string; displayName: string; status?: string };
 type DraftStep = {
   approver_role: string;
   approver_user_id: string;
@@ -261,13 +261,13 @@ export default function ApprovalSettingsPage() {
                   >
                     <option value="">حسب الدور</option>
                     {step.approver_user_id &&
-                    !(members.data ?? []).some((member) => member.id === step.approver_user_id) ? (
+                    !(members.data ?? []).some((member) => (member.userId ?? member.id) === step.approver_user_id) ? (
                       <option value={step.approver_user_id}>عضو سابق</option>
                     ) : null}
                     {(members.data ?? [])
                       .filter((member) => member.status !== 'suspended')
                       .map((member) => (
-                        <option key={member.id} value={member.id}>
+                        <option key={member.id} value={member.userId ?? member.id}>
                           {member.displayName}
                         </option>
                       ))}

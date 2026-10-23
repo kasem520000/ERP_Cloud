@@ -107,11 +107,15 @@ export const errorCodes = {
   // R2 — الوجه الآخر: ترحيل مرتجعٍ (أو إشعار) يشير إلى فاتورة بيع **ملغاة**. بلا هذا الحرس
   // يكفي أن تُنشأ المسودّة قبل الإلغاء ثم تُرحَّل بعده ليُعاد المرجع المعلّق نفسه.
   SALES_REFERENCE_VOIDED: 'SALES_REFERENCE_VOIDED',
+  // ACC-121 — سعر الوحدة المرتجع يتجاوز سعر الفاتورة الأصلية.
+  SALES_RETURN_PRICE_EXCEEDED: 'SALES_RETURN_PRICE_EXCEEDED',
   // R3 — مرآة الشراء: إلغاء فاتورة مشتريات قائمةٍ عليها فاتورةُ مردود **مُرحَّلة** يعكس قيد
   // المشتريات ويصرف البضاعة، والمردود يحتفظ بقيده ⇒ مرجعٌ معلّق إلى فاتورةٍ ملغاة.
   PURCHASE_VOID_HAS_RETURNS: 'PURCHASE_VOID_HAS_RETURNS',
   // R3 — وترحيلُ مردودِ مشترياتٍ فاتورتُه ملغاة يُرفض قبل أي كتابة (لا قيد ولا مخزون).
   PURCHASE_REFERENCE_VOIDED: 'PURCHASE_REFERENCE_VOIDED',
+  // ACC-124 — سعر الوحدة في مردود الشراء يتجاوز سعر فاتورة الشراء الأصلية.
+  PURCHASE_RETURN_PRICE_EXCEEDED: 'PURCHASE_RETURN_PRICE_EXCEEDED',
   // R4 — تعليق الفواتير في نقطة البيع ٨ خانات كما في الديسكتوب
   // (`frmPOS.xaml.cs` L1893–L1906: `Hold1Btn`…`Hold9Btn` و`HoldList[9]`)، والسلة تُملأ
   // فلا موضعَ لتعليقٍ آخر: «لقد وصلت للحد الاقصي من عمليات الايقاف المؤقت» (L1935).
@@ -148,6 +152,9 @@ export const errorCodes = {
   SERIAL_INVALID_STATE: 'SERIAL_INVALID_STATE',
   SERIAL_WRONG_WAREHOUSE: 'SERIAL_WRONG_WAREHOUSE',
   SERIAL_NOT_RETURNABLE: 'SERIAL_NOT_RETURNABLE',
+  SERIAL_COUNT_EXCEEDS_STOCK: 'SERIAL_COUNT_EXCEEDS_STOCK',
+  BIN_CODE_INVALID: 'BIN_CODE_INVALID',
+  BIN_RECEIVE_EXCEEDS_STOCK: 'BIN_RECEIVE_EXCEEDS_STOCK',
   // R9 — مركز تكلفة مُسمّى على فاتورةٍ لا وجود له (أو لغير هذا المستأجر، أو محذوفٌ ناعماً).
   // 404 لا 422: الكيان المُشار إليه غائب، كحال `LOT_NOT_FOUND` — والرسالة تسمّي الحقل
   // (`costCenterId`) ليعرف المُدخِل أي قائمةٍ يختار منها.
@@ -242,6 +249,9 @@ export const errorCodes = {
   // المنصّة (`POST /platform/tenants/:id/owner/transfer`). 422 لا 403: مدير العضويّات
   // يملك فعل إدارة العضويّات، والمرفوض هو **الدور** المطلوب.
   OWNER_ROLE_NOT_ASSIGNABLE: 'OWNER_ROLE_NOT_ASSIGNABLE',
+  SALES_OFFER_CODE_TAKEN: 'SALES_OFFER_CODE_TAKEN',
+  SALES_OFFER_DISCOUNT_INVALID: 'SALES_OFFER_DISCOUNT_INVALID',
+  SALES_OFFER_TARGET_INVALID: 'SALES_OFFER_TARGET_INVALID',
 } as const;
 
 export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes];
@@ -302,8 +312,10 @@ export const errorStatus: Record<ErrorCode, number> = {
   DISCOUNT_LIMIT_EXCEEDED: 422,
   SALES_VOID_HAS_RETURNS: 409,
   SALES_REFERENCE_VOIDED: 409,
+  SALES_RETURN_PRICE_EXCEEDED: 422,
   PURCHASE_VOID_HAS_RETURNS: 409,
   PURCHASE_REFERENCE_VOIDED: 409,
+  PURCHASE_RETURN_PRICE_EXCEEDED: 422,
   POS_HOLD_LIMIT_REACHED: 422,
   POS_HOLD_NOT_FOUND: 404,
   POS_TENDER_MISMATCH: 422,
@@ -317,6 +329,9 @@ export const errorStatus: Record<ErrorCode, number> = {
   SERIAL_INVALID_STATE: 422,
   SERIAL_WRONG_WAREHOUSE: 422,
   SERIAL_NOT_RETURNABLE: 422,
+  SERIAL_COUNT_EXCEEDS_STOCK: 422,
+  BIN_CODE_INVALID: 422,
+  BIN_RECEIVE_EXCEEDS_STOCK: 422,
   COST_CENTER_NOT_FOUND: 404,
   INVALID_ID: 400,
   ACCOUNT_NOT_FOUND: 404,
@@ -359,6 +374,9 @@ export const errorStatus: Record<ErrorCode, number> = {
   VOUCHER_VOID_REASON_REQUIRED: 422,
   SYSTEM_ROLE_PERMISSIONS_IMMUTABLE: 422,
   OWNER_ROLE_NOT_ASSIGNABLE: 422,
+  SALES_OFFER_CODE_TAKEN: 409,
+  SALES_OFFER_DISCOUNT_INVALID: 422,
+  SALES_OFFER_TARGET_INVALID: 422,
 };
 
 /** RFC 9457 `title` member for each stable code. */
@@ -413,8 +431,10 @@ export const errorTitle: Record<ErrorCode, string> = {
   DISCOUNT_LIMIT_EXCEEDED: 'Discount limit exceeded',
   SALES_VOID_HAS_RETURNS: 'Invoice has posted returns',
   SALES_REFERENCE_VOIDED: 'Referenced invoice is voided',
+  SALES_RETURN_PRICE_EXCEEDED: 'Return unit price cannot exceed original sale price',
   PURCHASE_VOID_HAS_RETURNS: 'Purchase has posted returns',
   PURCHASE_REFERENCE_VOIDED: 'Referenced purchase is voided',
+  PURCHASE_RETURN_PRICE_EXCEEDED: 'Return unit price cannot exceed original purchase price',
   POS_HOLD_LIMIT_REACHED: 'POS hold slots are full',
   POS_HOLD_NOT_FOUND: 'POS hold was not found',
   POS_TENDER_MISMATCH: 'Tenders do not match the total',
@@ -430,6 +450,9 @@ export const errorTitle: Record<ErrorCode, string> = {
   SERIAL_INVALID_STATE: 'Serial number is not in a movable state',
   SERIAL_WRONG_WAREHOUSE: 'Serial number is in another warehouse',
   SERIAL_NOT_RETURNABLE: 'Serial number was not sold and cannot be returned',
+  SERIAL_COUNT_EXCEEDS_STOCK: 'Serial count exceeds available stock balance',
+  BIN_CODE_INVALID: 'Bin code must look like A-01-01',
+  BIN_RECEIVE_EXCEEDS_STOCK: 'Bin receipt quantity exceeds available warehouse stock',
   COST_CENTER_NOT_FOUND: 'Cost centre not found',
   PARTY_NOT_FOUND: 'Party not found',
   STORAGE_NOT_CONFIGURED: 'Object storage is not configured',
@@ -470,6 +493,9 @@ export const errorTitle: Record<ErrorCode, string> = {
   VOUCHER_VOID_REASON_REQUIRED: 'Void reason is required',
   SYSTEM_ROLE_PERMISSIONS_IMMUTABLE: 'System role permissions cannot be changed',
   OWNER_ROLE_NOT_ASSIGNABLE: 'The owner role cannot be assigned here',
+  SALES_OFFER_CODE_TAKEN: 'An offer with this code already exists',
+  SALES_OFFER_DISCOUNT_INVALID: 'Offer discount value is invalid',
+  SALES_OFFER_TARGET_INVALID: 'Offer target value is invalid',
 };
 
 export function statusForCode(code: string): number {

@@ -151,7 +151,12 @@ export default function SerialsPage() {
     }
   }
 
-  const count = (status: string) => allRows.filter((row) => row.status === status).length;
+  const count = (status: string) => {
+    if (status === 'returned') {
+      return allRows.filter((row) => row.returned || row.status === 'returned').length;
+    }
+    return allRows.filter((row) => row.status === status).length;
+  };
 
   return (
     <Screen

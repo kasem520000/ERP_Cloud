@@ -4,6 +4,7 @@ import { Decimal } from 'decimal.js';
 import { DomainError, errorCodes, newId } from '@erp/contracts';
 import {
   cashLocations,
+  invoicePayments,
   memberships,
   parties,
   paymentLinks,
@@ -138,6 +139,18 @@ export class PaymentLinksService {
         .orderBy(desc(paymentLinks.createdAt)),
     );
     return rows.map(toLink);
+  }
+
+  async getLink(tenantId: string, id: string) {
+    const [row] = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .select()
+        .from(paymentLinks)
+        .where(and(eq(paymentLinks.tenantId, tenantId), eq(paymentLinks.id, id)))
+        .limit(1),
+    );
+    if (!row) throw new DomainError('PAYMENT_LINK_NOT_FOUND', 'رابط الدفع غير موجود', 404);
+    return toLink(row);
   }
 
   async createLink(tenantId: string, input: CreateLinkInput) {
@@ -311,13 +324,35 @@ export class PaymentLinksService {
       description: `سند قبض رابط دفع ${PROVIDER_LABELS[provider]} فاتورة ${invoice.number ?? invoice.id}`,
       reference: decision.paymentId,
     });
-    await this.sales.addPayment(tenantId, invoice.id, {
-      method: 'card',
-      amount: decision.amount,
-      idempotencyKey,
-      cashLocationId,
-      reference: decision.paymentId,
-    });
+    const updatedInvoice = await this.sales.get(tenantId, invoice.id);
+    const remainingDue = new Decimal(updatedInvoice.total).minus(updatedInvoice.paidTotal ?? '0');
+    if (remainingDue.gt(0)) {
+      await this.sales.addPayment(tenantId, invoice.id, {
+        method: 'card',
+        amount: decision.amount,
+        idempotencyKey,
+        cashLocationId,
+        reference: decision.paymentId,
+      });
+    } else {
+      await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .insert(invoicePayments)
+          .values({
+            id: newId(),
+            tenantId,
+            invoiceId: invoice.id,
+            method: 'card',
+            amount: decision.amount,
+            cashLocationId,
+            reference: decision.paymentId,
+            idempotencyKey,
+          })
+          .onConflictDoNothing(),
+      );
+    }
+    const cleanPayload = { ...(link.payload ?? {}) };
+    delete cleanPayload.lastError;
     const [updated] = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
         .update(paymentLinks)
@@ -325,7 +360,7 @@ export class PaymentLinksService {
           status: 'paid',
           paidAt: new Date(),
           voucherId: voucher.id,
-          payload: { ...(link.payload ?? {}), paymentId: decision.paymentId, lastEvent: payload, voucherStatus: voucher.status },
+          payload: { ...cleanPayload, paymentId: decision.paymentId, lastEvent: payload, voucherStatus: voucher.status },
           updatedAt: new Date(),
         })
         .where(and(eq(paymentLinks.tenantId, tenantId), eq(paymentLinks.id, link.id)))
@@ -525,6 +560,7 @@ export class PaymentLinksService {
 }
 
 function toLink(row: typeof paymentLinks.$inferSelect) {
+  const payload = (row.payload ?? {}) as Record<string, unknown>;
   return {
     id: row.id,
     invoiceId: row.invoiceId,
@@ -538,6 +574,8 @@ function toLink(row: typeof paymentLinks.$inferSelect) {
     paidAt: row.paidAt,
     voucherId: row.voucherId,
     createdAt: row.createdAt,
+    lastError: payload.lastError ?? null,
+    payload,
   };
 }
 

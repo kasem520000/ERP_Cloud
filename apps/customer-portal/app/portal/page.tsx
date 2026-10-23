@@ -40,10 +40,20 @@ function Dashboard() {
 
   const rows = invoices.data ?? [];
   const outstanding = rows.reduce(
-    (sum, invoice) => sum.plus(new Decimal(invoice.total || '0').minus(invoice.paid_total || '0')),
+    (sum, invoice) => {
+      const remaining = new Decimal(invoice.total || '0').minus(invoice.paid_total || '0');
+      return invoice.kind === 'sale_return' || invoice.kind === 'return'
+        ? sum.minus(remaining)
+        : sum.plus(remaining);
+    },
     new Decimal(0),
   );
-  const overdueCount = rows.filter((invoice) => invoice.payment_status !== 'paid').length;
+  const overdueCount = rows.filter(
+    (invoice) =>
+      invoice.payment_status !== 'paid' &&
+      invoice.kind !== 'sale_return' &&
+      invoice.kind !== 'return',
+  ).length;
   const lastPayment = (payments.data ?? [])[0];
 
   return (

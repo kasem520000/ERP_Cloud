@@ -113,9 +113,11 @@ export default function VouchersPage() {
   const requested = params.get('kind');
   const { can } = useSession();
 
-  const [kind, setKind] = useState<KindId>(
-    requested === 'opening' || requested === 'stock_out' ? (requested as KindId) : 'stock_in',
-  );
+  const [kind, setKind] = useState<KindId>(() => {
+    if (requested === 'opening') return 'opening';
+    if (requested === 'stock_out' || requested === 'issue') return 'stock_out';
+    return 'stock_in';
+  });
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Voucher | undefined>();
   const [branchId, setBranchId] = useState('');
@@ -381,7 +383,7 @@ export default function VouchersPage() {
     <Screen
       title="سندات المخزون"
       subtitle="إدخال · إخراج · بضاعة أول المدة — كل سند مرحّل ينشئ قيداً متزناً في نفس اللحظة التي يحرك فيها المخزون."
-      crumbs={['المستودعات', 'العمليات']}
+      crumbs={['المستودعات', 'العمليات', KIND_LABELS[kind] ? `سند ${KIND_LABELS[kind]}` : 'سندات المخزون']}
       actions={
         can('inventory.adjust') ? (
           <button className="btn primary" type="button" onClick={() => setOpen(!open)}>
@@ -394,8 +396,15 @@ export default function VouchersPage() {
         items={KINDS.map((option) => ({ id: option.id, label: option.label }))}
         value={kind}
         onChange={(next) => {
-          setKind(next);
+          const nextKind = next as KindId;
+          setKind(nextKind);
           setNotice(undefined);
+          setSelected(undefined);
+          if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href);
+            url.searchParams.set('kind', nextKind);
+            window.history.replaceState({}, '', url.toString());
+          }
         }}
       />
       <p className="ui-filter-hint">{KINDS.find((option) => option.id === kind)?.hint}</p>
@@ -740,8 +749,13 @@ export default function VouchersPage() {
         />
         <StatTile
           label="إجمالي القيمة"
-          value={money(rows.reduce((sum, row) => sum + Number(row.totalCost), 0))}
-          hint="مجموع السندات المعروضة"
+          value={money(
+            rows.reduce((sum, row) => {
+              if (row.kind === 'stock_out' && row.status === 'draft') return sum;
+              return sum + Number(row.totalCost);
+            }, 0),
+          )}
+          hint={kind === 'stock_out' ? 'للسندات المُرحَّلة فقط (المسودات تُقيَّم عند الترحيل)' : 'مجموع السندات المعروضة'}
         />
         <StatTile
           label="مسودات تنتظر الترحيل"

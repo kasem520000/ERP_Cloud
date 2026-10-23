@@ -156,10 +156,12 @@ export default function StockDeliveriesPage() {
     0,
   );
   const pendingValue = outstandingRows.reduce((sum, row) => sum + Number(row.total), 0);
-  const deliveredQty = deliveryRows.reduce(
-    (sum, row) => sum + (row.lines ?? []).reduce((inner, line) => inner + Number(line.qty ?? 0), 0),
-    0,
-  );
+  const deliveredQty = deliveryRows
+    .filter((row) => row.status === 'delivered')
+    .reduce(
+      (sum, row) => sum + (row.lines ?? []).reduce((inner, line) => inner + Number(line.qty ?? 0), 0),
+      0,
+    );
 
   return (
     <Screen

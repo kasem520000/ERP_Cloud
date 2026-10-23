@@ -5,6 +5,7 @@ import { DomainError, errorCodes } from '@erp/contracts';
 import {
   accounts,
   branches,
+  cashLocations,
   vouchers,
   costCenters,
   fiscalPeriods,
@@ -14,6 +15,11 @@ import {
   journalEntryLines,
   newId,
   periodModuleLocks,
+  shiftCloses,
+  cashLocationBalances,
+  paymentAllocations,
+  purchaseInvoices,
+  salesInvoices,
   users,
   warehouses,
   withTenantTx,
@@ -29,6 +35,8 @@ import {
 } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { SequencesService } from '../platform-services/index.js';
+import { tryGetAuthContext } from '../platform/context/tenant-context.js';
+import { isUniqueViolation } from '../organization/shared/org-support.js';
 
 export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 
@@ -474,6 +482,9 @@ export type JournalLineInput = {
   branchId?: string;
   /** المندوب — `FrmNewEntry.xaml` `colSalesman`. */
   salesmanId?: string;
+  currencyCode?: string;
+  currencyAmount?: string;
+  fxRate?: string;
 };
 
 /**
@@ -942,10 +953,10 @@ export class AccountingService {
   async closePeriod(tenantId: string, periodId: string, actorId?: string) {
     await withTenantTx(this.database.db, tenantId, async (tx) => {
       const [period] = await tx.select().from(fiscalPeriods).where(and(eq(fiscalPeriods.id, periodId), eq(fiscalPeriods.tenantId, tenantId)));
-      if (!period) throw new Error('Fiscal period not found');
+      if (!period) throw new DomainError('FISCAL_PERIOD_NOT_FOUND', 'Fiscal period not found', 404);
       if (period.status === 'closed') return;
       const [draft] = await tx.select({ id: journalEntries.id }).from(journalEntries).where(and(eq(journalEntries.tenantId, tenantId), eq(journalEntries.fiscalPeriodId, periodId), eq(journalEntries.status, 'draft'))).limit(1);
-      if (draft) throw new Error('Fiscal period contains draft journals');
+      if (draft) throw new DomainError('FISCAL_PERIOD_HAS_DRAFT_JOURNALS', 'لا يمكن إغلاق الفترة لاحتوائها على قيود يومية مسودة', 409);
       /**
        * 🔒 إغلاق الفترة — `AccountingPeriodManager.ClosePeriod` sets
        * `IsClosed = 1, ClosedBy = @User, ClosedDate = @Date, IsActive = 0`: a closed period
@@ -959,12 +970,19 @@ export class AccountingService {
     });
   }
 
-  async reopenPeriod(tenantId: string, periodId: string, reason: string) {
-    if (!reason.trim()) throw new Error('Reopen reason is required');
+  async reopenPeriod(tenantId: string, periodId: string, reason?: string) {
+    if (!reason || !reason.trim())
+      throw new DomainError('REOPEN_REASON_REQUIRED', 'Reopen reason is required', 422, { field: 'reason' });
     await withTenantTx(this.database.db, tenantId, async (tx) => {
-      const [period] = await tx.select().from(fiscalPeriods).where(and(eq(fiscalPeriods.id, periodId), eq(fiscalPeriods.tenantId, tenantId)));
-      if (!period) throw new Error('Fiscal period not found');
-      await tx.update(fiscalPeriods).set({ status: 'open', closedAt: null, closedBy: null }).where(eq(fiscalPeriods.id, periodId));
+      const [period] = await tx
+        .select()
+        .from(fiscalPeriods)
+        .where(and(eq(fiscalPeriods.id, periodId), eq(fiscalPeriods.tenantId, tenantId)));
+      if (!period) throw new DomainError('FISCAL_PERIOD_NOT_FOUND', 'Fiscal period not found', 404);
+      await tx
+        .update(fiscalPeriods)
+        .set({ status: 'open', closedAt: null, closedBy: null, notes: `سبب إعادة الفتح: ${reason.trim()}` })
+        .where(eq(fiscalPeriods.id, periodId));
     });
   }
 
@@ -1219,15 +1237,66 @@ export class AccountingService {
       })),
     );
 
+    // ACC-100: مزامنة المستند الأصلي عند عكس القيد من شاشة القيود (مثل إغلاق الوردية)
+    if (original.sourceType === 'shift_close' && original.sourceId) {
+      const [shift] = await tx
+        .select()
+        .from(shiftCloses)
+        .where(and(eq(shiftCloses.tenantId, tenantId), eq(shiftCloses.id, original.sourceId)));
+      if (shift) {
+        const expected = money(shift.expectedCash);
+        if (expected.abs().gt(0)) {
+          const cashLine = lines.find((l) => Number(l.credit) > 0);
+          if (cashLine) {
+            const [loc] = await tx
+              .select({ id: cashLocations.id, currencyCode: cashLocations.currencyCode })
+              .from(cashLocations)
+              .where(
+                and(
+                  eq(cashLocations.tenantId, tenantId),
+                  eq(cashLocations.accountId, cashLine.accountId),
+                  isNull(cashLocations.deletedAt),
+                ),
+              )
+              .limit(1);
+            if (loc) {
+              const reverseDelta = expected.gt(0) ? expected.toFixed(4) : (-expected.abs()).toFixed(4);
+              await tx
+                .insert(cashLocationBalances)
+                .values({
+                  tenantId,
+                  cashLocationId: loc.id,
+                  currencyCode: loc.currencyCode ?? 'SAR',
+                  balance: reverseDelta,
+                  updatedAt: new Date(),
+                })
+                .onConflictDoUpdate({
+                  target: [cashLocationBalances.cashLocationId, cashLocationBalances.currencyCode],
+                  set: { balance: sql`${cashLocationBalances.balance} + ${reverseDelta}`, updatedAt: new Date() },
+                });
+            }
+          }
+        }
+        await tx
+          .update(shiftCloses)
+          .set({
+            journalEntryId: null,
+            postedAt: null,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(shiftCloses.tenantId, tenantId), eq(shiftCloses.id, original.sourceId)));
+      }
+    }
+
     return { id: reversalId, number: allocated.display, reversalOf: entryId, reused: false };
   }
 
-  async reverseJournal(tenantId: string, entryId: string, input: { branchId: string; fiscalPeriodId: string; date: string; reason: string }) {
+  async reverseJournal(tenantId: string, entryId: string, input: { branchId?: string; fiscalPeriodId?: string; date?: string; reason: string }) {
     /**
      * أخطاء العكس أخطاءُ تحقّق لا أعطالٌ داخلية: `Error` عادية كانت تخرج 500 بلا كود، فلا
      * تعرف الشاشة هل السبب مُغلق الفترة أم قيدٌ غير مُرحَّل. صارت `DomainError` بكود وحالة.
      */
-    if (!input.reason.trim())
+    if (!input.reason?.trim())
       throw new DomainError('REVERSAL_REASON_REQUIRED', 'سبب العكس مطلوب — يُحفظ في السجلّ التدقيقي', 422, {
         field: 'reason',
       });
@@ -1249,16 +1318,41 @@ export class AccountingService {
           field: 'entryId',
           reversalId: existing.id,
         });
-      const [period] = await tx.select().from(fiscalPeriods).where(and(eq(fiscalPeriods.id, input.fiscalPeriodId), eq(fiscalPeriods.tenantId, tenantId)));
+
+      let date = input.date?.trim();
+      let fiscalPeriodId = input.fiscalPeriodId;
+
+      if (!fiscalPeriodId) {
+        if (date) {
+          fiscalPeriodId = await this.openPeriodForDateInTx(tx, tenantId, date);
+        } else {
+          // If neither fiscalPeriodId nor date is explicitly passed, auto-resolve from today's open period
+          const today = new Date().toISOString().slice(0, 10);
+          try {
+            fiscalPeriodId = await this.openPeriodForDateInTx(tx, tenantId, today);
+            date = today;
+          } catch {
+            date = original.date;
+            fiscalPeriodId = await this.openPeriodForDateInTx(tx, tenantId, date);
+          }
+        }
+      } else {
+        if (!date) date = original.date;
+      }
+
+      const [period] = await tx
+        .select()
+        .from(fiscalPeriods)
+        .where(and(eq(fiscalPeriods.id, fiscalPeriodId), eq(fiscalPeriods.tenantId, tenantId)));
       if (!period || period.status !== 'open')
         throw new DomainError('FISCAL_PERIOD_CLOSED', 'فترة العكس مغلقة أو غير متاحة — اختر فترة مفتوحة', 409, {
           field: 'fiscalPeriodId',
         });
       const reversed = await this.reverseJournalInTx(tx, tenantId, entryId, {
         reason: input.reason,
-        date: input.date,
+        date,
         branchId: input.branchId,
-        fiscalPeriodId: input.fiscalPeriodId,
+        fiscalPeriodId,
       });
       return { id: reversed.id, reversalOf: entryId };
     });
@@ -1430,10 +1524,14 @@ export class AccountingService {
           balance: net.abs().toFixed(4),
           status: net.isZero() ? '' : statusOf(net),
           /**
-           * The point of a ميزان: every entry is balanced, so the period's gross movement
-           * must balance too. A netted total does not — that number is `balance` above.
+           * ACC-139 / R28: The trial balance is balanced only if both the period's gross movements
+           * balance (debit === credit) AND the net balance (closingDebit === closingCredit) is zero,
+           * AND opening balances balance. A one-sided opening balance flags balanced: false.
            */
-          balanced: totals.debit.minus(totals.credit).abs().lessThan(0.005),
+          balanced:
+            totals.debit.minus(totals.credit).abs().lessThan(0.005) &&
+            net.abs().lessThan(0.005) &&
+            totals.openingDebit.minus(totals.openingCredit).abs().lessThan(0.005),
         },
       };
     });
@@ -1741,8 +1839,8 @@ export class AccountingService {
         number: journalEntries.number,
         entryDescription: journalEntries.description,
         // In تجميعي mode one row covers many lines, so the note is aggregated; the row
-        // shows the entry's own البيان anyway.
-        lineDescription: sql<string | null>`MIN(${journalEntryLines.description})`,
+        // shows the entry's own البيان anyway. Falls back to entry description if line description is empty.
+        lineDescription: sql<string | null>`COALESCE(MIN(NULLIF(TRIM(${journalEntryLines.description}), '')), ${journalEntries.description})`,
         debit: sql<string>`COALESCE(SUM(${journalEntryLines.debit}), 0)::text`,
         credit: sql<string>`COALESCE(SUM(${journalEntryLines.credit}), 0)::text`,
         accountCode: accounts.code,
@@ -1970,20 +2068,24 @@ export class AccountingService {
    * when the date falls in no open period — back-dating into a closed period is
    * never silently re-routed, the accountant reopens or picks a period explicitly.
    */
+  async openPeriodForDate(tenantId: string, date: string): Promise<string> {
+    return withTenantTx(this.database.db, tenantId, (tx) => this.openPeriodForDateInTx(tx, tenantId, date));
+  }
+
   async openPeriodForDateInTx(tx: DrizzleTx, tenantId: string, date: string): Promise<string> {
     const [period] = await tx
-      .select({ id: fiscalPeriods.id })
+      .select({ id: fiscalPeriods.id, status: fiscalPeriods.status })
       .from(fiscalPeriods)
       .where(
         and(
           eq(fiscalPeriods.tenantId, tenantId),
-          eq(fiscalPeriods.status, 'open'),
           lte(fiscalPeriods.startDate, date),
           gte(fiscalPeriods.endDate, date),
         ),
       )
       .limit(1);
-    if (!period) throw new DomainError('FISCAL_PERIOD_CLOSED', `No open fiscal period contains ${date}`, 409);
+    if (!period) throw new DomainError('FISCAL_PERIOD_NOT_FOUND', `No fiscal period exists covering date ${date}`, 400);
+    if (period.status !== 'open') throw new DomainError('FISCAL_PERIOD_CLOSED', `No open fiscal period contains ${date}`, 409);
     return period.id;
   }
 
@@ -1997,7 +2099,59 @@ export class AccountingService {
 
     const [period] = await tx.select().from(fiscalPeriods).where(and(eq(fiscalPeriods.id, input.fiscalPeriodId), eq(fiscalPeriods.tenantId, tenantId)));
     if (!period || period.status !== 'open') throw new DomainError('FISCAL_PERIOD_CLOSED', 'Fiscal period is closed or unavailable', 409);
-    await this.assertModuleUnlocked(tx, tenantId, input.fiscalPeriodId, 'accounting');
+    if (input.date < period.startDate || input.date > period.endDate) {
+      throw new DomainError(
+        'FISCAL_PERIOD_DATE_MISMATCH',
+        `Entry date ${input.date} is outside the selected fiscal period (${period.startDate} to ${period.endDate})`,
+        409,
+      );
+    }
+    const moduleName =
+      input.sourceType === 'sales_invoice' || input.sourceType === 'sales_return' || input.sourceType === 'credit_note' || input.sourceType === 'debit_note'
+        ? 'sales'
+        : input.sourceType === 'purchase_invoice' || input.sourceType === 'purchase_return'
+          ? 'purchases'
+          : input.sourceType === 'stock_voucher' || input.sourceType === 'inventory_adjustment' || input.sourceType === 'stock_count'
+            ? 'inventory'
+            : input.sourceType === 'payment_voucher' || input.sourceType === 'receipt_voucher' || input.sourceType === 'cash_shift' || input.sourceType === 'voucher'
+              ? 'treasury'
+              : input.sourceType === 'payroll_run'
+                ? 'payroll'
+                : 'accounting';
+    await this.assertModuleUnlocked(tx, tenantId, input.fiscalPeriodId, moduleName);
+    if (moduleName !== 'accounting') {
+      await this.assertModuleUnlocked(tx, tenantId, input.fiscalPeriodId, 'accounting');
+    }
+
+    // ACC-135 / R28: التحقق من وجود مراكز التكلفة المحددة على أسطر القيد وأنها تنتمي للمستأجر
+    await this.assertCostCentersInTx(
+      tx,
+      tenantId,
+      input.lines.map((l) => l.costCenterId),
+    );
+
+    // ACC-023: حظر القيود اليدوية المباشرة على حسابات رقابة الخزينة (الصندوق والبنك المرتبطة بمواقع نقدية)
+    if (!input.sourceType || input.sourceType === 'manual') {
+      const lineAccountIds = input.lines.map((line) => line.accountId);
+      const cashControlAccounts = await tx
+        .select({ id: cashLocations.accountId })
+        .from(cashLocations)
+        .where(
+          and(
+            eq(cashLocations.tenantId, tenantId),
+            isNull(cashLocations.deletedAt),
+            inArray(cashLocations.accountId, lineAccountIds),
+          ),
+        );
+      if (cashControlAccounts.length > 0) {
+        throw new DomainError(
+          'MANUAL_JOURNAL_ON_TREASURY_ACCOUNT',
+          'Manual journal entries are not permitted on cash or bank control accounts — use a receipt or payment voucher instead',
+          422,
+          { field: 'accountId' },
+        );
+      }
+    }
 
     const entryId = newId();
     const allocated = await this.sequences.next({ tenantId, branchId: input.branchId, docType: 'journal_entry', fiscalYearId: period.fiscalYearId }, tx, { prefix: 'JE-', padding: 6 });
@@ -2043,29 +2197,47 @@ export class AccountingService {
       accountId: line.accountId,
       debit: line.debit ?? '0',
       credit: line.credit ?? '0',
+      currencyCode: line.currencyCode ?? null,
+      currencyAmount: line.currencyAmount ?? null,
+      fxRate: line.fxRate ?? null,
       costCenterId: line.costCenterId ?? null,
       partyId: line.partyId ?? null,
       branchId: line.branchId ?? input.branchId,
       salesmanId: line.salesmanId ?? null,
       description:
         line.description?.trim() ||
+        input.description?.trim() ||
         `سند قيد يومية رقم: ${allocated.display} - سداد دفعة من حساب: ${names.get(line.accountId) ?? ''}`.trim(),
     })));
     const [entry] = await tx.select().from(journalEntries).where(eq(journalEntries.id, entryId));
     return entry;
   }
 
-  async lockModule(tenantId: string, periodId: string, module: string) {
+  async lockModule(tenantId: string, periodId: string, module: string, actorId?: string) {
+    const lockedBy = actorId ?? tryGetAuthContext()?.userId ?? null;
+    const lockedAt = new Date();
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      await tx.insert(periodModuleLocks).values({ tenantId, periodId, module, locked: true, lockedAt: new Date() }).onConflictDoUpdate({ target: [periodModuleLocks.periodId, periodModuleLocks.module], set: { locked: true, lockedAt: new Date() } });
-      return { periodId, module, locked: true };
+      await tx
+        .insert(periodModuleLocks)
+        .values({ tenantId, periodId, module, locked: true, lockedAt, lockedBy })
+        .onConflictDoUpdate({
+          target: [periodModuleLocks.periodId, periodModuleLocks.module],
+          set: { locked: true, lockedAt, lockedBy },
+        });
+      return { periodId, module, locked: true, lockedAt, lockedBy };
     });
   }
 
   async unlockModule(tenantId: string, periodId: string, module: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      await tx.insert(periodModuleLocks).values({ tenantId, periodId, module, locked: false, lockedAt: null }).onConflictDoUpdate({ target: [periodModuleLocks.periodId, periodModuleLocks.module], set: { locked: false, lockedAt: null, lockedBy: null } });
-      return { periodId, module, locked: false };
+      await tx
+        .insert(periodModuleLocks)
+        .values({ tenantId, periodId, module, locked: false, lockedAt: null, lockedBy: null })
+        .onConflictDoUpdate({
+          target: [periodModuleLocks.periodId, periodModuleLocks.module],
+          set: { locked: false, lockedAt: null, lockedBy: null },
+        });
+      return { periodId, module, locked: false, lockedAt: null, lockedBy: null };
     });
   }
 
@@ -2207,6 +2379,10 @@ export class AccountingService {
           /** 🏷️ النوع — `🟢 رئيسي` / `🔵 فرعي`, exactly as the window's radio buttons read. */
           kind: row.parentId ? 'sub' : 'main',
           balance: totals,
+          debit: totals.debit,
+          credit: totals.credit,
+          closing: totals.balance,
+          total: totals.balance,
         };
       });
     });
@@ -2316,7 +2492,7 @@ export class AccountingService {
         date: journalEntries.date,
         number: journalEntries.number,
         entryDescription: journalEntries.description,
-        lineDescription: sql<string | null>`MIN(${journalEntryLines.description})`,
+        lineDescription: sql<string | null>`COALESCE(MIN(NULLIF(TRIM(${journalEntryLines.description}), '')), ${journalEntries.description})`,
         debit: sql<string>`COALESCE(SUM(${journalEntryLines.debit}), 0)::text`,
         credit: sql<string>`COALESCE(SUM(${journalEntryLines.credit}), 0)::text`,
         accountCode: accounts.code,
@@ -2457,40 +2633,58 @@ export class AccountingService {
 
   async createCostCenter(tenantId: string, input: CostCenterInput) {
     const id = newId();
-    return withTenantTx(this.database.db, tenantId, async (tx) => {
-      await tx.insert(costCenters).values({
-        id,
-        tenantId,
-        code: input.code,
-        nameAr: input.nameAr,
-        nameEn: input.nameEn ?? null,
-        parentId: input.parentId ?? null,
-        branchId: input.branchId ?? null,
+    try {
+      return await withTenantTx(this.database.db, tenantId, async (tx) => {
+        await tx.insert(costCenters).values({
+          id,
+          tenantId,
+          code: input.code,
+          nameAr: input.nameAr,
+          nameEn: input.nameEn ?? null,
+          parentId: input.parentId ?? null,
+          branchId: input.branchId ?? null,
+        });
+        const [row] = await tx.select().from(costCenters).where(eq(costCenters.id, id));
+        return row;
       });
-      const [row] = await tx.select().from(costCenters).where(eq(costCenters.id, id));
-      return row;
-    });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new DomainError('COST_CENTER_CODE_TAKEN', `رمز مركز التكلفة "${input.code}" مستخدم مسبقاً`, 409, {
+          field: 'code',
+        });
+      }
+      throw error;
+    }
   }
 
   async updateCostCenter(tenantId: string, id: string, patch: CostCenterPatch) {
-    return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const [current] = await tx.select().from(costCenters).where(and(eq(costCenters.id, id), eq(costCenters.tenantId, tenantId), isNull(costCenters.deletedAt)));
-      if (!current) throw new DomainError('NOT_FOUND', 'Cost centre not found', 404);
-      if (patch.parentId === id) throw new DomainError('COST_CENTER_CYCLE', 'A cost centre cannot be its own parent', 422);
-      const [row] = await tx
-        .update(costCenters)
-        .set({
-          code: patch.code ?? current.code,
-          nameAr: patch.nameAr ?? current.nameAr,
-          nameEn: patch.nameEn === undefined ? current.nameEn : patch.nameEn,
-          parentId: patch.parentId === undefined ? current.parentId : patch.parentId,
-          branchId: patch.branchId === undefined ? current.branchId : patch.branchId,
-          updatedAt: new Date(),
-        })
-        .where(and(eq(costCenters.id, id), eq(costCenters.tenantId, tenantId)))
-        .returning();
-      return row;
-    });
+    try {
+      return await withTenantTx(this.database.db, tenantId, async (tx) => {
+        const [current] = await tx.select().from(costCenters).where(and(eq(costCenters.id, id), eq(costCenters.tenantId, tenantId), isNull(costCenters.deletedAt)));
+        if (!current) throw new DomainError('NOT_FOUND', 'Cost centre not found', 404);
+        if (patch.parentId === id) throw new DomainError('COST_CENTER_CYCLE', 'A cost centre cannot be its own parent', 422);
+        const [row] = await tx
+          .update(costCenters)
+          .set({
+            code: patch.code ?? current.code,
+            nameAr: patch.nameAr ?? current.nameAr,
+            nameEn: patch.nameEn === undefined ? current.nameEn : patch.nameEn,
+            parentId: patch.parentId === undefined ? current.parentId : patch.parentId,
+            branchId: patch.branchId === undefined ? current.branchId : patch.branchId,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(costCenters.id, id), eq(costCenters.tenantId, tenantId)))
+          .returning();
+        return row;
+      });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new DomainError('COST_CENTER_CODE_TAKEN', `رمز مركز التكلفة "${patch.code}" مستخدم مسبقاً`, 409, {
+          field: 'code',
+        });
+      }
+      throw error;
+    }
   }
 
   /** Cost centres carry analysis, so one that already appears on journal lines stays. */
@@ -2631,6 +2825,7 @@ export class AccountingService {
           branchId: journalEntries.branchId,
           fiscalPeriodId: journalEntries.fiscalPeriodId,
           sourceType: journalEntries.sourceType,
+          sourceId: journalEntries.sourceId,
           reversalOf: journalEntries.reversalOf,
           postedAt: journalEntries.postedAt,
           totalDebit: sql<string>`COALESCE((SELECT SUM(l.debit) FROM journal_entry_lines l WHERE l.entry_id = ${journalEntries.id}), 0)::text`,
@@ -2746,7 +2941,10 @@ export class AccountingService {
           costCenterId: journalEntryLines.costCenterId,
           partyId: journalEntryLines.partyId,
           salesmanId: journalEntryLines.salesmanId,
-          description: journalEntryLines.description,
+          currencyCode: journalEntryLines.currencyCode,
+          currencyAmount: journalEntryLines.currencyAmount,
+          fxRate: journalEntryLines.fxRate,
+          description: sql<string>`COALESCE(NULLIF(TRIM(${journalEntryLines.description}), ''), ${entry.description})`,
         })
         .from(journalEntryLines)
         .innerJoin(accounts, eq(accounts.id, journalEntryLines.accountId))
@@ -2757,7 +2955,7 @@ export class AccountingService {
     });
   }
 
-  private async assertModuleUnlocked(tx: DrizzleTx, tenantId: string, periodId: string, module: string): Promise<void> {
+  async assertModuleUnlocked(tx: DrizzleTx, tenantId: string, periodId: string, module: string): Promise<void> {
     const [lock] = await tx.select().from(periodModuleLocks).where(and(eq(periodModuleLocks.tenantId, tenantId), eq(periodModuleLocks.periodId, periodId), eq(periodModuleLocks.module, module)));
     if (lock?.locked) throw new DomainError('PERIOD_MODULE_LOCKED', `Module ${module} is locked for this fiscal period`, 409);
   }

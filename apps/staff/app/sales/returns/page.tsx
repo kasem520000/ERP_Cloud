@@ -139,6 +139,7 @@ export default function SalesReturnsPage() {
                 <tr>
                   <th>المادة</th>
                   <th>الكمية المباعة</th>
+                  <th>المتبقي للإرجاع</th>
                   <th>السعر</th>
                   <th>الكمية المرتجعة</th>
                 </tr>
@@ -153,6 +154,11 @@ export default function SalesReturnsPage() {
                       })()}
                     </td>
                     <td className="num">{quantity(line.quantity)}</td>
+                    <td className="num font-semibold text-accent">
+                      {(line as unknown as { availableQuantity?: string }).availableQuantity !== undefined
+                        ? quantity((line as unknown as { availableQuantity?: string }).availableQuantity)
+                        : quantity(line.quantity)}
+                    </td>
                     <td className="num">{money(line.unitPrice)}</td>
                     <td>
                       <input
@@ -160,6 +166,11 @@ export default function SalesReturnsPage() {
                         dir="ltr"
                         inputMode="decimal"
                         disabled={!line.itemId}
+                        placeholder={
+                          (line as unknown as { availableQuantity?: string }).availableQuantity !== undefined
+                            ? (line as unknown as { availableQuantity?: string }).availableQuantity
+                            : line.quantity
+                        }
                         value={quantities[line.id] ?? ''}
                         onChange={(event) =>
                           setQuantities((current) => ({ ...current, [line.id]: event.target.value }))

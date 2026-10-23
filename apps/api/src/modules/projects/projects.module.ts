@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { AccountingModule } from '../accounting/accounting.module.js';
 import { DatabaseModule } from '../../database/database.module.js';
 import { PlatformServicesModule } from '../platform-services/index.js';
 import { SalesModule } from '../sales/sales.module.js';
@@ -15,7 +16,7 @@ import { ProjectsController } from './projects.controller.js';
 import { ProjectsService } from './projects.service.js';
 
 @Module({
-  imports: [DatabaseModule, PlatformServicesModule, SalesModule, TreasuryModule],
+  imports: [DatabaseModule, PlatformServicesModule, SalesModule, TreasuryModule, AccountingModule],
   controllers: [ProjectKanbanController, ProjectsController, ContractingController, ContractingReturnsController],
   providers: [ProjectsService, ProjectKanbanService, ContractingService, ContractingReturnsService],
   exports: [ProjectsService, ProjectKanbanService, ContractingService, ContractingReturnsService],
