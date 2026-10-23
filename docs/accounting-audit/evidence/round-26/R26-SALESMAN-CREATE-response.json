@@ -1,0 +1,39 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/sales/salesmen",
+  "request": {
+    "name": "مندوب R26",
+    "commissionRate": "10",
+    "collectionCommissionRate": "5",
+    "profitCommissionRate": "20",
+    "employeeId": null,
+    "tel": null,
+    "mobile": null,
+    "email": null,
+    "notes": null,
+    "active": true
+  },
+  "body": {
+    "id": "01a16596-a24a-70ea-b133-05653b5bc00e",
+    "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+    "name": "مندوب R26",
+    "employeeRef": null,
+    "active": true,
+    "commissionRate": "10.0000",
+    "collectionCommissionRate": "5.0000",
+    "profitCommissionRate": "20.0000",
+    "employeeId": null,
+    "warehouseId": null,
+    "vehiclePlate": null,
+    "tel": null,
+    "mobile": null,
+    "email": null,
+    "notes": null,
+    "createdAt": "2026-10-22T21:48:53.194Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1
+  }
+}

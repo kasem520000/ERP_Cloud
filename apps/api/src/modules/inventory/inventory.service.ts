@@ -817,8 +817,8 @@ export class InventoryService {
     tenantId: string,
     filters: { itemId?: string; status?: string; warehouseId?: string; q?: string } = {},
   ) {
-    return withTenantTx(this.database.db, tenantId, (tx) =>
-      tx
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const rows = await tx
         .select()
         .from(itemSerials)
         .where(
@@ -831,8 +831,25 @@ export class InventoryService {
             filters.q?.trim() ? ilike(itemSerials.serialNo, `%${filters.q!.trim()}%`) : undefined,
           ),
         )
-        .orderBy(asc(itemSerials.serialNo)),
-    );
+        .orderBy(asc(itemSerials.serialNo));
+
+      // UI-045: كشف الأرقام التسلسلية التي دخلت عبر مرتجع مبيعات ليعكس التقرير عداد المرتجع بدقة
+      const returnedLinks = await tx
+        .select({ serialId: stockDocumentSerials.serialId })
+        .from(stockDocumentSerials)
+        .where(
+          and(
+            eq(stockDocumentSerials.tenantId, tenantId),
+            inArray(stockDocumentSerials.docType, ['sales_return', 'stock_return']),
+          ),
+        );
+      const returnedIds = new Set(returnedLinks.map((l) => l.serialId));
+
+      return rows.map((r) => ({
+        ...r,
+        returned: returnedIds.has(r.id),
+      }));
+    });
   }
 
   /**
@@ -851,7 +868,8 @@ export class InventoryService {
     if (!Number.isFinite(count) || count < 1 || count > 500)
       throw new DomainError('SERIAL_COUNT_INVALID', 'Generate between 1 and 500 serials at a time', 422, { field: 'count' });
 
-    const width = String(startAt + count - 1).length;
+    // UI-044: حشو الأصفار بعرض 4 خانات على الأقل لضمان التناسق والفرز
+    const width = Math.max(4, String(startAt + count - 1).length);
     const serialNos = Array.from({ length: count }, (_, index) => `${prefix}${String(startAt + index).padStart(width, '0')}`);
 
     return withTenantTx(this.database.db, tenantId, async (tx) => {
@@ -860,6 +878,43 @@ export class InventoryService {
         .from(items)
         .where(and(eq(items.tenantId, tenantId), eq(items.id, input.itemId), isNull(items.deletedAt)));
       if (!item) throw new DomainError('ITEM_NOT_FOUND', 'The item was not found', 404);
+
+      // ACC-132: التحقق من وجود رصيد مخزني متاح يغطي عدد الأرقام التسلسلية المراد توليدها
+      if (input.warehouseId) {
+        const [bal] = await tx
+          .select({ quantity: stockBalances.quantity })
+          .from(stockBalances)
+          .where(
+            and(
+              eq(stockBalances.tenantId, tenantId),
+              eq(stockBalances.warehouseId, input.warehouseId),
+              eq(stockBalances.itemId, input.itemId),
+            ),
+          );
+        const currentQty = new Decimal(bal?.quantity ?? '0');
+        const [activeSerials] = await tx
+          .select({ count: sql<number>`count(*)::int` })
+          .from(itemSerials)
+          .where(
+            and(
+              eq(itemSerials.tenantId, tenantId),
+              eq(itemSerials.itemId, input.itemId),
+              eq(itemSerials.warehouseId, input.warehouseId),
+              isNull(itemSerials.deletedAt),
+              inArray(itemSerials.status, ['available', 'reserved']),
+            ),
+          );
+        const existingActiveCount = activeSerials?.count ?? 0;
+        const availableSlots = currentQty.minus(existingActiveCount);
+        if (new Decimal(count).gt(availableSlots)) {
+          throw new DomainError(
+            'SERIAL_COUNT_EXCEEDS_STOCK',
+            `Cannot generate ${count} serials: warehouse has ${currentQty.toFixed(0)} units with ${existingActiveCount} active serials (${Decimal.max(0, availableSlots).toFixed(0)} slots remaining)`,
+            422,
+            { field: 'count', availableSlots: availableSlots.toNumber() },
+          );
+        }
+      }
 
       const existing = await tx
         .select({ serialNo: itemSerials.serialNo })
@@ -2317,6 +2372,21 @@ export class InventoryService {
     },
   ): Promise<string[]> {
     const numbers = (input.serialNos ?? []).map((value) => String(value).trim()).filter(Boolean);
+
+    // ACC-128: فحص أن الصنف المتتبَّع بالأرقام التسلسلية يحمل أرقاماً عند تحريك المخزون
+    const [item] = await tx
+      .select({ trackSerial: items.trackSerial })
+      .from(items)
+      .where(and(eq(items.tenantId, tenantId), eq(items.id, input.itemId)));
+    if (item?.trackSerial && !numbers.length) {
+      throw new DomainError(
+        'INVENTORY_SERIAL_REQUIRED',
+        'This item is tracked by serial — scan a serial',
+        422,
+        { field: 'serialNos' },
+      );
+    }
+
     if (!numbers.length) return [];
     if (new Set(numbers).size !== numbers.length)
       throw new DomainError('SERIAL_DUPLICATE', 'The same serial number appears twice on this line', 422, {

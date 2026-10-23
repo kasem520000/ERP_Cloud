@@ -46,7 +46,8 @@ import {
 } from './wms-bom.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const BIN_CODE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/;
+// UI-043: التحقق من نسق رمز الرف مثل A-01-01 (مقطعان على الأقل يفصل بينهما شرطة)
+const BIN_CODE = /^[A-Za-z0-9]+(-[A-Za-z0-9]+)+$/;
 
 export type BinInput = {
   warehouseId: string;
@@ -194,7 +195,8 @@ export class WmsBomService {
 
   createBin(tenantId: string, input: BinInput) {
     const code = input.code.trim();
-    if (!BIN_CODE.test(code)) throw new DomainError('BIN_CODE_INVALID', 'Bin code must look like A-01-01', 422);
+    if (code.length < 3 || code.length > 32 || !BIN_CODE.test(code))
+      throw new DomainError('BIN_CODE_INVALID', 'Bin code must look like A-01-01', 422);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const warehouse = await this.warehouse(tx, tenantId, input.warehouseId);
       const [taken] = await tx
@@ -276,9 +278,32 @@ export class WmsBomService {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const bin = await this.lockBin(tx, tenantId, binId);
       const lotId = await this.prepareItem(tx, tenantId, input.itemId, input.lotId);
+
+      // ACC-130: التحقق من أن كمية استلام الرف لا تتجاوز الرصيد المتاح في المستودع
+      const [stockBal] = await tx
+        .select({ quantity: stockBalances.quantity })
+        .from(stockBalances)
+        .where(
+          and(
+            eq(stockBalances.tenantId, tenantId),
+            eq(stockBalances.itemId, input.itemId),
+            eq(stockBalances.warehouseId, bin.warehouseId),
+          ),
+        );
+      const totalWarehouseStock = new Decimal(stockBal?.quantity ?? '0');
+      if (new Decimal(input.qty).gt(totalWarehouseStock)) {
+        throw new DomainError(
+          'BIN_RECEIVE_EXCEEDS_STOCK',
+          `Cannot receive ${input.qty} into bin; only ${totalWarehouseStock.toFixed(4)} available in warehouse`,
+          422,
+        );
+      }
+
       const rows = await this.quantities(tx, tenantId, [bin.id]);
       const next = asDomain(() => applyBinReceipt(rows, bin, { itemId: input.itemId, lotId, qty: input.qty }));
-      const unitCost = moneyText(input.unitCost) ?? (await this.lookupAverage(tx, tenantId, bin.warehouseId, input.itemId));
+      // ACC-131: استخدام متوسط تكلفة المستودع بدلاً من الثقة بتكلفة الوحدة المرسلة من العميل
+      const avgCost = await this.lookupAverage(tx, tenantId, bin.warehouseId, input.itemId);
+      const unitCost = avgCost !== '0' ? avgCost : (moneyText(input.unitCost) ?? '0');
       await this.inventory.recordInTx(tx, tenantId, [
         {
           itemId: input.itemId,
@@ -473,10 +498,30 @@ export class WmsBomService {
       if (!bom.isActive) throw new DomainError('BOM_INACTIVE', 'This bill of materials is inactive', 422);
       const warehouse = await this.warehouse(tx, tenantId, input.warehouseId);
       const lines = await tx.select().from(bomLines).where(and(eq(bomLines.tenantId, tenantId), eq(bomLines.bomId, bom.id)));
+      const componentIds = lines.map((l) => l.componentItemId);
+      const stock = componentIds.length
+        ? await tx
+            .select({
+              itemId: stockBalances.itemId,
+              averageCost: stockBalances.averageCost,
+              quantity: stockBalances.quantity,
+            })
+            .from(stockBalances)
+            .where(
+              and(
+                eq(stockBalances.tenantId, tenantId),
+                eq(stockBalances.warehouseId, warehouse.id),
+                inArray(stockBalances.itemId, componentIds),
+              ),
+            )
+        : [];
+      const avgByItem = new Map(stock.map((s) => [s.itemId, s.averageCost]));
+      // ACC-129: تثبيت متوسط التكلفة المخططة لكل مكوّن في خطة الوصفة عند إنشاء أمر التصنيع
       const recipe: RecipeLine[] = lines.map((line) => ({
         componentItemId: line.componentItemId,
         qty: line.qty,
         scrapPercent: line.scrapPercent,
+        unitCost: avgByItem.get(line.componentItemId) ?? '0',
       }));
       asDomain(() => assertBom(bom.productItemId, recipe));
       const allocated = await this.sequences.next(
@@ -688,8 +733,14 @@ export class WmsBomService {
     return orders.map((order) => {
       const recipe = recipeOf(order.recipe);
       const demand = asDomain(() => componentDemand(recipe, order.qtyPlanned));
+      // ACC-129: استخدام التكلفة المخططة المحفوظة في الوصفة إن وُجدت، والرجوع إلى متوسطات المستودع للطلبات القديمة
       const averageMap = Object.fromEntries(
-        demand.map((line) => [line.componentItemId, averages.get(`${order.warehouseId}:${line.componentItemId}`) ?? '0']),
+        recipe.map((line) => [
+          line.componentItemId,
+          line.unitCost && line.unitCost !== '0'
+            ? line.unitCost
+            : averages.get(`${order.warehouseId}:${line.componentItemId}`) ?? '0',
+        ]),
       );
       const planned = asDomain(() => finishedGoodsCost(demand, averageMap, order.qtyPlanned));
       const produced = new Decimal(order.qtyProduced);

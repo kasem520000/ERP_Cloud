@@ -13,6 +13,7 @@ import {
   inventoryTransactions,
   invoicePayments,
   items,
+  itemSerials,
   journalEntries,
   journalEntryLines,
   offers,
@@ -500,6 +501,41 @@ export class SalesService {
       input.costCenterId,
       ...input.lines.map((line) => line.costCenterId),
     ]);
+
+    // ACC-121: التحقق من عدم تجاوز سعر الوحدة المرتجع لسعر البيع الأصلي
+    if (input.kind === 'sale_return' && input.referenceInvoiceId) {
+      const refLines = await tx
+        .select({ itemId: salesInvoiceLines.itemId, unitPrice: salesInvoiceLines.unitPrice })
+        .from(salesInvoiceLines)
+        .where(
+          and(
+            eq(salesInvoiceLines.tenantId, tenantId),
+            eq(salesInvoiceLines.invoiceId, input.referenceInvoiceId),
+          ),
+        );
+      const sourcePrices = new Map<string, Decimal>();
+      for (const rl of refLines) {
+        if (rl.itemId) {
+          sourcePrices.set(
+            rl.itemId,
+            Decimal.max(sourcePrices.get(rl.itemId) ?? new Decimal(0), money(rl.unitPrice)),
+          );
+        }
+      }
+      for (const line of input.lines) {
+        if (line.itemId) {
+          const maxPrice = sourcePrices.get(line.itemId);
+          if (maxPrice && money(line.unitPrice).gt(maxPrice.plus('0.0001'))) {
+            throw new DomainError(
+              'SALES_RETURN_PRICE_EXCEEDED',
+              'Return unit price cannot exceed original sale price',
+              422,
+              { itemId: line.itemId, returnPrice: line.unitPrice, originalPrice: maxPrice.toFixed(4) },
+            );
+          }
+        }
+      }
+    }
     const id = newId();
     const actorUserId = tryGetAuthContext()?.userId;
     let resolvedShiftId = input.shiftId ?? null;
@@ -771,6 +807,27 @@ export class SalesService {
     const direction = invoice.kind === 'sale_return' ? 'in' : 'out';
     const numeric = lines.filter((line) => line.itemId);
     if (!numeric.length) return;
+
+    // ACC-128: فحص أن كل صنف متتبَّع بالأرقام التسلسلية يحمل أرقاماً مطابقة للكمية
+    const itemRows = await tx
+      .select({ id: items.id, trackSerial: items.trackSerial })
+      .from(items)
+      .where(and(eq(items.tenantId, tenantId), inArray(items.id, numeric.map((l) => l.itemId as string))));
+    const serialTracked = new Set(itemRows.filter((r) => r.trackSerial).map((r) => r.id));
+    for (const line of numeric) {
+      if (line.itemId && serialTracked.has(line.itemId)) {
+        const sNos = (line.serialNos ?? []).map((s) => String(s).trim()).filter(Boolean);
+        if (!sNos.length) {
+          throw new DomainError(
+            'INVENTORY_SERIAL_REQUIRED',
+            'This item is tracked by serial — scan a serial',
+            422,
+            { field: 'serialNos', itemId: line.itemId },
+          );
+        }
+      }
+    }
+
     const docType = invoice.kind === 'sale_return' ? 'sales_return' : 'sales_invoice';
     const resolved = await this.inventory.resolveInvoiceLineNumbers(tx, tenantId, {
       docType,
@@ -1105,6 +1162,38 @@ export class SalesService {
       }
     }
 
+    // ACC-128: التحقق المسبق من وجود أرقام تسلسلية لكل صنف متتبَّع قبل تحريك المخزون
+    if (locked.warehouseId && (locked.kind === 'sale' || locked.kind === 'sale_return')) {
+      const allLines = await this.linesInTx(tx, tenantId, id);
+      const numericLines = allLines.filter((l) => l.itemId && money(l.quantity).gt(0));
+      if (numericLines.length) {
+        const itemRows = await tx
+          .select({ id: items.id, trackSerial: items.trackSerial })
+          .from(items)
+          .where(and(eq(items.tenantId, tenantId), inArray(items.id, numericLines.map((l) => l.itemId as string))));
+        const serialTracked = new Set(itemRows.filter((r) => r.trackSerial).map((r) => r.id));
+        for (const line of numericLines) {
+          if (line.itemId && serialTracked.has(line.itemId)) {
+            const sNos = (line.serialNos ?? []).map((s) => String(s).trim()).filter(Boolean);
+            if (!sNos.length) {
+              throw new DomainError(
+                'INVENTORY_SERIAL_REQUIRED',
+                'This item is tracked by serial — scan a serial',
+                422,
+                { field: 'serialNos', itemId: line.itemId },
+              );
+            }
+          }
+        }
+      }
+    }
+
+    /**
+     * R8 & ACC-133: حسم الأرقام التسلسلية والدفعات على سطور الفاتورة قبل حركة المخزون
+     * لتمرير معرّف الرقم التسلسلي إلى recordAutoStock ليُسجَّل في قيد حركة المخزون غير القابل للتعديل
+     */
+    await this.resolveLineNumbers(tx, tenantId, locked, await this.linesInTx(tx, tenantId, id));
+
     if (posting.inventoryLines?.length) {
       await this.inventory.recordInTx(
         tx,
@@ -1118,14 +1207,6 @@ export class SalesService {
     } else if (locked.warehouseId && (locked.kind === 'sale' || locked.kind === 'sale_return')) {
       await this.recordAutoStock(tx, tenantId, locked);
     }
-
-    /**
-     * R8 — الأرقام التسلسلية والدفعات على سطور الفاتورة، **بعد** حركة المخزون: السطر
-     * الذي لم يتحرّك (صنفٌ غير مخزني، أو بيعٌ بلا مستودع) لا يُطالَب بأرقام، والسطر
-     * الذي تحرّك يُحسم رقمه الآن — تُصرف القطعة في البيع وتعود في المرتجع — وتُكتب
-     * الدفعة المحسومة على السطر نفسه.
-     */
-    await this.resolveLineNumbers(tx, tenantId, locked, await this.linesInTx(tx, tenantId, id));
 
     if (posting.journalLines?.length) {
       await this.accounting.postJournalInTx(tx, tenantId, {
@@ -1443,7 +1524,9 @@ export class SalesService {
         const totalReturns = returnRows.reduce((sum, r) => sum.plus(r.total), new Decimal(0));
         const effectiveDue = Decimal.max(0, money(ref.total).minus(totalReturns));
         const refPaid = money(ref.paidTotal);
-        const newStatus = refPaid.gte(effectiveDue) ? 'paid' : refPaid.gt(0) ? 'partial' : 'unpaid';
+        // ACC-123: تسامح الهللة (0.01) عند تحديد حالة السداد لتفادي بقاء الفاتورة مفتوحة بسبب كسور الهللة
+        const remaining = effectiveDue.minus(refPaid);
+        const newStatus = (remaining.lte(0) || remaining.abs().lte('0.0099')) ? 'paid' : refPaid.gt(0) ? 'partial' : 'unpaid';
         await tx
           .update(salesInvoices)
           .set({ paymentStatus: newStatus, updatedAt: new Date() })
@@ -1524,6 +1607,21 @@ export class SalesService {
 
     const movements: InventoryLine[] = [];
     for (const line of stocked) {
+      let serialId: string | undefined;
+      const sNos = (line.serialNos ?? []).map((s) => String(s).trim()).filter(Boolean);
+      if (sNos.length) {
+        const [sRow] = await tx
+          .select({ id: itemSerials.id })
+          .from(itemSerials)
+          .where(
+            and(
+              eq(itemSerials.tenantId, tenantId),
+              eq(itemSerials.itemId, line.itemId!),
+              inArray(itemSerials.serialNo, sNos),
+            ),
+          );
+        if (sRow) serialId = sRow.id;
+      }
       if (locked.kind === 'sale_return') {
         let unitCost = sourceCost.get(line.itemId!);
         if (!unitCost || unitCost.lte(0)) {
@@ -1550,6 +1648,7 @@ export class SalesService {
           lineId: line.id,
           costing: 'returnAtOriginalCost',
           lotId: line.lotId ?? undefined,
+          serialId,
         });
       } else {
         movements.push({
@@ -1562,6 +1661,7 @@ export class SalesService {
           lineId: line.id,
           costing: 'outAtAvg',
           lotId: line.lotId ?? undefined,
+          serialId,
         });
       }
     }
@@ -2040,7 +2140,8 @@ export class SalesService {
       if (!locked || locked.status !== 'posted')
         throw new DomainError('SALES_INVOICE_NOT_POSTED', 'Payments require a posted invoice', 409);
       const paidValue = money(locked.paidTotal).plus(paymentValue);
-      if (paidValue.gt(money(locked.total).plus('0.0001')))
+      // ACC-123: تسامح الهللة (0.01) لتفادي رفض الدفعات المقربة إلى أقرب هللة
+      if (paidValue.gt(money(locked.total).plus('0.01')))
         throw new DomainError('PAYMENT_EXCEEDS_DUE', 'Payment exceeds invoice balance', 422);
       paidTotalAfter = paidValue.toFixed(4);
       invoiceTotal = money(locked.total).toFixed(4);
@@ -2143,7 +2244,9 @@ export class SalesService {
         );
       const returnedTotal = returnRows.reduce((sum, r) => sum.plus(r.total), new Decimal(0));
       const effectiveDue = Decimal.max(0, money(invoice.total).minus(returnedTotal));
-      const newStatus = paidValue.gte(effectiveDue) ? 'paid' : 'partial';
+      // ACC-123: تسامح الهللة (0.01) عند تحديد حالة السداد
+      const remaining = effectiveDue.minus(paidValue);
+      const newStatus = (remaining.lte(0) || remaining.abs().lte('0.0099')) ? 'paid' : 'partial';
 
       await tx
         .update(salesInvoices)
@@ -2186,6 +2289,7 @@ export class SalesService {
       throw new DomainError('SALES_RETURN_SOURCE_INVALID', 'A return cannot reference another return', 422);
 
     const sourceQuantities = new Map<string, Decimal>();
+    const sourcePrices = new Map<string, Decimal>();
     const requested = new Map<string, Decimal>();
     for (const line of input.lines) {
       if (!line.itemId)
@@ -2197,11 +2301,31 @@ export class SalesService {
       requested.set(line.itemId, (requested.get(line.itemId) ?? new Decimal(0)).plus(quantity));
     }
     for (const line of source.lines)
-      if (line.itemId)
+      if (line.itemId) {
         sourceQuantities.set(
           line.itemId,
           (sourceQuantities.get(line.itemId) ?? new Decimal(0)).plus(line.quantity),
         );
+        sourcePrices.set(
+          line.itemId,
+          Decimal.max(sourcePrices.get(line.itemId) ?? new Decimal(0), money(line.unitPrice)),
+        );
+      }
+
+    // ACC-121: حارس سعر الوحدة في المرتجع مقابل الفاتورة الأصلية
+    for (const line of input.lines) {
+      if (line.itemId) {
+        const maxPrice = sourcePrices.get(line.itemId);
+        if (maxPrice && money(line.unitPrice).gt(maxPrice.plus('0.0001'))) {
+          throw new DomainError(
+            'SALES_RETURN_PRICE_EXCEEDED',
+            'Return unit price cannot exceed original sale price',
+            422,
+            { itemId: line.itemId, returnPrice: line.unitPrice, originalPrice: maxPrice.toFixed(4) },
+          );
+        }
+      }
+    }
 
     const returned = await withTenantTx(this.database.db, tenantId, async (tx) => {
       const returnInvoices = await tx
@@ -3060,6 +3184,7 @@ export class SalesService {
             kind: salesInvoices.kind,
             date: sql<string>`${salesInvoices.postedAt}::date`,
             subtotal: salesInvoices.subtotal,
+            total: salesInvoices.total,
             /**
              * `AvrgCost = SUM(val × AvrgCost)` L257 — the cost of what left the
              * warehouse. It lives on the lines (`recordAutoStock` writes it at
@@ -3134,8 +3259,15 @@ export class SalesService {
            * «عمولة التحصيل فقط إذا كان نوع الدفع موجودًا» L331 — the desktop reads
            * `Inv.pay_type`; the cloud's settled half of an invoice is its `paid_total`
            * (a cash/card/bank posting fills it at once, and `addPayment` adds to it).
+           * ACC-122: عمولة التحصيل تُحسب بالنسبة للمبلغ المحصّل فعلياً لا لكامل الفاتورة عند الدفع الجزئي
            */
-          const settled = new Decimal(invoice.paidTotal ?? '0').gt(0);
+          const paidTotal = new Decimal(invoice.paidTotal ?? '0');
+          const invoiceTotal = new Decimal(invoice.total ?? '0');
+          const collectedShare = invoiceTotal.gt(0)
+            ? Decimal.min(new Decimal(1), Decimal.max(new Decimal(0), paidTotal.div(invoiceTotal)))
+            : new Decimal(0);
+          const collectedValue = value.mul(collectedShare);
+          const settled = collectedShare.gt(0);
           push({
             movementType: invoiceLabel(invoice.kind, invoice.isPos),
             date: invoice.date,
@@ -3148,7 +3280,7 @@ export class SalesService {
             value: value.toFixed(4),
             salesCommission: pct(card.commissionRate, value).toFixed(4),
             collectionCommission: settled
-              ? pct(card.collectionCommissionRate, value).toFixed(4)
+              ? pct(card.collectionCommissionRate, collectedValue).toFixed(4)
               : '0.0000',
             profitCommission: profitBase.gt(0)
               ? pct(card.profitCommissionRate, profitBase).toFixed(4)

@@ -1,0 +1,253 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "commissions-salesman",
+      "method": "GET",
+      "path": "/sales/salesmen/commissions?salesman_id=01a16596-a24a-70ea-b133-05653b5bc00e&all_period=1",
+      "status": 200,
+      "body": {
+        "data": {
+          "salesmanId": "01a16596-a24a-70ea-b133-05653b5bc00e",
+          "salesmanName": "مندوب R26",
+          "allSalesmen": false,
+          "allPeriod": true,
+          "from": "2026-10-22",
+          "to": "2026-10-22",
+          "branchId": null,
+          "summary": {
+            "totalValue": "20.0000",
+            "salesCommission": "2.0000",
+            "collectionCommission": "1.0000",
+            "profitCommission": "2.0400",
+            "invoices": 1,
+            "notes": 0,
+            "receipts": 0,
+            "rows": 1
+          },
+          "rows": [
+            {
+              "seq": 1,
+              "movementType": "فاتورة بيع",
+              "date": "2026-10-22",
+              "documentId": "01a1659d-2362-777f-b371-d15bef4b930b",
+              "number": "SI-000007",
+              "refNumber": null,
+              "salesmanId": "01a16596-a24a-70ea-b133-05653b5bc00e",
+              "salesmanName": "مندوب R26",
+              "branchName": "الفرع الرئيسي",
+              "value": "20.0000",
+              "salesCommission": "2.0000",
+              "collectionCommission": "1.0000",
+              "profitCommission": "2.0400",
+              "isPlus": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "commissions-all",
+      "method": "GET",
+      "path": "/sales/salesmen/commissions?all_salesmen=1&all_period=1",
+      "status": 200,
+      "body": {
+        "data": {
+          "salesmanId": null,
+          "salesmanName": null,
+          "allSalesmen": true,
+          "allPeriod": true,
+          "from": "2026-10-22",
+          "to": "2026-10-22",
+          "branchId": null,
+          "summary": {
+            "totalValue": "20.0000",
+            "salesCommission": "2.0000",
+            "collectionCommission": "1.0000",
+            "profitCommission": "2.0400",
+            "invoices": 1,
+            "notes": 0,
+            "receipts": 0,
+            "rows": 1
+          },
+          "rows": [
+            {
+              "seq": 1,
+              "movementType": "فاتورة بيع",
+              "date": "2026-10-22",
+              "documentId": "01a1659d-2362-777f-b371-d15bef4b930b",
+              "number": "SI-000007",
+              "refNumber": null,
+              "salesmanId": "01a16596-a24a-70ea-b133-05653b5bc00e",
+              "salesmanName": "مندوب R26",
+              "branchName": "الفرع الرئيسي",
+              "value": "20.0000",
+              "salesCommission": "2.0000",
+              "collectionCommission": "1.0000",
+              "profitCommission": "2.0400",
+              "isPlus": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "salesmen",
+      "method": "GET",
+      "path": "/sales/salesmen",
+      "status": 200,
+      "body": [
+        {
+          "id": "01a16596-a24a-70ea-b133-05653b5bc00e",
+          "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+          "name": "مندوب R26",
+          "employeeRef": null,
+          "active": true,
+          "commissionRate": "10.0000",
+          "collectionCommissionRate": "5.0000",
+          "profitCommissionRate": "20.0000",
+          "employeeId": null,
+          "warehouseId": null,
+          "vehiclePlate": null,
+          "tel": null,
+          "mobile": null,
+          "email": null,
+          "notes": null,
+          "createdAt": "2026-10-22T21:48:53.194Z",
+          "createdBy": null,
+          "updatedAt": null,
+          "updatedBy": null,
+          "version": 1
+        },
+        {
+          "id": "01a16504-1458-7735-9863-86d92c9f8c45",
+          "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+          "name": "مندوب الشركة",
+          "employeeRef": null,
+          "active": true,
+          "commissionRate": "0.0000",
+          "collectionCommissionRate": "0.0000",
+          "profitCommissionRate": "0.0000",
+          "employeeId": "01a16504-1454-71e2-ba13-f8475e21efe6",
+          "warehouseId": "01a16504-144a-729a-86bc-9e43bf582a10",
+          "vehiclePlate": null,
+          "tel": null,
+          "mobile": null,
+          "email": null,
+          "notes": null,
+          "createdAt": "2026-10-22T19:08:48.600Z",
+          "createdBy": null,
+          "updatedAt": "2026-10-22T19:08:48.601Z",
+          "updatedBy": null,
+          "version": 1
+        }
+      ]
+    },
+    {
+      "label": "si-after-pay",
+      "method": "GET",
+      "path": "/sales/invoices/01a1659d-2362-777f-b371-d15bef4b930b",
+      "status": 200,
+      "body": {
+        "id": "01a1659d-2362-777f-b371-d15bef4b930b",
+        "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+        "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+        "warehouseId": "01a16504-138f-706f-9d9b-06b92fe642a5",
+        "referenceInvoiceId": null,
+        "partyId": "01a16504-1399-742e-af16-f564b9117199",
+        "salesmanId": "01a16596-a24a-70ea-b133-05653b5bc00e",
+        "costCenterId": null,
+        "kind": "sale",
+        "validUntil": null,
+        "convertedInvoiceId": null,
+        "status": "posted",
+        "number": "SI-000007",
+        "currency": "SAR",
+        "priceIncludesVat": false,
+        "cashCustomerName": null,
+        "cashCustomerMobile": null,
+        "invoiceDiscount": "0.0000",
+        "extraTax": "0.0000",
+        "withholding": "0.0000",
+        "subtotal": "20.0000",
+        "taxTotal": "3.0000",
+        "total": "23.0000",
+        "paidTotal": "1.0000",
+        "paymentStatus": "partial",
+        "costTotal": "0.0000",
+        "profit": "0.0000",
+        "zatcaUuid": null,
+        "zatcaHash": null,
+        "zatcaQr": null,
+        "zatcaStatus": null,
+        "orderType": null,
+        "tableNo": null,
+        "combinedInto": null,
+        "shiftId": null,
+        "cashierId": null,
+        "postedAt": "2026-10-22T21:57:09.759Z",
+        "voidedAt": null,
+        "createdAt": "2026-10-22T21:55:59.458Z",
+        "createdBy": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+        "updatedAt": "2026-10-22T21:58:17.914Z",
+        "updatedBy": null,
+        "version": 1,
+        "legacySource": null,
+        "legacyId": null,
+        "qrCode": null,
+        "partyName": "عميل عام",
+        "partyTaxNo": null,
+        "taxInvoiceType": "simplified",
+        "taxInvoiceTypeLabelAr": "فاتورة ضريبية مبسطة",
+        "lines": [
+          {
+            "id": "01a1659d-2365-7688-9842-147413914213",
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "invoiceId": "01a1659d-2362-777f-b371-d15bef4b930b",
+            "lineNo": 1,
+            "itemId": "01a1650d-9b90-7711-be44-59856a67c3ed",
+            "taxGroupId": "01a16504-140d-706a-a528-adc6b113d560",
+            "description": null,
+            "modifiers": [],
+            "quantity": "1.0000",
+            "unitPrice": "20.0000",
+            "discountRate": "0.0000",
+            "discountAmount": "0.0000",
+            "taxRate": "15.0000",
+            "net": "20.0000",
+            "tax": "3.0000",
+            "total": "23.0000",
+            "costTotal": "9.7768",
+            "serialNos": [],
+            "lotId": null,
+            "costCenterId": null,
+            "batchNo": null,
+            "productionDate": null,
+            "expiryDate": null,
+            "metadata": {},
+            "createdAt": "2026-10-22T21:55:59.458Z",
+            "createdBy": null,
+            "updatedAt": null,
+            "updatedBy": null,
+            "version": 1
+          }
+        ],
+        "payments": [
+          {
+            "id": "01a1659f-4038-75a6-b5c6-34bf3a263d04",
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "invoiceId": "01a1659d-2362-777f-b371-d15bef4b930b",
+            "method": "cash",
+            "amount": "1.0000",
+            "cashLocationId": "01a16504-1391-7135-a3e5-69ca78a2e716",
+            "reference": null,
+            "idempotencyKey": "863f6c42-542b-491a-a07f-a7098866b05a",
+            "createdAt": "2026-10-22T21:58:17.906Z",
+            "createdBy": null
+          }
+        ],
+        "customFields": {}
+      }
+    }
+  ]
+}

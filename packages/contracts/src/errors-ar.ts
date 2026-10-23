@@ -80,6 +80,9 @@ const MESSAGES: Record<string, string> = {
   SERIAL_INVALID_STATE: 'الرقم التسلسلي غير قابل للحركة الآن.',
   SERIAL_WRONG_WAREHOUSE: 'الرقم التسلسلي موجود في مستودع آخر.',
   SERIAL_NOT_RETURNABLE: 'الرقم التسلسلي لم يُبَع ولا يمكن إرجاعه.',
+  SERIAL_COUNT_EXCEEDS_STOCK: 'عدد الأرقام التسلسلية يتجاوز رصيد المخزون المتاح.',
+  BIN_CODE_INVALID: 'صيغة رمز الرف غير صالحة ويجب أن تكون مثل A-01-01.',
+  BIN_RECEIVE_EXCEEDS_STOCK: 'كمية استلام الرف تتجاوز رصيد المخزون المتاح في المستودع.',
 
   SALES_INVOICE_NOT_FOUND: 'فاتورة المبيعات غير موجودة.',
   SALES_INVOICE_NOT_POSTED: 'الفاتورة غير مُرحَّلة — رحّلها أولاً.',
@@ -88,6 +91,7 @@ const MESSAGES: Record<string, string> = {
   SALES_VOID_HAS_PAYMENTS: 'الفاتورة عليها دفعات — اعكس الدفعات قبل الإلغاء.',
   SALES_VOID_ZATCA_SEALED: 'فاتورة مختومة من هيئة الزكاة لا تُلغى — أصدر إشعاراً دائناً.',
   SALES_REFERENCE_VOIDED: 'الفاتورة المرجعية ملغاة.',
+  SALES_RETURN_PRICE_EXCEEDED: 'سعر الوحدة المرتجع لا يمكن أن يتجاوز سعر البيع في الفاتورة الأصلية.',
   SALES_SETTLEMENT_EXCEEDS_TOTAL: 'قيمة السداد تتجاوز إجمالي الفاتورة.',
   EINVOICE_SAVE_BLOCKED_BY_LINK:
     'الربط الضريبي مفعّل وخيار «منع الحفظ عند الربط الضريبي» مُشغَّل: لا تُحفظ الفاتورة كمسودة، استخدم «حفظ وترحيل».',
@@ -97,6 +101,7 @@ const MESSAGES: Record<string, string> = {
   PURCHASE_LINES_REQUIRED: 'أضف سطراً واحداً على الأقل.',
   PURCHASE_VOID_HAS_RETURNS: 'فاتورة المشتريات لها مردودات مُرحَّلة.',
   PURCHASE_REFERENCE_VOIDED: 'فاتورة المشتريات المرجعية ملغاة.',
+  PURCHASE_RETURN_PRICE_EXCEEDED: 'سعر الوحدة في مردود الشراء لا يمكن أن يتجاوز سعر فاتورة الشراء الأصلية.',
 
   VOUCHER_NOT_FOUND: 'السند غير موجود.',
   VOUCHER_INVALID_STATUS: 'حالة السند لا تسمح بهذا الإجراء.',

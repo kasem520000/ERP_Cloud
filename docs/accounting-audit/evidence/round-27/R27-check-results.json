@@ -1,0 +1,694 @@
+{
+ "round": 27,
+ "passed": 74,
+ "failed": 24,
+ "total": 98,
+ "results": [
+  {
+   "id": "A01",
+   "desc": "baseline = R26 DB-019 (cash 49938.1960, inventory 18.1458, transit −0.0002, last JE-000032, R24-ITEM MAIN 2u/18.1460, manufacturing/bin/serial tables empty)",
+   "pass": true,
+   "actual": "(Decimal('49938.1960'), Decimal('18.1458'), 'JE-000032', (Decimal('2.0000'), Decimal('18.1460'), Decimal('9.0730')))",
+   "tag": ""
+  },
+  {
+   "id": "A02",
+   "desc": "three items created: RM-R27 (purchase 5), FG-R27 (sale 40), SN-R27 (trackSerial, purchase 100)",
+   "pass": true,
+   "actual": "(201, 201, 201, True)",
+   "tag": ""
+  },
+  {
+   "id": "A03",
+   "desc": "items table = 4 (R24-ITEM + 3 new), no stock rows yet for the new items",
+   "pass": true,
+   "actual": "(4,)",
+   "tag": ""
+  },
+  {
+   "id": "B01",
+   "desc": "purchase screen draft 10 × 5 + 15 % = 57.50 (subtotal 50 / tax 7.5), 1 line",
+   "pass": true,
+   "actual": "(201, '57.5000')",
+   "tag": ""
+  },
+  {
+   "id": "B02",
+   "desc": "PI-000005 posted on credit from the screen, unpaid, journal linked",
+   "pass": true,
+   "actual": "(201, 'PI-000005', 'unpaid')",
+   "tag": ""
+  },
+  {
+   "id": "B03",
+   "desc": "JE-000033 = Dr 1270001 50 / Dr 2222001 7.5 / Cr 22111001 57.5",
+   "pass": true,
+   "actual": "[('1270001', Decimal('50.0000'), Decimal('0.0000')), ('22111001', Decimal('0.0000'), Decimal('57.5000')), ('2222001', Decimal('7.5000'), Decimal('0.0000'))]",
+   "tag": ""
+  },
+  {
+   "id": "B04",
+   "desc": "RM-R27 MAIN after PI-000005 = 10u / 50.0000 @ 5.0000",
+   "pass": true,
+   "actual": "(Decimal('10.0000'), Decimal('50.0000'), Decimal('5.0000'))",
+   "tag": ""
+  },
+  {
+   "id": "B05",
+   "desc": "GL 1270001 after PI-000005 = 18.1458 + 50 = 68.1458 and Σ stock = 68.1460 (legacy 0.0002)",
+   "pass": true,
+   "actual": "(Decimal('68.1458'), Decimal('68.1460'))",
+   "tag": ""
+  },
+  {
+   "id": "B06",
+   "desc": "serial item purchase draft without serialNos is accepted as draft (2 × 100 + 15 % = 230)",
+   "pass": true,
+   "actual": "(201, '230.0000')",
+   "tag": ""
+  },
+  {
+   "id": "B07",
+   "desc": "posting a serial-tracked purchase WITHOUT serial numbers must be rejected (422 INVENTORY_SERIAL_REQUIRED); actual: PI-000006 posted",
+   "pass": false,
+   "actual": "(201, 'PI-000006', 'posted')",
+   "tag": "ACC-128"
+  },
+  {
+   "id": "B08",
+   "desc": "PI-000006 put 2 units @ 100 into stock (JE-000034 200/30/230) with ZERO serial rows → serial register ≠ stock",
+   "pass": false,
+   "actual": "('posted', 2, (Decimal('4.0000'), Decimal('400.0000'), Decimal('100.0000')))",
+   "tag": "ACC-128"
+  },
+  {
+   "id": "B09",
+   "desc": "JE-000034 (PI-000006) = Dr 1270001 200 / Dr 2222001 30 / Cr 22111001 230",
+   "pass": true,
+   "actual": "[('1270001', Decimal('200.0000'), Decimal('0.0000')), ('22111001', Decimal('0.0000'), Decimal('230.0000')), ('2222001', Decimal('30.0000'), Decimal('0.0000'))]",
+   "tag": ""
+  },
+  {
+   "id": "B10",
+   "desc": "duplicate serial on one line → 422 (actual code SERIAL_COUNT_MISMATCH: a count guard, not a duplicate guard — accepted)",
+   "pass": true,
+   "actual": "(422, 'SERIAL_COUNT_MISMATCH')",
+   "tag": ""
+  },
+  {
+   "id": "B11",
+   "desc": "PI-000007 with SN27-0001/0002 posted; JE-000035 = 200/30/230",
+   "pass": true,
+   "actual": "(201, 'PI-000007', [('1270001', Decimal('200.0000'), Decimal('0.0000')), ('22111001', Decimal('0.0000'), Decimal('230.0000')), ('2222001', Decimal('30.0000'), Decimal('0.",
+   "tag": ""
+  },
+  {
+   "id": "B12",
+   "desc": "after PI-000007: SN27-0001/0002 available in MAIN; stock SN-R27 4u / 400 @ 100 (2 of them without serials)",
+   "pass": true,
+   "actual": "(['SN27-0001', 'SN27-0002'], (Decimal('4.0000'), Decimal('400.0000'), Decimal('100.0000')))",
+   "tag": ""
+  },
+  {
+   "id": "B13",
+   "desc": "purchase posting path: stock_document_serials has 2 rows for PI-000007 and 0 for PI-000006",
+   "pass": true,
+   "actual": "2",
+   "tag": ""
+  },
+  {
+   "id": "C01",
+   "desc": "BOM saved from the screen: product FG-R27, v1, active, 2 lines (empty third row filtered)",
+   "pass": true,
+   "actual": "(201, 1, 2)",
+   "tag": ""
+  },
+  {
+   "id": "C02",
+   "desc": "BOM lines: RM-R27 2.0000 scrap 10 % ; R24-ITEM 1.0000 scrap 0",
+   "pass": true,
+   "actual": "[('d007', '2.0000', '10.0000'), ('c3ed', '1.0000', '0.0000')]",
+   "tag": ""
+  },
+  {
+   "id": "C03",
+   "desc": "BOM guard bom-product-as-component → 422 BOM_COMPONENT_IS_PRODUCT",
+   "pass": true,
+   "actual": "(422, 'BOM_COMPONENT_IS_PRODUCT')",
+   "tag": ""
+  },
+  {
+   "id": "C04",
+   "desc": "BOM guard bom-duplicate-component → 422 BOM_COMPONENT_DUPLICATE",
+   "pass": true,
+   "actual": "(422, 'BOM_COMPONENT_DUPLICATE')",
+   "tag": ""
+  },
+  {
+   "id": "C05",
+   "desc": "BOM guard bom-scrap-150 → 422 BOM_SCRAP_INVALID",
+   "pass": true,
+   "actual": "(422, 'BOM_SCRAP_INVALID')",
+   "tag": ""
+  },
+  {
+   "id": "C06",
+   "desc": "BOM guard bom-qty-zero → 422 BOM_QTY_INVALID",
+   "pass": true,
+   "actual": "(422, 'BOM_QTY_INVALID')",
+   "tag": ""
+  },
+  {
+   "id": "C07",
+   "desc": "BOM guard bom-version-taken → 409 BOM_VERSION_TAKEN",
+   "pass": true,
+   "actual": "(409, 'BOM_VERSION_TAKEN')",
+   "tag": ""
+  },
+  {
+   "id": "C08",
+   "desc": "guards left exactly one BOM / two lines",
+   "pass": true,
+   "actual": "(1, 2)",
+   "tag": ""
+  },
+  {
+   "id": "D01",
+   "desc": "MF-000001 created from the screen: draft, planned 2, plannedCost 40.1460 = 2 × (2.2 × 5 + 1 × 9.0730), unit 20.0730",
+   "pass": true,
+   "actual": "(201, '40.1460')",
+   "tag": ""
+  },
+  {
+   "id": "D02",
+   "desc": "creating the MO moves no stock and posts no journal (last JE-000035; RM 10u)",
+   "pass": true,
+   "actual": "('JE-000035', (Decimal('10.0000'), Decimal('50.0000'), Decimal('5.0000')))",
+   "tag": ""
+  },
+  {
+   "id": "D03",
+   "desc": "produce 1 from the screen → in_progress, qtyProduced 1, actualCost 20.0730",
+   "pass": true,
+   "actual": "(201, 'in_progress', '20.0730')",
+   "tag": ""
+  },
+  {
+   "id": "D04",
+   "desc": "moves: consume RM 2.2 @ 5 = 11.0000, consume R24-ITEM 1 @ 9.0730, produce FG 1 @ 20.0730",
+   "pass": true,
+   "actual": "[('consume', '2.2000', '11.0000'), ('consume', '1.0000', '9.0730'), ('produce', '1.0000', '20.0730')]",
+   "tag": ""
+  },
+  {
+   "id": "D05",
+   "desc": "stock after produce 1: RM 7.8 / 39.0000, R24-ITEM 1 / 9.0730, FG 1 / 20.0730 — Σ stock unchanged (468.1460)",
+   "pass": true,
+   "actual": "((Decimal('7.8000'), Decimal('39.0000'), Decimal('5.0000')), (Decimal('1.0000'), Decimal('9.0730'), Decimal('9.0730')), (Decimal('1.0000'), Decimal('20.0730'), Decimal('2",
+   "tag": ""
+  },
+  {
+   "id": "D06",
+   "desc": "production is ledger-neutral by declared policy (postingBasis ledger_neutral, no journal, posting profile has no raw-material / finished-goods accounts) — documented, not a defect",
+   "pass": true,
+   "actual": "('ledger_neutral', 'JE-000035')",
+   "tag": ""
+  },
+  {
+   "id": "D07",
+   "desc": "inventory_transactions for the MO: out 2.2 @ 5, out 1 @ 9.0730, in 1 @ 20.0730 (costing avg)",
+   "pass": true,
+   "actual": "[('out', '2.2000', '11.0000'), ('out', '1.0000', '9.0730'), ('in', '1.0000', '20.0730')]",
+   "tag": ""
+  },
+  {
+   "id": "D08",
+   "desc": "produce 2 when 1 remains → 422 PRODUCE_QTY_EXCEEDS_PLAN",
+   "pass": true,
+   "actual": "(422, 'PRODUCE_QTY_EXCEEDS_PLAN')",
+   "tag": ""
+  },
+  {
+   "id": "D09",
+   "desc": "produce 0 → 422 PRODUCE_QTY_INVALID",
+   "pass": true,
+   "actual": "(422, 'PRODUCE_QTY_INVALID')",
+   "tag": ""
+  },
+  {
+   "id": "D10",
+   "desc": "second produce 1 → done, qtyProduced 2, costTotal 40.1460 = planned",
+   "pass": true,
+   "actual": "(201, 'done', '40.1460')",
+   "tag": ""
+  },
+  {
+   "id": "D11",
+   "desc": "stock after done: RM 5.6 / 28.0000, R24-ITEM 0 / 0.0000 (no ghost), FG 2 / 40.1460 @ 20.0730",
+   "pass": true,
+   "actual": "((Decimal('5.6000'), Decimal('28.0000'), Decimal('5.0000')), (Decimal('0.0000'), Decimal('0.0000'), Decimal('0.0000')), (Decimal('2.0000'), Decimal('40.1460'), Decimal('2",
+   "tag": ""
+  },
+  {
+   "id": "D12",
+   "desc": "produce after done → 422 ORDER_ALREADY_DONE",
+   "pass": true,
+   "actual": "(422, 'ORDER_ALREADY_DONE')",
+   "tag": ""
+  },
+  {
+   "id": "D13",
+   "desc": "GL 1270001 unchanged by production (468.1458) and still = Σ stock − 0.0002",
+   "pass": true,
+   "actual": "(Decimal('468.1458'), Decimal('468.1460'))",
+   "tag": ""
+  },
+  {
+   "id": "D14",
+   "desc": "plannedCost of the finished MO must stay 40.1460 (stored plan); actual API/screen recompute it from CURRENT averages → 22.0000 (R24-ITEM at 0 stock counts as 0)",
+   "pass": false,
+   "actual": "('22.0000', '11.0000', '40.1460')",
+   "tag": "ACC-129"
+  },
+  {
+   "id": "D15",
+   "desc": "orders screen row shows planned 40.15 next to actual 40.15 (not 22.00)",
+   "pass": false,
+   "actual": "['MF-000001\\tFG-R27 — منتج R27\\t2 / 2\\tمكتمل\\t22.00\\t40.15\\t']",
+   "tag": "ACC-129"
+  },
+  {
+   "id": "E01",
+   "desc": "sale screen draft 1 × FG @ 40 + 15 % = 46.00",
+   "pass": true,
+   "actual": "(201, '46.0000')",
+   "tag": ""
+  },
+  {
+   "id": "E02",
+   "desc": "SI-000008 posted cash from the invoice screen, paid",
+   "pass": true,
+   "actual": "(201, 'SI-000008', 'paid')",
+   "tag": ""
+  },
+  {
+   "id": "E03",
+   "desc": "JE-000036 = Dr 1211001 46 / Cr 4100001 40 / Cr 2222001 6 / Dr 3200004 20.0730 / Cr 1270001 20.0730 (COGS = production unit cost)",
+   "pass": true,
+   "actual": "[('1211001', Decimal('46.0000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('20.0730')), ('2222001', Decimal('0.0000'), Decimal('6.0000')), ('3200004', De",
+   "tag": ""
+  },
+  {
+   "id": "E04",
+   "desc": "FG stock after the sale: 1u / 20.0730",
+   "pass": true,
+   "actual": "(Decimal('1.0000'), Decimal('20.0730'), Decimal('20.0730'))",
+   "tag": ""
+  },
+  {
+   "id": "E05",
+   "desc": "cash sale settled on the main safe must move cash_location_balances by +46; actual safe sub-ledger unchanged (−15)",
+   "pass": false,
+   "actual": "[('e716', '-15.0000'), ('16aa', '0.0000'), ('90d4', '15.0000')]",
+   "tag": "ACC-018"
+  },
+  {
+   "id": "F01",
+   "desc": "bin A-01-01 created from the screen in MAIN (zone A / aisle 01 / rack 01 / level 01), active",
+   "pass": true,
+   "actual": "(201, 'A-01-01')",
+   "tag": ""
+  },
+  {
+   "id": "F02",
+   "desc": "«استلام» 3 × FG into the bin while the warehouse holds 1 must be rejected or capped; actual 201 (bin quantity 3)",
+   "pass": false,
+   "actual": "(201, '3.0000')",
+   "tag": "ACC-130"
+  },
+  {
+   "id": "F03",
+   "desc": "bin receipt wrote inventory_transactions bin_receipt in 3 @ 20.0730 = 60.2190 and raised warehouse stock FG 1 → 4 / 80.2920",
+   "pass": false,
+   "actual": "((Decimal('4.0000'), Decimal('80.2920'), Decimal('20.0730')), [('3.0000', '60.2190')])",
+   "tag": "ACC-130"
+  },
+  {
+   "id": "F04",
+   "desc": "bin receipt posted NO journal (last JE-000036) → GL 1270001 448.0728 vs Σ stock 508.2920 (gap 60.2192)",
+   "pass": true,
+   "actual": "('JE-000036', Decimal('448.0728'), Decimal('508.2920'))",
+   "tag": ""
+  },
+  {
+   "id": "F05",
+   "desc": "bin code 'X' (format 'A-01-01' announced on the screen) should be rejected 422; actual 201",
+   "pass": false,
+   "actual": "(201, 'X')",
+   "tag": "UI-043"
+  },
+  {
+   "id": "F06",
+   "desc": "duplicate bin code → 409 BIN_CODE_TAKEN",
+   "pass": true,
+   "actual": "(409, 'BIN_CODE_TAKEN')",
+   "tag": ""
+  },
+  {
+   "id": "F07",
+   "desc": "bin B-01-01 in WH2 → 201",
+   "pass": true,
+   "actual": "(201, 'B-01-01')",
+   "tag": ""
+  },
+  {
+   "id": "F08",
+   "desc": "bin receipt with a CLIENT unit cost of 100 must be rejected or ignored; actual 201 → bin_receipt in 1 @ 100 (FG average 20.0730 → 36.0584)",
+   "pass": false,
+   "actual": "[('3.0000', '20.0730'), ('1.0000', '100.0000')]",
+   "tag": "ACC-131"
+  },
+  {
+   "id": "F09",
+   "desc": "issue 10 from a bin holding 4 → 422 BIN_INSUFFICIENT",
+   "pass": true,
+   "actual": "(422, 'BIN_INSUFFICIENT')",
+   "tag": ""
+  },
+  {
+   "id": "F10",
+   "desc": "issue 1 → 201, bin 3; bin_issue out 1 @ 36.0584 (average) without journal",
+   "pass": true,
+   "actual": "(201, '3.0000', [('1.0000', '36.0584')])",
+   "tag": ""
+  },
+  {
+   "id": "F11",
+   "desc": "bin transfer MAIN → WH2 bin → 422 BIN_WAREHOUSE_MISMATCH",
+   "pass": true,
+   "actual": "(422, 'BIN_WAREHOUSE_MISMATCH')",
+   "tag": ""
+  },
+  {
+   "id": "F12",
+   "desc": "transfer 2 A-01-01 → A-01-02 → 201; bin_transfers 1 row (2.0000); no inventory_transactions of type transfer",
+   "pass": true,
+   "actual": "(201, ['2.0000'])",
+   "tag": ""
+  },
+  {
+   "id": "F13",
+   "desc": "count A-01-02 = 1 (held 2) → 201; bin_count out 1 @ 36.0584, no journal (3121004 unchanged 46.1375)",
+   "pass": true,
+   "actual": "(201, Decimal('46.1375'), 'JE-000036')",
+   "tag": ""
+  },
+  {
+   "id": "F14",
+   "desc": "a count shortage must hit 3121004 / 1270001 through a journal; actual: stock −36.0584 with no entry",
+   "pass": false,
+   "actual": "('JE-000036', Decimal('46.1375'))",
+   "tag": "ACC-130"
+  },
+  {
+   "id": "F15",
+   "desc": "negative count → 422 BIN_COUNT_INVALID",
+   "pass": true,
+   "actual": "(422, 'BIN_COUNT_INVALID')",
+   "tag": ""
+  },
+  {
+   "id": "F16",
+   "desc": "after the bin block: FG stock 3u / 108.1752 @ 36.0584; bins A-01-01 1 + A-01-02 1 (= 2 ⊆ 3, one unit never binned)",
+   "pass": true,
+   "actual": "((Decimal('3.0000'), Decimal('108.1752'), Decimal('36.0584')), [('f6ac', '1.0000'), ('e6ce', '1.0000')])",
+   "tag": ""
+  },
+  {
+   "id": "F17",
+   "desc": "GL 1270001 after the bin block = 448.0728 vs Σ stock 536.1752 → gap 88.1024 = 60.2190 + 100 − 36.0584 − 36.0584 (+ legacy 0.0002)",
+   "pass": true,
+   "actual": "(Decimal('448.0728'), Decimal('536.1752'))",
+   "tag": ""
+  },
+  {
+   "id": "F18",
+   "desc": "bin-balances screen shows A-01-01 1 and A-01-02 1",
+   "pass": true,
+   "actual": "",
+   "tag": ""
+  },
+  {
+   "id": "G01",
+   "desc": "generate 2 serials for a stock of 4 units that already carries 2 numbers for 4 units → must warn/reject (numbers > units); actual 201 (no stock check)",
+   "pass": false,
+   "actual": "(201, ['SN27G-1', 'SN27G-2'])",
+   "tag": "ACC-132"
+  },
+  {
+   "id": "G02",
+   "desc": "generated numbers are zero-padded like the purchased ones (SN27G-0001); actual 'SN27G-1','SN27G-2'",
+   "pass": false,
+   "actual": "['SN27G-1', 'SN27G-2']",
+   "tag": "UI-044"
+  },
+  {
+   "id": "G03",
+   "desc": "generated serials inserted as available in MAIN (4 serial rows for 4 units — but 2 units of PI-000006 have no numbers and 2 numbers have no purchase)",
+   "pass": true,
+   "actual": "[('SN27-0001', 'available'), ('SN27-0002', 'available'), ('SN27G-1', 'available'), ('SN27G-2', 'available')]",
+   "tag": ""
+  },
+  {
+   "id": "G04",
+   "desc": "reserve SN27-0001 → 201 reserved",
+   "pass": true,
+   "actual": "(201, {'serialIds': ['01a165ca-3bf6-73fc-8cb9-8400144c3fcb'], 'status': 'reserved'})",
+   "tag": ""
+  },
+  {
+   "id": "G05",
+   "desc": "reserve again → 422 SERIAL_INVALID_STATE",
+   "pass": true,
+   "actual": "(422, 'SERIAL_INVALID_STATE')",
+   "tag": ""
+  },
+  {
+   "id": "G06",
+   "desc": "SI-000009 (1 × 150 + 15 %, SN27-0001 reserved → sold) posted cash; JE-000037 = Dr 1211001 172.5 / Cr 4100001 150 / Cr 2222001 22.5 / Dr 3200004 100 / Cr 1270001 100",
+   "pass": true,
+   "actual": "(201, 'SI-000009', [('1211001', Decimal('172.5000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('100.0000')), ('2222001', Decimal('0.0000'), Decimal('22.5",
+   "tag": ""
+  },
+  {
+   "id": "G07",
+   "desc": "re-selling SN27-0001 → 422 SERIAL_INVALID_STATE at posting",
+   "pass": true,
+   "actual": "(422, 'SERIAL_INVALID_STATE')",
+   "tag": ""
+  },
+  {
+   "id": "G08",
+   "desc": "selling a GENERATED number (no purchase behind it) should be refused; actual SI-000010 posted, COGS 100 (average), SN27G-1 sold",
+   "pass": false,
+   "actual": "(201, 'SI-000010', [('1211001', Decimal('172.5000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('100.0000')), ('2222001', Decimal('0.0000'), Decimal('22.5",
+   "tag": "ACC-132"
+  },
+  {
+   "id": "G09",
+   "desc": "posting a sale of a serial-tracked item WITHOUT serialNos must be rejected (422 INVENTORY_SERIAL_REQUIRED); actual SI-000011 posted (JE-000039, stock −1, no serial marked sold)",
+   "pass": false,
+   "actual": "(201, 'SI-000011', 'posted')",
+   "tag": "ACC-128"
+  },
+  {
+   "id": "G10",
+   "desc": "SI-000011 has no stock_document_serials row and changed no serial status (statuses after it: SN27-0001 sold, SN27-0002 available, SN27G-1 sold, SN27G-2 available)",
+   "pass": true,
+   "actual": "[('purchase_invoice', 'b4f7'), ('purchase_invoice', 'b4f7'), ('sales_invoice', 'd2b7'), ('sales_invoice', '2879'), ('sales_return', 'd8b2')]",
+   "tag": ""
+  },
+  {
+   "id": "G11",
+   "desc": "`consume` SN27-0002 → status sold with NO stock movement (levels stay 1u / 100 at that point) — status-only transition",
+   "pass": true,
+   "actual": "(201, 'sold', '1.0000')",
+   "tag": ""
+  },
+  {
+   "id": "G12",
+   "desc": "`return` SN27-0002 → available (again without movement)",
+   "pass": true,
+   "actual": "(201, 'available')",
+   "tag": ""
+  },
+  {
+   "id": "G13",
+   "desc": "SR-000003 return of SI-000009 with SN27-0001 cash: JE-000040 = Dr 4100002 150 / Dr 2222001 22.5 / Cr 1211001 172.5 / Dr 1270001 100 / Cr 3200004 100",
+   "pass": true,
+   "actual": "(201, 'SR-000003', [('1211001', Decimal('0.0000'), Decimal('172.5000')), ('1270001', Decimal('100.0000'), Decimal('0.0000')), ('2222001', Decimal('22.5000'), Decimal('0.0",
+   "tag": ""
+  },
+  {
+   "id": "G14",
+   "desc": "after the return SN27-0001 is available again in MAIN; SR-000003 refunded in cash must not stay payment_status=unpaid",
+   "pass": false,
+   "actual": "('available', 'unpaid')",
+   "tag": "ACC-019"
+  },
+  {
+   "id": "G15",
+   "desc": "trace of SN27-0001 = purchase_invoice → sales_invoice → sales_return",
+   "pass": true,
+   "actual": "['purchase_invoice', 'sales_invoice', 'sales_return']",
+   "tag": ""
+  },
+  {
+   "id": "G16",
+   "desc": "lookup SN27-0001 found, available, item SN-R27",
+   "pass": true,
+   "actual": "(200, 'available')",
+   "tag": ""
+  },
+  {
+   "id": "G17",
+   "desc": "serial register must equal stock: SN-R27 stock 2u but 3 numbers available (SN27-0001, SN27-0002, SN27G-2) → register ≠ stock by 1 (= SI-000011 sold without a number)",
+   "pass": false,
+   "actual": "(['SN27-0001', 'SN27-0002', 'SN27G-2'], (Decimal('2.0000'), Decimal('200.0000'), Decimal('100.0000')))",
+   "tag": "ACC-128"
+  },
+  {
+   "id": "G18",
+   "desc": "inventory_transactions.serial_id is never filled (6 SN-R27 movements) — tracing relies on stock_document_serials only",
+   "pass": false,
+   "actual": "[('purchase_invoice', None), ('purchase_invoice', None), ('sales_invoice', None), ('sales_invoice', None), ('sales_invoice', None), ('sales_return', None)]",
+   "tag": "ACC-133"
+  },
+  {
+   "id": "G19",
+   "desc": "serial report screen KPIs: total 4 / available 3 / sold 1; «مُرتجع» KPI shows 0 although SN27-0001 was returned (return sets available, so the KPI can never count)",
+   "pass": false,
+   "actual": "['مُرتجع 0', 'إجمالي الأرقام 4', 'متاح 3']",
+   "tag": "UI-045"
+  },
+  {
+   "id": "H01",
+   "desc": "final TB balanced (Σ balances = 0)",
+   "pass": true,
+   "actual": "0.0000",
+   "tag": ""
+  },
+  {
+   "id": "H02",
+   "desc": "final GL 1270001 = 18.1458 + 50 + 200 + 200 − 20.0730 − 100 − 100 − 100 + 100 = 248.0728",
+   "pass": true,
+   "actual": "248.0728",
+   "tag": ""
+  },
+  {
+   "id": "H03",
+   "desc": "final Σ stock_balances = 336.1752 (RM 28 + SN 200 + FG 108.1752); GL − stock = −88.1024 = bin movements without journal",
+   "pass": true,
+   "actual": "(Decimal('336.1752'), Decimal('248.0728'))",
+   "tag": ""
+  },
+  {
+   "id": "H04",
+   "desc": "final cash 1211001 = 49938.1960 + 46 + 172.5 × 3 − 172.5 = 50329.1960; VAT 2222001 = 6.3075 + 7.5 + 30 + 30 − 6 − 22.5 × 3 + 22.5 = 22.8075 (debit)",
+   "pass": true,
+   "actual": "(Decimal('50329.1960'), Decimal('22.8075'))",
+   "tag": ""
+  },
+  {
+   "id": "H05",
+   "desc": "final COGS 3200004 = 58.8069 + 20.0730 + 300 − 100 = 278.8799; sales 4100001 −592.07; returns 4100002 201.03; payable 22111001 −544.0535",
+   "pass": true,
+   "actual": "(Decimal('278.8799'), Decimal('-592.0700'), Decimal('201.0300'), Decimal('-544.0535'))",
+   "tag": ""
+  },
+  {
+   "id": "H06",
+   "desc": "main-safe sub-ledger must have moved by +391 (46 + 517.5 − 172.5); actual still −15",
+   "pass": false,
+   "actual": "[('e716', '-15.0000'), ('16aa', '0.0000'), ('90d4', '15.0000')]",
+   "tag": "ACC-018"
+  },
+  {
+   "id": "H07",
+   "desc": "trial-balance report 1270001 closing debit 248.0728 = GL",
+   "pass": true,
+   "actual": "248.0728",
+   "tag": ""
+  },
+  {
+   "id": "H08",
+   "desc": "inventory-valuation total 336.1752 = Σ stock (≠ GL by the bin gap)",
+   "pass": true,
+   "actual": "{'quantity': '10.60', 'value': '336.1752'}",
+   "tag": ""
+  },
+  {
+   "id": "H09",
+   "desc": "item card FG: in 6 / 200.3650 (produce 2 = 40.146 + bin receipts 60.219 + 100), out 3 / 92.1898 (sale 20.073 + bin issue + bin count 2 × 36.0584), closing 3 / 108.1752",
+   "pass": true,
+   "actual": "({'inQty': '6.0000', 'inValue': '200.3650', 'outQty': '3.0000', 'outValue': '92.1898'}, {'quantity': '3.0000', 'value': '108.1752'})",
+   "tag": ""
+  },
+  {
+   "id": "H10",
+   "desc": "item card SN: in 5 / 500 (2 + 2 + return 1), out 3 / 300, closing 2 / 200",
+   "pass": true,
+   "actual": "({'inQty': '5.0000', 'inValue': '500.0000', 'outQty': '3.0000', 'outValue': '300.0000'}, {'quantity': '2.0000', 'value': '200.0000'})",
+   "tag": ""
+  },
+  {
+   "id": "H11",
+   "desc": "item card R24-ITEM closes at 0 / 0.0000 (consumed by the MO; the historical 0.0002 lives in 1270003)",
+   "pass": false,
+   "actual": "{'quantity': '0.0000', 'value': '-0.0002'}",
+   "tag": "ACC-113"
+  },
+  {
+   "id": "H12",
+   "desc": "inventory-documents labels manufacturing / bin movements in Arabic with a document number; actual raw keys manufacturing_order / bin_receipt / bin_issue / bin_count with doc_number «—»",
+   "pass": false,
+   "actual": "['bin_count', 'bin_issue', 'bin_receipt', 'manufacturing_order', 'إذن مخزني', 'إلغاء مناقلة', 'مبيعات', 'مرتجع مبيعات', 'مرتجع مشتريات', 'مشتريات', 'مناقلة مرسلة', 'مناقل",
+   "tag": "UI-046"
+  },
+  {
+   "id": "H13",
+   "desc": "item-profit for SN-R27 nets SR-000003: qty 2 / revenue 300 / cost 200; actual 3 / 450 / 300",
+   "pass": false,
+   "actual": "('3.0000', '450.0000', '300.0000')",
+   "tag": "ACC-125"
+  },
+  {
+   "id": "H14",
+   "desc": "invoice-profit shows real line costs (SI-000008 20.073, SI-000009/10/11 100 each); actual cost_total 0.00 for all 11 invoices",
+   "pass": false,
+   "actual": "{'subtotal': '592.07', 'cost_total': '0.00', 'profit': '592.07'}",
+   "tag": "ACC-118"
+  },
+  {
+   "id": "H15",
+   "desc": "profit-loss: revenue 391.04 (592.07 − 201.03), expenses 324.0174 (COGS 278.8799 + adjustments 46.1375 − cash diff 1.00), net 67.0226",
+   "pass": true,
+   "actual": "{'إجمالي الإيرادات': Decimal('391.0400'), 'إجمالي المصروفات': Decimal('324.0174'), 'صافي الربح': Decimal('67.0226')}",
+   "tag": ""
+  },
+  {
+   "id": "H16",
+   "desc": "invoice-maintenance preview endpoint reachable (read-only) — path not found in R27 (404); recorded as unverified, not a defect",
+   "pass": false,
+   "actual": "404",
+   "tag": ""
+  },
+  {
+   "id": "H17",
+   "desc": "valuation screen total 336.18 (= Σ stock) while the TB screen shows 1270001 closing 248.07 — the 88.10 bin gap is visible to the user without any explanation (both captured)",
+   "pass": true,
+   "actual": "(True, True)",
+   "tag": ""
+  }
+ ]
+}

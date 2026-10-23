@@ -7,6 +7,7 @@ import {
   accounts,
   inventoryTransactions,
   items,
+  itemSerials,
   journalEntries,
   parties,
   paymentAllocations,
@@ -193,15 +194,17 @@ export class PurchasesService {
       const [supplier] = await tx.select().from(parties).where(and(eq(parties.tenantId, tenantId), eq(parties.id, resolvedPartyId)));
       if (!supplier || !['supplier', 'both'].includes(supplier.kind)) throw new DomainError('PURCHASE_SUPPLIER_REQUIRED', 'Purchase invoices require a supplier party', 422);
 
-      // ACC-022: التحقق من سقف كمية مرتجع المشتريات عند الإنشاء
+      // ACC-022 & ACC-124: التحقق من سقف كمية وسعر مرتجع المشتريات عند الإنشاء
       if (input.kind === 'purchase_return' && input.referenceInvoiceId) {
         const refLines = await tx
           .select()
           .from(purchaseInvoiceLines)
           .where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.invoiceId, input.referenceInvoiceId)));
         const sourceMap = new Map<string, Decimal>();
+        const sourcePriceMap = new Map<string, Decimal>();
         for (const rl of refLines) {
           sourceMap.set(rl.itemId, (sourceMap.get(rl.itemId) ?? new Decimal(0)).plus(rl.quantity));
+          sourcePriceMap.set(rl.itemId, Decimal.max(sourcePriceMap.get(rl.itemId) ?? new Decimal(0), money(rl.unitPrice)));
         }
 
         const priorReturns = await tx
@@ -235,6 +238,15 @@ export class PurchasesService {
               'PURCHASE_RETURN_QTY_EXCEEDED',
               'Return quantity exceeds the remaining purchase invoice quantity',
               422,
+            );
+          }
+          const maxPrice = sourcePriceMap.get(line.itemId);
+          if (maxPrice && money(line.unitPrice).gt(maxPrice.plus('0.0001'))) {
+            throw new DomainError(
+              'PURCHASE_RETURN_PRICE_EXCEEDED',
+              'Return unit price cannot exceed original purchase price',
+              422,
+              { itemId: line.itemId, returnPrice: line.unitPrice, originalPrice: maxPrice.toFixed(4) },
             );
           }
         }
@@ -457,15 +469,17 @@ export class PurchasesService {
       if (!locked) throw new DomainError('PURCHASE_INVOICE_INVALID_STATUS', 'Only draft purchases can be posted', 409);
       const lines = await tx.select().from(purchaseInvoiceLines).where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.invoiceId, id)));
 
-      // ACC-022: فحص حرس كمية مردود الشراء مقابل الفاتورة المرجعية والمردودات السابقة
+      // ACC-022 & ACC-124: فحص حرس كمية وسعر مردود الشراء مقابل الفاتورة المرجعية والمردودات السابقة
       if (locked.kind === 'purchase_return' && locked.referenceInvoiceId) {
         const sourceLines = await tx
           .select()
           .from(purchaseInvoiceLines)
           .where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.invoiceId, locked.referenceInvoiceId)));
         const sourceMap = new Map<string, Decimal>();
+        const sourcePriceMap = new Map<string, Decimal>();
         for (const sl of sourceLines) {
           sourceMap.set(sl.itemId, (sourceMap.get(sl.itemId) ?? new Decimal(0)).plus(sl.quantity));
+          sourcePriceMap.set(sl.itemId, Decimal.max(sourcePriceMap.get(sl.itemId) ?? new Decimal(0), money(sl.unitPrice)));
         }
 
         const priorReturns = await tx
@@ -502,6 +516,15 @@ export class PurchasesService {
               422,
             );
           }
+          const maxPrice = sourcePriceMap.get(line.itemId);
+          if (maxPrice && money(line.unitPrice).gt(maxPrice.plus('0.0001'))) {
+            throw new DomainError(
+              'PURCHASE_RETURN_PRICE_EXCEEDED',
+              'Return unit price cannot exceed original purchase price',
+              422,
+              { itemId: line.itemId, returnPrice: line.unitPrice, originalPrice: maxPrice.toFixed(4) },
+            );
+          }
         }
       }
 
@@ -518,20 +541,35 @@ export class PurchasesService {
 
       // Services never touch the stock ledger — only `stock`-kind lines move.
       const itemRows = await tx
-        .select({ id: items.id, kind: items.kind })
+        .select({ id: items.id, kind: items.kind, trackSerial: items.trackSerial })
         .from(items)
         .where(and(eq(items.tenantId, tenantId), inArray(items.id, lines.map((line) => line.itemId))));
+      const serialTracked = new Set(itemRows.filter((row) => row.trackSerial).map((row) => row.id));
+      // ACC-128: فحص أن كل صنف متتبَّع بالأرقام التسلسلية يحمل أرقاماً مطابقة للكمية
+      for (const line of lines) {
+        if (serialTracked.has(line.itemId)) {
+          const sNos = (line.serialNos ?? []).map((s) => String(s).trim()).filter(Boolean);
+          if (!sNos.length) {
+            throw new DomainError(
+              'INVENTORY_SERIAL_REQUIRED',
+              'This item is tracked by serial — scan a serial',
+              422,
+              { field: 'serialNos', itemId: line.itemId },
+            );
+          }
+        }
+      }
       const stockable = new Set(itemRows.filter((row) => row.kind === 'stock').map((row) => row.id));
       const stocked = lines.filter((line) => stockable.has(line.itemId) && money(line.quantity).gt(0));
       if (stocked.length && !locked.warehouseId) throw new DomainError('PURCHASE_WAREHOUSE_REQUIRED', 'Posting purchases requires a warehouse', 422);
-      const inventoryLines: InventoryLine[] = stocked.map((line) => { const allocated = byLine.get(line.id); return { itemId: line.itemId, warehouseId: locked.warehouseId ?? '', qty: line.quantity, unitCost: allocated?.effectiveUnitCost ?? line.unitPrice, direction: isReturn ? 'out' : 'in', docType, docId: id, lineId: line.id, costing: isReturn ? 'outAtAvg' : 'inWithCost', lotId: line.lotId ?? undefined }; });
-      if (inventoryLines.length) await this.inventory.recordInTx(tx, tenantId, inventoryLines);
+
       /**
-       * R8 — الأرقام التسلسلية والدفعات على سطور الفاتورة بعد حركة المخزون: الإدخال
-       * يُنشئ الأرقام ويبحث عن الدفعة أو يُنشئها، والمرتجع يُخرج الرقم من الرفّ.
+       * R8 & ACC-133: حل الأرقام التسلسلية والدفعات أولاً حتى تُنشأ في item_serials وتُمرر
+       * معرّفاتها إلى recordInTx ليُسجَّل serial_id على inventory_transactions غير القابل للتعديل
        */
+      let resolved: Map<number, { lotId: string | null; batchNo: string | null; productionDate: string | null; expiryDate: string | null; serialIds: string[] }> | undefined;
       if (stocked.length && locked.warehouseId) {
-        const resolved = await this.inventory.resolveInvoiceLineNumbers(tx, tenantId, {
+        resolved = await this.inventory.resolveInvoiceLineNumbers(tx, tenantId, {
           docType,
           docId: id,
           warehouseId: locked.warehouseId,
@@ -562,6 +600,25 @@ export class PurchasesService {
             .where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.id, line.id)));
         }
       }
+
+      const inventoryLines: InventoryLine[] = stocked.map((line, index) => {
+        const allocated = byLine.get(line.id);
+        const numbers = resolved?.get(index);
+        return {
+          itemId: line.itemId,
+          warehouseId: locked.warehouseId ?? '',
+          qty: line.quantity,
+          unitCost: allocated?.effectiveUnitCost ?? line.unitPrice,
+          direction: isReturn ? 'out' : 'in',
+          docType,
+          docId: id,
+          lineId: line.id,
+          costing: isReturn ? 'outAtAvg' : 'inWithCost',
+          lotId: numbers?.lotId ?? line.lotId ?? undefined,
+          serialId: numbers?.serialIds?.[0],
+        };
+      });
+      if (inventoryLines.length) await this.inventory.recordInTx(tx, tenantId, inventoryLines);
       for (const line of lines) {
         const allocated = byLine.get(line.id);
         await tx.update(purchaseInvoiceLines).set({ allocatedCost: allocated?.allocatedCost ?? '0', landedTotal: allocated?.landedTotal ?? line.net, unitCostAtPost: allocated?.effectiveUnitCost ?? line.unitPrice, updatedAt: new Date() }).where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.id, line.id)));
@@ -900,7 +957,8 @@ export class PurchasesService {
         .for('update');
       if (!locked || locked.status !== 'posted') throw new DomainError('PURCHASE_INVOICE_NOT_POSTED', 'Payments require a posted purchase invoice', 409);
       const paidTotal = money(locked.paidTotal).plus(amount);
-      if (paidTotal.gt(money(locked.total).plus('0.0001'))) throw new DomainError('PAYMENT_EXCEEDS_DUE', 'Payment exceeds purchase invoice balance', 422);
+      // ACC-123: تسامح الهللة (0.01) لتفادي رفض الدفعات المقربة إلى أقرب هللة
+      if (paidTotal.gt(money(locked.total).plus('0.01'))) throw new DomainError('PAYMENT_EXCEEDS_DUE', 'Payment exceeds purchase invoice balance', 422);
       const [allocation] = await tx.insert(paymentAllocations).values({ id: newId(), tenantId, partyId: locked.partyId, voucherId: input.voucherId, invoiceKind: locked.kind, invoiceId, amount: input.amount }).returning();
       if (!allocation) throw new DomainError('ALLOCATION_FAILED', 'Failed to create allocation', 500);
 
@@ -928,7 +986,10 @@ export class PurchasesService {
         }
       }
 
-      await tx.update(purchaseInvoices).set({ paidTotal: paidTotal.toFixed(4), paymentStatus: paidTotal.gte(money(locked.total)) ? 'paid' : 'partial', updatedAt: new Date() }).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, invoiceId)));
+      // ACC-123: تسامح الهللة (0.01) عند تحديد حالة السداد لتفادي بقاء الفاتورة مفتوحة
+      const remaining = money(locked.total).minus(paidTotal);
+      const paymentStatus = (remaining.lte(0) || remaining.abs().lte('0.0099')) ? 'paid' : 'partial';
+      await tx.update(purchaseInvoices).set({ paidTotal: paidTotal.toFixed(4), paymentStatus, updatedAt: new Date() }).where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, invoiceId)));
       return allocation;
     });
   }

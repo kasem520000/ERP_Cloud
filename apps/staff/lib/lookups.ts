@@ -171,6 +171,7 @@ export type Serial = {
   warehouseId?: string | null;
   warehouse_id?: string | null;
   lotId?: string | null;
+  returned?: boolean;
 };
 
 /** Both spellings exist in the API surface (DTOs vs. raw rows); ask once, here. */

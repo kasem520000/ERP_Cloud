@@ -1430,11 +1430,9 @@ export class TreasuryService implements OnModuleInit {
   }
 
   /**
-   * 🗑️ حذف / إلغاء — `frmSafesTransfer` keeps `IS_Deleted` on the row rather than
-   * erasing it, and only a transfer nobody has sent can be dropped: once the money has
-   * left the source safe, the only honest way back is a transfer in the other direction.
-   * The status written is `voided`, the word migration `0011` already allows for a
-   * document that was written and then abandoned — no new state was invented here.
+   * 🗑️ حذف / إلغاء المناقلة النقدية:
+   * - إذا كانت مسودة (`draft`): تُعلم كـ `voided` بلا قيود.
+   * - إذا كانت مرسلة (`sent`): يُعكس قيد الإرسال ويعاد رصيد الصندوق المرسل، وتصبح `cancelled` (ACC-127).
    */
   async cancelTransfer(tenantId: string, id: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
@@ -1443,12 +1441,35 @@ export class TreasuryService implements OnModuleInit {
         .from(cashTransfers)
         .where(and(eq(cashTransfers.tenantId, tenantId), eq(cashTransfers.id, id)));
       if (!row) throw new DomainError('CASH_TRANSFER_NOT_FOUND', 'Cash transfer was not found', 404);
-      if (row.status !== 'draft')
+      if (row.status !== 'draft' && row.status !== 'sent')
         throw new DomainError(
           'CASH_TRANSFER_INVALID_STATE',
-          'Only a draft transfer can be cancelled — send it back instead',
+          'Only a draft or sent transfer can be cancelled',
           422,
         );
+
+      if (row.status === 'draft') {
+        await tx
+          .update(cashTransfers)
+          .set({ status: 'voided', updatedAt: new Date() })
+          .where(and(eq(cashTransfers.tenantId, tenantId), eq(cashTransfers.id, id)));
+        return { id, status: 'voided' };
+      }
+
+      // ACC-127: إلغاء التحويل المرسل يعكس قيد الإرسال ويعيد النقد للصندوق المصدر
+      if (row.sentJournalEntryId) {
+        const today = new Date().toISOString().slice(0, 10);
+        await this.accounting.reverseJournalInTx(tx, tenantId, row.sentJournalEntryId, {
+          reason: `إلغاء مناقلة نقدية ${row.number ?? id}`,
+          date: today,
+          branchId: row.branchId,
+          sourceType: 'cash_transfer',
+          sourceId: id,
+          actorId: tryGetAuthContext()?.userId ?? null,
+          ifAlreadyReversed: 'reuse',
+        });
+      }
+      await this.bumpBalance(tx, tenantId, row.fromCashLocationId, row.currency, row.amount);
       await tx
         .update(cashTransfers)
         .set({ status: 'voided', updatedAt: new Date() })

@@ -168,19 +168,34 @@ function InvoicesInner() {
             value: money(
               (invoices.data ?? [])
                 .filter((row) => row.status === 'posted')
-                .reduce((sum, row) => sum + Number(row.total), 0),
+                .reduce((sum, row) => {
+                  const amt = Number(row.total);
+                  if (row.kind === 'sale_return' || row.kind === 'credit_note') return sum - amt;
+                  if (row.kind === 'sale' || row.kind === 'debit_note') return sum + amt;
+                  return sum;
+                }, 0),
             ),
-            hint: 'المرحّل فقط، شامل الضريبة',
+            hint: 'صافي المبيعات المرحّلة، شامل الضريبة',
           },
           {
             label: 'غير مسددة',
             value: money(
               (invoices.data ?? [])
-                .filter((row) => row.status === 'posted' && row.paymentStatus !== 'paid')
+                .filter(
+                  (row) =>
+                    row.status === 'posted' &&
+                    row.kind === 'sale' &&
+                    row.paymentStatus !== 'paid',
+                )
                 .reduce((sum, row) => sum + (Number(row.total) - Number(row.paidTotal)), 0),
             ),
-            hint: 'المتبقي على العملاء',
-            tone: (invoices.data ?? []).some((row) => row.status === 'posted' && row.paymentStatus !== 'paid')
+            hint: 'المتبقي على العملاء (ذمم المبيعات)',
+            tone: (invoices.data ?? []).some(
+              (row) =>
+                row.status === 'posted' &&
+                row.kind === 'sale' &&
+                row.paymentStatus !== 'paid',
+            )
               ? 'warn'
               : 'up',
           },

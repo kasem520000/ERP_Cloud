@@ -293,13 +293,65 @@ pnpm --filter "@erp/contracts" build && pnpm --filter "@erp/database" build && p
 
 ---
 
-## نتيجة التحقق الشاملة النهائية لجميع مراحل المعالجة (Phases 1..13):
+## المرحلة الرابعة عشرة (Phase 14) — 2026-10-22/23
+### عيوب الجولتين 26 و 27 (ACC-121..129, ACC-131..132, UI-044, UI-046)
+- **الأهداف المنفذة**:
+  - `packages/contracts/src/errors.ts` & `errors-ar.ts`:
+    - إضافة رموز الأخطاء `SALES_RETURN_PRICE_EXCEEDED` (422)، `PURCHASE_RETURN_PRICE_EXCEEDED` (422)، و `SERIAL_COUNT_EXCEEDS_STOCK` (422) مع رسائلها باللغتين.
+  - `packages/database/src/schema/wms.ts`:
+    - إضافة حقل `unitCost?: string;` اختياري إلى `RecipeLine` لتثبيت تكلفة المكونات المخططة.
+  - `apps/api/src/modules/sales/sales.service.ts`:
+    - `ACC-121`: فرض حارس يمنع تجاوز سعر سطر مردود البيع لسعر سطر الفاتورة الأصلية في `createInTx` و `returnFrom`.
+    - `ACC-122`: تعديل تقرير عمولات المناديب لاحتساب عمولة التحصيل تناسبياً مع النسبة المحصلة `(paidTotal / total)` بدلاً من كامل القيمة.
+    - `ACC-123`: إضافة هامش تسامح 0.01 ريال لسقف السداد وتحديد حالة السداد `paid` لمنع تعليق الفواتير ذات الكسور.
+    - `ACC-128`: فحص إلزامي للأرقام التسلسلية للأصناف المتتبعة تسلسلياً قبل تحريك المخزون بـ `INVENTORY_SERIAL_REQUIRED`.
+  - `apps/api/src/modules/purchases/purchases.service.ts`:
+    - `ACC-124`: فرض حارس يمنع تجاوز سعر سطر مردود الشراء لسعر سطر الفاتورة الأصلية في `createInTx` و `post`.
+    - `ACC-123`: تطبيق هامش تسامح 0.01 ريال في سداد فواتير المشتريات.
+    - `ACC-128`: إلزامية الأرقام التسلسلية للأصناف المتتبعة عند الترحيل.
+  - `apps/api/src/modules/inventory/inventory.service.ts`:
+    - `ACC-132`: التحقق من رصيد المستودع المتاح قبل توليد الأرقام التسلسلية لمنع توليد أرقام تفوق الرصيد بـ `SERIAL_COUNT_EXCEEDS_STOCK`.
+    - `UI-044`: ضبط ترقيم الأرقام التسلسلية المولدة بعرض 4 خانات على الأقل لضمان الترتيب والفرز المتسق.
+    - `ACC-128`: التحقق من إلزامية الأرقام التسلسلية في `resolveLineSerials`.
+  - `apps/api/src/modules/treasury/treasury.service.ts`:
+    - `ACC-127`: دعم إلغاء التحويلات النقدية بحالة `sent`، وعكس القيد المحاسبي واستعادة رصيد الصندوق المصدر وتعيين الحالة إلى `voided` التزاماً بقيد التحقق `cash_transfers_status_check`.
+  - `apps/api/src/modules/inventory/wms-bom.service.ts`:
+    - `ACC-131`: استخدام متوسط التكلفة المرجح للمستودع في استلام الأرفف بدلاً من الثقة بالمدخل من العميل.
+    - `ACC-129`: تثبيت لقطة تكلفة المكونات `unitCost` في وصفة أمر التصنيع عند الإنشاء واعتمادها في حساب التكلفة المخططة.
+  - `apps/api/src/modules/reporting/report-catalog.ts`:
+    - `ACC-125`: إضافة `netSalesScope` وتنتيت مردودات المبيعات من الكميات والإيرادات والتكلفة والأرباح في تقارير ربحية الأصناف والفواتير والمبيعات.
+    - `UI-046`: تعريب مسميات مستندات التصنيع وإدارة الأرفف وربطها بأرقام أوامر التصنيع والأرفف والأطراف.
+  - `apps/staff/app/sales/invoices/page.tsx`:
+    - `ACC-126`: طرح المردودات من بطاقة إجمالي المبيعات، وحصر غير المسدد بفواتير المبيعات الفعلية.
+- **الاختبارات**:
+  - إنشاء جناح اختبارات شامل `apps/api/test/remediation-phase14.spec.ts` (10 اختبارات) بنجاح 100%.
+
+---
+
+## المرحلة الخامسة عشرة (Phase 15) — 2026-10-23
+### عيوب الجولة 27 المتبقية (UI-043, UI-045, ACC-130, ACC-133)
+- **الأهداف المنفذة**:
+  - `packages/contracts/src/errors.ts` & `errors-ar.ts`:
+    - إضافة رموز الأخطاء `BIN_CODE_INVALID` (422) و `BIN_RECEIVE_EXCEEDS_STOCK` (422).
+  - `apps/api/src/modules/inventory/wms-bom.service.ts`:
+    - `UI-043`: التحقق من نسق رمز الرف بمقطعين مفصولين بشرطة على الأقل (مثل `A-01-01`) بطول 3-32 حرفاً ورفض الرموز غير المهيكلة مثل `'X'` بـ `BIN_CODE_INVALID` (422).
+    - `ACC-130`: حظر استلام كميات في الرف تتجاوز رصيد المستودع المتاح بـ `BIN_RECEIVE_EXCEEDS_STOCK` (422).
+  - `apps/api/src/modules/purchases/purchases.service.ts` & `sales.service.ts`:
+    - `ACC-133`: حل الأرقام التسلسلية قبل تحريك المخزون وتمرير `serialId` إلى `recordInTx` ليُسجل مباشرة في جدول `inventory_transactions` غير القابل للتعديل (`append-only`).
+  - `apps/api/src/modules/inventory/inventory.service.ts` & `apps/staff/app/inventory/serials/page.tsx`:
+    - `UI-045`: كشف الأرقام المرتجعة من `stock_document_serials` في `listSerials` وتحديث واجهة الموظفين لعرض عداد المرتجع بدقة (`مُرتجع 1` بدلاً من البقاء صفراً دائماً).
+- **الاختبارات**:
+  - إنشاء جناح اختبارات شامل `apps/api/test/remediation-phase15.spec.ts` (4 اختبارات) بنجاح 100%.
+
+---
+
+## نتيجة التحقق الشاملة النهائية لجميع مراحل المعالجة (Phases 1..15):
 ```bash
-vitest run test/remediation-phase1.spec.ts test/remediation-phase2.spec.ts test/remediation-phase3.spec.ts test/remediation-phase4.spec.ts test/remediation-phase5.spec.ts test/remediation-phase6.spec.ts test/remediation-phase7.spec.ts test/remediation-phase8.spec.ts test/remediation-phase9.spec.ts test/remediation-phase10.spec.ts test/remediation-phase11.spec.ts test/remediation-phase12.spec.ts test/remediation-phase13.spec.ts
+vitest run test/remediation-phase1.spec.ts test/remediation-phase2.spec.ts test/remediation-phase3.spec.ts test/remediation-phase4.spec.ts test/remediation-phase5.spec.ts test/remediation-phase6.spec.ts test/remediation-phase7.spec.ts test/remediation-phase8.spec.ts test/remediation-phase9.spec.ts test/remediation-phase10.spec.ts test/remediation-phase11.spec.ts test/remediation-phase12.spec.ts test/remediation-phase13.spec.ts test/remediation-phase14.spec.ts test/remediation-phase15.spec.ts
 ```
-- **Test Files**: 13 passed (13)
-- **Tests**: 85 passed (85)
-- **Duration**: 49.96s
+- **Test Files**: 15 passed (15)
+- **Tests**: 99 passed (99)
+- **Duration**: ~64s
 - **Zero Failures**.
 
 - **Contracts Tests**:
@@ -308,7 +360,7 @@ pnpm --filter "@erp/contracts" test
 ```
 - **Test Files**: 27 passed (27)
 - **Tests**: 246 passed (246)
-- **Duration**: 8.70s
+- **Duration**: 7.69s
 - **Zero Failures**.
 
 - **TypeScript Typecheck & Build**:
@@ -316,4 +368,5 @@ pnpm --filter "@erp/contracts" test
 pnpm --filter "@erp/contracts" build && pnpm --filter "@erp/config" build && pnpm --filter "@erp/database" build && pnpm --filter "@erp/api" build && pnpm --filter "@erp/staff" build
 ```
 - **All packages compile and build cleanly with 0 errors** (181 Next.js routes generated).
+
 

@@ -711,6 +711,17 @@ const salesScope = (tenantId: string, f: ReportFilters, kind: string): SQL => sq
   AND ${eqIf(sql`si.salesman_id`, f.salesmanId)}
 `;
 
+// ACC-125: نطاق صافي المبيعات لتقارير الربحية وحركة الأصناف ليشمل المبيعات والمردودات معاً
+const netSalesScope = (tenantId: string, f: ReportFilters): SQL => sql`
+  si.tenant_id = ${tenantId}
+  AND si.kind IN ('sale', 'sale_return')
+  AND si.status = 'posted'
+  AND ${onDate(sql`si.posted_at::date`, f.from, f.to)}
+  AND ${eqIf(sql`si.branch_id`, f.branchId)}
+  AND ${eqIf(sql`si.party_id`, f.partyId)}
+  AND ${eqIf(sql`si.salesman_id`, f.salesmanId)}
+`;
+
 /**
  * ⛵ «حركة المبيعات» — `Form_WPF/frmRptSalesInPeriod.xaml.cs`: both tabs read the same
  * documents (`inv_type` 3/2 through `cmbInvType`, `proc_type` 1 بيع / 2 مرتجع,
@@ -768,6 +779,8 @@ const documentJoins = sql`
   LEFT JOIN stock_adjustments aj ON aj.id = it.doc_id AND it.doc_type = 'stock_adjustment'
   LEFT JOIN stock_vouchers sv ON sv.id = it.doc_id AND it.doc_type IN ('stock_voucher', 'stock_voucher_void', 'opening')
   LEFT JOIN production_orders mo ON mo.id = it.doc_id AND it.doc_type = 'production_order'
+  LEFT JOIN manufacturing_orders mfo ON mfo.id = it.doc_id AND it.doc_type = 'manufacturing_order'
+  LEFT JOIN warehouse_bins wb ON wb.id = it.doc_id AND it.doc_type IN ('bin_receipt', 'bin_issue', 'bin_count')
   LEFT JOIN sales_invoices si ON si.id = it.doc_id AND it.doc_type IN ('sales_invoice', 'sales_return', 'sales_void')
   LEFT JOIN purchase_invoices pi ON pi.id = it.doc_id AND it.doc_type IN ('purchase_invoice', 'purchase_return', 'purchase_void')
 `;
@@ -877,13 +890,17 @@ const docTypeLabel = (column: SQL = sql`it.doc_type`, sales = false, direction?:
     WHEN 'stock_voucher_void' THEN 'إلغاء إذن'
     WHEN 'stock_adjustment' THEN ${direction ? sql`CASE WHEN ${direction} = 'in' THEN 'تسوية إدخال' ELSE 'تسوية إخراج' END` : sql`'تسوية جردية'`}
     WHEN 'production_order' THEN 'أمر إنتاج'
+    WHEN 'manufacturing_order' THEN 'أمر تصنيع'
+    WHEN 'bin_receipt' THEN 'استلام رف'
+    WHEN 'bin_issue' THEN 'صرف من رف'
+    WHEN 'bin_count' THEN 'تسوية جرد رف'
     WHEN 'goods_request' THEN 'طلب بضاعة'
     WHEN 'stock_delivery' THEN 'أمر توريد'
     ELSE ${column}
   END`;
 
 /** «رقم الفاتورة» — whichever document table the movement belongs to. */
-const docNumber = sql`coalesce(tr.number, dl.number, rq.number, aj.number, sv.number, mo.number, si.number, pi.number, '—')`;
+const docNumber = sql`coalesce(tr.number, dl.number, rq.number, aj.number, sv.number, mo.number, mfo.number, wb.code, si.number, pi.number, '—')`;
 
 /**
  * «رقم المرجع» — `Inv.Reff_No` in the desktop. Part three established the cloud reading of
@@ -1517,14 +1534,17 @@ const definitions: ReportDefinition[] = [
     totals: ['quantity', 'net', 'tax', 'total', 'cost_total', 'profit'],
     build: (tenantId, f) => sql`
       SELECT coalesce(item.sku, '—') AS sku, ${itemName} AS item,
-             sum(line.quantity)::text AS quantity, sum(line.net)::text AS net, sum(line.tax)::text AS tax,
-             sum(line.total)::text AS total, sum(line.cost_total)::text AS cost_total,
-             (sum(line.net) - sum(line.cost_total))::text AS profit
+             sum(CASE WHEN si.kind = 'sale_return' THEN -line.quantity ELSE line.quantity END)::text AS quantity,
+             sum(CASE WHEN si.kind = 'sale_return' THEN -line.net ELSE line.net END)::text AS net,
+             sum(CASE WHEN si.kind = 'sale_return' THEN -line.tax ELSE line.tax END)::text AS tax,
+             sum(CASE WHEN si.kind = 'sale_return' THEN -line.total ELSE line.total END)::text AS total,
+             sum(CASE WHEN si.kind = 'sale_return' THEN -line.cost_total ELSE line.cost_total END)::text AS cost_total,
+             (sum(CASE WHEN si.kind = 'sale_return' THEN -line.net ELSE line.net END) - sum(CASE WHEN si.kind = 'sale_return' THEN -line.cost_total ELSE line.cost_total END))::text AS profit
       FROM sales_invoice_lines line
       JOIN sales_invoices si ON si.id = line.invoice_id
       LEFT JOIN items item ON item.id = line.item_id
-      WHERE ${salesScope(tenantId, f, 'sale')} AND ${eqIf(sql`item.category_id`, f.categoryId)}
-      GROUP BY item.sku, item.name_ar ORDER BY sum(line.total) DESC LIMIT 500`,
+      WHERE ${netSalesScope(tenantId, f)} AND ${eqIf(sql`item.category_id`, f.categoryId)}
+      GROUP BY item.sku, item.name_ar ORDER BY sum(CASE WHEN si.kind = 'sale_return' THEN -line.total ELSE line.total END) DESC LIMIT 500`,
   },
   {
     key: 'sales-by-category',
@@ -1535,15 +1555,17 @@ const definitions: ReportDefinition[] = [
     totals: ['quantity', 'net', 'total', 'profit'],
     chart: 'bar',
     build: (tenantId, f) => sql`
-      SELECT coalesce(cat.name_ar, '—') AS category, sum(line.quantity)::text AS quantity,
-             sum(line.net)::text AS net, sum(line.total)::text AS total,
-             (sum(line.net) - sum(line.cost_total))::text AS profit
+      SELECT coalesce(cat.name_ar, '—') AS category,
+             sum(CASE WHEN si.kind = 'sale_return' THEN -line.quantity ELSE line.quantity END)::text AS quantity,
+             sum(CASE WHEN si.kind = 'sale_return' THEN -line.net ELSE line.net END)::text AS net,
+             sum(CASE WHEN si.kind = 'sale_return' THEN -line.total ELSE line.total END)::text AS total,
+             (sum(CASE WHEN si.kind = 'sale_return' THEN -line.net ELSE line.net END) - sum(CASE WHEN si.kind = 'sale_return' THEN -line.cost_total ELSE line.cost_total END))::text AS profit
       FROM sales_invoice_lines line
       JOIN sales_invoices si ON si.id = line.invoice_id
       LEFT JOIN items item ON item.id = line.item_id
       LEFT JOIN item_categories cat ON cat.id = item.category_id
-      WHERE ${salesScope(tenantId, f, 'sale')}
-      GROUP BY cat.name_ar ORDER BY sum(line.total) DESC`,
+      WHERE ${netSalesScope(tenantId, f)}
+      GROUP BY cat.name_ar ORDER BY sum(CASE WHEN si.kind = 'sale_return' THEN -line.total ELSE line.total END) DESC`,
   },
   {
     key: 'invoice-profit',
@@ -1554,12 +1576,14 @@ const definitions: ReportDefinition[] = [
     columns: [text('number', 'الفاتورة'), date('day', 'التاريخ'), text('party', 'العميل'), money('subtotal', 'الصافي'), money('cost_total', 'التكلفة'), money('profit', 'الربح'), percent('margin', 'هامش الربح')],
     totals: ['subtotal', 'cost_total', 'profit'],
     build: (tenantId, f) => sql`
-      SELECT si.number, si.posted_at::date AS day, ${partyName} AS party, si.subtotal::text,
-             si.cost_total::text, (si.subtotal - si.cost_total)::text AS profit,
+      SELECT si.number, si.posted_at::date AS day, ${partyName} AS party,
+             (CASE WHEN si.kind = 'sale_return' THEN -si.subtotal ELSE si.subtotal END)::text AS subtotal,
+             (CASE WHEN si.kind = 'sale_return' THEN -si.cost_total ELSE si.cost_total END)::text AS cost_total,
+             ((CASE WHEN si.kind = 'sale_return' THEN -si.subtotal ELSE si.subtotal END) - (CASE WHEN si.kind = 'sale_return' THEN -si.cost_total ELSE si.cost_total END))::text AS profit,
              CASE WHEN si.subtotal = 0 THEN '0' ELSE round((si.subtotal - si.cost_total) / si.subtotal * 100, 2)::text END AS margin
       FROM sales_invoices si
       LEFT JOIN parties party ON party.id = si.party_id
-      WHERE ${salesScope(tenantId, f, 'sale')}
+      WHERE ${netSalesScope(tenantId, f)}
       ORDER BY si.posted_at DESC LIMIT 1000`,
   },
   {
@@ -1570,15 +1594,18 @@ const definitions: ReportDefinition[] = [
     columns: [text('sku', 'الرمز'), text('item', 'الصنف'), qty('quantity', 'الكمية'), money('revenue', 'الإيراد'), money('cost_total', 'التكلفة'), money('profit', 'الربح'), percent('margin', 'الهامش')],
     totals: ['quantity', 'revenue', 'cost_total', 'profit'],
     build: (tenantId, f) => sql`
-      SELECT coalesce(item.sku, '—') AS sku, ${itemName} AS item, sum(line.quantity)::text AS quantity,
-             sum(line.net)::text AS revenue, sum(line.cost_total)::text AS cost_total,
-             (sum(line.net) - sum(line.cost_total))::text AS profit,
-             CASE WHEN sum(line.net) = 0 THEN '0' ELSE round((sum(line.net) - sum(line.cost_total)) / sum(line.net) * 100, 2)::text END AS margin
+      SELECT coalesce(item.sku, '—') AS sku, ${itemName} AS item,
+             sum(CASE WHEN si.kind = 'sale_return' THEN -line.quantity ELSE line.quantity END)::text AS quantity,
+             sum(CASE WHEN si.kind = 'sale_return' THEN -line.net ELSE line.net END)::text AS revenue,
+             sum(CASE WHEN si.kind = 'sale_return' THEN -line.cost_total ELSE line.cost_total END)::text AS cost_total,
+             (sum(CASE WHEN si.kind = 'sale_return' THEN -line.net ELSE line.net END) - sum(CASE WHEN si.kind = 'sale_return' THEN -line.cost_total ELSE line.cost_total END))::text AS profit,
+             CASE WHEN sum(CASE WHEN si.kind = 'sale_return' THEN -line.net ELSE line.net END) = 0 THEN '0'
+                  ELSE round((sum(CASE WHEN si.kind = 'sale_return' THEN -line.net ELSE line.net END) - sum(CASE WHEN si.kind = 'sale_return' THEN -line.cost_total ELSE line.cost_total END)) / sum(CASE WHEN si.kind = 'sale_return' THEN -line.net ELSE line.net END) * 100, 2)::text END AS margin
       FROM sales_invoice_lines line
       JOIN sales_invoices si ON si.id = line.invoice_id
       LEFT JOIN items item ON item.id = line.item_id
-      WHERE ${salesScope(tenantId, f, 'sale')} AND ${eqIf(sql`item.category_id`, f.categoryId)}
-      GROUP BY item.sku, item.name_ar ORDER BY (sum(line.net) - sum(line.cost_total)) DESC LIMIT 500`,
+      WHERE ${netSalesScope(tenantId, f)} AND ${eqIf(sql`item.category_id`, f.categoryId)}
+      GROUP BY item.sku, item.name_ar ORDER BY (sum(CASE WHEN si.kind = 'sale_return' THEN -line.net ELSE line.net END) - sum(CASE WHEN si.kind = 'sale_return' THEN -line.cost_total ELSE line.cost_total END)) DESC LIMIT 500`,
   },
   {
     key: 'item-profit-detail',
@@ -1588,12 +1615,15 @@ const definitions: ReportDefinition[] = [
     columns: [date('day', 'التاريخ'), text('number', 'الفاتورة'), text('item', 'الصنف'), qty('quantity', 'الكمية'), money('net', 'الإيراد'), money('cost_total', 'التكلفة'), money('profit', 'الربح')],
     totals: ['quantity', 'net', 'cost_total', 'profit'],
     build: (tenantId, f) => sql`
-      SELECT si.posted_at::date AS day, si.number, ${itemName} AS item, line.quantity::text,
-             line.net::text, line.cost_total::text, (line.net - line.cost_total)::text AS profit
+      SELECT si.posted_at::date AS day, si.number, ${itemName} AS item,
+             (CASE WHEN si.kind = 'sale_return' THEN -line.quantity ELSE line.quantity END)::text AS quantity,
+             (CASE WHEN si.kind = 'sale_return' THEN -line.net ELSE line.net END)::text AS net,
+             (CASE WHEN si.kind = 'sale_return' THEN -line.cost_total ELSE line.cost_total END)::text AS cost_total,
+             ((CASE WHEN si.kind = 'sale_return' THEN -line.net ELSE line.net END) - (CASE WHEN si.kind = 'sale_return' THEN -line.cost_total ELSE line.cost_total END))::text AS profit
       FROM sales_invoice_lines line
       JOIN sales_invoices si ON si.id = line.invoice_id
       LEFT JOIN items item ON item.id = line.item_id
-      WHERE ${salesScope(tenantId, f, 'sale')} AND ${eqIf(sql`line.item_id`, f.itemId)}
+      WHERE ${netSalesScope(tenantId, f)} AND ${eqIf(sql`line.item_id`, f.itemId)}
       ORDER BY si.posted_at DESC LIMIT 2000`,
   },
   {
@@ -1605,11 +1635,12 @@ const definitions: ReportDefinition[] = [
     totals: ['invoices', 'total', 'profit'],
     build: (tenantId, f) => sql`
       SELECT coalesce(sm.name, 'بدون مندوب') AS salesman, count(*)::text AS invoices,
-             sum(si.total)::text AS total, sum(si.subtotal - si.cost_total)::text AS profit
+             sum(CASE WHEN si.kind = 'sale_return' THEN -si.total ELSE si.total END)::text AS total,
+             sum(CASE WHEN si.kind = 'sale_return' THEN -(si.subtotal - si.cost_total) ELSE (si.subtotal - si.cost_total) END)::text AS profit
       FROM sales_invoices si
       LEFT JOIN salesmen sm ON sm.id = si.salesman_id
-      WHERE ${salesScope(tenantId, f, 'sale')}
-      GROUP BY sm.name ORDER BY sum(si.total) DESC`,
+      WHERE ${netSalesScope(tenantId, f)}
+      GROUP BY sm.name ORDER BY sum(CASE WHEN si.kind = 'sale_return' THEN -si.total ELSE si.total END) DESC`,
   },
   {
     key: 'invoices-by-customer',
@@ -3588,6 +3619,8 @@ const definitions: ReportDefinition[] = [
       LEFT JOIN stock_adjustments aj ON aj.id = agg.doc_id AND agg.doc_type = 'stock_adjustment'
       LEFT JOIN stock_vouchers sv ON sv.id = agg.doc_id AND agg.doc_type IN ('stock_voucher', 'stock_voucher_void', 'opening')
       LEFT JOIN production_orders mo ON mo.id = agg.doc_id AND agg.doc_type = 'production_order'
+      LEFT JOIN manufacturing_orders mfo ON mfo.id = agg.doc_id AND agg.doc_type = 'manufacturing_order'
+      LEFT JOIN warehouse_bins wb ON wb.id = agg.doc_id AND agg.doc_type IN ('bin_receipt', 'bin_issue', 'bin_count')
       LEFT JOIN sales_invoices si ON si.id = agg.doc_id AND agg.doc_type IN ('sales_invoice', 'sales_return', 'sales_void')
       LEFT JOIN purchase_invoices pi ON pi.id = agg.doc_id AND agg.doc_type IN ('purchase_invoice', 'purchase_return', 'purchase_void')
       LEFT JOIN parties pt ON pt.id = coalesce(si.party_id, pi.party_id, dl.party_id)
