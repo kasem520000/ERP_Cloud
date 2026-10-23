@@ -1,0 +1,201 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3005/api/v1/van-sales/production-batches",
+  "request": {
+    "itemId": "01a16673-5488-712e-bb54-e97e2ce7a3df",
+    "productionDate": "2026-10-23",
+    "itemName": "خبز R29",
+    "producedQty": "50.0000",
+    "scrapQty": "1.0000",
+    "scrapReason": "حرق في الفرن — R29",
+    "batchNo": "BATCH-R29-01",
+    "supervisorName": "مشرف R29",
+    "notes": "R29 دفعة اختبار معزولة",
+    "components": [
+      {
+        "itemId": "01a16673-5157-7545-8bfb-1484254424fa",
+        "qty": "30.0000"
+      }
+    ],
+    "idempotencyKey": "van-production-batch:11c87c4788cf57c9:71a00412ebb04b51"
+  },
+  "body": {
+    "data": {
+      "policy": {
+        "allowInternalDeliveryWithoutTax": false,
+        "preventSelfApproval": false,
+        "shortageValuationBasis": "unit_cost",
+        "zatcaSeller": {
+          "ready": true,
+          "missingFields": [],
+          "refusalDetail": null
+        }
+      },
+      "officialStock": [
+        {
+          "itemId": "01a16673-5488-712e-bb54-e97e2ce7a3df",
+          "itemName": "خبز R29",
+          "sku": "BR-R29",
+          "warehouseId": "01a1666d-3be4-7549-b578-c507e93bf106",
+          "warehouseName": "المستودع الرئيسي",
+          "warehouseCode": "MAIN",
+          "branchId": "01a1666d-3be2-74db-8a24-a621e8a1ef87",
+          "quantity": "50.0000",
+          "value": "60.0000",
+          "averageCost": "1.2000"
+        },
+        {
+          "itemId": "01a16673-5157-7545-8bfb-1484254424fa",
+          "itemName": "دقيق R29",
+          "sku": "FL-R29",
+          "warehouseId": "01a1666d-3be4-7549-b578-c507e93bf106",
+          "warehouseName": "المستودع الرئيسي",
+          "warehouseCode": "MAIN",
+          "branchId": "01a1666d-3be2-74db-8a24-a621e8a1ef87",
+          "quantity": "70.0000",
+          "value": "140.0000",
+          "averageCost": "2.0000"
+        }
+      ],
+      "mainWarehouseId": "01a1666d-3be4-7549-b578-c507e93bf106",
+      "postingReadiness": {
+        "branchId": "01a1666d-3be2-74db-8a24-a621e8a1ef87",
+        "salesInvoice": true,
+        "stockTransfer": true,
+        "receiptVoucher": true,
+        "message": null
+      },
+      "windows": {
+        "productionBatches": {
+          "returned": 1,
+          "total": 1,
+          "limit": 50
+        },
+        "loadOrders": {
+          "returned": 0,
+          "total": 0,
+          "limit": 60
+        },
+        "documents": {
+          "returned": 0,
+          "total": 0,
+          "limit": 120
+        },
+        "movements": {
+          "returned": 2,
+          "total": 2,
+          "limit": 80
+        },
+        "customerPriceHistory": {
+          "returned": 0,
+          "total": 0,
+          "limit": 50
+        }
+      },
+      "summary": {
+        "totalProducedKg": "50.00",
+        "totalScrapKg": "1.00",
+        "mainWarehouseBalanceKg": "50.00",
+        "vanWarehousesBalanceKg": "0.00",
+        "derivedMainWarehouseBalanceKg": "50.00",
+        "stockLedgerAgrees": true,
+        "inTransitKg": "0.00",
+        "inTransitValueSar": "0.00",
+        "inTransitTransfersCount": 0,
+        "totalProductionCostSar": "60.00",
+        "totalLoadedKg": "0.00",
+        "totalSoldKg": "0.00",
+        "totalBonusKg": "0.00",
+        "totalReturnedKg": "0.00",
+        "totalDamagedKg": "0.00",
+        "totalShortageKg": "0.00",
+        "totalShortageSar": "0.00",
+        "remainingInVansKg": "0.00",
+        "totalZatcaSalesSar": "0.00",
+        "totalInternalSalesSar": "0.00",
+        "totalRevenueSar": "0.00",
+        "totalSalesGrossSar": "0.00",
+        "totalReturnsSar": "0.00",
+        "totalReturnsVatSar": "0.00",
+        "returnDocumentCount": 0,
+        "returnsWithoutCostCount": 0,
+        "totalCollectedCashSar": "0.00",
+        "totalCreditReceivablesSar": "0.00",
+        "totalNetProfitSar": "0.00",
+        "anomalyCount": 0,
+        "pendingClosingsCount": 0,
+        "pendingReceiptsCount": 0,
+        "pendingStockSettlementsCount": 0,
+        "pendingTransitDecisionsCount": 0
+      },
+      "productionBatches": [
+        {
+          "id": "01a1667a-337b-7489-8ae9-ba2e23e689e2",
+          "batchNo": "BATCH-R29-01",
+          "productionDate": "2026-10-23",
+          "itemId": "01a16673-5488-712e-bb54-e97e2ce7a3df",
+          "warehouseId": "01a1666d-3be4-7549-b578-c507e93bf106",
+          "productionOrderId": "01a1667a-335a-72e6-9250-4f4d4b40a675",
+          "manufacturingOrderId": null,
+          "lotId": "01a1667a-336e-7420-8a51-52344b4d3b26",
+          "inventoryTransactionId": "01a1667a-3370-734d-bb2b-1305da9cf42d",
+          "itemName": "خبز R29",
+          "producedQty": "50.00",
+          "scrapQty": "1.00",
+          "issuedQty": "0.00",
+          "returnedGoodQty": "0.00",
+          "damagedQty": "0.00",
+          "availableWarehouseQty": "50.00",
+          "unitCost": "1.20",
+          "totalCost": "60.00",
+          "costBasis": "manufacturing_order",
+          "scrapValue": "1.20",
+          "scrapCostLoaded": false,
+          "status": "active",
+          "supervisorName": "مشرف R29",
+          "notes": "R29 دفعة اختبار معزولة"
+        }
+      ],
+      "repPerformance": [],
+      "loadOrders": [],
+      "customerPrices": [],
+      "customerPriceHistory": [],
+      "documents": [],
+      "movements": [
+        {
+          "id": "01a1667a-337d-71d5-b378-e060340adda0",
+          "movementType": "production_in",
+          "batchNo": "BATCH-R29-01",
+          "qty": "50.00",
+          "unitPrice": "1.20",
+          "amount": "60.00",
+          "reason": "إنتاج يومي جديد وتوريد للمستودع الرئيسي — خبز R29",
+          "inventoryTransactionId": "01a1667a-3370-734d-bb2b-1305da9cf42d",
+          "voucherId": null,
+          "salesmanName": "—",
+          "customerName": "—",
+          "actorLabel": "مالك الحساب",
+          "approvedByLabel": "",
+          "createdAt": "2026-10-23 01:57:27.034229+00"
+        },
+        {
+          "id": "01a1667a-337f-7358-83a7-e42a3c4d31ae",
+          "movementType": "van_damage",
+          "batchNo": "BATCH-R29-01",
+          "qty": "1.00",
+          "unitPrice": "1.20",
+          "amount": "1.20",
+          "reason": "فاقد تصنيع أثناء إنتاج الدفعة BATCH-R29-01: حرق في الفرن — R29 — غير صالح للبيع ولم يُورَّد للمستودع (تكلفته 1.20 ريال مسجّلة هنا للمتابعة، وغير محمّلة على تكلفة المنتج الجيد: الأمر الرسمي يُنتج الكمية الصالحة وحدها فلا تُصرف مواد للفاقد، وتحميل فاقد المخبز على المنتج قرار سياسة لم يُتخذ)",
+          "inventoryTransactionId": null,
+          "voucherId": null,
+          "salesmanName": "—",
+          "customerName": "—",
+          "actorLabel": "مالك الحساب",
+          "approvedByLabel": "",
+          "createdAt": "2026-10-23 01:57:27.034229+00"
+        }
+      ]
+    }
+  }
+}
