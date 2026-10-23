@@ -163,14 +163,22 @@ describe('AUD-04 — ويب هوك Salla عامّ ومربوط بالبايتا�
     const payload = order({ subject: 'إسناد' });
     expect((await webhook(payload, sign(payload))).status).toBe(201);
 
-    const rows = await withOwnerClient(ctx.db.ownerUrl, async (client) => {
-      const result = await client.query(
-        `SELECT tenant_id, actor_user_id FROM audit_log
-          WHERE meta->>'path' = 'integrations/salla/webhooks'
-          ORDER BY created_at DESC LIMIT 1`,
-      );
-      return result.rows as Array<{ tenant_id: string | null; actor_user_id: string | null }>;
-    });
+    const readRows = () =>
+      withOwnerClient(ctx.db.ownerUrl, async (client) => {
+        const result = await client.query(
+          `SELECT tenant_id, actor_user_id FROM audit_log
+            WHERE meta->>'path' LIKE 'integrations/salla/webhooks%'
+            ORDER BY created_at DESC LIMIT 1`,
+        );
+        return result.rows as Array<{ tenant_id: string | null; actor_user_id: string | null }>;
+      });
+    // The route is `integrations/salla/webhooks/:storeId/orders`, so the audited path carries the
+    // store id; the interceptor records the row after the 201 has been sent — poll briefly for it.
+    let rows = await readRows();
+    for (let attempt = 0; attempt < 20 && rows.length === 0; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      rows = await readRows();
+    }
 
     expect(rows).toHaveLength(1);
     expect(rows[0]!.tenant_id).toBe(actor.tenantId);

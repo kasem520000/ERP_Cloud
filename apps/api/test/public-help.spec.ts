@@ -184,12 +184,23 @@ describe('help center and public status (P-M9)', () => {
   });
 
   it('صوتُ زائرٍ مجهول لا يُدقَّق: صفّ التدقيق لا يُكتب لعنوان الزائر', async () => {
+    // `AuditInterceptor` writes its row after the response has gone out (fire-and-forget), so a
+    // row from an earlier request can land between the two counts. Let the queue drain before
+    // taking the baseline, and again before reading the result.
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 400));
+    await settle();
     const before = await auditRows();
     await post(`${HELP}/hs-invoices/feedback`, {
       helpful: true,
       visitor: '11111111-2222-4333-8444-555555555555',
     });
+    await settle();
     expect(await auditRows()).toBe(before);
+    // ACC-181: and no row anywhere in the log names the visitor's vote (resource `public/help`).
+    const leaked = await withPlatformAdminTx(ctx.handle.db, (tx) =>
+      tx.select({ id: auditLog.id, entity: auditLog.entity }).from(auditLog),
+    );
+    expect(leaked.filter((row) => row.entity === 'public/help' || row.entity === 'public')).toHaveLength(0);
   });
 
   it('حالة الخدمة: المكوّنات الخمسة كاملة، وبلا تفاصيلٍ داخلية أو أسماء أنظمة', async () => {

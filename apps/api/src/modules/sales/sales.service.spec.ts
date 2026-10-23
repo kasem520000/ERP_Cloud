@@ -29,7 +29,8 @@ describe('SalesService phase 10 lifecycle guards', () => {
 
   it('rejects returns above the source quantity', async () => {
     const service = Object.create(SalesService.prototype) as SalesService;
-    service.get = vi.fn().mockResolvedValue({ status: 'posted', kind: 'sale', partyId: 'party-1', lines: [{ itemId: 'item-1', quantity: '2' }] }) as never;
+    // ACC-121: the source line's unit price is read for the return-price guard, so the stub needs one.
+    service.get = vi.fn().mockResolvedValue({ status: 'posted', kind: 'sale', partyId: 'party-1', lines: [{ itemId: 'item-1', quantity: '2', unitPrice: '10' }] }) as never;
     const emptyReturns = { from: vi.fn().mockReturnThis(), where: vi.fn().mockResolvedValue([]) };
     const database = { db: { transaction: vi.fn(async (callback: (tx: unknown) => unknown) => callback({ execute: vi.fn(), select: vi.fn().mockReturnValue(emptyReturns) })) } } as never;
     Object.assign(service as unknown as Record<string, unknown>, { database });

@@ -71,6 +71,20 @@ const READ_ONLY_POSTS = new Set(['POST public/verify']);
  */
 const ANONYMOUS_POSTS = new Set(['POST public/help', 'POST public/events']);
 
+/**
+ * ACC-181 (R33): `describeRoute` folds any path of four or more segments into a two-segment
+ * resource, so `POST public/help/:slug/feedback` arrives here as
+ * `{ resource: 'public/help', entityId: ':slug', subResource: 'feedback' }` — and the exact key
+ * `POST public/help/:slug` never matched the P-M9 entry. The visitor's vote was therefore
+ * audited after all, IP and user-agent included. Match both shapes: the two-segment form
+ * (`public/events`) and the folded resource form (`public/help`).
+ */
+function isAnonymousPost(method: string, route: RouteDescriptor): boolean {
+  if (method !== 'POST') return false;
+  if (ANONYMOUS_POSTS.has(`POST ${route.resource}/${route.entityId ?? ''}`)) return true;
+  return ANONYMOUS_POSTS.has(`POST ${route.resource}`);
+}
+
 export type RouteDescriptor = {
   resource: string;
   entityId: string | null;
@@ -160,7 +174,7 @@ export class AuditInterceptor implements NestInterceptor {
     const route = describeRoute(request.originalUrl ?? request.url ?? '');
     if (IGNORED_RESOURCES.has(route.resource)) return next.handle();
     if (READ_ONLY_POSTS.has(`${method} ${route.resource}/${route.entityId ?? ''}`)) return next.handle();
-    if (ANONYMOUS_POSTS.has(`${method} ${route.resource}/${route.entityId ?? ''}`)) return next.handle();
+    if (isAnonymousPost(method, route)) return next.handle();
 
     // The public sign path carries the secret in the URL and the one-time code in the body.
     // `esign_events` is the trail; the audit row would keep both.
