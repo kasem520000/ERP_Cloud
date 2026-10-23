@@ -1,0 +1,16 @@
+[
+  {
+    "id": "01a166ce-8a0b-725a-b54a-a956fa82cda5",
+    "party_id": "01a16672-aafe-77ce-bba9-27910738ad87",
+    "party_name": "بقالة R29 (آجل)",
+    "party_code": "000001",
+    "status": "active",
+    "invited_at": "2026-10-23 03:29:34.219+00",
+    "last_seen_at": null,
+    "email": "customer@r30.test",
+    "full_name": "أحمد — بقالة R29",
+    "user_status": "active",
+    "last_login_at": null,
+    "must_change_password": true
+  }
+]
