@@ -73,7 +73,7 @@ export const tenantSettingsRegistry: readonly TenantSettingDefinition[] = [
     'sales',
     'Prefix for the sales invoice document sequence.',
     z.string().min(1).max(12),
-    'INV-',
+    'SI-',
   ),
   define(
     'invoice.padding',

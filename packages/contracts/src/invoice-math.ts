@@ -36,6 +36,15 @@ export type InvoiceTotalsInput = {
   extraTax?: string;
   withholding?: string;
   scale?: number;
+  /**
+   * ACC-108 (R33 — P-M17): the currency's minor-unit scale (`money.rounding_digits`, default 2).
+   * Every money figure that leaves this function — line net / tax / total, header tax, extra tax,
+   * withholding and total — is rounded HALF_UP to this scale, so the ledger, the receivable and
+   * the cash collected never carry fractions of a halala. `scale` (default 4) remains the working
+   * precision for quantities × prices and for pro-rata shares; pass `roundingScale: scale` to
+   * keep the legacy unrounded behaviour.
+   */
+  roundingScale?: number;
 };
 
 export type InvoiceTotals = {
@@ -79,9 +88,23 @@ function divRound(numerator: Int, denominator: Int): Int {
   return sign * ((n + d / 2n) / d);
 }
 
+/** HALF_UP rounding of a scaled integer to `drop` fewer fractional digits (ACC-108). */
+function roundInt(value: Int, drop: number): Int {
+  if (drop <= 0) return value;
+  const unit = 10n ** BigInt(drop);
+  const quotient = value / unit;
+  const remainder = value % unit;
+  const half = unit / 2n;
+  if (remainder >= half) return (quotient + 1n) * unit;
+  if (remainder <= -half) return (quotient - 1n) * unit;
+  return quotient * unit;
+}
+
 export function calculateInvoiceTotals(input: InvoiceTotalsInput): InvoiceTotals {
   const scale = input.scale ?? 4;
   const unit = ten(scale);
+  const roundingScale = Math.min(scale, Math.max(0, input.roundingScale ?? 2));
+  const money = (value: Int) => roundInt(value, scale - roundingScale);
   const prepared = input.lines.map((line) => {
     const quantity = parse(line.quantity, scale);
     const unitPrice = parse(line.unitPrice, scale);
@@ -147,24 +170,29 @@ export function calculateInvoiceTotals(input: InvoiceTotalsInput): InvoiceTotals
     const extraShare = extraShares[index] ?? 0n;
     // The share reduces the VAT-inclusive base, exactly as the desktop subtracts the
     // header discount from the gross sum before extracting VAT.
-    const base = line.net - share;
-    const vatBase = base + extraShare;
-    const tax = input.priceIncludesVat
-      ? divRound(vatBase * line.taxRate, 100n * unit + line.taxRate)
-      : divRound(vatBase * line.taxRate, 100n * unit);
+    // ACC-108: the line's money figures are rounded to the currency's minor unit *before* the
+    // VAT is derived from them, so net + tax = total holds exactly in halalas.
+    const base = money(line.net - share);
+    const extraShareMoney = money(extraShare);
+    const vatBase = base + extraShareMoney;
+    const tax = money(
+      input.priceIncludesVat
+        ? divRound(vatBase * line.taxRate, 100n * unit + line.taxRate)
+        : divRound(vatBase * line.taxRate, 100n * unit),
+    );
     const taxableNet = input.priceIncludesVat ? vatBase - tax : base;
-    const total = input.priceIncludesVat ? base + extraShare : base + tax + extraShare;
+    const total = input.priceIncludesVat ? base + extraShareMoney : base + tax + extraShareMoney;
     return { gross: format(line.gross, scale), discount: format(line.discount, scale), net: format(taxableNet, scale), tax: format(tax, scale), total: format(total, scale), headerDiscountShare: format(share, scale) };
   });
   const subtotal = lines.reduce((sum, line) => sum + parse(line.net, scale), 0n);
   const tax = lines.reduce((sum, line) => sum + parse(line.tax, scale), 0n);
-  const extraTax = parse(input.extraTax ?? '0', scale);
-  const withholding = parse(input.withholding ?? '0', scale);
+  const extraTax = money(parse(input.extraTax ?? '0', scale));
+  const withholding = money(parse(input.withholding ?? '0', scale));
   // Normally every fils of the discount is distributed (the remainder lands on the
   // largest line above). Only a zero-gross invoice leaves a share unallocated, and
   // dropping it silently would undercharge — so it still reduces the header total,
   // which the service then rejects as negative for sales documents.
-  const unallocated = headerDiscount - shares.reduce((sum, share) => sum + share, 0n);
+  const unallocated = money(headerDiscount - shares.reduce((sum, share) => sum + share, 0n));
   const total = subtotal + tax + extraTax - withholding - unallocated;
   return { lines, subtotal: format(subtotal, scale), discount: format(headerDiscount, scale), taxable: format(subtotal, scale), tax: format(tax, scale), extraTax: format(extraTax, scale), withholding: format(withholding, scale), total: format(total, scale) };
 }

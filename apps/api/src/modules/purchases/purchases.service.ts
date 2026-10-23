@@ -23,6 +23,7 @@ import {
 } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
+import { readTenantMoneyPolicy } from '../../common/tenant-money-policy.js';
 import { getRequestContext } from '../../request-context/request-context.js';
 import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
@@ -139,25 +140,32 @@ export class PurchasesService {
       throw new DomainError('PURCHASE_LINES_REQUIRED', 'At least one purchase line is required unless a header draft is explicitly requested', 422);
     }
     const id = newId();
-    const totals = input.lines.length
-      ? calculateInvoiceTotals({
-          lines: input.lines,
-          priceIncludesVat: input.priceIncludesVat,
-          invoiceDiscount: input.invoiceDiscount,
-          extraTax: input.extraTax,
-          withholding: input.withholding,
-        })
-      : {
-          lines: [],
-          subtotal: input.headerTotals?.subtotal ?? '0',
-          discount: input.invoiceDiscount ?? '0',
-          taxable: input.headerTotals?.subtotal ?? '0',
-          tax: input.headerTotals?.tax ?? '0',
-          extraTax: input.extraTax ?? '0',
-          withholding: input.withholding ?? '0',
-          total: input.headerTotals?.total ?? '0',
-        };
     await withTenantTx(this.database.db, tenantId, async (tx) => {
+      // ACC-107 / ACC-108 (R33 — P-M17): tenant money policy — rounding to the currency minor
+      // unit and the default VAT treatment — applies to supplier invoices exactly as to sales.
+      const policy = await readTenantMoneyPolicy(tx, tenantId);
+      if (input.priceIncludesVat === undefined || input.priceIncludesVat === null) {
+        input.priceIncludesVat = policy.priceIncludesVat ?? false;
+      }
+      const totals = input.lines.length
+        ? calculateInvoiceTotals({
+            lines: input.lines,
+            priceIncludesVat: input.priceIncludesVat,
+            invoiceDiscount: input.invoiceDiscount,
+            extraTax: input.extraTax,
+            withholding: input.withholding,
+            roundingScale: policy.roundingDigits,
+          })
+        : {
+            lines: [],
+            subtotal: input.headerTotals?.subtotal ?? '0',
+            discount: input.invoiceDiscount ?? '0',
+            taxable: input.headerTotals?.subtotal ?? '0',
+            tax: input.headerTotals?.tax ?? '0',
+            extraTax: input.extraTax ?? '0',
+            withholding: input.withholding ?? '0',
+            total: input.headerTotals?.total ?? '0',
+          };
       // R9 — كل مركزٍ مُسمّى (رأساً أو على سطر) يُفحَص قبل أي كتابة: مركزُ مستأجرٍ آخر
       // ليس مركزاً عندنا. وهذا مسار الإنشاء الوحيد لكل فواتير الشراء ومردوداتها.
       await this.accounting.assertCostCentersInTx(tx, tenantId, [
@@ -300,9 +308,14 @@ export class PurchasesService {
     if (!lines.length) throw new DomainError('PURCHASE_LINES_REQUIRED', 'At least one purchase line is required', 422);
     const invoice = await this.get(tenantId, id);
     if (invoice.status !== 'draft') throw new DomainError('PURCHASE_INVOICE_IMMUTABLE', 'Only draft purchase invoices can be changed', 409);
-    const totals = calculateInvoiceTotals({ lines, priceIncludesVat: invoice.priceIncludesVat, invoiceDiscount: invoice.invoiceDiscount });
-
     await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const policy = await readTenantMoneyPolicy(tx, tenantId);
+      const totals = calculateInvoiceTotals({
+        lines,
+        priceIncludesVat: invoice.priceIncludesVat,
+        invoiceDiscount: invoice.invoiceDiscount,
+        roundingScale: policy.roundingDigits,
+      });
       await this.accounting.assertCostCentersInTx(tx, tenantId, lines.map((line) => line.costCenterId));
       const [supplier] = await tx
         .select({ id: parties.id, kind: parties.kind })

@@ -53,7 +53,7 @@ describe('tenant settings registry', () => {
   it('merges stored rows over registry defaults', () => {
     const resolved = resolveTenantSettings(new Map([['money.rounding_digits', 3]]));
     expect(resolved['money.rounding_digits']).toBe(3);
-    expect(resolved['invoice.number_prefix']).toBe('INV-');
+    expect(resolved['invoice.number_prefix']).toBe('SI-');
     expect(Object.keys(resolved)).toHaveLength(tenantSettingsRegistry.length);
   });
 });

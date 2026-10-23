@@ -766,13 +766,16 @@ export class BankFeedsService {
       let ledgerBalance = opening.plus(matchedMovement);
       let ledgerSource = 'matched bank lines';
       if (account.accountId) {
+        // ACC-041 (R32 fix, R33 follow-up): «رصيد الدفاتر» is the ledger balance of the bank
+        // account at the END of the window — every posted line dated on/before `to` (opening
+        // entries included). It never adds the statement's opening balance on top, and `from`
+        // only narrows the statement lines, not the ledger balance (a balance is cumulative).
         const ledgerConditions = [
           eq(journalEntryLines.tenantId, tenantId),
           eq(journalEntryLines.accountId, account.accountId),
           eq(journalEntries.tenantId, tenantId),
           eq(journalEntries.id, journalEntryLines.entryId),
           eq(journalEntries.status, 'posted'),
-          input.from ? gte(journalEntries.date, input.from) : undefined,
           input.to ? lte(journalEntries.date, input.to) : undefined,
         ];
         const ledgerRows = await tx
@@ -780,9 +783,7 @@ export class BankFeedsService {
           .from(journalEntryLines)
           .innerJoin(journalEntries, eq(journalEntries.id, journalEntryLines.entryId))
           .where(and(...ledgerConditions));
-        const ledgerMovement = ledgerRows.reduce((sum, row) => sum.plus(money(row.debit).minus(money(row.credit))), new Decimal(0));
-        // ACC-041: عند عدم تحديد تاريخ بداية (input.from) تكون حركة الأستاذ متضمنة القيد الافتتاحي فلا يضاعف
-        ledgerBalance = input.from ? opening.plus(ledgerMovement) : ledgerMovement;
+        ledgerBalance = ledgerRows.reduce((sum, row) => sum.plus(money(row.debit).minus(money(row.credit))), new Decimal(0));
         ledgerSource = 'journal ledger';
       }
 

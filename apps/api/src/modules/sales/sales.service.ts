@@ -28,6 +28,7 @@ import {
   salesmen,
   shiftCloses,
   stockBalances,
+  taxGroups,
   vouchers,
   warehouses,
   withTenantTx,
@@ -37,6 +38,7 @@ import {
 
 import { FROM_TO_LABELS_AR, validateDayFilters } from '../../common/date-param.js';
 import { assertDiscountWithinLimit, sumDiscount, sumLineGross } from '../../common/discount-limit.js';
+import { readTenantMoneyPolicy } from '../../common/tenant-money-policy.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { getRequestContext } from '../../request-context/request-context.js';
 import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
@@ -401,12 +403,16 @@ export class SalesService {
    * المسوّدة: مسارٌ واحد للحساب وحدود الخصم ومراكز الكلفة، فلا يمرّ كتابٌ من بابٍ بلا
    * الفحوص التي يمرّ منها الباب الآخر.
    */
-  private prepareLines(tx: DrizzleTx, tenantId: string, input: SalesInvoiceInput) {
+  private async prepareLines(tx: DrizzleTx, tenantId: string, input: SalesInvoiceInput) {
     if (!input.lines.length)
       throw new DomainError('SALES_LINES_REQUIRED', 'At least one invoice line is required', 422);
     if (!input.partyId && !input.cashCustomerName)
       throw new DomainError('SALES_CUSTOMER_REQUIRED', 'Party or cash customer name is required', 422);
 
+    // ACC-107 / ACC-108 (R33 — P-M17): the tenant's money policy governs rounding, the default
+    // VAT treatment and the fallback VAT rate of every sales document.
+    const policy = await readTenantMoneyPolicy(tx, tenantId);
+    const linesWithoutRate: number[] = [];
     for (let i = 0; i < input.lines.length; i++) {
       const line = input.lines[i]!;
       const qty = new Decimal(line.quantity ?? 0);
@@ -438,9 +444,30 @@ export class SalesService {
           );
         }
       } else {
-        // ACC-109: Default to standard 15% VAT rate when omitted on sales line
-        line.taxRate = '15';
+        linesWithoutRate.push(i);
       }
+    }
+    if (linesWithoutRate.length) {
+      // ACC-109 (+ ACC-107 follow-up): a line that names no rate takes the rate of its item's tax
+      // group; an item without a tax group takes the tenant's `vat.default_rate_percent` (15 when
+      // unset). The server never trusts the client's silence as «0 %».
+      const itemIds = [...new Set(linesWithoutRate.map((i) => input.lines[i]!.itemId).filter((v): v is string => Boolean(v)))];
+      const rateRows = itemIds.length
+        ? await tx
+            .select({ id: items.id, rate: taxGroups.rate })
+            .from(items)
+            .leftJoin(taxGroups, eq(taxGroups.id, items.taxGroupId))
+            .where(and(eq(items.tenantId, tenantId), inArray(items.id, itemIds)))
+        : [];
+      const rateOf = new Map(rateRows.map((row) => [row.id, row.rate]));
+      for (const i of linesWithoutRate) {
+        const line = input.lines[i]!;
+        const groupRate = line.itemId ? rateOf.get(line.itemId) : null;
+        line.taxRate = groupRate !== null && groupRate !== undefined ? new Decimal(groupRate).toString() : policy.defaultVatRate;
+      }
+    }
+    if (input.priceIncludesVat === undefined || input.priceIncludesVat === null) {
+      input.priceIncludesVat = policy.priceIncludesVat ?? false;
     }
 
     const totals = calculateInvoiceTotals({
@@ -449,6 +476,7 @@ export class SalesService {
       invoiceDiscount: input.invoiceDiscount,
       extraTax: input.extraTax,
       withholding: input.withholding,
+      roundingScale: policy.roundingDigits,
     });
     // R1 — حدّ الخصم على العضوية (بديل `OperMaxDiscount` في الديسكتوب). الفحص هنا في
     // مسار الإنشاء الوحيد، فيمرّ منه كل ما يُكتب: مسودّة الحقل، وفاتورة الكاشير
@@ -495,7 +523,7 @@ export class SalesService {
   }
 
   async createInTx(tx: DrizzleTx, tenantId: string, input: SalesInvoiceInput): Promise<string> {
-    const totals = this.prepareLines(tx, tenantId, input);
+    const totals = await this.prepareLines(tx, tenantId, input);
     // R9 — كل مركزٍ مُسمّى (رأساً أو على سطر) يُفحَص قبل أي كتابة: مركزُ مستأجرٍ آخر ليس
     // مركزاً عندنا، والرسالة تسمّي الحقل. الفحص هنا في مسار الإنشاء الوحيد فيمرّ منه كل
     // ما يُكتب — مسودّةُ الحقل، وفاتورة الكاشير، وعرض السعر، والمردود.
@@ -753,7 +781,7 @@ export class SalesService {
         extraTax: input.extraTax ?? locked.extraTax,
         withholding: input.withholding ?? locked.withholding,
       } as SalesInvoiceInput;
-      const totals = this.prepareLines(tx, tenantId, merged);
+      const totals = await this.prepareLines(tx, tenantId, merged);
       await this.accounting.assertCostCentersInTx(tx, tenantId, [
         merged.costCenterId,
         ...merged.lines.map((line) => line.costCenterId),
@@ -1098,6 +1126,9 @@ export class SalesService {
       .for('update');
     if (!locked)
       throw new DomainError('SALES_INVOICE_INVALID_STATUS', 'Only draft invoices can be posted', 409);
+    // ACC-107 (R33 — P-M17): `invoice.number_prefix` / `invoice.padding` seed the tenant-wide
+    // `sale` sequence the first time it is allocated; the «الترقيم» admin owns it afterwards.
+    const numberingPolicy = locked.kind === 'sale' ? await readTenantMoneyPolicy(tx, tenantId) : null;
     const prefix =
       locked.kind === 'sale_return'
         ? 'SR-'
@@ -1105,11 +1136,11 @@ export class SalesService {
           ? 'CN-'
           : locked.kind === 'debit_note'
             ? 'DN-'
-            : 'SI-';
+            : (numberingPolicy?.invoicePrefix ?? 'SI-');
     const allocated = await this.sequences.next(
       { tenantId, branchId: locked.branchId, docType: locked.kind },
       tx,
-      { prefix, padding: 6 },
+      { prefix, padding: numberingPolicy?.invoicePadding ?? 6 },
     );
     const number = allocated.display;
     const today = (posting as any).date?.trim() || new Date().toISOString().slice(0, 10);

@@ -42,7 +42,7 @@ describe('tenant settings', () => {
     };
     expect(data.registry).toHaveLength(tenantSettingsRegistry.length);
     expect(data.settings['money.rounding_digits']).toBe(2);
-    expect(data.settings['invoice.number_prefix']).toBe('INV-');
+    expect(data.settings['invoice.number_prefix']).toBe('SI-');
     expect(data.settings['feature.pos']).toBe(false);
   });
 

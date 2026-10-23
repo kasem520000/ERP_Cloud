@@ -30,6 +30,7 @@ import {
 } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
+import { readTenantMoneyPolicy } from '../../common/tenant-money-policy.js';
 import { getRequestContext } from '../../request-context/request-context.js';
 import { SalesService } from '../sales/sales.service.js';
 import { SequencesService } from '../platform-services/index.js';
@@ -1617,10 +1618,14 @@ export class PosService {
     // The engine recomputes and remains authoritative; this pre-check exists so a
     // short tender can be refused *before* anything is written.
     const priceIncludesVat = input.priceIncludesVat ?? true;
+    // ACC-107 / ACC-108 (R33 — P-M17): the pre-check mirrors the engine's rounding and fallback
+    // VAT rate so a tender that covers the posted total is never refused here (or vice versa).
+    const moneyPolicy = await withTenantTx(this.database.db, tenantId, (tx) => readTenantMoneyPolicy(tx, tenantId));
     const totals = calculateInvoiceTotals({
-      lines: input.lines.map((line) => ({ ...line, taxRate: line.taxRate ?? '0' })),
+      lines: input.lines.map((line) => ({ ...line, taxRate: line.taxRate ?? moneyPolicy.defaultVatRate })),
       priceIncludesVat,
       invoiceDiscount: input.invoiceDiscount,
+      roundingScale: moneyPolicy.roundingDigits,
     });
     const tendered = input.payment.tendered ? new Decimal(input.payment.tendered) : undefined;
     if (tendered && !tendered.isFinite())
