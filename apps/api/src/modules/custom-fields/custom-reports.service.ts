@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { Decimal } from 'decimal.js';
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import {
   customReportBaseEntitySchema,
@@ -312,15 +313,23 @@ export class CustomReportsService {
   }
 
   private totals(columns: ColumnSpec[], rows: ReportRow[]) {
+    // ACC-117 (R33): aggregate with Decimal — binary float sums leaked artefacts such as
+    // `taxTotal: 9.310500000000001` into the report footer. Results are rounded to 4 dp
+    // (the money scale used everywhere else) and returned as plain numbers.
     const result: Record<string, number> = {};
+    const asNumber = (value: Decimal) => Number(value.toDecimalPlaces(4).toFixed(4));
     for (const column of columns) {
       if (!column.agg) continue;
-      const values = rows.map((row) => Number(this.valueFor(row, column))).filter(Number.isFinite);
+      const values = rows
+        .map((row) => Number(this.valueFor(row, column)))
+        .filter(Number.isFinite)
+        .map((value) => new Decimal(value));
+      const sum = values.reduce((acc, value) => acc.plus(value), new Decimal(0));
       if (column.agg === 'count') result[column.key] = rows.length;
-      else if (column.agg === 'sum') result[column.key] = values.reduce((sum, value) => sum + value, 0);
-      else if (column.agg === 'avg') result[column.key] = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
-      else if (column.agg === 'min') result[column.key] = values.length ? Math.min(...values) : 0;
-      else if (column.agg === 'max') result[column.key] = values.length ? Math.max(...values) : 0;
+      else if (column.agg === 'sum') result[column.key] = asNumber(sum);
+      else if (column.agg === 'avg') result[column.key] = values.length ? asNumber(sum.div(values.length)) : 0;
+      else if (column.agg === 'min') result[column.key] = values.length ? asNumber(Decimal.min(...values)) : 0;
+      else if (column.agg === 'max') result[column.key] = values.length ? asNumber(Decimal.max(...values)) : 0;
     }
     return result;
   }
