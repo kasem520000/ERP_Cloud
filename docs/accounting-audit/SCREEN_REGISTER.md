@@ -622,3 +622,18 @@
 | `/inventory/serials` (توليد دفعة؛ قراءة ختامية) | SERIAL-GENERATE، SERIALS-SCREEN | **ACC-132/UI-044**؛ **UI-045** («مُرتجع 0») |
 | `/inventory/levels`، `/reports/inventory-valuation`، `/accounting/trial-balance` (قراءة) | LEVELS-SCREEN، VALUATION-SCREEN، TB-SCREEN | 336.18 مقابل 248.07 (**ACC-130** ظاهر للمستخدم) |
 | `/inventory/item-card`، `/inventory/movements` (قراءة) | ITEM-CARD-SCREEN، MOVEMENTS-SCREEN | 42 حركة؛ صافي 10.6 ✓ |
+
+## الشاشات المنفَّذة في R28 (مستأجر R24؛ الأدلة `evidence/round-28/`)
+| الشاشة | المراحل | النتيجة |
+|---|---|---|
+| `/sales/offers` (عرض جديد؛ قراءة ختامية) | OFFER-SCREEN، OFFERS-SCREEN | R28-OFF-QTY ✓؛ لا شاشة لأصناف/عملاء العرض (**ACC-137**) |
+| `/sales/invoices/new` ثم `/sales/invoices/[id]` (ترحيل نقدي؛ مرتان: بعرض، وبمركزين) | SI-OFFER-DRAFT/POST، SI-CC-DRAFT/POST | SI-000012 92.00 بلا خصم (**ACC-138**)؛ SI-000013 18.40 بمركزين ✓؛ لا حقل عرض في الشاشة |
+| `/accounting/accounts` (حساب جديد برصيد افتتاحي؛ قراءة) | ACCOUNT-OPENING، ACCOUNTS-SCREEN | 1160002 افتتاحي 1000 بلا حساب مقابل (**ACC-139**) |
+| `/accounting/cost-centers` (مركز جديد؛ قراءة) | CC-A-SCREEN، COST-CENTERS-SCREEN | CC-R28-A ✓؛ لا أرصدة في القائمة (**ACC-144**) |
+| `/treasury/vouchers` (سند قبض بمركز، ترحيل من الصف؛ قراءة) | RV-CC-DRAFT/POST، VOUCHERS-SCREEN | RV-000001 100 ✓؛ سند التفصيل المسوَّد يظهر بلا رقم (**ACC-150**) |
+| `/accounting/cost-center-statement` (A وB) | CC-A/B-STATEMENT-SCREEN | 21/13/8 و5/113/108 ✓ |
+| `/pos/offline-queue` (قبل المزامنة؛ قراءة ختامية) | POS-SYNC-1 (before)، OFFLINE-QUEUE-SCREEN | فارغ → 4 صفوف؛ E يعرض خطأً قديماً (**ACC-146**) |
+| `/sales/invoices` (قراءة) | SALES-SCREEN | SI-000014…16 ✓ |
+| `/settings/invoice-maintenance` (زر «فحص»؛ قراءة) | MAINT-PREVIEW، MAINT-SCREEN | `totalsMismatch 1` إيجابية كاذبة (**ACC-147**) |
+| `/tailoring/invoices` (فاتورة جديدة ×2، إستلام دفعة؛ قراءة) | TI-CREATE-404، TI-CREATE، TI-PAY، TAILORING-SCREEN | 404 بلا حالات (**UI-047**)؛ TI-000001 صافي 210 (**ACC-149**)؛ دفعة بسند مسودة على البنك (**ACC-150/UI-048**) |
+| `/accounting/trial-balance` (قراءة ختامية) | TB-SCREEN | 1160002 1,510؛ المجاميع مختلة 1,500 «مدين» بلا تحذير (**ACC-139**) |
