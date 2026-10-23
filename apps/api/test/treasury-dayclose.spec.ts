@@ -60,7 +60,9 @@ describe('Treasury day closes — إغلاقات اليومية', () => {
 const amt = (value: unknown) => Number(value).toFixed(4);
   /** The till quotes prices that include VAT, so the VAT inside them is 15/115. */
   const vatOf = (inclusive: number) => (inclusive * 15) / 115;
-  const near = (value: number, expected: number) => Math.abs(value - expected) < 0.001;
+  // P-M17 (R33): document money is rounded to `money.rounding_digits` (2) HALF_UP, so the VAT share of an
+  // inclusive price agrees with the exact fraction to within half a halala.
+  const near = (value: number, expected: number) => Math.abs(value - expected) < 0.005;
 
   const account = async (payload: Record<string, unknown>) => {
     const created = await api(ctx.server, 'post', '/api/v1/accounts', { token: actor.token, body: payload });
