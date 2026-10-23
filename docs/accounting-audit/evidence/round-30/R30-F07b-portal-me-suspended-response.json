@@ -1,0 +1,51 @@
+{
+  "sequence": true,
+  "mode": "portal",
+  "results": [
+    {
+      "label": "me",
+      "method": "GET",
+      "path": "/portal/me",
+      "mode": "portal",
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 403,
+        "code": "PORTAL_ACCESS_SUSPENDED",
+        "detail": "Portal access for this account is suspended",
+        "traceId": "01a166f4-3b5f-7729-b0d5-651bd658fd72"
+      }
+    },
+    {
+      "label": "invoices",
+      "method": "GET",
+      "path": "/portal/invoices",
+      "mode": "portal",
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 403,
+        "code": "PORTAL_ACCESS_SUSPENDED",
+        "detail": "Portal access for this account is suspended",
+        "traceId": "01a166f4-3e75-76eb-bce8-9ef4f57a4894"
+      }
+    },
+    {
+      "label": "statement",
+      "method": "GET",
+      "path": "/portal/statement",
+      "mode": "portal",
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Request failed",
+        "status": 403,
+        "code": "PORTAL_ACCESS_SUSPENDED",
+        "detail": "Portal access for this account is suspended",
+        "traceId": "01a166f4-4180-7153-a37c-08e687f17865"
+      }
+    }
+  ]
+}

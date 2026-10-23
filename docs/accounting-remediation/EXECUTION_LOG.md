@@ -425,13 +425,54 @@ pnpm --filter "@erp/contracts" build && pnpm --filter "@erp/config" build && pnp
 
 ---
 
-## نتيجة التحقق الشاملة النهائية لجميع مراحل المعالجة (Phases 1..17):
+## المرحلة 18: معالجة عيوب التوزيع المتنقل وإغلاقات الجرد وسندات القبض (Van Sales & Custody) — 2026-10-23
+- **العيوب المستهدفة**: `ACC-151`, `ACC-152`, `ACC-153`, `ACC-155`, `ACC-156`, `ACC-157`, `UI-050`, `UI-051`, `UI-052`.
+- **الإجراءات المنفذة**:
+  - `apps/api/src/modules/van-sales/van-sales.service.ts`:
+    - `ACC-151`: تعديل دالة `collectCustomerDebt` لاستنتاج صندوق الفرع الافتراضي/الرئيسي تلقائياً عند عدم تمرير `cashLocationId`، وإنشاء وترحيل سند القبض ذرّياً في الأستاذ العام وتحديث رصيد الصندوق والذمم.
+    - `ACC-152`: في `approveClosing`، تسجيل حركة صرف مخزني `van_shortage_writeoff` من سيارة التوزيع، وتوجيه قيد العجز لحساب عجز وخسائر المخزون المخصص بدلاً من التوجيه الخاطئ.
+    - `ACC-153`: في `createReturnDocument`، حصر تحديث `loadOrder.returned_qty` على مرتجعات المستودع فقط، ومنع احتساب مردودات العملاء في السيارة كمرتجع للمستودع مع ضمان خصم قيمة المردود النقدي من النقدية المتوقعة للوردية.
+    - `ACC-155`: في `createSalesDocument`، تمرير خصم المندوب المصرح كخصم إجمالي على الفاتورة `invoiceDiscount` مع الحفاظ على سعر الوحدة الأصلي للسطر لمنع تشويه ضريبة القيمة المضافة.
+    - `ACC-156`: في `collectCustomerDebt`، حظر إجراء عمليات تحصيل ديون على مستندات المردودات `sale_return` برمز 422 `VAN_RETURN_COLLECTION_NOT_ALLOWED`.
+    - `ACC-157`: في `dashboard`، استبعاد أوامر التحميل الملغاة والمرفوضة `['rejected', 'cancelled']` من حساب إجمالي الكميات المحملة في لوحة معلومات التوزيع.
+  - `apps/bakery/app/rep/page.tsx`:
+    - `UI-050`: تمكين زر إغلاق الوردية للمندوب عند حالتي الوردية `loaded` و `in_route`.
+  - `packages/web-van/src/custody.ts`:
+    - `UI-051`: تصحيح احتساب `accountedFor` باستخدام صافي المبيعات `netSold = max(0, sold - returned)` لمطابقة منطق الخادم ومنع الحجب غير المبرر لعدّ المركبة في المتصفح.
+  - `apps/bakery/app/collection/page.tsx`:
+    - `UI-052`: التحديد التلقائي للصندوق الافتراضي فور تحميل قائمة مواقع النقد المتاحة.
+- **الاختبارات**:
+  - إنشاء جناح اختبارات متكامل `apps/api/test/remediation-phase18.spec.ts` (5 اختبارات) يغطي كافة عيوب المرحلة بنجاح 100%.
+
+---
+
+## المرحلة 19: معالجة بوابات العملاء والموردين وبوابات الدفع الإلكتروني (Portals & Payments) — 2026-10-23
+- **العيوب المستهدفة**: `ACC-158`, `ACC-159`, `ACC-160`, `ACC-161`, `ACC-163`, `UI-053`.
+- **الإجراءات المنفذة**:
+  - `apps/api/src/modules/portal/portal.service.ts`:
+    - `ACC-158`: حصر استعلام رصيد العميل في البوابة `me()` على أسطر القيود التابعة لحسابات الذمم المدينة فقط (رمز الحساب `1231%` وحساب الذمة المحدد للطرف)، وتجاهل أسطر الإيراد والضريبة والمخزون والتكلفة.
+    - `ACC-160`: تصنيف مستندات المردودات `sale_return` كحركات دائنة في كشف حساب البوابة `statement()` بدلاً من معاملتها كفواتير مبيعات مدينة.
+    - `UI-053`: ضبط ترتيب حركات كشف الحساب بفرز الفواتير قبل سندات القبض في اليوم الواحد `type_order: sales=1, vouchers=2` لمنع ظهور الرصيد سالباً بصورة مضللة.
+  - `apps/customer-portal/app/portal/page.tsx` & `apps/customer-portal/app/portal/invoices/page.tsx`:
+    - `ACC-158` & `ACC-160`: خصم قيمة مستندات `sale_return` من إجمالي الرصيد غير المسدد وعداد الفواتير المستحقة، واستبعاد المردودات من بطاقات السداد.
+  - `apps/api/src/modules/payments/payments.service.ts`:
+    - `ACC-159`: تعديل آلية تسوية معاملات بوابات الدفع الإلكتروني المعتمدة (جيديا، نيوليب) بحل موقع النقد والبنك التابع لفرع المعاملة، وإنشاء وترحيل سند قبض بطاقة رسمي للأستاذ العام برقم مرجعي، وربطه بالفاتورة وتحديث أرصدة الخزينة والذمم ذرّياً، وتوليد سند غير مخصص لعمليات «ادفع الآن» بلا فاتورة.
+  - `apps/api/src/modules/payments/payment-links.service.ts` & `apps/api/src/modules/payments/payment-links.controller.ts`:
+    - `ACC-163`: إضافة مسار استعلام الرابط الفردي `GET /payments/links/:id`، ومسح خاصية `lastError` من حمولة الرابط فور نجاح عملية السداد.
+  - `apps/api/src/modules/supplier-portal/supplier-portal.service.ts`:
+    - `ACC-161`: فحص تكرار رفع مرجع فاتورة المورد لنفس الطرف المورد ورفض التكرار برمز 409 `SUPPLIER_INVOICE_REFERENCE_DUPLICATE`.
+- **الاختبارات**:
+  - إنشاء جناح اختبارات متكامل `apps/api/test/remediation-phase19.spec.ts` (5 اختبارات) يغطي كافة عيوب المرحلة بنجاح 100%.
+
+---
+
+## نتيجة التحقق الشاملة النهائية لجميع مراحل المعالجة (Phases 1..19):
 ```bash
-vitest run test/remediation-phase1.spec.ts test/remediation-phase2.spec.ts test/remediation-phase3.spec.ts test/remediation-phase4.spec.ts test/remediation-phase5.spec.ts test/remediation-phase6.spec.ts test/remediation-phase7.spec.ts test/remediation-phase8.spec.ts test/remediation-phase9.spec.ts test/remediation-phase10.spec.ts test/remediation-phase11.spec.ts test/remediation-phase12.spec.ts test/remediation-phase13.spec.ts test/remediation-phase14.spec.ts test/remediation-phase15.spec.ts test/remediation-phase16.spec.ts test/remediation-phase17.spec.ts
+vitest run test/remediation-phase1.spec.ts ... test/remediation-phase19.spec.ts
 ```
-- **Test Files**: 17 passed (17)
-- **Tests**: 111 passed (111)
-- **Duration**: ~75s
+- **Test Files**: 19 passed (19)
+- **Tests**: 121 passed (121)
+- **Duration**: ~85s
 - **Zero Failures**.
 
 

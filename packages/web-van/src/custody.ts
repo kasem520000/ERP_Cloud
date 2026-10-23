@@ -51,9 +51,10 @@ export function custodyBasis(q: CustodyQuantities) {
   return received.gt(0) ? received : num(q.loadedQty);
 }
 
-/** ما حُوسب فعلاً من العهدة: مبيعات + بونص + مرتجع سليم + تالف (‎:4032). */
+/** ما حُوسب فعلاً من العهدة: صافي المبيعات (المباع - المرتجع) + بونص + تالف (مطابق لحسابات الخادم). */
 export function accountedFor(q: CustodyQuantities, returned: string, damaged: string) {
-  return num(q.soldQty).plus(num(q.bonusQty)).plus(num(returned)).plus(num(damaged));
+  const netSold = Decimal.max(0, num(q.soldQty).minus(num(returned)));
+  return netSold.plus(num(q.bonusQty)).plus(num(damaged));
 }
 
 /** مسودة تقديم الإقفال كما تكتبها الشاشة (من `submitClosing` في الخادم). */
@@ -232,11 +233,11 @@ export function buildClosingPayload(
     return { ok: false, message: CLOSING_MESSAGES.damageReasonRequired, field: 'damageReason' };
   }
 
-  // سقف العهدة: قاعدة الخادم في تقديم المندوب (‎:4029) — والفائض يُسجَّل عند الاعتماد وحده.
+  // سقف العهدة: يُفحص عند العد الفردي للأمر فقط، ولا يُحجب عند عد المركبة كلها حيث يُترك الاشتقاق والإقرار للخادم
   const loaded = custodyBasis(q);
   const accounted = accountedFor(q, draft.returnedQty, draft.damagedQty);
   const countedTotal = accounted.plus(actualRemainingQty);
-  if (loaded.gt(0) && countedTotal.gt(loaded)) {
+  if (!vehicleShare.declared && loaded.gt(0) && countedTotal.gt(loaded)) {
     return {
       ok: false,
       message: CLOSING_MESSAGES.exceedsCustody({

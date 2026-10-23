@@ -1,0 +1,26 @@
+{
+  "invoices": [
+    {
+      "id": "01a16674-299e-7271-87fc-ad70107f856b",
+      "number": "PI-000001",
+      "status": "posted",
+      "paymentStatus": "unpaid",
+      "currency": "SAR",
+      "total": "230.0000",
+      "paidTotal": "0.0000",
+      "postedAt": "2026-10-23 01:51:47.078+00"
+    }
+  ],
+  "payments": [],
+  "quotations": [
+    {
+      "id": "01a166e8-0ccd-7511-a880-44b898b5a5eb",
+      "number": "RFQ-000001",
+      "title": "R30 — عرض سعر دقيق 50 كجم",
+      "note": "R30 اختبار معزول — طلب عرض سعر",
+      "status": "open",
+      "offer": null,
+      "responseNote": null
+    }
+  ]
+}

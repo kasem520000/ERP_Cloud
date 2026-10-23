@@ -1,0 +1,25 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/payment-gateways/geidea/test",
+  "request": {},
+  "body": {
+    "provider": "geidea",
+    "labelAr": "جيديا",
+    "simulation": true,
+    "at": "2026-10-23T03:47:15.265Z",
+    "status": "initiated",
+    "ok": true,
+    "responseCode": "000",
+    "detailedResponseCode": "000",
+    "message": "Success",
+    "reference": "TEST-01a166de-bac1-769f-acd4-75d4d563c32c",
+    "sessionId": "SIM-3f8601e381e3",
+    "lines": [
+      "reference: TEST-01a166de-bac1-769f-acd4-75d4d563c32c",
+      "status: initiated",
+      "responseCode: 000",
+      "message: Success"
+    ]
+  }
+}

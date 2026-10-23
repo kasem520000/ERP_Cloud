@@ -1,0 +1,17 @@
+{
+  "status": 200,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/supplier-portal/quotations/01a166e8-0ccd-7511-a880-44b898b5a5eb/respond",
+  "request": {
+    "price": "190",
+    "note": "R30 — سعر الكيس 50 كجم شامل التوصيل"
+  },
+  "body": {
+    "data": {
+      "id": "01a166e8-0ccd-7511-a880-44b898b5a5eb",
+      "status": "responded",
+      "offer": "190.0000",
+      "note": "R30 — سعر الكيس 50 كجم شامل التوصيل"
+    }
+  }
+}

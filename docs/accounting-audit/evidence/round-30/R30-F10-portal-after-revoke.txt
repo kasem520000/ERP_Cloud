@@ -1,0 +1,5 @@
+لا يمكن فتح البوابة
+
+No membership for this user in the tenant referenced by the token
+
+تسجيل الخروج

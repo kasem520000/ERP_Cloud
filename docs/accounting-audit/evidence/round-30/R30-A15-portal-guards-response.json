@@ -1,0 +1,221 @@
+{
+  "sequence": true,
+  "mode": "portal",
+  "results": [
+    {
+      "label": "parties",
+      "method": "GET",
+      "path": "/parties?limit=5",
+      "mode": "portal",
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "portal memberships cannot access staff endpoints",
+        "traceId": "01a166d1-6780-736b-81ad-9c694cab0599",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "parties.view"
+          }
+        ]
+      }
+    },
+    {
+      "label": "sales",
+      "method": "GET",
+      "path": "/sales/invoices?limit=5",
+      "mode": "portal",
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "portal memberships cannot access staff endpoints",
+        "traceId": "01a166d1-6a8f-738e-bf47-ee1dc8fecc61",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "sales.view"
+          }
+        ]
+      }
+    },
+    {
+      "label": "accounts",
+      "method": "GET",
+      "path": "/accounts?limit=5",
+      "mode": "portal",
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "portal memberships cannot access staff endpoints",
+        "traceId": "01a166d1-6d96-751a-8678-372fbdb638b8",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "accounting.account.view"
+          }
+        ]
+      }
+    },
+    {
+      "label": "vouchers",
+      "method": "GET",
+      "path": "/vouchers?limit=5",
+      "mode": "portal",
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "portal memberships cannot access staff endpoints",
+        "traceId": "01a166d1-709a-77e8-87ea-cea9732c4e56",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "treasury.view"
+          }
+        ]
+      }
+    },
+    {
+      "label": "si1-other",
+      "method": "GET",
+      "path": "/portal/invoices/01a16686-8440-779e-ae43-9ba79a2c3678",
+      "mode": "portal",
+      "status": 404,
+      "body": {
+        "type": "about:blank",
+        "title": "Not found",
+        "status": 404,
+        "code": "NOT_FOUND",
+        "detail": "Invoice was not found",
+        "traceId": "01a166d1-73a2-75fa-ae9f-953ef1867b2e"
+      }
+    },
+    {
+      "label": "si5-other",
+      "method": "GET",
+      "path": "/portal/invoices/01a16691-2c91-753a-be7f-8755a8a7a4d5",
+      "mode": "portal",
+      "status": 404,
+      "body": {
+        "type": "about:blank",
+        "title": "Not found",
+        "status": 404,
+        "code": "NOT_FOUND",
+        "detail": "Invoice was not found",
+        "traceId": "01a166d1-76b6-73af-9559-033e3526fb3b"
+      }
+    },
+    {
+      "label": "si1-print",
+      "method": "GET",
+      "path": "/portal/invoices/01a16686-8440-779e-ae43-9ba79a2c3678/print",
+      "mode": "portal",
+      "status": 404,
+      "body": {
+        "type": "about:blank",
+        "title": "Not found",
+        "status": 404,
+        "code": "NOT_FOUND",
+        "detail": "Invoice was not found",
+        "traceId": "01a166d1-79d3-76ea-8ad9-f80783ce9408"
+      }
+    },
+    {
+      "label": "si1-link",
+      "method": "GET",
+      "path": "/portal/invoices/01a16686-8440-779e-ae43-9ba79a2c3678/payment-link",
+      "mode": "portal",
+      "status": 404,
+      "body": {
+        "type": "about:blank",
+        "title": "Not found",
+        "status": 404,
+        "code": "NOT_FOUND",
+        "detail": "Invoice was not found",
+        "traceId": "01a166d1-7ce2-707c-b87e-3600271f5fef"
+      }
+    },
+    {
+      "label": "staff-portal-access",
+      "method": "GET",
+      "path": "/portal-access",
+      "mode": "portal",
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "portal memberships cannot access staff endpoints",
+        "traceId": "01a166d1-7ff0-77a9-ae7c-96a322a5b08f",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "parties.view"
+          }
+        ]
+      }
+    },
+    {
+      "label": "create-link-as-customer",
+      "method": "POST",
+      "path": "/payments/links",
+      "mode": "portal",
+      "request": {
+        "invoice_id": "01a1668f-e8c7-740d-910a-c5bdd0d31293",
+        "provider": "moyasar"
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "portal memberships cannot access staff endpoints",
+        "traceId": "01a166d1-82f4-75df-8510-498a2d7a0554",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "payments.links.manage"
+          }
+        ]
+      }
+    },
+    {
+      "label": "add-payment-as-customer",
+      "method": "POST",
+      "path": "/sales/invoices/01a1668f-e8c7-740d-910a-c5bdd0d31293/payments",
+      "mode": "portal",
+      "request": {
+        "method": "card",
+        "amount": "11.04"
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "portal memberships cannot access staff endpoints",
+        "traceId": "01a166d1-85b8-7089-879d-7ce8bbb96a43",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "sales.invoice.pay"
+          }
+        ]
+      }
+    }
+  ]
+}

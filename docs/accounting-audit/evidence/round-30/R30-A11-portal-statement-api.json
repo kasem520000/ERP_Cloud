@@ -1,0 +1,35 @@
+{
+  "lines": [
+    {
+      "day": "2026-10-23",
+      "doc_type": "receipt",
+      "number": "RV-000001",
+      "description": "سند قبض",
+      "debit": "0",
+      "credit": "20.0000",
+      "document_id": "01a16695-8fef-73a2-955a-d627f2cc6364",
+      "running": "-20.0000"
+    },
+    {
+      "day": "2026-10-23",
+      "doc_type": "invoice",
+      "number": "SI-000002",
+      "description": "فاتورة مبيعات",
+      "debit": "86.2500",
+      "credit": "0",
+      "document_id": "01a16687-da13-76dc-ba30-8cc8033b0bc7",
+      "running": "66.2500"
+    },
+    {
+      "day": "2026-10-23",
+      "doc_type": "invoice",
+      "number": "SI-000004",
+      "description": "فاتورة مبيعات",
+      "debit": "11.0400",
+      "credit": "0",
+      "document_id": "01a1668f-e8c7-740d-910a-c5bdd0d31293",
+      "running": "77.2900"
+    }
+  ],
+  "closing": "77.2900"
+}

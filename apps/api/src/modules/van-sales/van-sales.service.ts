@@ -1032,7 +1032,13 @@ export class VanSalesService {
     );
     const loadOrders = first(
       await tx.execute(sql`
-        SELECT COALESCE(SUM(l.loaded_qty), 0)::text AS loaded_kg,
+        SELECT COALESCE(SUM(
+                 CASE
+                   WHEN l.status IN ('rejected', 'cancelled', 'draft') THEN 0
+                   WHEN l.received_qty > 0 THEN l.received_qty
+                   ELSE l.loaded_qty
+                 END
+               ), 0)::text AS loaded_kg,
                COALESCE(SUM(l.sold_qty), 0)::text AS sold_kg,
                COALESCE(SUM(l.bonus_qty), 0)::text AS bonus_kg,
                COALESCE(SUM(l.returned_qty), 0)::text AS returned_kg,
@@ -1143,7 +1149,13 @@ export class VanSalesService {
       await tx.execute(sql`
         SELECT l.salesman_id::text,
                COALESCE(MAX(s.name), 'مندوب توزيع') AS salesman_name,
-               COALESCE(SUM(l.loaded_qty), 0)::text AS loaded_kg,
+               COALESCE(SUM(
+                 CASE
+                   WHEN l.status IN ('rejected', 'cancelled', 'draft') THEN 0
+                   WHEN l.received_qty > 0 THEN l.received_qty
+                   ELSE l.loaded_qty
+                 END
+               ), 0)::text AS loaded_kg,
                COALESCE(SUM(l.sold_qty), 0)::text AS sold_kg,
                COALESCE(SUM(l.bonus_qty), 0)::text AS bonus_kg,
                COALESCE(SUM(l.returned_qty), 0)::text AS returned_kg,
@@ -4775,7 +4787,7 @@ export class VanSalesService {
             description: `مبيعات توزيع — دفعة ${str(loadOrder.production_batch_no)} (${number})`,
             quantity: soldQty.toFixed(4),
             unitPrice: resolvedUnitPrice.toFixed(4),
-            discountAmount: discountAmount.toFixed(4),
+            discountAmount: '0.0000',
             taxRate: taxRate.toFixed(4),
             taxGroupId: itemTaxGroupId,
             batchNo: itemTrackLot ? str(loadOrder.production_batch_no) : undefined,
@@ -4818,6 +4830,7 @@ export class VanSalesService {
             cashCustomerName: !partyId ? body.customerName?.trim() || 'عميل توزيع' : undefined,
             kind: 'sale',
             lines: salesLines,
+            invoiceDiscount: discountAmount.gt(0) ? discountAmount.toFixed(4) : undefined,
           });
 
           /**
@@ -5179,12 +5192,20 @@ export class VanSalesService {
    * ACC-087 — قراءة أمر تحميل واحد بالمُعرّف.
    */
   async readLoadOrder(tenantId: string, id: string) {
-    const dash = await this.dashboard(tenantId);
-    const order = dash.loadOrders.find((o) => o.id === id);
-    if (!order) {
-      throw new DomainError('LOAD_ORDER_NOT_FOUND', 'أمر التحميل غير موجود', 404, { field: 'id', id });
-    }
-    return order;
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const order = first(
+        await tx.execute(sql`
+          SELECT l.*, COALESCE(s.name, 'مندوب') AS salesman_name
+          FROM van_load_orders l
+          LEFT JOIN salesmen s ON s.id = l.salesman_id
+          WHERE l.id = ${id}::uuid AND l.tenant_id = ${tenantId}::uuid AND l.deleted_at IS NULL
+        `),
+      );
+      if (!order) {
+        throw new DomainError('LOAD_ORDER_NOT_FOUND', 'أمر التحميل غير موجود', 404, { field: 'id', id });
+      }
+      return order;
+    });
   }
 
   /**
@@ -5806,6 +5827,27 @@ export class VanSalesService {
         }
       }
 
+      if (!isResume && shortageQty.gt(0) && vanWarehouseId && itemId) {
+        await this.inventory.recordInTx(
+          tx,
+          tenantId,
+          [
+            {
+              itemId,
+              warehouseId: vanWarehouseId,
+              qty: shortageQty.toFixed(4),
+              unitCost: batchUnitCost.toFixed(4),
+              direction: 'out',
+              docType: 'van_shortage_writeoff',
+              docId: loadOrderId,
+              lineId: newId(),
+              lotId: countLotId ?? undefined,
+            },
+          ],
+          { allowNegative: true },
+        );
+      }
+
       /**
        * 🧾 عجز العهدة المحمَّل على المندوب — الشريحة 4.
        *
@@ -5924,8 +5966,20 @@ export class VanSalesService {
               'van_shortage_charge',
             )
           : null;
+        const stockProfileForShortage = chargeBranchId
+          ? await this.resolvePostingProfileOrNullInTx(
+              tx,
+              tenantId,
+              chargeBranchId,
+              'stock_voucher',
+            )
+          : null;
         const chargeCreditAccountId =
-          chargeProfile?.shortageChargeAccountId ?? chargeProfile?.inventoryAdjustmentAccountId ?? null;
+          chargeProfile?.shortageChargeAccountId ??
+          chargeProfile?.inventoryAccountId ??
+          stockProfileForShortage?.inventoryAccountId ??
+          chargeProfile?.inventoryAdjustmentAccountId ??
+          null;
         if (!chargeBranchId || !chargeCreditAccountId) {
           throw new DomainError(
             'VAN_SHORTAGE_ACCOUNTS_INCOMPLETE',
@@ -7021,6 +7075,14 @@ export class VanSalesService {
       // فالمِلكيةُ تُفحص قبل أيّ رقم.
       await this.assertOwnsDocumentInTx(tx, tenantId, membershipId, doc, 'documentId');
 
+      if (str(doc.document_kind) === 'return') {
+        throw new DomainError(
+          errorCodes.VALIDATION_FAILED,
+          'لا يمكن تحصيل مردود مبيعات كفاتورة آجلة',
+          422,
+        );
+      }
+
       const docTotal = dec(doc.total);
       const currentPaid = dec(doc.paid_amount);
       const remainingDebt = Decimal.max(0, docTotal.minus(currentPaid));
@@ -7045,6 +7107,35 @@ export class VanSalesService {
       let linkedVoucherId: string | null = null;
       let voucherPosted = false;
 
+      let cashLocationId = body.cashLocationId?.trim();
+      const branchId = doc.branch_id
+        ? str(doc.branch_id)
+        : await this.resolveDefaultBranchIdInTx(tx, tenantId, null, null);
+      if (!cashLocationId && branchId) {
+        const defaultSafe = first(
+          await tx.execute(sql`
+            SELECT id::text FROM cash_locations
+            WHERE tenant_id = ${tenantId}::uuid
+              AND branch_id = ${branchId}::uuid
+              AND kind = 'safe'
+              AND deleted_at IS NULL
+            ORDER BY is_default DESC NULLS LAST, created_at ASC
+            LIMIT 1
+          `),
+        );
+        if (defaultSafe?.id) {
+          cashLocationId = str(defaultSafe.id);
+        }
+      }
+      if (!cashLocationId) {
+        throw new DomainError(
+          'CASH_LOCATION_REQUIRED',
+          'موقع النقد مطلوب لتسجيل سند القبض وترحيل التحصيل للأستاذ العام',
+          422,
+          { field: 'cashLocationId' },
+        );
+      }
+
       /**
        * سند القبض الرسمي — created *and posted* through `TreasuryService`, so the cash the
        * rep collected lands in the box balance and the ledger (Dr الصندوق / Cr ذمم العملاء)
@@ -7053,8 +7144,7 @@ export class VanSalesService {
        * The offsetting account is the customer receivable account from the branch posting
        * profile when the caller does not name one — never a hardcoded account.
        */
-      if (body.cashLocationId?.trim() && doc.branch_id) {
-        const branchId = str(doc.branch_id);
+      if (cashLocationId && branchId) {
         const profile = await this.resolvePostingProfileOrNullInTx(
           tx,
           tenantId,
@@ -7095,7 +7185,7 @@ export class VanSalesService {
           subtype: doc.party_id ? 'customer' : 'account',
           date: new Date().toISOString().slice(0, 10),
           method: 'cash',
-          cashLocationId: body.cashLocationId.trim(),
+          cashLocationId,
           partyId: doc.party_id ? str(doc.party_id) : undefined,
           salesmanId: employeeSalesmanId,
           counterAccountId: resolvedOffsetAccountId ?? undefined,
@@ -8020,7 +8110,7 @@ export class VanSalesService {
     const source = await withTenantTx(this.database.db, tenantId, async (tx) => {
       const doc = first(
         await tx.execute(sql`
-          SELECT d.id::text, d.number, d.document_kind, d.load_order_id::text, d.salesman_id::text,
+          SELECT d.id::text, d.number, d.document_kind, d.payment_method, d.load_order_id::text, d.salesman_id::text,
                  d.party_id::text, d.customer_name, d.item_id::text, d.sold_qty::text, d.bonus_qty::text,
                  d.unit_price::text, d.discount_amount::text, d.tax_rate::text, d.invoice_mode,
                  d.production_batch_no, d.sales_invoice_id::text, d.branch_id::text,
@@ -8066,7 +8156,7 @@ export class VanSalesService {
       return doc;
     });
 
-    return withTenantTx(this.database.db, tenantId, async (tx) => {
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
       const vanWarehouseId = source.van_warehouse_id
         ? str(source.van_warehouse_id)
         : source.warehouse_id
@@ -8205,7 +8295,7 @@ export class VanSalesService {
           ${source.customer_name ? str(source.customer_name) : null}, ${itemId}::uuid,
           ${str(source.invoice_mode)}, ${str(source.invoice_mode)},
           ${str(source.invoice_mode) === 'zatca_tax' ? 'standard_vat' : 'pending_tax_policy'},
-          'credit', CURRENT_DATE,
+          ${str(source.payment_method) === 'cash' ? 'cash' : 'credit'}, CURRENT_DATE,
           ${str(source.production_batch_no)}, ${str(source.production_batch_no)},
           ${returnedQty.toFixed(4)}::numeric, 0, ${unitPrice.toFixed(4)}::numeric,
           ${returnTotal.toFixed(4)}::numeric,
@@ -8224,8 +8314,7 @@ export class VanSalesService {
         const cashDeduction = isCashSale ? returnGrossTotal : new Decimal(0);
         await tx.execute(sql`
           UPDATE van_load_orders
-          SET returned_qty = returned_qty + ${returnedQty.toFixed(4)}::numeric,
-              expected_cash = GREATEST(0, expected_cash - ${cashDeduction.toFixed(4)}::numeric),
+          SET expected_cash = GREATEST(0, expected_cash - ${cashDeduction.toFixed(4)}::numeric),
               updated_at = now()
           WHERE id = ${str(source.load_order_id)}::uuid AND tenant_id = ${tenantId}::uuid
         `);
@@ -8247,9 +8336,9 @@ export class VanSalesService {
           ${userId}::uuid
         )
       `);
-
-      return this.dashboard(tenantId);
     });
+
+    return this.dashboard(tenantId);
   }
 
   /**

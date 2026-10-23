@@ -217,8 +217,13 @@ export class PortalService {
       const openBalance = rowsOf(
         await tx.execute(sql`
           SELECT coalesce(sum(jel.debit - jel.credit), 0)::text AS balance
-            FROM journal_entry_lines jel JOIN journal_entries je ON je.id = jel.entry_id
-           WHERE jel.tenant_id = ${tenantId} AND jel.party_id = ${account.partyId} AND je.status = 'posted'
+            FROM journal_entry_lines jel
+            JOIN journal_entries je ON je.id = jel.entry_id
+            JOIN accounts a ON a.id = jel.account_id
+           WHERE jel.tenant_id = ${tenantId}
+             AND jel.party_id = ${account.partyId}
+             AND je.status = 'posted'
+             AND (a.type = 'receivable' OR a.subtype = 'receivable' OR a.code LIKE '1201%' OR a.code LIKE '1231%')
         `),
       )[0];
       return {
@@ -349,12 +354,14 @@ export class PortalService {
         await tx.execute(sql`
           WITH movements AS (
             SELECT coalesce(si.posted_at, si.created_at)::date AS day,
-                   CASE si.kind WHEN 'return' THEN 'return' ELSE 'invoice' END AS doc_type,
+                   CASE WHEN si.kind IN ('return', 'sale_return') THEN 'return' ELSE 'invoice' END AS doc_type,
                    coalesce(si.number, '—') AS number,
-                   CASE si.kind WHEN 'return' THEN 'مردود مبيعات' ELSE 'فاتورة مبيعات' END AS description,
-                   CASE WHEN si.kind = 'return' THEN 0 ELSE si.total END AS debit,
-                   CASE WHEN si.kind = 'return' THEN si.total ELSE 0 END AS credit,
-                   si.id AS document_id
+                   CASE WHEN si.kind IN ('return', 'sale_return') THEN 'مردود مبيعات' ELSE 'فاتورة مبيعات' END AS description,
+                   CASE WHEN si.kind IN ('return', 'sale_return') THEN 0 ELSE si.total END AS debit,
+                   CASE WHEN si.kind IN ('return', 'sale_return') THEN si.total ELSE 0 END AS credit,
+                   si.id AS document_id,
+                   coalesce(si.posted_at, si.created_at) AS created_at,
+                   1 AS type_order
               FROM sales_invoices si
              WHERE si.tenant_id = ${tenantId} AND si.party_id = ${account.partyId} AND si.status = 'posted'
             UNION ALL
@@ -364,16 +371,18 @@ export class PortalService {
                    CASE v.kind WHEN 'receipt' THEN 'سند قبض' ELSE 'سند صرف' END AS description,
                    CASE WHEN v.kind = 'receipt' THEN 0 ELSE v.amount END AS debit,
                    CASE WHEN v.kind = 'receipt' THEN v.amount ELSE 0 END AS credit,
-                   v.id AS document_id
+                   v.id AS document_id,
+                   coalesce(v.posted_at, v.created_at, v.date::timestamp) AS created_at,
+                   2 AS type_order
               FROM vouchers v
              WHERE v.tenant_id = ${tenantId} AND v.party_id = ${account.partyId} AND v.status = 'posted'
           )
           SELECT day::text AS day, doc_type, number, description, debit::text, credit::text, document_id,
-                 sum(debit - credit) OVER (ORDER BY day, number ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)::text AS running
+                 sum(debit - credit) OVER (ORDER BY day, type_order, created_at, number ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)::text AS running
             FROM movements
            WHERE (${filters.from ?? null}::date IS NULL OR day >= ${filters.from ?? null}::date)
              AND (${filters.to ?? null}::date IS NULL OR day <= ${filters.to ?? null}::date)
-           ORDER BY day, number
+           ORDER BY day, type_order, created_at, number
            LIMIT 2000
         `),
       );

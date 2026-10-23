@@ -1184,7 +1184,7 @@ export default function RepAppPage() {
                         </p>
                       ) : null}
                       <div className="rep-row-actions">
-                        {canClose && row.status === 'loaded' ? (
+                        {canClose && (row.status === 'loaded' || row.status === 'in_route') ? (
                           <button
                             type="button"
                             className="rep-btn"

@@ -1,0 +1,21 @@
+{
+  "companyName": "AUDIT-TEST-2026-R24",
+  "invoice": {
+    "id": "01a1668f-e8c7-740d-910a-c5bdd0d31293",
+    "number": "SI-000004",
+    "currency": "SAR",
+    "total": "11.0400",
+    "paidTotal": "0.0000",
+    "remaining": "11.0400",
+    "paymentStatus": "unpaid"
+  },
+  "link": {
+    "id": "01a166d9-9943-71e8-aa9f-0489c83a0899",
+    "provider": "moyasar",
+    "amount": "11.0400",
+    "currency": "SAR",
+    "url": "https://pay.simulation.local/moyasar/sim_moyasar_01a166d9994371e8",
+    "status": "pending",
+    "paidAt": null
+  }
+}
