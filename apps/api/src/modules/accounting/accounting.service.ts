@@ -330,6 +330,7 @@ const ENTRY_TYPE_LABELS: Record<string, string> = {
   return_sale: 'مرتجع مبيعات',
   return_purchase: 'مرتجع مشتريات',
   contract_invoice: 'قيد فاتورة عقد',
+  negative_stock_correction: 'تصحيح تكلفة مخزون سالب',
 };
 
 /**

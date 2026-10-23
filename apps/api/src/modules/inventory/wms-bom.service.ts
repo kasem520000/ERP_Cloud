@@ -158,6 +158,9 @@ function recipeOf(value: unknown): RecipeLine[] {
       componentItemId: row.componentItemId,
       qty: String(row.qty),
       scrapPercent: String(row.scrapPercent ?? '0'),
+      // ACC-129 (R33): the cost frozen at order creation must survive the round trip — this
+      // reader used to drop it, so `withPlans` fell back to the live average every time.
+      unitCost: row.unitCost === undefined || row.unitCost === null ? undefined : String(row.unitCost),
     };
   });
 }
@@ -274,12 +277,24 @@ export class WmsBomService {
     );
   }
 
+  /**
+   * ACC-130 (R33 — P-M12): a bin is a *location inside* a warehouse. Put-away (`receive`), picking
+   * (`issue`) and a bin count redistribute the warehouse quantity among its bins; they never create,
+   * destroy or revalue stock, so they write no `inventory_transactions` and owe no journal. Before
+   * R33 each of them recorded a real stock movement (receive = `in`, issue = `out`, count = the
+   * delta) with no document and no ledger entry: putting 1 unit of a 2-unit stock on a shelf made
+   * the warehouse hold 3, and the trial balance drifted from the stock valuation for good.
+   * A physical difference found while counting a bin is reported as `variance` and is settled
+   * through a stock adjustment document (`POST /inventory/adjustments` → post), which carries the
+   * journal. The client's `unitCost` is ignored entirely (ACC-131).
+   */
   receive(tenantId: string, binId: string, input: BinMoveInput) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const bin = await this.lockBin(tx, tenantId, binId);
       const lotId = await this.prepareItem(tx, tenantId, input.itemId, input.lotId);
-
-      // ACC-130: التحقق من أن كمية استلام الرف لا تتجاوز الرصيد المتاح في المستودع
+      const qty = new Decimal(input.qty);
+      if (!qty.isFinite() || qty.lte(0)) throw new DomainError('BIN_QUANTITY_INVALID', 'Quantity must be positive', 422);
+      // ACC-130: what can still be put away = warehouse stock − what already sits in this warehouse's bins
       const [stockBal] = await tx
         .select({ quantity: stockBalances.quantity })
         .from(stockBalances)
@@ -290,33 +305,19 @@ export class WmsBomService {
             eq(stockBalances.warehouseId, bin.warehouseId),
           ),
         );
-      const totalWarehouseStock = new Decimal(stockBal?.quantity ?? '0');
-      if (new Decimal(input.qty).gt(totalWarehouseStock)) {
+      const warehouseStock = new Decimal(stockBal?.quantity ?? '0');
+      const binned = await this.binnedTotal(tx, tenantId, bin.warehouseId, input.itemId);
+      const available = Decimal.max(0, warehouseStock.minus(binned));
+      if (qty.gt(available)) {
         throw new DomainError(
           'BIN_RECEIVE_EXCEEDS_STOCK',
-          `Cannot receive ${input.qty} into bin; only ${totalWarehouseStock.toFixed(4)} available in warehouse`,
+          `Cannot receive ${qty.toFixed(4)} into bin; warehouse holds ${warehouseStock.toFixed(4)}, ${binned.toFixed(4)} already on bins, ${available.toFixed(4)} available`,
           422,
+          { warehouseStock: warehouseStock.toFixed(4), binned: binned.toFixed(4), available: available.toFixed(4) },
         );
       }
-
       const rows = await this.quantities(tx, tenantId, [bin.id]);
-      const next = asDomain(() => applyBinReceipt(rows, bin, { itemId: input.itemId, lotId, qty: input.qty }));
-      // ACC-131: استخدام متوسط تكلفة المستودع بدلاً من الثقة بتكلفة الوحدة المرسلة من العميل
-      const avgCost = await this.lookupAverage(tx, tenantId, bin.warehouseId, input.itemId);
-      const unitCost = avgCost !== '0' ? avgCost : (moneyText(input.unitCost) ?? '0');
-      await this.inventory.recordInTx(tx, tenantId, [
-        {
-          itemId: input.itemId,
-          warehouseId: bin.warehouseId,
-          qty: new Decimal(input.qty).toFixed(4),
-          unitCost,
-          lotId: lotId ?? undefined,
-          direction: 'in',
-          docType: 'bin_receipt',
-          docId: bin.id,
-          lineId: newId(),
-        },
-      ]);
+      const next = asDomain(() => applyBinReceipt(rows, bin, { itemId: input.itemId, lotId, qty: qty.toFixed(4) }));
       await this.persistQty(tx, tenantId, bin.id, input.itemId, lotId, qtyOf(next, bin.id, input.itemId, lotId));
       return this.balanceView(tx, tenantId, bin.id, input.itemId, lotId);
     });
@@ -326,20 +327,10 @@ export class WmsBomService {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const bin = await this.lockBin(tx, tenantId, binId);
       const lotId = await this.prepareItem(tx, tenantId, input.itemId, input.lotId);
+      const qty = new Decimal(input.qty);
+      if (!qty.isFinite() || qty.lte(0)) throw new DomainError('BIN_QUANTITY_INVALID', 'Quantity must be positive', 422);
       const rows = await this.quantities(tx, tenantId, [bin.id]);
-      const next = asDomain(() => applyBinIssue(rows, bin, { itemId: input.itemId, lotId, qty: input.qty }));
-      await this.inventory.recordInTx(tx, tenantId, [
-        {
-          itemId: input.itemId,
-          warehouseId: bin.warehouseId,
-          qty: new Decimal(input.qty).toFixed(4),
-          lotId: lotId ?? undefined,
-          direction: 'out',
-          docType: 'bin_issue',
-          docId: bin.id,
-          lineId: newId(),
-        },
-      ]);
+      const next = asDomain(() => applyBinIssue(rows, bin, { itemId: input.itemId, lotId, qty: qty.toFixed(4) }));
       await this.persistQty(tx, tenantId, bin.id, input.itemId, lotId, qtyOf(next, bin.id, input.itemId, lotId));
       return this.balanceView(tx, tenantId, bin.id, input.itemId, lotId);
     });
@@ -377,40 +368,17 @@ export class WmsBomService {
       const rows = await this.quantities(tx, tenantId, [bin.id]);
       const counted = asDomain(() => applyBinCount(rows, bin, { itemId: input.itemId, lotId, countedQty: input.countedQty }));
       const delta = new Decimal(counted.delta);
-      if (delta.gt(0)) {
-        const unitCost = moneyText(input.unitCost) ?? (await this.lookupAverage(tx, tenantId, bin.warehouseId, input.itemId));
-        await this.inventory.recordInTx(tx, tenantId, [
-          {
-            itemId: input.itemId,
-            warehouseId: bin.warehouseId,
-            qty: delta.toFixed(4),
-            unitCost,
-            lotId: lotId ?? undefined,
-            direction: 'in',
-            docType: 'bin_count',
-            docId: bin.id,
-            lineId: newId(),
-          },
-        ]);
-      } else if (delta.lt(0)) {
-        await this.inventory.recordInTx(tx, tenantId, [
-          {
-            itemId: input.itemId,
-            warehouseId: bin.warehouseId,
-            qty: delta.abs().toFixed(4),
-            lotId: lotId ?? undefined,
-            direction: 'out',
-            docType: 'bin_count',
-            docId: bin.id,
-            lineId: newId(),
-          },
-        ]);
-      }
+      // ACC-130: the bin takes the counted figure; the warehouse balance and the ledger are untouched.
+      // A real shortage/surplus is settled by a posted stock adjustment, which is the document that owes the journal.
       await this.persistQty(tx, tenantId, bin.id, input.itemId, lotId, qtyOf(counted.rows, bin.id, input.itemId, lotId));
-      return this.balanceView(tx, tenantId, bin.id, input.itemId, lotId);
+      const view = await this.balanceView(tx, tenantId, bin.id, input.itemId, lotId);
+      return {
+        ...view,
+        variance: delta.toFixed(4),
+        settlement: delta.isZero() ? null : 'inventory.adjustments',
+      };
     });
   }
-
   listBoms(tenantId: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const cards = await tx.select().from(boms).where(eq(boms.tenantId, tenantId)).orderBy(desc(boms.createdAt)).limit(200);
@@ -887,6 +855,16 @@ export class WmsBomService {
     return item?.purchasePrice ?? '0.0000';
   }
 
+  /** Σ bin_balances of an item across every bin of the warehouse (all lots). */
+  private async binnedTotal(tx: DrizzleTx, tenantId: string, warehouseId: string, itemId: string) {
+    const [row] = rowsOf<{ total: string | null }>(await tx.execute(sql`
+      SELECT coalesce(sum(bb.quantity), 0)::text AS total
+      FROM bin_balances bb
+      JOIN warehouse_bins wb ON wb.id = bb.bin_id
+      WHERE bb.tenant_id = ${tenantId}::uuid AND wb.warehouse_id = ${warehouseId}::uuid AND bb.item_id = ${itemId}::uuid
+    `));
+    return new Decimal(row?.total ?? '0');
+  }
   private async quantities(tx: DrizzleTx, tenantId: string, binIds: string[]) {
     const rows = await tx
       .select({

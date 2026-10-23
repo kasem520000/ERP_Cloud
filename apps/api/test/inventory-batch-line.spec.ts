@@ -291,7 +291,7 @@ describe('Batch on the stock document line', () => {
         qty: '5',
         unitCost: '20',
         batchNo: 'B-SOON',
-        expiryDate: '2026-10-01',
+        expiryDate: '2027-10-01',
       },
     ]);
     expect(soon.status).toBe(201);
@@ -302,7 +302,7 @@ describe('Batch on the stock document line', () => {
     expect(report.status).toBe(200);
     const row = rows(report.body).find((entry) => entry.lotNo === 'B-SOON');
     expect(row).toBeTruthy();
-    expect(row?.expiryDate).toBe('2026-10-01');
+    expect(row?.expiryDate).toBe('2027-10-01');
     expect(row?.itemId).toBe(trackedId);
   });
 

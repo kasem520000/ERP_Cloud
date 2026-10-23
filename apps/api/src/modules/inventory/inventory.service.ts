@@ -323,10 +323,26 @@ export class InventoryService {
       }
       // القيمة تتحرّك بالتكلفة نفسها التي تُكتب في الحركة (`unitCost`) لا بمتوسطٍ آخر —
       // وإلا اختلف رصيد المخزون عن مجموع حركاته (كما كان يحدث في عكس الإدخال قبل R3).
-      const nextValue =
+      const naiveValue =
         line.direction === 'in'
           ? currentValue.plus(baseQuantity.mul(unitCost))
           : currentValue.minus(baseQuantity.mul(unitCost));
+      /**
+       * ACC-116 (R33 — P-M14): a receipt that lands on a *negative* balance first fills the hole.
+       * The owed units already left at a provisional average (|value| / |qty|); the receipt tells
+       * their real cost, so the balance is rebuilt — units above zero at the receipt cost, units
+       * still owed at the provisional average, exactly zero when the hole is just filled — and the
+       * difference between «value + receipt cost» and that rebuilt value is a cost correction, not
+       * stock. Before R33 it stayed on the balance as a ghost value at quantity 0 (DB-020: 0 units
+       * worth 4.4463) and then leaked into the average of the next receipt.
+       */
+      let nextValue = naiveValue;
+      let costCorrection = new Decimal(0);
+      if (line.direction === 'in' && currentQty.lt(0)) {
+        const provisional = currentValue.div(currentQty); // both negative → the average the owed units were costed at
+        nextValue = nextQty.gt(0) ? nextQty.mul(unitCost) : nextQty.lt(0) ? nextQty.mul(provisional) : new Decimal(0);
+        costCorrection = naiveValue.minus(nextValue);
+      }
       const averageCost = nextQty.isZero() ? '0.0000' : nextValue.div(nextQty).toFixed(4);
       const id = newId();
 
@@ -349,7 +365,11 @@ export class InventoryService {
         costing: line.costing ?? (line.direction === 'in' ? 'inWithCost' : 'outAtAvg'),
         lotId: line.lotId,
         serialId: line.serialId,
+        metadata: costCorrection.abs().gt(0)
+          ? { negativeStockCorrection: costCorrection.toFixed(4), provisionalCost: currentValue.div(currentQty).toFixed(4), owedQty: currentQty.abs().toFixed(4) }
+          : undefined,
       });
+      if (costCorrection.abs().gte(0.0001)) await this.postNegativeStockCorrection(tx, tenantId, line, id, costCorrection);
       await tx
         .update(stockBalances)
         .set({
@@ -723,6 +743,18 @@ export class InventoryService {
     ]);
   }
 
+  /** ACC-071 (P-M13): refuse to register a batch whose expiry date is already in the past. */
+  private assertLotNotExpiredOnEntry(lotNo: string, expiryDate: string | null | undefined): void {
+    if (!expiryDate) return;
+    const today = new Date().toISOString().slice(0, 10);
+    if (expiryDate < today)
+      throw new DomainError(
+        'LOT_EXPIRED',
+        `الدفعة ${lotNo} منتهية الصلاحية منذ ${expiryDate} — لا تُسجَّل دفعة منتهية`,
+        422,
+        { field: 'expiryDate', expiryDate, lotNo },
+      );
+  }
   async createLot(
     tenantId: string,
     input: {
@@ -733,6 +765,9 @@ export class InventoryService {
       receivedAt?: string;
     },
   ) {
+    // ACC-071 (R33 — P-M13): a lot whose expiry date is already past is never registered —
+    // neither here nor from a document line (see resolveUploadedLots).
+    this.assertLotNotExpiredOnEntry(input.lotNo, input.expiryDate ?? null);
     const [lot] = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
         .insert(itemLots)
@@ -1196,7 +1231,7 @@ export class InventoryService {
         throw new DomainError('TRANSFER_INVALID_STATE', 'Only draft transfers can be sent', 409);
       if (!transfer.lines.length)
         throw new DomainError('INVENTORY_LINES_REQUIRED', 'A transfer needs at least one line', 422);
-      const allowNegative = options.allowNegative === true && this.canOverrideNegative();
+      const allowNegative = await this.resolveNegativeOverride(tx, tenantId, options.allowNegative);
       const branchId =
         transfer.branchId ??
         (
@@ -2013,6 +2048,43 @@ export class InventoryService {
   // journal inside one transaction.
   // ─────────────────────────────────────────────────────────────────────────────
 
+  /**
+   * ACC-115 (R33 — P-M11): the tenant policy `allow_negative_stock` governs; the per-document
+   * «السماح بالصرف تحت الصفر» flag is an *exception within* the policy, not a way around it.
+   *   • setting `false` (explicit) → the override is refused with 422 `NEGATIVE_STOCK_FORBIDDEN_BY_POLICY`
+   *     even for a holder of `inventory.negative.override`;
+   *   • setting absent → legacy behaviour: the permission decides;
+   *   • setting `true` → `recordInTx` already lets every issuing document go below zero.
+   * Internal mirrors (voids, transfer close/cancel) call `recordInTx` directly with `allowNegative: true`
+   * and are not routed through here — they only undo quantities that were moved before.
+   */
+  private async negativeStockPolicy(tx: DrizzleTx, tenantId: string): Promise<'allow' | 'forbid' | 'unset'> {
+    const rows = rowsOf<{ value: unknown }>(
+      await tx.execute(sql`
+        SELECT value FROM tenant_settings
+        WHERE tenant_id = ${tenantId}::uuid AND key IN ('allow_negative_stock', 'inventory.allow_negative_stock')
+        LIMIT 1
+      `),
+    );
+    if (!rows.length) return 'unset';
+    const val = rows[0]?.value;
+    if (val === true || val === 'true' || val === 1 || val === '1') return 'allow';
+    if (val === false || val === 'false' || val === 0 || val === '0') return 'forbid';
+    return 'unset';
+  }
+
+  private async resolveNegativeOverride(tx: DrizzleTx, tenantId: string, requested: boolean | undefined): Promise<boolean> {
+    if (requested !== true || !this.canOverrideNegative()) return false;
+    if ((await this.negativeStockPolicy(tx, tenantId)) === 'forbid')
+      throw new DomainError(
+        'NEGATIVE_STOCK_FORBIDDEN_BY_POLICY',
+        'سياسة المنشأة لا تسمح بالمخزون السالب (allow_negative_stock = false) — خيار «السماح بالصرف تحت الصفر» لا يتجاوزها',
+        422,
+        { setting: 'allow_negative_stock' },
+      );
+    return true;
+  }
+
   private canOverrideNegative(): boolean {
     const permissions = getRequestContext().tenant?.permissions ?? [];
     return permissions.includes('*') || permissions.includes('inventory.negative.override');
@@ -2030,6 +2102,55 @@ export class InventoryService {
   }
 
   /** Resolves the branch posting profile and refuses to invent any account. */
+  /**
+   * ACC-116 (P-M14): the GL side of the negative-stock cost correction computed in `recordInTx`.
+   * The document that received the goods debits inventory by its own cost; the balance moved by
+   * that cost minus the correction, so the gap is booked here, in the same transaction, between
+   * the inventory account and cost of sales (where the provisional cost of the owed units went).
+   * `correction < 0` ⇒ the owed units were cheaper than provisionally charged ⇒ Dr inventory / Cr COGS.
+   */
+  private async postNegativeStockCorrection(
+    tx: DrizzleTx,
+    tenantId: string,
+    line: InventoryLine,
+    transactionId: string,
+    correction: Decimal,
+  ): Promise<void> {
+    const [wh] = await tx
+      .select({ branchId: warehouses.branchId })
+      .from(warehouses)
+      .where(and(eq(warehouses.tenantId, tenantId), eq(warehouses.id, line.warehouseId)));
+    if (!wh?.branchId) return;
+    const profile = await this.profiles.resolvePostProfileInTx(tx, tenantId, wh.branchId, 'stock_voucher');
+    const mapping = profile.mapping as unknown as Record<string, string | null | undefined>;
+    const inventoryAccount = mapping.inventoryAccountId;
+    const counterAccount = mapping.cogsAccountId ?? mapping.inventoryAdjustmentAccountId;
+    if (!inventoryAccount || !counterAccount)
+      throw new DomainError(
+        'INVENTORY_PROFILE_KEY_MISSING',
+        'Posting profile needs inventoryAccountId and cogsAccountId to book the negative-stock cost correction',
+        422,
+        { field: 'cogsAccountId' },
+      );
+    const today = new Date().toISOString().slice(0, 10);
+    const fiscalPeriodId = await this.accounting.openPeriodForDateInTx(tx, tenantId, today);
+    const amount = correction.abs().toFixed(4);
+    const inventoryGains = correction.lt(0); // stock value rose by more than the receipt cost
+    await this.accounting.postJournalInTx(tx, tenantId, {
+      branchId: wh.branchId,
+      fiscalPeriodId,
+      date: today,
+      description: `تصحيح تكلفة مخزون سالب — ${line.docType} (${line.docId})`,
+      lines: [
+        { accountId: inventoryAccount, debit: inventoryGains ? amount : '0.0000', credit: inventoryGains ? '0.0000' : amount },
+        { accountId: counterAccount, debit: inventoryGains ? '0.0000' : amount, credit: inventoryGains ? amount : '0.0000' },
+      ],
+      sourceType: 'negative_stock_correction',
+      sourceId: line.docId,
+      idempotencyKey: `neg-stock:${transactionId}`,
+    });
+  }
+
   private async profileAccount(
     tx: DrizzleTx,
     tenantId: string,
@@ -2190,6 +2311,8 @@ export class InventoryService {
               { field: 'batchNo', batchNo, itemId: line.itemId },
             );
           }
+          // ACC-071 (R33 — P-M13): a document line may name a new batch, but not an already expired one
+          this.assertLotNotExpiredOnEntry(batchNo, expiryDate);
           const [created] = await tx
             .insert(itemLots)
             .values({
@@ -2221,6 +2344,17 @@ export class InventoryService {
           `الدفعة ${lot.lotNo} منتهية الصلاحية (${effectiveExpiry}) — لا يمكن صرفها أو بيعها`,
           422,
           { field: 'expiryDate', expiryDate: effectiveExpiry, lotNo: lot.lotNo },
+        );
+      }
+      // ACC-071 (R33 — P-M13): expired goods are not *received* into stock either (purchases, stock-in
+      // vouchers). Customer returns, transfers and counts stay open so expired stock can still be
+      // brought back, moved to quarantine and written off.
+      if ((mode === 'receipt' || mode === 'receive') && effectiveExpiry && effectiveExpiry < today) {
+        throw new DomainError(
+          'LOT_EXPIRED',
+          `الدفعة ${lot.lotNo} منتهية الصلاحية (${effectiveExpiry}) — لا تُستلم بضاعة منتهية إلى المخزون`,
+          422,
+          { field: 'expiryDate', expiryDate: effectiveExpiry, lotNo: lot.lotNo, mode },
         );
       }
 
@@ -2877,10 +3011,19 @@ export class InventoryService {
         );
       const avgCostByItem = new Map(balances.map((b) => [b.itemId, b.averageCost]));
 
-      // For stock_out vouchers, lines are issued at moving-average cost determined at posting time.
-      // Draft issue vouchers have zero totalCost until posted, consistent with lineCost = 0.
+      // UI-021 / UI-042 (R33): a stock_out draft is valued *indicatively* at the warehouse's current
+      // moving average — never at the item card's purchase price — so what the operator reviews
+      // before posting is the same figure the posting will use (posting re-reads the average and
+      // overwrites unitCost / lineCost / totalCost with what actually left). No average yet → blank.
+      const indicativeOutCost = (itemId: string): string | null => {
+        const avg = avgCostByItem.get(itemId);
+        return avg && Number(avg) > 0 ? avg : null;
+      };
       const draftTotalCost = input.kind === 'stock_out'
-        ? new Decimal(0)
+        ? input.lines.reduce((sum, line) => {
+            const avg = indicativeOutCost(line.itemId);
+            return avg ? sum.plus(new Decimal(line.qty || 0).mul(avg)) : sum;
+          }, new Decimal(0))
         : input.lines.reduce((sum, line) => {
             const fallbackPrice = catalogue.get(line.itemId)?.purchasePrice ?? '0';
             const unitCost = new Decimal(line.unitCost ?? fallbackPrice ?? 0);
@@ -2920,11 +3063,10 @@ export class InventoryService {
       await tx.insert(stockVoucherLines).values(
         input.lines.map((line, index) => {
           const lot = lots.get(index);
-          const itemAvg = avgCostByItem.get(line.itemId);
-          const fallbackPrice = (input.kind === 'stock_out' && itemAvg && Number(itemAvg) > 0)
-            ? itemAvg
-            : (catalogue.get(line.itemId)?.purchasePrice ?? null);
-          const resolvedUnitCost = line.unitCost ?? (input.kind !== 'stock_out' ? fallbackPrice : null);
+          const resolvedUnitCost =
+            input.kind === 'stock_out'
+              ? indicativeOutCost(line.itemId)
+              : (line.unitCost ?? catalogue.get(line.itemId)?.purchasePrice ?? null);
           const lineCost =
             resolvedUnitCost !== null && resolvedUnitCost !== undefined
               ? new Decimal(line.qty || 0).mul(new Decimal(resolvedUnitCost || 0)).toFixed(4)
@@ -3043,7 +3185,7 @@ export class InventoryService {
         (await this.accounting.openPeriodForDateInTx(tx, tenantId, voucher.voucherDate));
       await this.accounting.assertModuleUnlocked(tx, tenantId, resolvedFiscalPeriodId, 'inventory');
 
-      const allowNegative = options.allowNegative === true && this.canOverrideNegative();
+      const allowNegative = await this.resolveNegativeOverride(tx, tenantId, options.allowNegative);
 
       const catalogue = await this.assertStockable(tx, tenantId, voucher.lines);
       const direction = voucher.kind === 'stock_out' ? 'out' : 'in';
@@ -3443,7 +3585,7 @@ export class InventoryService {
           422,
           { field: 'approved' },
         );
-      const allowNegative = options.allowNegative === true && this.canOverrideNegative();
+      const allowNegative = await this.resolveNegativeOverride(tx, tenantId, options.allowNegative);
 
       const catalogue = await this.assertStockable(tx, tenantId, adjustment.lines);
       const balances = await tx

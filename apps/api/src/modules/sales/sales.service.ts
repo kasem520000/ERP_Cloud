@@ -2391,7 +2391,12 @@ export class SalesService {
     // ACC-063: اشتقاق حصة خصم الفاتورة لكل سطر مرتجع بنسبة القيمة
     let returnInvoiceDiscount = input.invoiceDiscount;
     if (returnInvoiceDiscount === undefined && source.invoiceDiscount && money(source.invoiceDiscount).gt(0)) {
-      const sourceSubtotal = money(source.subtotal ?? '0');
+      // R33 (ACC-063 follow-up): `sales_invoices.subtotal` is stored *net of* the header discount
+      // (the posting code rebuilds the gross as `subtotal + invoiceDiscount`), so the share of the
+      // header discount must be prorated against the pre-discount line total — otherwise a return of
+      // one of two 18.00 lines under a 2.00 header discount got 2 × 18 / 34 = 1.0588 instead of 1.00,
+      // and returning the whole invoice would have carried 2.1176 of a 2.00 discount.
+      const sourceSubtotal = money(source.subtotal ?? '0').plus(money(source.invoiceDiscount));
       if (sourceSubtotal.gt(0)) {
         const returnLinesNet = input.lines.reduce((sum, line) => {
           const qty = money(line.quantity ?? '0');
