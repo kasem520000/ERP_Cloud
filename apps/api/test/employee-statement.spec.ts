@@ -237,7 +237,13 @@ describe('كشف حساب موظف — frmEmpAccountGet', () => {
     expect(run.status).toBe(201);
     const periods = rows((await get('/fiscal-periods')).body);
     const period = periods.find((row) => row.status === 'open' && String(row.startDate ?? '').startsWith(month));
-    const accrual = '20000';
+    // الراتب المستحق = صافي المسيّر نفسه كما خُزِّن في معاينته (حارس `PAYROLL_JOURNAL_AMOUNT_MISMATCH`
+    // يرفض سطوراً صريحة بمبلغ مختلف) — لا رقمٌ مكتوب في الاختبار.
+    const storedRun = data((await get(`/hrm/payroll/runs/${data(run.body).id}`)).body) as {
+      summary?: { preview?: { netPayable?: string } };
+    };
+    const accrual = String(storedRun.summary?.preview?.netPayable ?? '');
+    expect(Number(accrual), 'the run carries its net payable').toBeGreaterThan(0);
     // الراتب المستحق: مدين «راتب أساسي»، دائن حساب الموظف — الجانب الآخر من الحساب.
     const posted = await post(`/hrm/payroll/runs/${data(run.body).id}/post`, {
       branchId,
@@ -247,15 +253,20 @@ describe('كشف حساب موظف — frmEmpAccountGet', () => {
         { accountId: employeeAccountId, debit: '0', credit: accrual },
       ],
     });
-    expect([200, 201]).toContain(posted.status);
+    expect([200, 201], JSON.stringify(posted.body)).toContain(posted.status);
 
     const shown = data((await statement(`employee_id=${employeeId}`)).body);
     const creditRow = rows(shown.rows).find((row) => Number(row.credit) > 0);
-    expect(money(creditRow?.credit)).toBe('20000.0000');
+    expect(money(creditRow?.credit)).toBe(money(accrual));
     // `UpdateSummary` — الفرق يقف على جانبٍ واحد، ولا يظهر على الجانبين معاً.
     expect(Number(shown.summary.balanceDebit) * Number(shown.summary.balanceCredit)).toBe(0);
     expect(Number(shown.summary.totalCredit)).toBeCloseTo(Number(accrual), 2);
-    expect(Number(shown.summary.balanceCredit)).toBeCloseTo(Number(accrual) - Number(shown.summary.totalDebit), 2);
+    // الرصيد الصافي (مدين − دائن) = مجموع المدين − مجموع الدائن أياً كان الجانب الذي وقف عليه
+    // (هنا السلفة 500 + صرف الراتب بالصافي مديناً مقابل الاستحقاق بالصافي دائناً ⇒ 500 مدين).
+    expect(Number(shown.summary.balanceDebit) - Number(shown.summary.balanceCredit)).toBeCloseTo(
+      Number(shown.summary.totalDebit) - Number(shown.summary.totalCredit),
+      2,
+    );
   });
 
   it('الفترة — «فترة كاملة» مقابل «من»/«إلى»، واليوم الأخير داخلها', async () => {

@@ -51,11 +51,13 @@ describe('AUD-10 — ترحيل وصرف مسيّر الرواتب: معاملة
       return (result.rows[0] as { total: number }).total;
     });
 
+  // ACC-170 (R33): the pay step issues ONE posted payment voucher PER employee, keyed
+  // `payroll:<runId>:<employeeId>` — the fixture has a single employee, so exactly one voucher.
   const voucherCount = (idempotencyKey: string) =>
     withOwnerClient(ctx.db.ownerUrl, async (client) => {
       const result = await client.query(
-        `SELECT count(*)::int AS total FROM vouchers WHERE tenant_id = $1 AND idempotency_key = $2`,
-        [actor.tenantId, idempotencyKey],
+        `SELECT count(*)::int AS total FROM vouchers WHERE tenant_id = $1 AND idempotency_key LIKE $2`,
+        [actor.tenantId, `${idempotencyKey}%`],
       );
       return (result.rows[0] as { total: number }).total;
     });
@@ -63,8 +65,8 @@ describe('AUD-10 — ترحيل وصرف مسيّر الرواتب: معاملة
   const voucherRow = (idempotencyKey: string) =>
     withOwnerClient(ctx.db.ownerUrl, async (client) => {
       const result = await client.query(
-        `SELECT v.id, v.status, v.journal_entry_id, v.number FROM vouchers v WHERE v.tenant_id = $1 AND v.idempotency_key = $2`,
-        [actor.tenantId, idempotencyKey],
+        `SELECT v.id, v.status, v.journal_entry_id, v.number FROM vouchers v WHERE v.tenant_id = $1 AND v.idempotency_key LIKE $2 ORDER BY v.created_at`,
+        [actor.tenantId, `${idempotencyKey}%`],
       );
       return result.rows[0] as { id: string; status: string; journal_entry_id: string | null; number: string | null } | undefined;
     });
@@ -106,15 +108,31 @@ describe('AUD-10 — ترحيل وصرف مسيّر الرواتب: معاملة
     return String(period!.id);
   };
 
-  const postRunRequest = async (runId: string) =>
-    post(`/hrm/payroll/runs/${runId}/post`, {
+  /**
+   * سطور القيد الصريحة يجب أن تساوي صافي المسيّر نفسه (حارس `PAYROLL_JOURNAL_AMOUNT_MISMATCH`):
+   * المبلغ يُقرأ من معاينة المسيّر المخزَّنة عليه (basic 5000 + housing 1000 + transport 500 = 6500)
+   * لا من رقمٍ مكتوب في الاختبار.
+   */
+  const runNetPayable = async (runId: string) => {
+    const run = data((await get(`/hrm/payroll/runs/${runId}`)).body) as {
+      summary?: { preview?: { netPayable?: string } };
+    };
+    const net = run.summary?.preview?.netPayable;
+    expect(net, 'the run must carry its stored preview net payable').toBeTruthy();
+    return String(net);
+  };
+
+  const postRunRequest = async (runId: string) => {
+    const net = await runNetPayable(runId);
+    return post(`/hrm/payroll/runs/${runId}/post`, {
       branchId,
       fiscalPeriodId: await openPeriodId(),
       journalLines: [
-        { accountId: payrollAccountId, debit: '5000', credit: '0' },
-        { accountId: employeeAccountId, debit: '0', credit: '5000' },
+        { accountId: payrollAccountId, debit: net, credit: '0' },
+        { accountId: employeeAccountId, debit: '0', credit: net },
       ],
     });
+  };
 
   beforeAll(async () => {
     ctx = await createTestApp('audit-payroll');
@@ -195,7 +213,7 @@ describe('AUD-10 — ترحيل وصرف مسيّر الرواتب: معاملة
     const description = `Payroll ${yearMonth}`;
 
     const posted = await postRunRequest(runId);
-    expect([200, 201]).toContain(posted.status);
+    expect([200, 201], JSON.stringify(posted.body)).toContain(posted.status);
     expect(data(posted.body).status).toBe('posted');
     expect(await journalCount(description)).toBe(1);
 
