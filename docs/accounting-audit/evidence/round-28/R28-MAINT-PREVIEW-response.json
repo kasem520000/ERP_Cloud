@@ -1,0 +1,48 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/settings/invoice-maintenance",
+  "request": {
+    "mode": "preview"
+  },
+  "body": {
+    "data": {
+      "id": "01a16619-4cbb-75cc-8990-4c428f2093f2",
+      "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+      "kind": "invoice_maintenance",
+      "mode": "preview",
+      "status": "ready",
+      "cutoffDate": null,
+      "backupId": null,
+      "findings": {
+        "counts": {
+          "staleDrafts": 0,
+          "numberingGaps": 0,
+          "totalsMismatch": 1,
+          "repairableTotals": 0,
+          "postedWithoutJournal": 0
+        },
+        "staleDrafts": [],
+        "numberingGaps": [],
+        "totalsMismatch": [
+          {
+            "id": "01a16575-2402-7197-aeb1-3dab81f2cbf7",
+            "kind": "sale",
+            "number": "SI-000006",
+            "status": "posted",
+            "line_total": "23.0000",
+            "repairable": false,
+            "stored_total": "24.0000"
+          }
+        ],
+        "postedWithoutJournal": []
+      },
+      "applied": {},
+      "createdAt": "2026-10-23T00:11:36.502Z",
+      "createdBy": "01a16504-115e-741c-939a-0de8f2ebc4d5",
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1
+    }
+  }
+}

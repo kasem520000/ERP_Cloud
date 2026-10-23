@@ -1,0 +1,44 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/tailoring/invoices/01a16621-f799-75a9-9ed4-c7b8376de460/payments",
+  "request": {
+    "amount": "50",
+    "date": "2026-10-23",
+    "cashLocationId": "01a16504-1393-762c-9d93-4c1f1b3016aa",
+    "branchId": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+    "method": "cash",
+    "note": "تم استلام دفعة من عملية رقم TI-000001"
+  },
+  "body": {
+    "id": "01a16621-f799-75a9-9ed4-c7b8376de460",
+    "number": "TI-000001",
+    "partyId": "01a16504-1399-742e-af16-f564b9117199",
+    "customerName": "عميل عام",
+    "phone": "0500000028",
+    "invoiceDate": "2026-10-23",
+    "quantity": "1.0000",
+    "unitPrice": "200.0000",
+    "total": "200.0000",
+    "totalWithTax": "210.0000",
+    "paidAmount": "50.0000",
+    "remainingAmount": "160.0000",
+    "statusId": "3b3d12f9-b1de-42cc-a75a-81800bd74781",
+    "statusName": "مستلم",
+    "garmentTypeId": null,
+    "garmentTypeName": null,
+    "billed": false,
+    "measurements": {},
+    "notes": "R28 فاتورة تفصيل اختبار معزول",
+    "version": 2,
+    "payments": [
+      {
+        "id": "01a16622-e715-720b-8f60-496969dc4f74",
+        "amount": "50.0000",
+        "paidAt": "2026-10-23",
+        "note": "تم استلام دفعة من عملية رقم TI-000001",
+        "voucherId": "01a16622-e711-7721-b36d-290cd244450c"
+      }
+    ]
+  }
+}
