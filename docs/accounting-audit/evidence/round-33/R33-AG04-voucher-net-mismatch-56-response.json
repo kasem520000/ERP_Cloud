@@ -1,0 +1,37 @@
+{
+  "id": "R33-AG04-voucher-net-mismatch-56",
+  "at": "2026-10-23T23:31:40.671Z",
+  "method": "POST",
+  "path": "/vouchers",
+  "status": 422,
+  "request": {
+    "branchId": "01a16a85-7d39-755d-8aa3-77466286d257",
+    "kind": "receipt",
+    "subtype": "other",
+    "counterAccountId": "01a16a85-7d8c-76fc-ae6f-4a8310a49ca4",
+    "cashLocationId": "01a16a85-7d3e-728f-be93-07c3575d8d67",
+    "method": "cash",
+    "date": "2026-10-23",
+    "amount": "115.00",
+    "vatAmount": "15.00",
+    "netAmount": "115.00"
+  },
+  "response": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 422,
+    "code": "VOUCHER_NET_AMOUNT_MISMATCH",
+    "detail": "netAmount must equal amount − vatAmount (the base of the voucher)",
+    "traceId": "01a16b1b-1a01-7183-ad70-49eeff05ef49",
+    "errors": [
+      {
+        "field": "netAmount",
+        "details": {
+          "amount": "115.0000",
+          "vatAmount": "15.0000",
+          "expectedNetAmount": "100.0000"
+        }
+      }
+    ]
+  }
+}
