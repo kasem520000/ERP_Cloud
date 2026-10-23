@@ -596,9 +596,12 @@ export class PaymentsService {
     if (!voucher) throw new DomainError(errorCodes.INTERNAL, 'تعذّر إنشاء سند القبض', 500);
     if (voucher.status === 'draft') {
       try {
+        // ACC-164 (R33): the allocation is what settles the invoice (`paid_total`, payment status) —
+        // it is written for walk-in («عميل نقدي») invoices too, with no party; the card sale on such an
+        // invoice used to come back `settled` while the invoice stayed unpaid.
         return await this.treasury.postVoucher(tenantId, voucher.id, {
-          allocations: input.partyId && input.invoiceId
-            ? [{ partyId: input.partyId, invoiceKind: 'sales', invoiceId: input.invoiceId, amount: input.amount }]
+          allocations: input.invoiceId
+            ? [{ partyId: input.partyId ?? null, invoiceKind: 'sales', invoiceId: input.invoiceId, amount: input.amount }]
             : [],
         });
       } catch (error) {

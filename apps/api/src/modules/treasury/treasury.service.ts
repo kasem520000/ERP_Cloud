@@ -78,7 +78,11 @@ export type VoucherInput = {
 export type VoucherPostInput = {
   fiscalPeriodId?: string;
   journalLines?: JournalLineInput[];
-  allocations?: Array<{ partyId: string; invoiceKind: string; invoiceId: string; amount: string }>;
+  /**
+   * Invoice allocations settled by this voucher. `partyId` is null for a walk-in («عميل نقدي») invoice:
+   * the invoice balance is still settled, but no party-ledger allocation row exists to write.
+   */
+  allocations?: Array<{ partyId: string | null; invoiceKind: string; invoiceId: string; amount: string }>;
 };
 export type TransferInput = {
   branchId: string;
@@ -1067,6 +1071,9 @@ export class TreasuryService implements OnModuleInit {
         }
       }
 
+      // ACC-164 (R33): a walk-in invoice has no party to allocate against — its `paid_total` was
+      // settled above and the journal credits the receivable control without a party stamp.
+      if (!allocation.partyId) continue;
       await tx
         .insert(paymentAllocations)
         .values({

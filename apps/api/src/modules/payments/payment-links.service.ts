@@ -418,9 +418,10 @@ export class PaymentLinksService {
     if (!voucher) throw new DomainError(errorCodes.INTERNAL, 'تعذّر إنشاء سند القبض', 500);
     if (voucher.status === 'draft') {
       try {
+        // ACC-164 (R33): allocate to the invoice even when it names no party (walk-in customer).
         return await this.treasury.postVoucher(tenantId, voucher.id, {
-          allocations: input.partyId
-            ? [{ partyId: input.partyId, invoiceKind: 'sales', invoiceId: input.invoiceId, amount: input.amount }]
+          allocations: input.invoiceId
+            ? [{ partyId: input.partyId ?? null, invoiceKind: 'sales', invoiceId: input.invoiceId, amount: input.amount }]
             : [],
         });
       } catch (error) {

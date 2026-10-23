@@ -349,9 +349,18 @@ describe('payment gateways — 💳 بوابات الدفع (جيديا · NeoLe
     expect(saved.baseUrl).toBe('http://127.0.0.1:9');
     expect(saved.simulation).toBe(false);
 
+    // ACC-165 (R32/R33 policy): a LIVE charge must name a posted sales invoice — money taken
+    // without a document cannot be attributed to a customer or a ledger account.
+    const undocumented = await sale('neoleap', { amount: '7.00', reference: 'ECR-REAL-0' });
+    expect(undocumented.status).toBe(422);
+    expect(body(undocumented).code).toBe('PAYMENT_INVOICE_REQUIRED');
+
     // Nothing is mocked: the call really goes out, and a closed port is an `error`, not
     // a success — the desktop's «العملية مرفوضة، يرجى إعادة الدفع» in its own words.
-    const unreachable = body(await sale('neoleap', { amount: '7.00', reference: 'ECR-REAL-1' }));
+    const liveInvoiceId = await postedInvoice();
+    const unreachableRes = await sale('neoleap', { amount: '7.00', reference: 'ECR-REAL-1', invoiceId: liveInvoiceId });
+    expect(unreachableRes.status, JSON.stringify(unreachableRes.body)).toBe(201);
+    const unreachable = body(unreachableRes);
     expect(unreachable.transaction.status).toBe('error');
     expect(unreachable.transaction.simulation).toBe(false);
     expect(String(unreachable.transaction.message)).toContain('تعذّر الوصول إلى بوابة NeoLeap');
