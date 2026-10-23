@@ -1,0 +1,7 @@
+{
+  "status": 401,
+  "type": "application/problem+json; charset=utf-8",
+  "length": 167,
+  "htmlLength": null,
+  "note": "print endpoint returns JSON {html}; the html field is rendered in the same headless browser for the screenshot"
+}
