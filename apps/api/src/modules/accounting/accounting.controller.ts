@@ -128,6 +128,13 @@ export class AccountingController {
     return { data: { id, status: 'closed' } };
   }
 
+  @Get('fiscal-periods/:id/close-preflight')
+  @RequiresPermission('accounting.period.view')
+  @ApiOperation({ summary: 'MF-05 — checks that block or warn before closing the period' })
+  async periodClosePreflight(@Param('id') id: string) {
+    return { data: await this.accounting.closePeriodPreflight(getTenantContext().tenantId, id) };
+  }
+
   @Post('fiscal-periods/:id/reopen')
   @RequiresPermission('accounting.period.reopen')
   async reopenPeriod(@Param('id') id: string, @Body() body: { reason?: string }) {
@@ -366,6 +373,27 @@ export class AccountingController {
   @ApiOperation({ summary: 'Open a fiscal year and generate its monthly periods' })
   async createFiscalYear(@Body() body: FiscalYearInput) {
     return { data: await this.accounting.createFiscalYear(getTenantContext().tenantId, body) };
+  }
+
+  @Get('fiscal-years/:id/close-preview')
+  @RequiresPermission('accounting.period.view')
+  @ApiOperation({ summary: 'MF-04 — preview the year-end close (net income, lines, open periods)' })
+  async previewYearClose(@Param('id') id: string) {
+    return { data: await this.accounting.previewYearClose(getTenantContext().tenantId, id) };
+  }
+
+  @Post('fiscal-years/:id/close')
+  @RequiresPermission('accounting.period.close')
+  @ApiOperation({ summary: 'MF-04 — close the fiscal year: post the closing entry and open the next year' })
+  async closeFiscalYear(@Param('id') id: string) {
+    return { data: await this.accounting.closeYear(getTenantContext().tenantId, id, tryGetAuthContext()?.userId) };
+  }
+
+  @Post('fiscal-years/:id/reopen')
+  @RequiresPermission('accounting.period.reopen')
+  @ApiOperation({ summary: 'MF-04 — reopen a closed fiscal year by reversing its closing entry (reason required)' })
+  async reopenFiscalYear(@Param('id') id: string, @Body() body: { reason?: string }) {
+    return { data: await this.accounting.reopenYear(getTenantContext().tenantId, id, body?.reason ?? '', tryGetAuthContext()?.userId) };
   }
 
   // ------------------------------------------------------------- journal register

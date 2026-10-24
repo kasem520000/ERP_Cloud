@@ -551,7 +551,7 @@ export const DESKTOP_DEFAULT_COA: DesktopSeedAccount[] = [
     "parent": "213",
     "type": "equity",
     "normalBalance": "credit",
-    "postable": false
+    "postable": true
   },
   {
     "code": "2222001",

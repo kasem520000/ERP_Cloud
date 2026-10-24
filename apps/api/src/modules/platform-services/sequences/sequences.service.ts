@@ -115,7 +115,13 @@ export class SequencesService {
 
     // ACC-100: المستندات المقيدة بفهرس تفرد على مستوى المستأجر تُرقّم بنطاق عام للمستأجر
     // لمنع تصادم الترقيم بين الفروع، مع تهيئة العداد من أعلى قيمة حالية لأي فرع
-    const effectiveBranchId = TENANT_WIDE_DOC_TYPES.has(scope.docType) ? null : (scope.branchId ?? null);
+    const tenantWide = TENANT_WIDE_DOC_TYPES.has(scope.docType);
+    const effectiveBranchId = tenantWide ? null : (scope.branchId ?? null);
+    // وبنفس المنطق لا تُقسَّم على السنوات: فهرس `journal_entries_tenant_number_key`
+    // (0141) فريد على مستوى المستأجر، ومقسمُ السنة يقفز عدّاد سنةٍ فوق أخرى ثم تُعيد
+    // القديمة إصدار الرقم نفسه ← انتهاك الفريدة بـ500 (قِيس حيّاً: عكس قيد2029 في
+    // فترة2026 بعدد2026=22 ← JE-000023 مكرّر). الترقيم العام متسق مع0141.
+    const effectiveFiscalYearId = tenantWide ? null : (scope.fiscalYearId ?? null);
 
     // One statement: insert the scope row or bump it, and return the allocated value.
     // The ON CONFLICT arbiter mirrors `document_sequences_scope_key` exactly — see
@@ -123,7 +129,7 @@ export class SequencesService {
     const result = await tx.execute(sql`
       INSERT INTO document_sequences (id, tenant_id, branch_id, doc_type, fiscal_year_id, prefix, padding, current_value, updated_at)
       VALUES (${newId()}, ${scope.tenantId}, ${effectiveBranchId}, ${scope.docType},
-              ${scope.fiscalYearId ?? null}, ${prefix}, ${padding},
+              ${effectiveFiscalYearId}, ${prefix}, ${padding},
               COALESCE((SELECT MAX(current_value) FROM document_sequences WHERE tenant_id = ${scope.tenantId} AND doc_type = ${scope.docType}), 0) + 1,
               now())
       ON CONFLICT (
@@ -229,14 +235,19 @@ export class SequencesService {
   }
 
   private scopePredicate(scope: SequenceScope) {
+    // الانعكاس نفسه لـ`allocate`: أنواع المستأجر الواحد تُخزَّن بنطاق عام (فرع/سنة NIL)
+    // فتُطبَّق النطاق العام هنا أيضاً وإلا عاد `peek` بـundefined لصفٍ قائم.
+    const tenantWide = TENANT_WIDE_DOC_TYPES.has(scope.docType);
+    const branchId = tenantWide ? null : (scope.branchId ?? null);
+    const fiscalYearId = tenantWide ? null : (scope.fiscalYearId ?? null);
     return and(
       eq(documentSequences.tenantId, scope.tenantId),
       eq(documentSequences.docType, scope.docType),
       sql`coalesce(${documentSequences.branchId}, ${SEQUENCE_SCOPE_NIL_UUID}::uuid) = coalesce(${
-        scope.branchId ?? null
+        branchId
       }::uuid, ${SEQUENCE_SCOPE_NIL_UUID}::uuid)`,
       sql`coalesce(${documentSequences.fiscalYearId}, ${SEQUENCE_SCOPE_NIL_UUID}::uuid) = coalesce(${
-        scope.fiscalYearId ?? null
+        fiscalYearId
       }::uuid, ${SEQUENCE_SCOPE_NIL_UUID}::uuid)`,
     );
   }

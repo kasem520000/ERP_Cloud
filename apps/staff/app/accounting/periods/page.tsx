@@ -38,7 +38,36 @@ type Period = {
   yearName: string | null;
 };
 
-type FiscalYear = { id: string; name: string; startDate: string; endDate: string; status: string };
+type FiscalYear = {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  closingEntryId?: string | null;
+};
+
+/** MF-05 — استجابة `GET /fiscal-periods/:id/close-preflight`. */
+type Preflight = {
+  checks: Array<{ key: string; labelAr: string; severity: 'blocker' | 'warning'; count: number }>;
+  blockers: string[];
+};
+
+/** MF-04 — استجابة `GET /fiscal-years/:id/close-preview`. */
+type YearPreview = {
+  netIncome: string;
+  openPeriods: string[];
+  blockingErrors: string[];
+  retainedAccount: { code: string; nameAr: string } | null;
+  lines: Array<{ code: string; nameAr: string; balance: string; actionAr: string }>;
+};
+
+/** أخطاء الحجب في المعاينة بجُملتها مفهومة للمشغّل. */
+const YEAR_BLOCK_AR: Record<string, string> = {
+  FISCAL_YEAR_PERIODS_OPEN: 'توجد فترات غير مُقفلة في السنة',
+  RETAINED_EARNINGS_ACCOUNT_MISSING: 'حساب الوجهة «2130001 أرباح و خسائر» غير جاهز في الدليل',
+  FISCAL_YEAR_NO_PERIODS: 'السنة بلا فترات',
+};
 
 const EMPTY_FORM = { id: '', name: '', startDate: '', endDate: '', isActive: false, notes: '' };
 
@@ -107,9 +136,22 @@ export default function FiscalPeriodsPage() {
     try {
       if (action === 'activate') await apiPost(`/fiscal-periods/${period.id}/activate`, {});
       else if (action === 'close') {
-        // «هل أنت متأكد من إغلاق الفترة المحاسبية '…'? بعد الإغلاق لن تستطيع إدخال أي
-        // عمليات جديدة في هذه الفترة» — the window's own confirmation.
-        if (!window.confirm(`هل أنت متأكد من إغلاق الفترة المحاسبية «${period.name}»؟`)) {
+        // MF-05 — الفحص أولاً: المانع يوقف الإغلاق بجملة مفهومة قبل نافذة التأكيد،
+        // والتحذيرات تُعرض داخل تأكيد التشغيل («هل أنت متأكد … بعد الإغلاق لن تستطيع»).
+        const pre = await apiData<Preflight>(`/fiscal-periods/${period.id}/close-preflight`);
+        const blockerLabels = pre.blockers.map((key) => pre.checks.find((check) => check.key === key)?.labelAr ?? key);
+        if (blockerLabels.length > 0) {
+          setMessage({ kind: 'danger', text: `تعذّر إغلاق الفترة «${period.name}»: ${blockerLabels.join('، ')}.` });
+          setBusy(undefined);
+          return;
+        }
+        const warnLabels = pre.checks
+          .filter((check) => check.severity === 'warning' && check.count > 0)
+          .map((check) => `${check.labelAr} (${check.count})`);
+        const confirmText =
+          `هل أنت متأكد من إغلاق الفترة المحاسبية «${period.name}»؟` +
+          (warnLabels.length > 0 ? `\nتحذيرات قبل الإغلاق: ${warnLabels.join('، ')}.` : '');
+        if (!window.confirm(confirmText)) {
           setBusy(undefined);
           return;
         }
@@ -140,6 +182,56 @@ export default function FiscalPeriodsPage() {
                 : 'تم حذف الفترة المحاسبية بنجاح',
       });
       if (form.id === period.id) setForm({ ...EMPTY_FORM, startDate: firstOfYear, endDate: lastOfYear });
+      reload();
+    } catch (error) {
+      fail(error);
+    } finally {
+      setBusy(undefined);
+    }
+  };
+
+  /** MF-04 — إقفال/إعادة فتح السنة: المعاينة إلزامية قبل التأكيد، والسبب عند الفتح. */
+  const yearAct = async (year: FiscalYear, action: 'close' | 'reopen') => {
+    const busyKey = `y:${year.id}`;
+    setBusy(busyKey);
+    setMessage(undefined);
+    try {
+      if (action === 'close') {
+        const preview = await apiData<YearPreview>(`/fiscal-years/${year.id}/close-preview`);
+        const blockers = (preview.blockingErrors ?? []).map((code) => YEAR_BLOCK_AR[code] ?? code);
+        if (blockers.length > 0) {
+          setMessage({ kind: 'danger', text: `تعذّر إقفال السنة «${year.name}»: ${blockers.join('، ')}.` });
+          setBusy(undefined);
+          return;
+        }
+        const retained = preview.retainedAccount ? `${preview.retainedAccount.code} ${preview.retainedAccount.nameAr}` : '—';
+        const confirmText =
+          `هل أنت متأكد من إقفال السنة المالية «${year.name}»؟\n` +
+          `صافي الدخل: ${preview.netIncome} عبر ${preview.lines.length} أسطر تصفية ← ${retained}.\n` +
+          'بعد الإقفال يُرحَّل قيد الإقفال وتُفتح السنة التالية تلقائياً (بلا قيد افتتاح).';
+        if (!window.confirm(confirmText)) {
+          setBusy(undefined);
+          return;
+        }
+        const closed = await apiPost<{ closingEntry: { id: string; number: string | null } | null }>(
+          `/fiscal-years/${year.id}/close`,
+          {},
+        );
+        setMessage({
+          kind: 'ok',
+          text: closed.closingEntry?.number
+            ? `تم إقفال السنة المالية «${year.name}» — قيد الإقفال رقم ${closed.closingEntry.number}`
+            : `تم إقفال السنة المالية «${year.name}» (بلا نشاط دخل)`,
+        });
+      } else {
+        const reason = window.prompt(`سبب إعادة فتح السنة المالية «${year.name}» (إلزامي):`);
+        if (!reason) {
+          setBusy(undefined);
+          return;
+        }
+        await apiPost(`/fiscal-years/${year.id}/reopen`, { reason });
+        setMessage({ kind: 'ok', text: `تم إعادة فتح السنة المالية «${year.name}» وعكس قيد إقفالها` });
+      }
       reload();
     } catch (error) {
       fail(error);
@@ -421,6 +513,34 @@ export default function FiscalPeriodsPage() {
                     <span className={`badge ${year.status === 'open' ? 'active' : ''}`}>
                       {year.status === 'open' ? 'مفتوحة' : 'مغلقة'}
                     </span>
+                  ),
+                },
+                {
+                  key: 'c4',
+                  header: '',
+                  cell: (year) => (
+                    <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
+                      {canManage && year.status === 'open' && (
+                        <button
+                          className="btn sm"
+                          type="button"
+                          disabled={busy === `y:${year.id}`}
+                          onClick={() => void yearAct(year, 'close')}
+                        >
+                          إقفال السنة
+                        </button>
+                      )}
+                      {can('accounting.period.reopen') && year.status === 'closed' && (
+                        <button
+                          className="btn sm"
+                          type="button"
+                          disabled={busy === `y:${year.id}`}
+                          onClick={() => void yearAct(year, 'reopen')}
+                        >
+                          إعادة فتح السنة
+                        </button>
+                      )}
+                    </div>
                   ),
                 },
               ]}

@@ -70,6 +70,12 @@ export const fiscalYears = pgTable(
     startDate: date('start_date').notNull(),
     endDate: date('end_date').notNull(),
     status: text('status').notNull().default('open'),
+    /** MF-04 — قيد إقفال السنة (null قبل الإقفال). FK موجود في ترحيل0145؛ هنا بلا
+        `.references` لتفادي دورة نوعية drizzle (years → entries → periods → years). */
+    closingEntryId: uuid('closing_entry_id'),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+    closedBy: uuid('closed_by'),
+    notes: text('notes'),
     ...baseAuditColumns(),
   },
   (table) => ({

@@ -967,6 +967,18 @@ export class AccountingService {
       if (period.status === 'closed') return;
       const [draft] = await tx.select({ id: journalEntries.id }).from(journalEntries).where(and(eq(journalEntries.tenantId, tenantId), eq(journalEntries.fiscalPeriodId, periodId), eq(journalEntries.status, 'draft'))).limit(1);
       if (draft) throw new DomainError('FISCAL_PERIOD_HAS_DRAFT_JOURNALS', 'لا يمكن إغلاق الفترة لاحتوائها على قيود يومية مسودة', 409);
+      // MF-05 — مانع الإقفال (الافتراضي مؤقت حتى قرار §6.5): وردية صندوق مفتوحة تعني أن
+      // «النقد المتوقع» لم يُرحَّل بعد، فيتجمّد الشهر على فرقٍ لا يراه أحد. (قيود المسودة أعلاه.)
+      const openShifts = await tx.execute(sql`SELECT count(*)::int AS c FROM shift_closes WHERE tenant_id = ${tenantId} AND status = 'open'`);
+      const openShiftCount = Number((openShifts.rows[0] as { c: number }).c ?? 0);
+      if (openShiftCount > 0) {
+        throw new DomainError(
+          'PERIOD_CLOSE_BLOCKED',
+          'لا يمكن إقفال الفترة وورديات صندوق مفتوحة — أغلق الورديات أولاً',
+          409,
+          { blockers: ['open_shifts'], openShifts: openShiftCount },
+        );
+      }
       /**
        * 🔒 إغلاق الفترة — `AccountingPeriodManager.ClosePeriod` sets
        * `IsClosed = 1, ClosedBy = @User, ClosedDate = @Date, IsActive = 0`: a closed period
@@ -989,6 +1001,15 @@ export class AccountingService {
         .from(fiscalPeriods)
         .where(and(eq(fiscalPeriods.id, periodId), eq(fiscalPeriods.tenantId, tenantId)));
       if (!period) throw new DomainError('FISCAL_PERIOD_NOT_FOUND', 'Fiscal period not found', 404);
+      // MF-04 — سنة مُقفلة (إقفال سنوي) تُمنع من إعادة فتح فتراتها مباشرة؛ السبيل أولاً
+      // إعادة فتح السنة نفسها (تعكس قيد الإقفال) ثم الفترة.
+      const [parentYear] = await tx
+        .select({ status: fiscalYears.status })
+        .from(fiscalYears)
+        .where(eq(fiscalYears.id, period.fiscalYearId));
+      if (parentYear?.status === 'closed') {
+        throw new DomainError('FISCAL_YEAR_CLOSED', 'السنة المالية مُقفلة إقفالاً سنوياً — أعد فتح السنة نفسها أولاً', 409);
+      }
       await tx
         .update(fiscalPeriods)
         .set({ status: 'open', closedAt: null, closedBy: null, notes: `سبب إعادة الفتح: ${reason.trim()}` })
@@ -1335,6 +1356,8 @@ export class AccountingService {
        * الطريق الصحيح إلغاء/عكس المستند من شاشته (void/reverse) فيُعكس قيده ودفاتره معاً.
        * الاستثناء الوحيد المصمَّم: قيد إغلاق الوردية (ACC-100) — `reverseJournalInTx` تزامن
        * الوردية ورصيد الصندوق معه ثم تعيد الوردية قابلةً للترحيل؛ وعكسُ عكسٍ لمستند مرفوض كذلك.
+       * وقيد إقفال السنة (MF-04): يبقى محجوباً عن الشاشة هنا — طريقه الوحيد `reopenYear`
+       * الذي يستدعي `reverseJournalInTx` مباشرة (هذه الفحوص في المسار العام وحده).
        */
       if (
         original.sourceType &&
@@ -2820,56 +2843,422 @@ export class AccountingService {
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
       throw new DomainError('VALIDATION_FAILED', 'Fiscal year end date must be after the start date', 422);
     }
+    return withTenantTx(this.database.db, tenantId, (tx) => this.createFiscalYearInTx(tx, tenantId, input));
+  }
 
+  /**
+   * إنشاء السنة داخل معاملة قائمة — يستعمله `createFiscalYear` عادياً، و`closeYear`
+   * لإنشاء السنة التالية **ذرّياً مع قيد الإقفال** (إلا فُتحت سنةٌ بلا فترات وتعطّل الترحيل).
+   */
+  private async createFiscalYearInTx(tx: DrizzleTx, tenantId: string, input: FiscalYearInput) {
+    const start = new Date(`${input.startDate}T00:00:00Z`);
+    const end = new Date(`${input.endDate}T00:00:00Z`);
     const yearId = newId();
+    const overlapping = await tx
+      .select({ id: fiscalYears.id })
+      .from(fiscalYears)
+      .where(
+        and(
+          eq(fiscalYears.tenantId, tenantId),
+          lte(fiscalYears.startDate, input.endDate),
+          gte(fiscalYears.endDate, input.startDate),
+        ),
+      )
+      .limit(1);
+    if (overlapping.length > 0) {
+      throw new DomainError('FISCAL_YEAR_OVERLAP', 'Another fiscal year already covers this range', 409);
+    }
+
+    await tx.insert(fiscalYears).values({
+      id: yearId,
+      tenantId,
+      name: input.name,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      status: 'open',
+    });
+
+    if (input.generateMonthlyPeriods !== false) {
+      const periods: Array<{ id: string; tenantId: string; fiscalYearId: string; name: string; startDate: string; endDate: string; status: string }> = [];
+      const cursor = new Date(start);
+      while (cursor <= end) {
+        const periodStart = new Date(cursor);
+        const periodEnd = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0));
+        const clampedEnd = periodEnd > end ? end : periodEnd;
+        periods.push({
+          id: newId(),
+          tenantId,
+          fiscalYearId: yearId,
+          name: `${periodStart.getUTCFullYear()}-${String(periodStart.getUTCMonth() + 1).padStart(2, '0')}`,
+          startDate: periodStart.toISOString().slice(0, 10),
+          endDate: clampedEnd.toISOString().slice(0, 10),
+          status: 'open',
+        });
+        cursor.setUTCMonth(cursor.getUTCMonth() + 1, 1);
+      }
+      if (periods.length > 0) await tx.insert(fiscalPeriods).values(periods);
+    }
+
+    const [row] = await tx.select().from(fiscalYears).where(eq(fiscalYears.id, yearId));
+    return row;
+  }
+
+  // -------------------------------------------------------- year-end close (MF-04 / MF-05)
+
+  /**
+   * MF-05 — معاينة إقفال الفترة قبل الإقفال: كل بند بخطورته وعدد المخالفات.
+   *
+   * الافتراضي **مؤقت حتى قرار المالك §6.5** (أي الفحوص مانع وأيها تحذير): المانعات
+   * اليوم اثنان لا يُصلحهما أحد بعد الإقفال — قيد مسودة (موجود قبل MF-05) ووردية
+   * صندوق مفتوحة (نقد متوقع لم يُرحَّل). البقية تحذيرية حتى تُرسم الحدود رسمياً.
+   */
+  async closePeriodPreflight(tenantId: string, periodId: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const overlapping = await tx
-        .select({ id: fiscalYears.id })
+      const [period] = await tx
+        .select()
+        .from(fiscalPeriods)
+        .where(and(eq(fiscalPeriods.id, periodId), eq(fiscalPeriods.tenantId, tenantId)));
+      if (!period) throw new DomainError('FISCAL_PERIOD_NOT_FOUND', 'Fiscal period not found', 404);
+      const count = async (query: SQL): Promise<number> => {
+        const result = await tx.execute(query);
+        return Number((result.rows[0] as { c: number | string }).c ?? 0);
+      };
+      const checks: Array<{ key: string; labelAr: string; severity: 'blocker' | 'warning'; count: number }> = [];
+      checks.push({
+        key: 'draft_journals',
+        labelAr: 'قيود يومية مسودة في الفترة',
+        severity: 'blocker',
+        count: await count(sql`SELECT count(*)::int AS c FROM journal_entries WHERE tenant_id = ${tenantId} AND fiscal_period_id = ${periodId} AND status = 'draft'`),
+      });
+      checks.push({
+        key: 'open_shifts',
+        labelAr: 'ورديات صندوق مفتوحة',
+        severity: 'blocker',
+        count: await count(sql`SELECT count(*)::int AS c FROM shift_closes WHERE tenant_id = ${tenantId} AND status = 'open'`),
+      });
+      checks.push({
+        key: 'draft_invoices',
+        labelAr: 'فواتير بيع/شراء مسودة أُنشئت في الفترة',
+        severity: 'warning',
+        count: await count(sql`SELECT (SELECT count(*)::int FROM sales_invoices WHERE tenant_id = ${tenantId} AND status = 'draft' AND created_at::date BETWEEN ${period.startDate} AND ${period.endDate})
+                                      + (SELECT count(*)::int FROM purchase_invoices WHERE tenant_id = ${tenantId} AND status = 'draft' AND created_at::date BETWEEN ${period.startDate} AND ${period.endDate}) AS c`),
+      });
+      checks.push({
+        key: 'draft_vouchers',
+        labelAr: 'سندات خزينة مسودة مؤرّخة في الفترة',
+        severity: 'warning',
+        count: await count(sql`SELECT count(*)::int AS c FROM vouchers WHERE tenant_id = ${tenantId} AND status = 'draft' AND date BETWEEN ${period.startDate} AND ${period.endDate}`),
+      });
+      checks.push({
+        key: 'negative_stock',
+        labelAr: 'أصناف برصيد سالب (سياسة السماح بالصرف تحت الصفر)',
+        severity: 'warning',
+        count: await count(sql`SELECT count(*)::int AS c FROM stock_balances WHERE tenant_id = ${tenantId} AND quantity < 0`),
+      });
+      checks.push({
+        key: 'pending_approvals',
+        labelAr: 'طلبات اعتماد معلّقة',
+        severity: 'warning',
+        count: await count(sql`SELECT count(*)::int AS c FROM approval_requests WHERE tenant_id = ${tenantId} AND status = 'pending'`),
+      });
+      return {
+        periodId,
+        status: period.status,
+        startDate: period.startDate,
+        endDate: period.endDate,
+        checks,
+        blockers: checks.filter((c) => c.severity === 'blocker' && c.count > 0).map((c) => c.key),
+      };
+    });
+  }
+
+  /** أرصدة حسابات الدخل (إيراد/مصروف) المتبقية حتى نهاية السنة — أساس قيد الإقفال. */
+  private async incomeBalancesInTx(tx: DrizzleTx, tenantId: string, endDate: string) {
+    const result = await tx.execute(sql`
+      SELECT a.id, a.code, a.name_ar, a.type,
+             sum(jel.debit)::numeric::text AS debit,
+             sum(jel.credit)::numeric::text AS credit
+        FROM journal_entry_lines jel
+        JOIN journal_entries je ON je.id = jel.entry_id AND je.status = 'posted'
+        JOIN accounts a ON a.id = jel.account_id
+       WHERE jel.tenant_id = ${tenantId}
+         AND a.type IN ('revenue', 'expense')
+         AND a.deleted_at IS NULL
+         AND je.date <= ${endDate}
+       GROUP BY a.id, a.code, a.name_ar, a.type
+      HAVING abs(sum(jel.debit) - sum(jel.credit)) > 0.00005
+       ORDER BY a.code`);
+    return result.rows as Array<{ id: string; code: string; name_ar: string; type: string; debit: string; credit: string }>;
+  }
+
+  /**
+   * وجهة الدخل عند الإقفال — «2130001 أرباح و خسائر» هو حساب الوجهة في دليل الديسكتوب
+   * (و0145 فعّلته). حسابات أخرى تنتظر قرار §6.3 (رقم الحساب لكل دليل) — نرفض بـ422
+   * صريح بدل التسديد في حساب خاطئ.
+   */
+  private async retainedAccountInTx(tx: DrizzleTx, tenantId: string) {
+    const [account] = await tx
+      .select({ id: accounts.id, code: accounts.code, nameAr: accounts.nameAr, isPostable: accounts.isPostable })
+      .from(accounts)
+      .where(and(eq(accounts.tenantId, tenantId), eq(accounts.code, '2130001'), isNull(accounts.deletedAt)))
+      .limit(1);
+    if (!account || !account.isPostable) {
+      throw new DomainError(
+        'RETAINED_EARNINGS_ACCOUNT_MISSING',
+        'حساب الوجهة «2130001 أرباح و خسائر» غير موجود أو غير قابل للترحيل في هذا الدليل — أنشئه/فعّله قبل إقفال السنة (قرار المالك §6.3)',
+        422,
+        { expectedCode: '2130001' },
+      );
+    }
+    return account;
+  }
+
+  /** MF-04 — معاينة إقفال السنة: صافي الدخل، الأسطر التي سيُصفّرها القيد، وحالة الفترات. */
+  async previewYearClose(tenantId: string, yearId: string) {
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const [year] = await tx.select().from(fiscalYears).where(and(eq(fiscalYears.tenantId, tenantId), eq(fiscalYears.id, yearId)));
+      if (!year) throw new DomainError('FISCAL_YEAR_NOT_FOUND', 'Fiscal year not found', 404);
+      const income = await this.incomeBalancesInTx(tx, tenantId, year.endDate);
+      const periods = await tx
+        .select({ id: fiscalPeriods.id, name: fiscalPeriods.name, status: fiscalPeriods.status })
+        .from(fiscalPeriods)
+        .where(eq(fiscalPeriods.fiscalYearId, year.id))
+        .orderBy(fiscalPeriods.startDate);
+      let net = new Decimal(0);
+      const lines = income.map((row) => {
+        const balance = new Decimal(row.credit).minus(row.debit); // إيراد دائن موجب
+        // صافي الدخل = مجموع (دائن−مدين) لكل حسابات الدخل: الخسارة تدخل طبيعياً بمدين
+        // (مردودات المبيعات/المصاريف برصيد مدين تُنقص الدخل بموجبها لا بسالبها).
+        const signed = balance;
+        net = net.plus(signed);
+        return {
+          accountId: row.id,
+          code: row.code,
+          nameAr: row.name_ar,
+          type: row.type,
+          balance: balance.toFixed(4),
+          actionAr: balance.gt(0) ? `دائن ← ${balance.toFixed(4)} (تصفير بمدين)` : `مدين ← ${balance.abs().toFixed(4)} (تصفير بدائن)`,
+        };
+      });
+      const retained =
+        income.length > 0
+          ? await this.retainedAccountInTx(tx, tenantId).catch((e: unknown) => {
+              if (e instanceof DomainError && e.code === 'RETAINED_EARNINGS_ACCOUNT_MISSING') return null;
+              throw e;
+            })
+          : null;
+      const openPeriods = periods.filter((p) => p.status !== 'closed').map((p) => p.name);
+      const blockingErrors: string[] = [];
+      if (openPeriods.length) blockingErrors.push('FISCAL_YEAR_PERIODS_OPEN');
+      if (income.length > 0 && !retained) blockingErrors.push('RETAINED_EARNINGS_ACCOUNT_MISSING');
+      return {
+        fiscalYear: { id: year.id, name: year.name, startDate: year.startDate, endDate: year.endDate, status: year.status, closingEntryId: year.closingEntryId },
+        retainedAccount: retained,
+        netIncome: net.toFixed(4),
+        lines,
+        periods: periods.map((p) => ({ id: p.id, name: p.name, status: p.status })),
+        openPeriods,
+        blockingErrors,
+      };
+    });
+  }
+
+  /**
+   * MF-04 — إقفال السنة المالية: قيد يصفّر حسابات الدخل ويحوّل صافيها إلى «2130001»،
+   * وتفتح السنة التالية (فتراتها) تلقائياً.
+   *
+   * **بلا قيد افتتاح**: الدفتر محصل — أرصدة الميزانية تحمل نفسها، وأي قيد افتتاح
+   * سيضاعفها ويُخرّ اتساق الفرعي (الصندوق/الذمم/المخزون) في أول يوم من السنة الجديدة؛
+   * «ميزان الافتتاح = الافتتاحي» محقَّق تلقائياً بالمحصلة. (توثيق الانحراف عن نص البطاقة
+   * في MISSING_FEATURES §5.1.)
+   *
+   * قيد الإقفال يُكتب في فترة نهاية السنة **المُقفلة** — تُفتح تلك الفترة **داخل المعاملة
+   * نفسها وتُعاد إلى حالها** فلا يراها أحد (لا توجد معاملة ثانية ترى الفترة مفتوحة).
+   */
+  async closeYear(tenantId: string, yearId: string, actorId?: string | null) {
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const [year] = await tx
+        .select()
+        .from(fiscalYears)
+        .where(and(eq(fiscalYears.tenantId, tenantId), eq(fiscalYears.id, yearId)))
+        .for('update');
+      if (!year) throw new DomainError('FISCAL_YEAR_NOT_FOUND', 'Fiscal year not found', 404);
+      if (year.status !== 'open') {
+        throw new DomainError('FISCAL_YEAR_ALREADY_CLOSED', 'السنة المالية مُقفلة سلفاً', 409, { closingEntryId: year.closingEntryId });
+      }
+      const periods = await tx
+        .select()
+        .from(fiscalPeriods)
+        .where(eq(fiscalPeriods.fiscalYearId, year.id))
+        .orderBy(fiscalPeriods.startDate);
+      const stillOpen = periods.filter((p) => p.status !== 'closed');
+      if (periods.length === 0) throw new DomainError('FISCAL_YEAR_NO_PERIODS', 'لا فترات في السنة — أنشئ الفترات أولاً', 409);
+      if (stillOpen.length > 0) {
+        throw new DomainError(
+          'FISCAL_YEAR_PERIODS_OPEN',
+          `أغلق كل فترات السنة قبل الإقفال السنوي — المفتوحة: ${stillOpen.map((p) => p.name).join('، ')}`,
+          409,
+          { periods: stillOpen.map((p) => ({ id: p.id, name: p.name })) },
+        );
+      }
+
+      const income = await this.incomeBalancesInTx(tx, tenantId, year.endDate);
+      let closingEntry: { id: string; number: string | null } | null = null;
+      let net = new Decimal(0);
+      if (income.length > 0) {
+        const retained = await this.retainedAccountInTx(tx, tenantId);
+        const endPeriod = periods.find((p) => p.startDate <= year.endDate && p.endDate >= year.endDate) ?? periods[periods.length - 1];
+        if (!endPeriod) throw new DomainError('FISCAL_YEAR_NO_PERIODS', 'لا فترة تغطي نهاية السنة', 409);
+        const restore = { status: endPeriod.status, closedAt: endPeriod.closedAt, closedBy: endPeriod.closedBy, isActive: endPeriod.isActive };
+        await tx.update(fiscalPeriods).set({ status: 'open' }).where(eq(fiscalPeriods.id, endPeriod.id));
+
+        const lines: Array<{ accountId: string; debit?: string; credit?: string; description: string }> = [];
+        for (const row of income) {
+          const balance = new Decimal(row.debit).minus(row.credit); // موجب = مدين
+          // صافي الدخل = مجموع −(مدين−دائن) لكل حسابات الدخل: الإيراد بموجب، والمصروف
+          // بسالب — وإلا زادت الخسارة على الدخل وخرج قيد الإقفال غير متوازن (فحص حيّ R35).
+          const signed = balance.negated();
+          net = net.plus(signed);
+          if (balance.gt(0)) lines.push({ accountId: row.id, credit: balance.toFixed(4), description: `إقفال ${row.code} ${row.name_ar}` });
+          else if (balance.lt(0)) lines.push({ accountId: row.id, debit: balance.abs().toFixed(4), description: `إقفال ${row.code} ${row.name_ar}` });
+        }
+        if (net.gt(0)) lines.push({ accountId: retained.id, credit: net.toFixed(4), description: `تحويل صافي دخل ${year.name} إلى الأرباح المحتجزة` });
+        else if (net.lt(0)) lines.push({ accountId: retained.id, debit: net.abs().toFixed(4), description: `تحويل صافي خسارة ${year.name} إلى الأرباح المحتجزة` });
+
+        const [branch] = await tx
+          .select({ id: branches.id })
+          .from(branches)
+          .where(and(eq(branches.tenantId, tenantId), isNull(branches.deletedAt)))
+          .orderBy(desc(branches.isDefault), asc(branches.code))
+          .limit(1);
+        if (!branch) throw new DomainError('BRANCH_NOT_FOUND', 'لا فرع افتراضي لترحيل قيد الإقفال', 409);
+        // مفتاح الإقفال: `year-close:<id>` للدورة الأولى؛ وبعد إعادة فتح يبقى القيد
+        // الأصلي قائماً بمعناه (مانع الأُصول 0047 يمنع أي تعديل عليه) فيُلاقَب المفتاح
+        // بعدد نسخ `source_type/source_id` لهذه السنة — المعدّ تحت قفل صف السنة
+        // فالمعدّ ثابتٌ مع إعادة المحاولة داخل الدورة نفسها ولا يكرّر المفتاح الفريد بين الدورات.
+        const prior = await tx.execute(
+          sql`SELECT count(*)::int AS c FROM journal_entries WHERE tenant_id = ${tenantId} AND source_type = 'year_end_close' AND source_id = ${year.id}`,
+        );
+        const priorCount = Number((prior.rows[0] as { c: number }).c ?? 0);
+        const entry = await this.postJournalInTx(tx, tenantId, {
+          branchId: branch.id,
+          fiscalPeriodId: endPeriod.id,
+          date: year.endDate,
+          description: `إقفال السنة المالية ${year.name} — تحويل الدخل إلى الأرباح المحتجزة`,
+          lines,
+          sourceType: 'year_end_close',
+          sourceId: year.id,
+          idempotencyKey: `year-close:${year.id}:${priorCount}`,
+        });
+        if (!entry) throw new DomainError('JOURNAL_POST_FAILED', 'تعذّر ترحيل قيد الإقفال', 500);
+        closingEntry = { id: entry.id, number: entry.number ?? null };
+        await tx
+          .update(fiscalPeriods)
+          .set({ status: restore.status, closedAt: restore.closedAt, closedBy: restore.closedBy, isActive: restore.isActive })
+          .where(eq(fiscalPeriods.id, endPeriod.id));
+      }
+
+      // السنة التالية: تُنشأ (فتراتها) داخل المعاملة نفسها — بلا قيد افتتاح (دفتر محصل).
+      const nextStart = new Date(`${year.endDate}T00:00:00Z`);
+      nextStart.setUTCDate(nextStart.getUTCDate() + 1);
+      const spanDays = Math.round((new Date(`${year.endDate}T00:00:00Z`).getTime() - new Date(`${year.startDate}T00:00:00Z`).getTime()) / 86_400_000);
+      const nextEnd = new Date(nextStart);
+      nextEnd.setUTCDate(nextEnd.getUTCDate() + spanDays);
+      const nextStartIso = nextStart.toISOString().slice(0, 10);
+      const nextEndIso = nextEnd.toISOString().slice(0, 10);
+      const [existingNext] = await tx
+        .select()
         .from(fiscalYears)
         .where(
           and(
             eq(fiscalYears.tenantId, tenantId),
-            lte(fiscalYears.startDate, input.endDate),
-            gte(fiscalYears.endDate, input.startDate),
+            lte(fiscalYears.startDate, nextEndIso),
+            gte(fiscalYears.endDate, nextStartIso),
           ),
         )
         .limit(1);
-      if (overlapping.length > 0) {
-        throw new DomainError('FISCAL_YEAR_OVERLAP', 'Another fiscal year already covers this range', 409);
-      }
-
-      await tx.insert(fiscalYears).values({
-        id: yearId,
-        tenantId,
-        name: input.name,
-        startDate: input.startDate,
-        endDate: input.endDate,
-        status: 'open',
-      });
-
-      if (input.generateMonthlyPeriods !== false) {
-        const periods: Array<{ id: string; tenantId: string; fiscalYearId: string; name: string; startDate: string; endDate: string; status: string }> = [];
-        const cursor = new Date(start);
-        while (cursor <= end) {
-          const periodStart = new Date(cursor);
-          const periodEnd = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0));
-          const clampedEnd = periodEnd > end ? end : periodEnd;
-          periods.push({
-            id: newId(),
-            tenantId,
-            fiscalYearId: yearId,
-            name: `${periodStart.getUTCFullYear()}-${String(periodStart.getUTCMonth() + 1).padStart(2, '0')}`,
-            startDate: periodStart.toISOString().slice(0, 10),
-            endDate: clampedEnd.toISOString().slice(0, 10),
-            status: 'open',
-          });
-          cursor.setUTCMonth(cursor.getUTCMonth() + 1, 1);
+      let nextYear: { id: string; name: string; startDate: string; endDate: string } | null = null;
+      if (existingNext) {
+        if (existingNext.status !== 'open') {
+          throw new DomainError('FISCAL_YEAR_NEXT_NOT_OPEN', 'السنة التالية موجودة لكنها ليست مفتوحة', 409, { fiscalYearId: existingNext.id });
         }
-        if (periods.length > 0) await tx.insert(fiscalPeriods).values(periods);
+        const busy = await tx.execute(sql`SELECT count(*)::int AS c FROM journal_entries WHERE tenant_id = ${tenantId} AND status = 'posted' AND date BETWEEN ${existingNext.startDate} AND ${existingNext.endDate}`);
+        if (Number((busy.rows[0] as { c: number }).c ?? 0) > 0) {
+          throw new DomainError('FISCAL_YEAR_NEXT_HAS_ACTIVITY', 'السنة التالية تحمل قيوداً مرحّلة — لا يمكن تأمين قيدها قبل إقفال هذه السنة', 409, { fiscalYearId: existingNext.id });
+        }
+        nextYear = existingNext;
+      } else {
+        const created = await this.createFiscalYearInTx(tx, tenantId, {
+          name: nextStart.getUTCFullYear().toString(),
+          startDate: nextStartIso,
+          endDate: nextEndIso,
+        });
+        nextYear = created ?? null;
       }
 
-      const [row] = await tx.select().from(fiscalYears).where(eq(fiscalYears.id, yearId));
-      return row;
+      await tx
+        .update(fiscalYears)
+        .set({
+          status: 'closed',
+          closingEntryId: closingEntry?.id ?? null,
+          closedAt: new Date(),
+          closedBy: actorId ?? null,
+          notes: closingEntry ? `إقفال سنوي — قيد ${closingEntry.number}` : 'إقفال سنوي — بلا نشاط دخل',
+        })
+        .where(and(eq(fiscalYears.tenantId, tenantId), eq(fiscalYears.id, year.id)));
+
+      return {
+        fiscalYearId: year.id,
+        status: 'closed' as const,
+        netIncome: net.toFixed(4),
+        closingEntry,
+        nextYear,
+      };
+    });
+  }
+
+  /**
+   * MF-04 — إعادة فتح سنة مُقفلة: يُعكس قيد الإقفال بالآلية الموحَّدة (`reverseJournalInTx`
+   * بمرآته الكاملة) ثم تعود السنة open. الفترة تُفتح داخل المعاملة وتُستعاد كما في `closeYear`.
+   */
+  async reopenYear(tenantId: string, yearId: string, reason: string, actorId?: string | null) {
+    if (!reason?.trim()) throw new DomainError('REOPEN_REASON_REQUIRED', 'Reopen reason is required', 422, { field: 'reason' });
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const [year] = await tx
+        .select()
+        .from(fiscalYears)
+        .where(and(eq(fiscalYears.tenantId, tenantId), eq(fiscalYears.id, yearId)))
+        .for('update');
+      if (!year) throw new DomainError('FISCAL_YEAR_NOT_FOUND', 'Fiscal year not found', 404);
+      if (year.status !== 'closed') throw new DomainError('FISCAL_YEAR_NOT_CLOSED', 'السنة ليست مُقفلة', 409);
+      if (year.closingEntryId) {
+        const periods = await tx
+          .select()
+          .from(fiscalPeriods)
+          .where(eq(fiscalPeriods.fiscalYearId, year.id))
+          .orderBy(fiscalPeriods.startDate);
+        const endPeriod = periods.find((p) => p.startDate <= year.endDate && p.endDate >= year.endDate) ?? periods[periods.length - 1];
+        if (!endPeriod) throw new DomainError('FISCAL_YEAR_NO_PERIODS', 'لا فترة تغطي نهاية السنة', 409);
+        const restore = { status: endPeriod.status, closedAt: endPeriod.closedAt, closedBy: endPeriod.closedBy, isActive: endPeriod.isActive };
+        await tx.update(fiscalPeriods).set({ status: 'open' }).where(eq(fiscalPeriods.id, endPeriod.id));
+        await this.reverseJournalInTx(tx, tenantId, year.closingEntryId, {
+          reason: `إعادة فتح السنة ${year.name}: ${reason.trim()}`,
+          date: year.endDate,
+          fiscalPeriodId: endPeriod.id,
+          actorId: actorId ?? null,
+        });
+        // (لا تعديل على القيد الأصلي: مانع 0047 يمنع أي تغيير لقيد posted —
+        // تحرير مفتاح idempotency يتم حسابه في closeYear لدورة الإقفال التالية.)
+        await tx
+          .update(fiscalPeriods)
+          .set({ status: restore.status, closedAt: restore.closedAt, closedBy: restore.closedBy, isActive: restore.isActive })
+          .where(eq(fiscalPeriods.id, endPeriod.id));
+      }
+      await tx
+        .update(fiscalYears)
+        .set({ status: 'open', closingEntryId: null, closedAt: null, closedBy: null, notes: `سبب إعادة الفتح: ${reason.trim()}` })
+        .where(and(eq(fiscalYears.tenantId, tenantId), eq(fiscalYears.id, year.id)));
+      return { fiscalYearId: year.id, status: 'open' as const, reopenedBy: actorId ?? null };
     });
   }
 

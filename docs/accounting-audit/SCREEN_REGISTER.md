@@ -682,3 +682,9 @@
 | staff `/sales/invoices` | عمود «الاستحقاق» القابل للفرز بعد «التاريخ» | كما أعلاه |
 | API `POST/PUT /parties`، `POST /sales/invoices`، `POST /purchase-invoices` | حقول جديدة: `paymentTermsDays`، `creditHold`، `dueDate`؛ رفض `PARTY_CREDIT_HOLD`422؛ الأعمار تقرأ `due_date` | اختبارات r34 + رجوع83 + المجموعة الكاملة |
 
+
+## الشاشات المتأثرة في R35 — دفقة D2 (إقفال الفترة والسنة؛ تحقّق آلي لا بصري)
+| الشاشة | ما تغيّر | الدليل والحالة |
+|---|---|---|
+| staff `/accounting/periods` | «إغلاق الفترة» يستدعي معاينة `close-preflight` أولاً: المانع (مسودة/وردية مفتوحة) يوقف الإقفال بجملة مفهومة قبل نافذة التأكيد، والتحذيرات تُدرج داخل نص التأكيد؛ أزرار جديدة في جدول السنوات: «إقفال السنة» (معاينة إلزامية تعرض صافي الدخل وعدد الأسطر وحساب الوجهة) و«إعادة فتح السنة» (سبب إلزامي عبر prompt) | `r35-year-close-and-preflight.spec.ts` **6/6** + probe حيّ `probe-d2-year-close.txt` **25/25** + staff typecheck ✓؛ **لا لقطات (لا متصفح) — لم تُدَّعَ صور**، التحقق البصري مؤجَّل كوضع D1 |
+| API `GET /fiscal-periods/:id/close-preflight` · `GET /fiscal-years/:id/close-preview` · `POST /fiscal-years/:id/close` · `POST /fiscal-years/:id/reopen` | مسارات MF-05/MF-04 الجديدة (أذون `accounting.period.view/close/reopen`) | r35 + probe-d2؛ الحرّاس: `PERIOD_CLOSE_BLOCKED`، `FISCAL_YEAR_PERIODS_OPEN`، `FISCAL_YEAR_ALREADY_CLOSED`، `REOPEN_REASON_REQUIRED`، `RETAINED_EARNINGS_ACCOUNT_MISSING`… |
