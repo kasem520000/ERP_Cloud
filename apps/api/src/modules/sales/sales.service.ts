@@ -108,6 +108,8 @@ export type SalesInvoiceInput = {
   costCenterId?: string;
   referenceInvoiceId?: string;
   validUntil?: string;
+  /** ACC-105 / MF-08 — تاريخ استحقاق صريح يسبق اشتقاق «المدة من تاريخ الإنشاء». */
+  dueDate?: string;
   kind?: 'sale' | 'sale_return' | 'credit_note' | 'debit_note' | 'quotation';
   currency?: string;
   priceIncludesVat?: boolean;
@@ -124,6 +126,10 @@ export type SalesInvoiceInput = {
   /** ترحيل فوري للفاتورة عند الحفظ (الخيار الافتراضي في الواجهة السحابية ما لم يُفعَّل خيار المسودة). */
   autoPost?: boolean;
   settlement?: 'credit' | 'cash' | 'card' | 'bank';
+  /** ACC-105 (دفقة R34) — الترحيل الفوري للبيع النقدي عبر إنشاء واحد يحتاج حساب/موقع التسوية:
+      كانت الرسالة تصل `SALES_SETTLEMENT_ACCOUNT_REQUIRED` لأن المسار يمرّر `settlement` وحده. */
+  settlementAccountId?: string;
+  settlementCashLocationId?: string;
 };
 export type PaymentInput = {
   method: 'cash' | 'card' | 'bank' | 'credit' | 'split';
@@ -590,21 +596,32 @@ export class SalesService {
     }
 
     let validUntil = input.validUntil;
-    if (!validUntil && input.partyId) {
+    // ACC-105 / MF-08 — مدة سداد الطرف تُقرأ مرة واحدة: حقل البطاقة المباشر
+    // (paymentTermsDays) يسبق أيام «طريقة الدفع»، وتُشتق منها اثنتان: صلاحية العرض
+    // (كما كانت) وتاريخ الاستحقاق الجديد — صريح الطلب يسبق الاثنين.
+    let dueDate = input.dueDate ?? null;
+    if (input.partyId) {
       const [party] = await tx
-        .select({ paymentMethodId: parties.paymentMethodId })
+        .select({ paymentMethodId: parties.paymentMethodId, paymentTermsDays: parties.paymentTermsDays })
         .from(parties)
         .where(and(eq(parties.tenantId, tenantId), eq(parties.id, input.partyId)));
-      if (party?.paymentMethodId) {
-        const [pm] = await tx
-          .select({ dueDays: paymentMethods.dueDays })
-          .from(paymentMethods)
-          .where(and(eq(paymentMethods.tenantId, tenantId), eq(paymentMethods.id, party.paymentMethodId)));
-        if (pm?.dueDays && pm.dueDays > 0) {
-          const d = new Date();
-          d.setDate(d.getDate() + pm.dueDays);
-          validUntil = d.toISOString().slice(0, 10);
-        }
+      const termsDays =
+        party?.paymentTermsDays && party.paymentTermsDays > 0
+          ? party.paymentTermsDays
+          : party?.paymentMethodId
+            ? (
+                await tx
+                  .select({ dueDays: paymentMethods.dueDays })
+                  .from(paymentMethods)
+                  .where(and(eq(paymentMethods.tenantId, tenantId), eq(paymentMethods.id, party.paymentMethodId)))
+              )[0]?.dueDays ?? 0
+            : 0;
+      if (termsDays > 0) {
+        const d = new Date();
+        d.setDate(d.getDate() + termsDays);
+        const iso = d.toISOString().slice(0, 10);
+        if (!validUntil) validUntil = iso;
+        dueDate = dueDate ?? iso;
       }
     }
 
@@ -621,6 +638,7 @@ export class SalesService {
         costCenterId: input.costCenterId ?? null,
         kind: input.kind ?? 'sale',
         validUntil,
+        dueDate,
         currency: input.currency ?? 'SAR',
         priceIncludesVat: input.priceIncludesVat ?? false,
         cashCustomerName: input.cashCustomerName,
@@ -648,6 +666,8 @@ export class SalesService {
     if (input.autoPost) {
       return this.createAndPost(tenantId, input, {
         settlement: input.settlement,
+        settlementAccountId: input.settlementAccountId,
+        settlementCashLocationId: input.settlementCashLocationId,
       });
     }
     const id = await withTenantTx(this.database.db, tenantId, (tx) => this.createInTx(tx, tenantId, input));
@@ -1311,6 +1331,37 @@ export class SalesService {
             422,
             { field: 'settlementAccountId' },
           );
+      }
+      // ACC-105 / MF-08 — الحظر الائتماني: طرفٌ عليه `credit_hold` لا يُرحَّل له بيعٌ آجل
+      // يبقى جزأه على الذمة. البيع النقدي/الشبكة كلياً أو بتقسيمٍ يُسدَّى يمر — الممنوع
+      // هو *الآجل* لا الاسم. يُفحص قبل كتابة القيد أيّاً كان مسار الترحيل.
+      if (locked.partyId && (locked.kind === 'sale' || locked.kind === 'debit_note')) {
+        const [holdParty] = await tx
+          .select({ creditHold: parties.creditHold })
+          .from(parties)
+          .where(and(eq(parties.tenantId, tenantId), eq(parties.id, locked.partyId)))
+          .limit(1);
+        if (holdParty?.creditHold) {
+          const tendersSum = (posting.settlements ?? []).reduce(
+            (sum, entry) => sum.plus(money(entry.amount)),
+            new Decimal(0),
+          );
+          const settledInFull =
+            !posting.journalLines?.length &&
+            posting.settlement !== undefined &&
+            posting.settlement !== 'credit' &&
+            money(locked.total).gt(0) &&
+            (posting.settlements ?? []).length === 0;
+          const remainder = money(locked.total).minus(settledInFull ? money(locked.total) : tendersSum);
+          if (remainder.gt('0.01')) {
+            throw new DomainError(
+              'PARTY_CREDIT_HOLD',
+              'This party is on credit hold — settle the invoice or lift the hold first',
+              422,
+              { partyId: locked.partyId, remainder: remainder.toFixed(4) },
+            );
+          }
+        }
       }
       const lines = this.buildAutoJournal(
         locked,

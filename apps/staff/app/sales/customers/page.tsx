@@ -69,6 +69,17 @@ export default function CustomersPage() {
           { name: 'taxNo', label: 'الرقم الضريبي', ltr: true },
           { name: 'creditLimit', label: 'سقف الائتمان', type: 'number' },
           {
+            name: 'paymentTermsDays',
+            label: 'مدة السداد (أيام)',
+            type: 'number',
+            hint: 'تُشتق منها تواريخ استحقاق الفواتير وأعمار الديون — تسبق أيام طريقة الدفع.',
+          },
+          {
+            name: 'creditHold',
+            label: 'حظر ائتماني (يمنع البيع الآجل)',
+            type: 'checkbox',
+          },
+          {
             name: 'paymentMethodId',
             label: 'طريقة الدفع',
             type: 'select',
@@ -94,6 +105,8 @@ export default function CustomersPage() {
             phone: String(values.phone).trim() || undefined,
             taxNo: String(values.taxNo).trim() || undefined,
             creditLimit: String(values.creditLimit).trim() || undefined,
+            paymentTermsDays: String(values.paymentTermsDays ?? '').trim() ? Number(values.paymentTermsDays) : undefined,
+            creditHold: Boolean(values.creditHold),
             paymentMethodId: values.paymentMethodId ? String(values.paymentMethodId) : undefined,
             address: formToAddress(values),
           })
@@ -107,6 +120,8 @@ export default function CustomersPage() {
                   phone: row.phone ?? '',
                   taxNo: row.taxNo ?? row.tax_no ?? '',
                   creditLimit: row.creditLimit ?? '',
+                  paymentTermsDays: row.paymentTermsDays != null ? String(row.paymentTermsDays) : '',
+                  creditHold: Boolean(row.creditHold),
                   paymentMethodId: row.paymentMethodId ?? '',
                   ...addressToForm(row.address),
                 }),
@@ -118,6 +133,8 @@ export default function CustomersPage() {
                     phone: String(values.phone).trim() || undefined,
                     taxNo: String(values.taxNo).trim() || undefined,
                     creditLimit: String(values.creditLimit).trim() || undefined,
+                    paymentTermsDays: String(values.paymentTermsDays ?? '').trim() ? Number(values.paymentTermsDays) : null,
+                    creditHold: Boolean(values.creditHold),
                     paymentMethodId: values.paymentMethodId ? String(values.paymentMethodId) : undefined,
                     address: formToAddress(values),
                   }),
@@ -141,6 +158,16 @@ export default function CustomersPage() {
             cell: (row) => row.taxNo ?? row.tax_no ?? '—',
           },
           { key: 'credit', header: 'سقف الائتمان', align: 'num', cell: (row) => money(row.creditLimit) },
+          {
+            key: 'terms',
+            header: 'المدة/الحظر',
+            cell: (row) => (
+              <span className="text-xs">
+                {row.paymentTermsDays != null && row.paymentTermsDays > 0 ? `${row.paymentTermsDays} يوم` : '—'}
+                {row.creditHold ? <strong className="block text-rose-600">حظر ائتماني</strong> : null}
+              </span>
+            ),
+          },
           { key: 'balance', header: 'الرصيد', align: 'num', cell: (row) => balanceCell(row) },
           { key: 'method', header: 'طريقة الدفع', cell: (row) => methodLabel(row.paymentMethodId) },
           {

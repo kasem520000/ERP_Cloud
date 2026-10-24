@@ -11,7 +11,7 @@ import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
 import { isUniqueViolation } from '../organization/shared/org-support.js';
 
 export type PaymentMethodInput = { code: string; nameAr: string; nameEn?: string; kind?: 'cash' | 'card' | 'transfer' | 'cheque' | 'credit'; dueDays?: number; cashLocationId?: string; isActive?: boolean; isDefault?: boolean };
-export type PartyInput = { kind: 'customer' | 'supplier' | 'both'; name: string; paymentMethodId?: string; legalName?: string; taxNo?: string; nationalId?: string; address?: Record<string, string | undefined>; phone?: string; email?: string; receivableAccountId?: string; payableAccountId?: string; creditLimit?: string; isOwner?: boolean; isContractor?: boolean; branchId?: string };
+export type PartyInput = { kind: 'customer' | 'supplier' | 'both'; name: string; paymentMethodId?: string; legalName?: string; taxNo?: string; nationalId?: string; address?: Record<string, string | undefined>; phone?: string; email?: string; receivableAccountId?: string; payableAccountId?: string; creditLimit?: string; /** ACC-105 / MF-08 */ paymentTermsDays?: number | null; /** ACC-105 / MF-08 */ creditHold?: boolean; isOwner?: boolean; isContractor?: boolean; branchId?: string };
 export type ContactInput = { name: string; role?: string; phone?: string; email?: string; isPrimary?: boolean };
 export type AllocationInput = { partyId: string; voucherId?: string; invoiceKind: string; invoiceId: string; amount: string; invoiceTotal?: string; alreadyAllocated?: string };
 

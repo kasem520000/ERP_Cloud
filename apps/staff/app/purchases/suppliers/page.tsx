@@ -31,6 +31,12 @@ export default function SuppliersPage() {
         { name: 'name', label: 'الاسم', required: true },
         { name: 'phone', label: 'الجوال', ltr: true },
         { name: 'taxNo', label: 'الرقم الضريبي', ltr: true },
+        {
+          name: 'paymentTermsDays',
+          label: 'مدة السداد (أيام)',
+          type: 'number',
+          hint: 'تُشتق منها تواريخ استحقاق فواتير الشراء — تسبق أيام طريقة الدفع.',
+        },
         ...NATIONAL_ADDRESS_FIELDS.map((field) => ({
           name: field.name,
           label: field.label,
@@ -45,6 +51,7 @@ export default function SuppliersPage() {
           name: String(values.name).trim(),
           phone: String(values.phone).trim() || undefined,
           taxNo: String(values.taxNo).trim() || undefined,
+          paymentTermsDays: String(values.paymentTermsDays ?? '').trim() ? Number(values.paymentTermsDays) : undefined,
           address: formToAddress(values),
         })
       }
@@ -56,6 +63,7 @@ export default function SuppliersPage() {
                 name: row.name,
                 phone: row.phone ?? '',
                 taxNo: row.taxNo ?? row.tax_no ?? '',
+                paymentTermsDays: row.paymentTermsDays != null ? String(row.paymentTermsDays) : '',
                 ...addressToForm(row.address),
               }),
               onUpdate: (row, values) =>
@@ -63,6 +71,7 @@ export default function SuppliersPage() {
                   name: String(values.name).trim(),
                   phone: String(values.phone).trim() || undefined,
                   taxNo: String(values.taxNo).trim() || undefined,
+                  paymentTermsDays: String(values.paymentTermsDays ?? '').trim() ? Number(values.paymentTermsDays) : null,
                   address: formToAddress(values),
                 }),
             }

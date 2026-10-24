@@ -30,6 +30,8 @@ type Invoice = {
   paymentStatus: string;
   postedAt: string | null;
   createdAt: string;
+  /** ACC-105 / MF-08 — تاريخ الاستحقاق (تاريخ الوثيقة + مدة السداد). */
+  dueDate: string | null;
 };
 
 /** Relative Arabic time: "منذ ساعتين". */
@@ -395,6 +397,19 @@ function InvoicesInner() {
                     </span>
                   </span>
                 ),
+              },
+              {
+                key: 'due',
+                header: 'الاستحقاق',
+                sortable: true,
+                cell: (row) =>
+                  row.dueDate ? (
+                    <span className="text-xs text-muted">
+                      <span className="font-semibold text-ink-2">{shortDate(row.dueDate)}</span>
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted">—</span>
+                  ),
               },
               {
                 key: 'total',

@@ -73,6 +73,8 @@ export default function NewSalesInvoicePage() {
   const [costCenterId, setCostCenterId] = useState('');
   const [includesVat, setIncludesVat] = useState(false);
   const [invoiceDiscountText, setInvoiceDiscountText] = useState('');
+  /** ACC-105 / MF-08 — تاريخ استحقاق صريح؛ الفارغ يُشتق من مدة سداد العميل في الخادم. */
+  const [dueDate, setDueDate] = useState('');
   const [lines, setLines] = useState<LineDraft[]>([emptyLine()]);
   const [serialQuery, setSerialQuery] = useState('');
   const [busy, setBusy] = useState(false);
@@ -188,6 +190,7 @@ export default function NewSalesInvoicePage() {
         kind: 'sale',
         priceIncludesVat: includesVat,
         invoiceDiscount: invoiceDiscountText.trim() || undefined,
+        dueDate: dueDate.trim() || undefined,
         autoPost: shouldAutoPost,
         lines: toApiLines(lines),
       });
@@ -364,6 +367,18 @@ export default function NewSalesInvoicePage() {
                 ))}
               </select>
               <span className="muted small">مركز الفاتورة كلها — ولكل سطرٍ أن يخالفه من عموده.</span>
+            </label>
+            <label className="field">
+              <span>تاريخ الاستحقاق:</span>
+              <input
+                className="input"
+                type="date"
+                value={dueDate}
+                onChange={(event) => setDueDate(event.target.value)}
+              />
+              <span className="muted small">
+                اختياري — الفارغ يُشتق من مدة سداد العميل (أيام البطاقة أو طريقة الدفع) ويُقرأ في أعمار الديون.
+              </span>
             </label>
             <label className="field">
               <span>التسلسلي:</span>

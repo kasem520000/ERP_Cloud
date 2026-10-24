@@ -12,6 +12,7 @@ import {
   journalEntries,
   parties,
   paymentAllocations,
+  paymentMethods,
   purchaseAdjustmentNotes,
   purchaseInvoiceCosts,
   purchaseInvoiceLines,
@@ -65,6 +66,8 @@ export type PurchaseInvoiceInput = {
   costCenterId?: string;
   referenceInvoiceId?: string;
   kind?: 'purchase' | 'purchase_return';
+  /** ACC-105 / MF-08 — تاريخ استحقاق صريح يسبق اشتقاق «المدة من تاريخ الإنشاء». */
+  dueDate?: string;
   supplierReferenceNo?: string;
   supplierReferenceDate?: string;
   currency?: string;
@@ -297,7 +300,33 @@ export class PurchasesService {
         }
       }
 
-      await tx.insert(purchaseInvoices).values({ id, tenantId, createdBy: tryGetAuthContext()?.userId, branchId: input.branchId, warehouseId: input.warehouseId, partyId: resolvedPartyId, costCenterId: input.costCenterId ?? null, referenceInvoiceId: input.referenceInvoiceId, kind: input.kind ?? 'purchase', supplierReferenceNo: input.supplierReferenceNo, supplierReferenceDate: input.supplierReferenceDate, currency: input.currency ?? 'SAR', priceIncludesVat: input.priceIncludesVat ?? false, landedCostAlloc: input.landedCostAlloc ?? 'value', invoiceDiscount: totals.discount, extraTax: totals.extraTax, withholding: totals.withholding, subtotal: totals.subtotal, taxTotal: totals.tax, total: totals.total, status: 'draft' });
+      // ACC-105 / MF-08 — تاريخ الاستحقاق = صريح الطلب، وإلا «اليوم + مدة سداد المورد»
+      // (حقل البطاقة المباشر يسبق أيام طريقة الدفع)؛ من بلا مدة يبقى NULL فيُحسب العمر من القيد.
+      let dueDate = input.dueDate ?? null;
+      if (!dueDate) {
+        const [partyTerms] = await tx
+          .select({ paymentTermsDays: parties.paymentTermsDays, paymentMethodId: parties.paymentMethodId })
+          .from(parties)
+          .where(and(eq(parties.tenantId, tenantId), eq(parties.id, resolvedPartyId)))
+          .limit(1);
+        const termsDays =
+          partyTerms?.paymentTermsDays && partyTerms.paymentTermsDays > 0
+            ? partyTerms.paymentTermsDays
+            : partyTerms?.paymentMethodId
+              ? (
+                  await tx
+                    .select({ dueDays: paymentMethods.dueDays })
+                    .from(paymentMethods)
+                    .where(and(eq(paymentMethods.tenantId, tenantId), eq(paymentMethods.id, partyTerms.paymentMethodId)))
+                )[0]?.dueDays ?? 0
+              : 0;
+        if (termsDays > 0) {
+          const d = new Date();
+          d.setDate(d.getDate() + termsDays);
+          dueDate = d.toISOString().slice(0, 10);
+        }
+      }
+      await tx.insert(purchaseInvoices).values({ id, tenantId, createdBy: tryGetAuthContext()?.userId, branchId: input.branchId, warehouseId: input.warehouseId, partyId: resolvedPartyId, costCenterId: input.costCenterId ?? null, referenceInvoiceId: input.referenceInvoiceId, kind: input.kind ?? 'purchase', dueDate, supplierReferenceNo: input.supplierReferenceNo, supplierReferenceDate: input.supplierReferenceDate, currency: input.currency ?? 'SAR', priceIncludesVat: input.priceIncludesVat ?? false, landedCostAlloc: input.landedCostAlloc ?? 'value', invoiceDiscount: totals.discount, extraTax: totals.extraTax, withholding: totals.withholding, subtotal: totals.subtotal, taxTotal: totals.tax, total: totals.total, status: 'draft' });
       if (input.lines.length > 0) {
         await tx.insert(purchaseInvoiceLines).values(
           input.lines.map((line, index) => {

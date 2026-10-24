@@ -701,11 +701,12 @@ const partyName = sql`coalesce(party.name, '—')`;
 
 /**
  * ACC-192 (R33) — one aging for both sides. Open documents (posted, kind sale/purchase,
- * total > paid_total, dated on or before «إلى») are bucketed by the age of their journal date;
- * the party's ledger balance is Σ(debit − credit) of the posted lines that carry the party on the
- * receivable (payable) control account of the posting profiles or on his own sub-account — the
- * control-account leg is the only one tagged with the party since ACC-142 — and «unapplied» is
- * the difference.
+ * total > paid_total, dated on or before «إلى») are bucketed by the age of their **due date**
+ * (ACC-105 / MF-08: `due_date` when it exists — «تاريخ الوثيقة + مدة السداد» — falling back to
+ * the journal date exactly as before for documents without terms), and the party's ledger balance
+ * is Σ(debit − credit) of the posted lines that carry the party on the receivable (payable) control
+ * account of the posting profiles or on his own sub-account — the control-account leg is the only one
+ * tagged with the party since ACC-142 — and «unapplied» is the difference.
  */
 const agingSql = (tenantId: string, f: ReportFilters, side: 'customer' | 'supplier'): SQL => {
   const asOf = f.to ? sql`${f.to}::date` : sql`current_date`;
@@ -718,7 +719,10 @@ const agingSql = (tenantId: string, f: ReportFilters, side: 'customer' | 'suppli
   const ownAccount = side === 'customer' ? sql`p.receivable_account_id` : sql`p.payable_account_id`;
   // a supplier balance is a credit; show it positive like the invoices
   const sign = side === 'customer' ? sql`jel.debit - jel.credit` : sql`jel.credit - jel.debit`;
-  const age = sql`${asOf} - coalesce(je.date::date, d.posted_at::date, d.created_at::date)`;
+  // ACC-105 / MF-08 — عمر الفاتورة يُحسب من *تاريخ الاستحقاق* إن وُجد (فاتورة مدة 45 يوماً
+  // لا تدخل شريحة 31-60 قبل استحقاقها)، وإلا من تاريخ القيد كما كان — والتصفية على تاريخ
+  // الوثيقة كما هي حتى تبقى «غير مستحقة بعد» داخل شريحة 0-30 (العمر السالب ≤ 30).
+  const age = sql`${asOf} - coalesce(d.due_date::date, je.date::date, d.posted_at::date, d.created_at::date)`;
   // the system's own «due» (ACC-082/187): total − posted returns and credit/debit notes that
   // reference the document − what was paid on it; never below zero
   const returnKinds = side === 'customer' ? sql`('sale_return', 'credit_note')` : sql`('purchase_return', 'debit_note')`;

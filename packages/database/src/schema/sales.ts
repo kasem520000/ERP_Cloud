@@ -51,6 +51,8 @@ export const salesInvoices = pgTable(
     costCenterId: uuid('cost_center_id').references(() => costCenters.id, { onDelete: 'set null' }),
     kind: text('kind').notNull().default('sale'),
     validUntil: date('valid_until'),
+    /** ACC-105 / MF-08 — تاريخ الاستحقاق (تاريخ الوثيقة + مدة سداد الطرف). NULL يعني: يُحسب عمر الفاتورة من تاريخ القيد كما قبل. */
+    dueDate: date('due_date'),
     convertedInvoiceId: uuid('converted_invoice_id'),
     status: text('status').notNull().default('draft'),
     number: text('number'),

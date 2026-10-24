@@ -42,6 +42,8 @@ export const purchaseInvoices = pgTable('purchase_invoices', {
   total: numeric('total', money).notNull().default('0'),
   paidTotal: numeric('paid_total', money).notNull().default('0'),
   paymentStatus: text('payment_status').notNull().default('unpaid'),
+  /** ACC-105 / MF-08 — تاريخ استحقاق فاتورة الشراء (تاريخ الوثيقة + مدة سداد المورد). NULL = العمر من تاريخ القيد. */
+  dueDate: date('due_date'),
   journalEntryId: uuid('journal_entry_id').references(() => journalEntries.id),
   postedAt: timestamp('posted_at', { withTimezone: true }),
   voidedAt: timestamp('voided_at', { withTimezone: true }),
