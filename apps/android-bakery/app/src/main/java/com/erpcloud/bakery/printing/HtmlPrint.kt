@@ -76,11 +76,12 @@ object HtmlPrint {
 
         override fun onLayout(
             oldAttributes: PrintAttributes?,
-            newAttributes: PrintAttributes,
-            callback: LayoutResultCallback,
+            newAttributes: PrintAttributes?,
+            cancellationSignal: CancellationSignal?,
+            callback: LayoutResultCallback?,
             extras: Bundle?,
         ) {
-            wrapped.onLayout(oldAttributes, newAttributes, callback, extras)
+            wrapped.onLayout(oldAttributes, newAttributes, cancellationSignal, callback, extras)
         }
 
         override fun onWrite(

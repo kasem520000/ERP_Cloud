@@ -529,7 +529,22 @@ fun saleInvoice(view: PrintViewDto, widthPx: Int = 576): Bitmap {
         }
         if (view.notes.isNotBlank()) kv("ملاحظات", view.notes)
 
-        val qrPayload = view.effectiveQr
+        val qrPayload = view.qrPayload.takeIf { it.isNotBlank() } ?: run {
+            if (view.isZatca && view.companyName.isNotBlank() && view.companyTaxNo.isNotBlank()) {
+                val stamp = ZatcaQr.normalizeTimestamp(view.printedAt.ifBlank { view.saleDate })
+                if (stamp.isNotBlank()) {
+                    ZatcaQr.phase1Payload(
+                        sellerName = view.companyName,
+                        vatNo = view.companyTaxNo,
+                        timestampIso = stamp,
+                        grandTotal = Dec.orZero(copy.grandTotal.ifBlank { view.grandTotal })
+                            .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
+                        vatTotal = Dec.orZero(copy.vatTotal.ifBlank { view.vatTotal })
+                            .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
+                    )
+                } else null
+            } else null
+        }
         if (!qrPayload.isNullOrBlank()) {
             val qrSize = (doc.innerWidth * 0.40f).toInt().coerceIn(136, 300)
             runCatching { ZatcaQr.bitmap(qrPayload, qrSize) }.getOrNull()?.let { square ->

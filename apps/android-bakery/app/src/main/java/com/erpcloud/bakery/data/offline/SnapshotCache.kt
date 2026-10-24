@@ -44,11 +44,25 @@ class SnapshotCache(
 
     private fun fileFor(url: HttpUrl): File {
         val sess = sessionStore?.cached
-        val scope = "${sess?.tenantCode.orEmpty().lowercase(Locale.US)}|${sess?.userEmail.orEmpty().lowercase(Locale.US)}|$url"
+        val userKey = jwtSubject(sess?.accessToken.orEmpty())
+        val scope = "${sess?.tenantCode.orEmpty().lowercase(Locale.US)}|$userKey|$url"
         val digest = MessageDigest.getInstance("SHA-256").digest(scope.toByteArray(Charsets.UTF_8))
         val name = digest.joinToString("") { String.format(Locale.US, "%02x", it) }
         return File(dir, name)
     }
+
+    private fun jwtSubject(token: String): String = runCatching {
+        val parts = token.split('.')
+        if (parts.size < 2) {
+            ""
+        } else {
+            val decoded = String(
+                android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP),
+                Charsets.UTF_8,
+            )
+            Regex("\"sub\"\\s*:\\s*\"([^\"]+)\"").find(decoded)?.groupValues?.getOrNull(1).orEmpty()
+        }
+    }.getOrDefault("")
 
     fun save(url: HttpUrl, bytes: ByteArray) {
         try {

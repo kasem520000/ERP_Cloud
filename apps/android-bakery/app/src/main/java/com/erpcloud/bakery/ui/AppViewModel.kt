@@ -1134,31 +1134,33 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * الرسميُّ عند الخادمِ تمامًا. تُعيدُ null إن لم تكملِ البياناتُ (بلا رقمٍ
      * ضريبيّ مسجَّلٍ مثلًا) — فلا يُرسمُ مربّعٌ يفشلُ أيُّ ماسح.
      */
-    suspend fun receiptQrPayload(receipt: PosCheckoutReceiptDto): String? = try {
-        val invId = receipt.resolvedId
-        if (invId.isBlank()) return null
-        val detail = repo.salesInvoice(invId)
-        val issued = detail.effectiveQr
-        if (issued != null) {
-            issued
-        } else {
-            val profile = _uiState.value.companyProfile ?: repo.companyProfile()
-            val vatNo = profile.taxNo?.takeIf { it.isNotBlank() } ?: return null
-            val seller = profile.nameAr.takeIf { it.isNotBlank() } ?: return null
-            val stamp = com.erpcloud.bakery.printing.ZatcaQr.normalizeTimestamp(detail.createdAt.orEmpty())
-            if (stamp.isBlank()) return null
-            com.erpcloud.bakery.printing.ZatcaQr.phase1Payload(
-                sellerName = seller,
-                vatNo = vatNo,
-                timestampIso = stamp,
-                grandTotal = com.erpcloud.bakery.util.Dec.orZero(detail.total ?: receipt.total)
-                    .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
-                vatTotal = com.erpcloud.bakery.util.Dec.orZero(detail.taxTotal ?: receipt.taxTotal)
-                    .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
-            )
+    suspend fun receiptQrPayload(receipt: PosCheckoutReceiptDto): String? {
+        return try {
+            val invId = receipt.resolvedId
+            if (invId.isBlank()) return null
+            val detail = repo.salesInvoice(invId)
+            val issued = detail.effectiveQr
+            if (issued != null) {
+                issued
+            } else {
+                val profile = _uiState.value.companyProfile ?: repo.companyProfile()
+                val vatNo = profile.taxNo?.takeIf { it.isNotBlank() } ?: return null
+                val seller = profile.nameAr.takeIf { it.isNotBlank() } ?: return null
+                val stamp = com.erpcloud.bakery.printing.ZatcaQr.normalizeTimestamp(detail.createdAt.orEmpty())
+                if (stamp.isBlank()) return null
+                com.erpcloud.bakery.printing.ZatcaQr.phase1Payload(
+                    sellerName = seller,
+                    vatNo = vatNo,
+                    timestampIso = stamp,
+                    grandTotal = com.erpcloud.bakery.util.Dec.orZero(detail.total ?: receipt.total)
+                        .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
+                    vatTotal = com.erpcloud.bakery.util.Dec.orZero(detail.taxTotal ?: receipt.taxTotal)
+                        .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
+                )
+            }
+        } catch (_: Exception) {
+            null
         }
-    } catch (_: Exception) {
-        null
     }
 
     /**
