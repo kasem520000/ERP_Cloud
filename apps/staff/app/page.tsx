@@ -279,6 +279,12 @@ export default function DashboardPage() {
                 >
                   ميزان المراجعة <ArrowRight size={12} className="arrow-forward" aria-hidden />
                 </Link>
+                <Link
+                  className="inline-flex items-center gap-1 text-muted hover:text-ink"
+                  href="/reports/subledger-reconciliation"
+                >
+                  مطابقة الدفاتر الفرعية <ArrowRight size={12} className="arrow-forward" aria-hidden />
+                </Link>
               </div>
             }
           >

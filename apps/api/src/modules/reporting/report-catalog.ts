@@ -1372,6 +1372,157 @@ const voucherBase = (alias: string): SQL => sql`(CASE
     WHEN ${sql.raw(alias)}.vat_amount > 0 THEN ${sql.raw(alias)}.amount - ${sql.raw(alias)}.vat_amount
     ELSE ${sql.raw(alias)}.amount END)`;
 
+/**
+ * MF-33 (دفقة D3 بأذن صريح) — مطابقة الأستاذ العام مع الدفاتر الفرعية، داخل المنتج
+ * بدل فاحصات الجولات الخارجية (`FINANCIAL_RECONCILIATION.md`).
+ *
+ * لكل زوج: `رصيد الرقابة (GL مرحّل)` − `رصيد الفرعي` = `difference`، وحالة «مطابق»
+ * عند |فرق| ≤ 0.005. الأزواج: صندوق/بنك (لكل حساب مرتبط بمواقع نقدية) · مخزون
+ * (1270001 ↔ Σ stock_balances.value) · ذمم مدينة/دائن بالطرف (12310001/22111001 ↔
+ * فاتورة − مدفوع) · ضريبة (2222001 ↔ صيغة الإقرار نفسها: مبيعات − مشتريات ± إشعارات
+ * ± ضريبة السندات، كما في `vat-return` بلا تاريخ).
+ *
+ * **مقارنة لحظية بلا فلاتر تاريخ**: كل الفرعيّات جداول لقطات (لا تاريخ لها)، والتقرير
+ * يقارنها بالGL حتى لحظة التشغيل — تمامًا كفاحص الجولات. («أول تاريخ ظهور الفرق» من
+ * نص البطاقة غير مُحسب هنا: الفرعي بلا سجلّ تاريخي — موثّق في MISSING_FEATURES §5.2.)
+ */
+const subledgerReconciliationSql = (tenantId: string): SQL => sql`
+WITH gl_bal AS (
+  SELECT jel.account_id, round(sum(jel.debit - jel.credit), 2) AS bal
+  FROM journal_entry_lines jel
+  JOIN journal_entries je ON je.id = jel.entry_id AND je.status = 'posted'
+  WHERE jel.tenant_id = ${tenantId}
+  GROUP BY jel.account_id
+),
+cash_pairs AS (
+  SELECT cl.account_id,
+         string_agg(cl.name, '، ' ORDER BY cl.name) AS names,
+         string_agg(DISTINCT CASE cl.kind WHEN 'bank' THEN 'بنك' ELSE 'صندوق' END, ' · ') AS kinds,
+         round(sum(coalesce(clb.balance, 0)), 2) AS sub_bal
+  FROM cash_locations cl
+  LEFT JOIN cash_location_balances clb ON clb.cash_location_id = cl.id AND clb.tenant_id = cl.tenant_id
+  WHERE cl.tenant_id = ${tenantId} AND cl.deleted_at IS NULL
+  GROUP BY cl.account_id
+),
+inventory_row AS (
+  SELECT coalesce((SELECT gb.bal FROM gl_bal gb JOIN accounts a ON a.id = gb.account_id
+                   WHERE a.tenant_id = ${tenantId} AND a.code = '1270001' AND a.deleted_at IS NULL), 0) AS control_balance,
+         coalesce((SELECT round(sum(sb.value), 2) FROM stock_balances sb WHERE sb.tenant_id = ${tenantId}), 0) AS sub_balance
+),
+ar_control AS (
+  SELECT jel.party_id, round(sum(jel.debit - jel.credit), 2) AS bal
+  FROM journal_entry_lines jel
+  JOIN journal_entries je ON je.id = jel.entry_id AND je.status = 'posted'
+  WHERE jel.tenant_id = ${tenantId} AND jel.party_id IS NOT NULL
+    AND jel.account_id = (SELECT id FROM accounts WHERE tenant_id = ${tenantId} AND code = '12310001' AND deleted_at IS NULL LIMIT 1)
+  GROUP BY jel.party_id
+),
+ar_sub AS (
+  SELECT si.party_id,
+         round(sum(CASE WHEN si.kind = 'sale' THEN si.total - si.paid_total ELSE -(si.total - si.paid_total) END), 2) AS bal
+  FROM sales_invoices si
+  WHERE si.tenant_id = ${tenantId} AND si.status = 'posted' AND si.party_id IS NOT NULL
+  GROUP BY si.party_id
+),
+ap_control AS (
+  /* الطبيعة الدائنة: الرقابة تُقرأ (دائن − مدين) كي تتقابل مع (فاتورة − مدفوع) الموجبة. */
+  SELECT jel.party_id, round(sum(jel.credit - jel.debit), 2) AS bal
+  FROM journal_entry_lines jel
+  JOIN journal_entries je ON je.id = jel.entry_id AND je.status = 'posted'
+  WHERE jel.tenant_id = ${tenantId} AND jel.party_id IS NOT NULL
+    AND jel.account_id = (SELECT id FROM accounts WHERE tenant_id = ${tenantId} AND code = '22111001' AND deleted_at IS NULL LIMIT 1)
+  GROUP BY jel.party_id
+),
+ap_sub AS (
+  SELECT pi.party_id,
+         round(sum(CASE WHEN pi.kind = 'purchase' THEN pi.total - pi.paid_total ELSE -(pi.total - pi.paid_total) END), 2) AS bal
+  FROM purchase_invoices pi
+  WHERE pi.tenant_id = ${tenantId} AND pi.status = 'posted' AND pi.party_id IS NOT NULL
+  GROUP BY pi.party_id
+),
+vat_sub AS (
+  SELECT
+      (SELECT coalesce(sum(CASE WHEN si.kind = 'sale' THEN si.tax_total ELSE -si.tax_total END), 0)
+       FROM sales_invoices si WHERE si.tenant_id = ${tenantId} AND si.status = 'posted' AND si.kind IN ('sale', 'sale_return'))
+    - (SELECT coalesce(sum(round(san.amount * coalesce(sit.tax_total / nullif(sit.total, 0), 0), 2)), 0)
+       FROM sales_adjustment_notes san LEFT JOIN sales_invoices sit ON sit.id = san.invoice_id
+       WHERE san.tenant_id = ${tenantId} AND san.status = 'posted' AND san.kind = 'credit')
+    - (SELECT coalesce(sum(CASE WHEN pi.kind = 'purchase' THEN pi.tax_total ELSE -pi.tax_total END), 0)
+       FROM purchase_invoices pi WHERE pi.tenant_id = ${tenantId} AND pi.status = 'posted' AND pi.kind IN ('purchase', 'purchase_return'))
+    + (SELECT coalesce(sum(round(pan.amount * coalesce(pit.tax_total / nullif(pit.total, 0), 0), 2)), 0)
+       FROM purchase_adjustment_notes pan LEFT JOIN purchase_invoices pit ON pit.id = pan.invoice_id
+       WHERE pan.tenant_id = ${tenantId} AND pan.status = 'posted' AND pan.kind = 'debit')
+    + (SELECT coalesce(${voucherVat('vr')}, 0) FROM vouchers vr
+       WHERE vr.tenant_id = ${tenantId} AND vr.status = 'posted' AND vr.kind = 'receipt')
+    - (SELECT coalesce(${voucherVat('vr')}, 0) FROM vouchers vr
+       WHERE vr.tenant_id = ${tenantId} AND vr.status = 'posted' AND vr.kind = 'payment') AS balance
+), vat_row AS (
+  /* الضريبة ديناً في الطبيعة: الرقابة تُقرأ (دائن − مدين) كي تقابل صيغة الإقرار الموجبة. */
+  SELECT coalesce((SELECT -gb.bal FROM gl_bal gb JOIN accounts a ON a.id = gb.account_id
+                   WHERE a.tenant_id = ${tenantId} AND a.code = '2222001' AND a.deleted_at IS NULL), 0) AS control_balance,
+         (SELECT balance FROM vat_sub) AS sub_balance
+),
+rows AS (
+  SELECT 1 AS sort_no,
+         cp.kinds || ' — ' || a.code || ' ' || a.name_ar AS pair,
+         cp.names AS control_name,
+         coalesce(gb.bal, 0) AS control_balance,
+         cp.sub_bal AS sub_balance,
+         (SELECT string_agg(r.n, '، ') FROM (
+            SELECT je.number AS n FROM journal_entries je
+            JOIN journal_entry_lines jel ON jel.entry_id = je.id
+            WHERE je.tenant_id = ${tenantId} AND je.status = 'posted' AND jel.account_id = cp.account_id
+            ORDER BY je.date DESC, je.number DESC LIMIT 3) r) AS suspected
+  FROM cash_pairs cp
+  JOIN accounts a ON a.id = cp.account_id
+  LEFT JOIN gl_bal gb ON gb.account_id = cp.account_id
+  UNION ALL
+  SELECT 2, 'مخزون — 1270001',
+         coalesce((SELECT name_ar FROM accounts WHERE tenant_id = ${tenantId} AND code = '1270001' AND deleted_at IS NULL), 'حساب مفقود'),
+         control_balance, sub_balance, '—'
+  FROM inventory_row
+  UNION ALL
+  SELECT 3, 'ذمم مدينة — ' || coalesce(p.name, allp.party_id::text),
+         '12310001 ' || coalesce((SELECT name_ar FROM accounts WHERE tenant_id = ${tenantId} AND code = '12310001' AND deleted_at IS NULL), 'أرصدة مدينة'),
+         coalesce(c.bal, 0), coalesce(s.bal, 0),
+         (SELECT string_agg(r.n, '، ') FROM (
+            SELECT si2.number AS n FROM sales_invoices si2
+            WHERE si2.tenant_id = ${tenantId} AND si2.status = 'posted' AND si2.party_id = allp.party_id
+            ORDER BY coalesce(si2.posted_at, si2.created_at) DESC, si2.number DESC LIMIT 3) r)
+  FROM (SELECT party_id FROM ar_control UNION SELECT party_id FROM ar_sub) allp
+  LEFT JOIN ar_control c ON c.party_id = allp.party_id
+  LEFT JOIN ar_sub s ON s.party_id = allp.party_id
+  LEFT JOIN parties p ON p.id = allp.party_id
+  WHERE abs(coalesce(c.bal, 0)) > 0.005 OR abs(coalesce(s.bal, 0)) > 0.005
+  UNION ALL
+  SELECT 4, 'ذمم دائنة — ' || coalesce(p.name, allp.party_id::text),
+         '22111001 ' || coalesce((SELECT name_ar FROM accounts WHERE tenant_id = ${tenantId} AND code = '22111001' AND deleted_at IS NULL), 'أرصدة دائنة'),
+         coalesce(c.bal, 0), coalesce(s.bal, 0),
+         (SELECT string_agg(r.n, '، ') FROM (
+            SELECT pi2.number AS n FROM purchase_invoices pi2
+            WHERE pi2.tenant_id = ${tenantId} AND pi2.status = 'posted' AND pi2.party_id = allp.party_id
+            ORDER BY coalesce(pi2.posted_at, pi2.created_at) DESC, pi2.number DESC LIMIT 3) r)
+  FROM (SELECT party_id FROM ap_control UNION SELECT party_id FROM ap_sub) allp
+  LEFT JOIN ap_control c ON c.party_id = allp.party_id
+  LEFT JOIN ap_sub s ON s.party_id = allp.party_id
+  LEFT JOIN parties p ON p.id = allp.party_id
+  WHERE abs(coalesce(c.bal, 0)) > 0.005 OR abs(coalesce(s.bal, 0)) > 0.005
+  UNION ALL
+  SELECT 5, 'ضريبة — 2222001',
+         coalesce((SELECT name_ar FROM accounts WHERE tenant_id = ${tenantId} AND code = '2222001' AND deleted_at IS NULL), 'حساب ضريبة مفقود'),
+         control_balance, sub_balance, '—'
+  FROM vat_row
+)
+SELECT pair, control_name,
+       control_balance::text AS control_balance,
+       sub_balance::text AS sub_balance,
+       round(control_balance - sub_balance, 2)::text AS difference,
+       CASE WHEN abs(round(control_balance - sub_balance, 2)) <= 0.005 THEN 'مطابق' ELSE 'فرق' END AS status,
+       coalesce(nullif(suspected, ''), '—') AS suspected
+FROM rows
+ORDER BY sort_no, pair
+`;
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // 💰 «تقارير الخزينة والرواتب والمستخدمين» — `frmRptKhzna` · `frmRptSalary` ·
 //    `frmRptReseved` · `frmrptUsersRecords` · `frmRptRentInvoices`
@@ -3308,6 +3459,26 @@ const definitions: ReportDefinition[] = [
     columns: [text('party', 'المورد'), money('bucket_0_30', '0-30 يوم'), money('bucket_31_60', '31-60'), money('bucket_61_90', '61-90'), money('bucket_90_plus', 'أكثر من 90'), money('unapplied', 'أرصدة مدينة غير مطبّقة'), money('due', 'الإجمالي')],
     totals: ['bucket_0_30', 'bucket_31_60', 'bucket_61_90', 'bucket_90_plus', 'unapplied', 'due'],
     build: (tenantId, f) => agingSql(tenantId, f, 'supplier'),
+  },
+  {
+    key: 'subledger-reconciliation',
+    titleAr: 'مطابقة الأستاذ مع الدفاتر الفرعية',
+    group: 'accounting',
+    hintAr:
+      'MF-33 (دفقة D3 بأذن المالك): لكل زوج — صندوق/بنك مقابل مواقع النقدية، مخزون مقابل 1270001، ذمم مدينة/دائن بالطرف مقابل فواتيرها، ضريبة مقابل صيغة الإقرار — يعرض رصيد الرقابة في الأستاذ، رصيد الفرعي، الفرق، حالته، ومستندات مشتبهة. مقارنة لحظية (الفرعيات جداول لقطات بلا تاريخ)؛ الفرق المتوقّع على بيانات سليمة 0.00 وأي فرق مؤشر انحراف يستحق التحقيق قبل الإقفال (يحوّل فاحصات الجولات الخارجية إلى ميزة منتج).',
+    params: [],
+    columns: [
+      text('pair', 'الزوج'),
+      text('control_name', 'الحساب / الطرف'),
+      money('control_balance', 'رصيد الرقابة (GL)'),
+      money('sub_balance', 'رصيد الفرعي'),
+      money('difference', 'الفرق'),
+      text('status', 'الحالة'),
+      text('suspected', 'مستندات مشتبهة'),
+    ],
+    totals: ['difference'],
+    grandTotal: [{ key: 'difference', labelAr: '💰 مجموع الفروق (المتوقّع 0)' }],
+    build: (tenantId) => subledgerReconciliationSql(tenantId),
   },
   {
     key: 'party-statement',

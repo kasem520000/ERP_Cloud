@@ -688,3 +688,10 @@
 |---|---|---|
 | staff `/accounting/periods` | «إغلاق الفترة» يستدعي معاينة `close-preflight` أولاً: المانع (مسودة/وردية مفتوحة) يوقف الإقفال بجملة مفهومة قبل نافذة التأكيد، والتحذيرات تُدرج داخل نص التأكيد؛ أزرار جديدة في جدول السنوات: «إقفال السنة» (معاينة إلزامية تعرض صافي الدخل وعدد الأسطر وحساب الوجهة) و«إعادة فتح السنة» (سبب إلزامي عبر prompt) | `r35-year-close-and-preflight.spec.ts` **6/6** + probe حيّ `probe-d2-year-close.txt` **25/25** + staff typecheck ✓؛ **لا لقطات (لا متصفح) — لم تُدَّعَ صور**، التحقق البصري مؤجَّل كوضع D1 |
 | API `GET /fiscal-periods/:id/close-preflight` · `GET /fiscal-years/:id/close-preview` · `POST /fiscal-years/:id/close` · `POST /fiscal-years/:id/reopen` | مسارات MF-05/MF-04 الجديدة (أذون `accounting.period.view/close/reopen`) | r35 + probe-d2؛ الحرّاس: `PERIOD_CLOSE_BLOCKED`، `FISCAL_YEAR_PERIODS_OPEN`، `FISCAL_YEAR_ALREADY_CLOSED`، `REOPEN_REASON_REQUIRED`، `RETAINED_EARNINGS_ACCOUNT_MISSING`… |
+
+## الشاشات المتأثرة في R36 — دفقة D3 (MF-33 مطابقة الدفاتر الفرعية؛ بإذن صريح)
+| الشاشة | ما تغيّر | الدليل والحالة |
+|---|---|---|
+| staff `/reports/subledger-reconciliation` (شاشة التقارير العامة) | تقرير جديد «مطابقة الأستاذ مع الدفاتر الفرعية» يظهر تلقائياً في فهرس `/reports` ضمن مجموعة المحاسبة — صفّ لكل زوج (صندوق/بنك · مخزون · ذمم مدينة/دائن بالطرف · ضريبة) بعمودي الرقابة والفرعي والفرق والحالة والمستندات المشتبهة + بطاقة «مجموع الفروق (المتوقّع 0)» | `r36-subledger-reconciliation.spec.ts` **3/3** + probe حيّ `probe-d3-mf33.txt` **5/5**؛ **لا لقطات (لا متصفح) — لم تُدَّعَ صور** |
+| staff `/` (الشاشة الرئيسية — لوحة المحاسب) | رابط جديد «مطابقة الدفاتر الفرعية» في «مركز الإجراءات» بجانب قائمة الدخل/ميزان المراجعة | staff typecheck ✓؛ الوجهة تعمل حيّاً (probe M02) |
+| API `GET /reports/subledger-reconciliation` · `GET /reports` | مفتاح كتالوج جديد (perm `reporting.view` — رافض403 مُختبَر) | r36 + probe-d3 |
