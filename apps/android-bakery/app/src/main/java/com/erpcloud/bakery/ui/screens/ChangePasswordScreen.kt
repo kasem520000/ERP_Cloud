@@ -51,7 +51,8 @@ import com.erpcloud.bakery.ui.components.SectionCard
 fun ChangePasswordScreen(vm: AppViewModel, onBack: () -> Unit) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val email = state.me?.user?.email ?: ""
-    val fullName = state.me?.user?.fullName ?: state.me?.user?.displayName ?: ""
+    val fullName = state.me?.user?.fullName?.takeIf { it.isNotBlank() }
+        ?: state.me?.membership?.displayName.orEmpty()
 
     var current by rememberSaveable { mutableStateOf("") }
     var new by rememberSaveable { mutableStateOf("") }

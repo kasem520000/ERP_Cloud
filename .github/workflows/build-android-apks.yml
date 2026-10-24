@@ -68,9 +68,7 @@ jobs:
         shell: bash
         run: |
           if [ -f bakery-build.log ]; then
-            grep -E '(^e: |FAILURE:|> Task .* FAILED|\* What went wrong:|Error:)' bakery-build.log | head -n 30 | while IFS= read -r line; do
-              echo "::error title=BakeryBuild::${line}"
-            done
+            grep -E '(^e: |FAILURE:|> Task .* FAILED|\* What went wrong:|Error:)' bakery-build.log | head -n 40 | awk '{printf "%s%s", (NR%5==1 ? "::error title=BakeryBuild::" : " || "), $0; if (NR%5==0) print ""} END {if (NR%5!=0) print ""}'
           fi
 
       - name: Upload Bakery APKs

@@ -322,6 +322,7 @@ data class DocumentDto(
     val anomalyReason: String = "",
     val qrPayload: String = "",
     val notes: String = "",
+    val voidedAt: String? = null,
     val createdAt: String = "",
 )
 

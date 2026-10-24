@@ -378,9 +378,11 @@ data class PosCustomerDto(
 @Serializable
 data class PosTaxGroupDto(
     val id: String = "",
+    val code: String? = null,
     val nameAr: String? = null,
     val nameEn: String? = null,
     val rate: String = "0",
+    val isDefault: Boolean = false,
     val isInclusiveDefault: Boolean = false,
 )
 
