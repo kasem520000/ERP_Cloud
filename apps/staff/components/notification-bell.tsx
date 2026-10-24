@@ -22,6 +22,10 @@ const TYPE_LABEL_AR: Record<string, string> = {
   marketplace_addon_rejected: 'تحديث طلب باقة',
   van_sales_closing_request: 'طلب إغلاق وردية مندوب',
   van_sales_closing_approved: 'اعتماد إغلاق الوردية',
+  van_sales_receipt_confirmed: 'تأكيد استلام توريد',
+  van_sales_receipt_discrepancy: 'فرق في استلام توريد',
+  van_sales_supply_pending_receipt: 'توريد بانتظار الاستلام',
+  van_sales_load_canceled: 'إلغاء أمر تحميل',
   announcement: 'إعلان المنصة',
   'comment.mention': 'إشارة في تعليق',
 };
