@@ -249,7 +249,7 @@ private fun CountForm(vm: AppViewModel, onDone: () -> Unit) {
         item {
             SectionCard(
                 title = "تسويةُ جردٍ جديدة",
-                subtitle = "الكميّةُ المعدودةُ **الفعليّةُ المطلقة** — والخادمُ يحسبُ الفرقَ من الدفتر",
+                subtitle = "الكميّةُ المعدودةُ الفعليّةُ المطلقة — والخادمُ يحسبُ الفرقَ من الدفتر",
             ) {
                 OutlinedTextField(
                     value = branchLabel,

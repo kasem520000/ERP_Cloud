@@ -33,6 +33,9 @@ interface RepApi {
     @POST("auth/logout")
     suspend fun logout(): Response<Unit>
 
+    @POST("auth/forgot-password")
+    suspend fun forgotPassword(@Body body: ForgotPasswordRequest): Response<JsonElement>
+
     /** تغييرُ كلمة المرور — 204، ويُبطل الخادمُ كلَّ الجلسات بعده. */
     @POST("auth/change-password")
     suspend fun changePassword(@Body body: ChangePasswordRequest): Response<Unit>
@@ -44,7 +47,7 @@ interface RepApi {
     suspend fun workspace(): Response<ApiEnvelope<RepWorkspace>>
 
     @GET("parties")
-    suspend fun parties(@Query("kind") kind: String = "customer"): Response<List<PartyDto>>
+    suspend fun parties(@Query("kind") kind: String = "customer"): Response<ApiEnvelope<List<PartyDto>>>
 
     @POST("van-sales/documents")
     suspend fun createDocument(@Body body: JsonObject): Response<JsonElement>
@@ -60,6 +63,12 @@ interface RepApi {
 
     @POST("van-sales/load-orders/{id}/confirm-receipt")
     suspend fun confirmReceipt(
+        @Path("id") loadOrderId: String,
+        @Body body: JsonObject,
+    ): Response<JsonElement>
+
+    @POST("van-sales/load-orders/{id}/reject-receipt")
+    suspend fun rejectReceipt(
         @Path("id") loadOrderId: String,
         @Body body: JsonObject,
     ): Response<JsonElement>

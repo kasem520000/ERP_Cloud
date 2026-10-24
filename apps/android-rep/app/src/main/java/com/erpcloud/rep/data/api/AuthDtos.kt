@@ -20,6 +20,12 @@ data class RefreshRequest(
     val refreshToken: String,
 )
 
+@Serializable
+data class ForgotPasswordRequest(
+    val email: String,
+    val tenantCode: String,
+)
+
 /**
  * `POST /auth/change-password` — الجسم strict: {current, new} حرفيًّا.
  * النجاحُ 204، والخادمُ يُبطل كلَّ الجلسات بعده (سياسة الأمان).

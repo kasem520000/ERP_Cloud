@@ -189,7 +189,7 @@ private fun WorkspaceBody(
 
     fun shareSummary() {
         val totals = workspace.totals
-        val pending = state.queue.count { it.queueStatus == QueueStatus.PENDING }
+        val pending = state.scopedQueue.count { it.queueStatus == QueueStatus.PENDING }
         val summary = buildString {
             appendLine("ملخصُ وردية المندوب ${workspace.salesmanName ?: ""}")
             workspace.vehiclePlate?.takeIf { it.isNotBlank() }?.let { appendLine("السيارة: $it") }
@@ -254,7 +254,19 @@ private fun WorkspaceBody(
                 }
             }
 
-            // شبكةُ الإحصاءات
+            // شبكةُ الإحصاءات + تدقيقُ معادلة المجاميع (totalsReconcile كما في الويب)
+            val reconcileWarning = totalsReconcile(workspace.totals)
+            if (reconcileWarning != null) {
+                item {
+                    SectionCard(title = "تنبيهُ مطابقة المجاميع") {
+                        Text(
+                            reconcileWarning,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
             item { StatsGrid(workspace) }
 
             // مشاركةُ الملخص + آخر تحديث
@@ -376,16 +388,16 @@ private fun WorkspaceBody(
                                 KeyValue("الصنف", order.itemName)
                                 KeyValue("المحمَّل / المستلَم", "${Dec.kg(order.loadedQty)} / ${Dec.kg(order.receivedQty)} كجم")
                                 KeyValue("المتبقّي المتوقّع", "${Dec.kg(order.expectedRemainingQty)} كجم")
-                                if (Dec.isPositive(order.discrepancyQty)) {
+                                receiptShortfallText(order)?.let { shortfallMsg ->
                                     Text(
-                                        "نقصٌ عند الاستلام ${Dec.kg(order.discrepancyQty)} كجم — بانتظار قرار المحاسب.",
+                                        shortfallMsg,
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.error,
                                     )
                                 }
-                                if (Dec.isPositive(order.shortageQty)) {
+                                closingShortageText(order)?.let { shortageMsg ->
                                     Text(
-                                        "عجزٌ مُعلن ${Dec.kg(order.shortageQty)} كجم بقيمة ${Dec.money(order.shortageValue)} ريال.",
+                                        shortageMsg,
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.error,
                                     )
@@ -598,8 +610,8 @@ private fun IdentityHeader(state: com.erpcloud.rep.ui.UiState, onQueue: () -> Un
                     StatusChip("متّصل", ChipTone.OK)
                 }
             }
-            val pending = state.queue.count { it.queueStatus == QueueStatus.PENDING }
-            val refused = state.queue.count { it.queueStatus == QueueStatus.REFUSED }
+            val pending = state.scopedQueue.count { it.queueStatus == QueueStatus.PENDING }
+            val refused = state.scopedQueue.count { it.queueStatus == QueueStatus.REFUSED }
             if (pending > 0 || refused > 0) {
                 Spacer(Modifier.height(6.dp))
                 TextButton(onClick = onQueue) {
@@ -726,6 +738,47 @@ private fun ActionGrid(
 private fun windowNote(returned: Int?, total: Int?): String? {
     if (returned == null || total == null) return null
     return "تُعرض أحدث $returned من $total — القائمةُ نافذةٌ لا الجدولَ كاملًا، والمجاميعُ من جدولك كلّه."
+}
+
+/** فحصُ المعادلتين على أرقام الخادم (مطابقٌ لـ totalsReconcile في rep-screen.ts). */
+private fun totalsReconcile(totals: com.erpcloud.rep.data.api.RepTotals?): String? {
+    if (totals == null) return null
+    val scale = java.math.RoundingMode.HALF_UP
+    val salesGross = Dec.orZero(totals.salesGross).setScale(2, scale)
+    val cashSales = Dec.orZero(totals.cashSales).setScale(2, scale)
+    val creditSales = Dec.orZero(totals.creditSales).setScale(2, scale)
+    val returns = Dec.orZero(totals.returns).setScale(2, scale)
+    val returnsVat = Dec.orZero(totals.returnsVat).setScale(2, scale)
+    val revenue = Dec.orZero(totals.revenue).setScale(2, scale)
+
+    val byGross = salesGross.subtract(returns).subtract(returnsVat)
+    val byTender = cashSales.add(creditSales).subtract(returns).subtract(returnsVat)
+    if (byGross.compareTo(revenue) != 0 || byTender.compareTo(revenue) != 0) {
+        return "أرقامُ الخادم لا تُغلق المعادلة: الإيرادُ ${revenue.toPlainString()} بينما إجماليُّ المبيعات ناقصًا المرتجعات وضريبتَها ${byGross.toPlainString()} ونقديّ + آجل ناقصًا المرتجعات ${byTender.toPlainString()} — راجع المحاسب."
+    }
+    return null
+}
+
+private fun receiptShortfallText(row: com.erpcloud.rep.data.api.RepLoadOrderRow): String? {
+    if (!Dec.isPositive(row.discrepancyQty)) return null
+    val pending = row.stockSettlementStatus == "pending_transit_decision"
+    val suffix = when {
+        pending -> " — فرقٌ بانتظار قرار المحاسب، ولا يُشطب تلقائيًّا."
+        row.stockSettlementNote.isNotBlank() -> " — قرار المحاسب: ${row.stockSettlementNote}"
+        else -> "."
+    }
+    return "نقصٌ عند الاستلام ${Dec.kg(row.discrepancyQty)} كجم (المحمَّل ${Dec.kg(row.loadedQty)} − المستلَم ${Dec.kg(row.receivedQty)})$suffix"
+}
+
+private fun closingShortageText(row: com.erpcloud.rep.data.api.RepLoadOrderRow): String? {
+    if (!Dec.isPositive(row.shortageQty)) return null
+    val tail = if (!row.approvedAt.isNullOrBlank()) {
+        val note = if (row.stockSettlementNote.isNotBlank()) " — قرار المحاسب: ${row.stockSettlementNote}" else ""
+        "اعتُمد$note."
+    } else {
+        "بانتظار اعتماد المحاسب — لا يُشطب تلقائيًّا."
+    }
+    return "عجزٌ مُعلن ${Dec.kg(row.shortageQty)} كجم بقيمة ${Dec.money(row.shortageValue)} ريال — $tail"
 }
 
 private fun statusAr(status: String): String = when (status) {

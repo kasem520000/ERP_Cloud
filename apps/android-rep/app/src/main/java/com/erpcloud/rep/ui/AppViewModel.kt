@@ -17,6 +17,7 @@ import com.erpcloud.rep.data.api.NotificationDto
 import com.erpcloud.rep.data.api.PartyDto
 import com.erpcloud.rep.data.api.PrintViewDto
 import com.erpcloud.rep.data.api.ReceiptRequest
+import com.erpcloud.rep.data.api.RejectReceiptRequest
 import com.erpcloud.rep.data.api.RepWorkspace
 import com.erpcloud.rep.data.offline.Idempotency
 import com.erpcloud.rep.data.offline.QueueOperation
@@ -50,6 +51,10 @@ data class UiState(
     val lastRefreshAt: Long = 0L,
 ) {
     fun can(permission: String): Boolean = me?.can(permission) == true
+
+    /** نيّاتُ الطابور الخاصة بالمندوب والمنشأة المتّصلين فقط. */
+    val scopedQueue: List<QueueRecord>
+        get() = queue.filter { it.belongsTo(session.tenantCode, session.userId) }
 
     /** غيرُ المقروء من نافذة إشعارات المساحة (شارةُ الجرس) — الكتابةُ في صندوق الإشعارات. */
     val workspaceUnread: Int get() = workspace?.notifications?.count { !it.read } ?: 0
@@ -116,8 +121,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             container.sessionStore.state.collect { session ->
                 val becameLoggedIn = session.loggedIn && !lastLoggedIn
+                val becameLoggedOut = !session.loggedIn && lastLoggedIn
                 lastLoggedIn = session.loggedIn
-                _uiState.update { it.copy(session = session, sessionLoaded = true) }
+                if (becameLoggedOut) {
+                    announcedReceiptIds.clear()
+                    seenNotificationIds.clear()
+                    workspaceLoadedOnce = false
+                    _uiState.update {
+                        it.copy(
+                            session = session,
+                            sessionLoaded = true,
+                            me = null,
+                            workspace = null,
+                            parties = emptyList(),
+                            workspaceError = null,
+                            notifications = NotificationsState(),
+                            lastRefreshAt = 0L,
+                        )
+                    }
+                } else {
+                    _uiState.update { it.copy(session = session, sessionLoaded = true) }
+                }
                 if (becameLoggedIn) bootstrap()
             }
         }
@@ -149,8 +173,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val wasOffline = !_uiState.value.online
                 _uiState.update { it.copy(online = currentOnline()) }
                 // عادت الشبكة وهناك نيّاتٌ معلّقة؟ ذكّر المندوبَ بالإرسال — مرةً واحدةً.
-                if (wasOffline) {
-                    val pending = _uiState.value.queue.count { it.queueStatus == QueueStatus.PENDING }
+                if (wasOffline && _uiState.value.session.loggedIn) {
+                    val pending = _uiState.value.scopedQueue.count { it.queueStatus == QueueStatus.PENDING }
                     if (pending > 0) {
                         AppNotifier.notify(
                             appContext, AppNotifier.CHANNEL_QUEUE, 1001,
@@ -244,6 +268,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** نسيانُ الحساب المحفوظ (تغييرُ الحساب من شاشة الدخول). */
     fun forgetSavedAccount() {
         container.credentialStore.clear()
+    }
+
+    /** طلبُ استعادة كلمة المرور عبر البريد الإلكترونيّ. */
+    fun forgotPassword(server: String, email: String, tenantCode: String, onDone: (ActionResult) -> Unit) {
+        viewModelScope.launch {
+            val result = repo.forgotPassword(server, email, tenantCode)
+            onDone(result)
+        }
     }
 
     /**
@@ -478,6 +510,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** رفضُ استلام التوريد وإرجاعُ المناقلة إلى المصدر — **لا يُحفظ دون اتصال**. */
+    fun rejectReceipt(loadOrderId: String, reason: String, onDone: (ActionResult) -> Unit) {
+        if (!_uiState.value.online) {
+            onDone(ActionResult.Blocked(listOf(UiState.OFFLINE_RECEIPT_REASON)))
+            return
+        }
+        viewModelScope.launch {
+            val req = RejectReceiptRequest(reason = reason.trim().ifBlank { null })
+            val result = repo.rejectReceipt(loadOrderId, repo.encodeBody(req))
+            if (result is ActionResult.Synced) refreshWorkspace()
+            onDone(result)
+        }
+    }
+
     /** إغلاقُ الوردية — **لا يُحفظ دون اتصال** كذلك. */
     fun submitClosing(loadOrderId: String, request: ClosingRequest, onDone: (ActionResult) -> Unit) {
         if (!_uiState.value.online) {
@@ -494,7 +540,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** إعادةُ النيّات المعلّقة بترتيب إدخالها — وعودتها لمسارها الرسميّ نفسه. */
     fun replayQueue() {
         viewModelScope.launch {
-            val plan = container.queueStore.syncPlan()
+            val s = _uiState.value.session
+            val plan = container.queueStore.syncPlan(s.tenantCode, s.userId)
             if (plan.isEmpty()) {
                 _notice.value = Notice.warn("لا نيّاتٍ معلّقة في الطابور.")
                 return@launch
@@ -522,6 +569,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun clearSynced() {
         viewModelScope.launch {
             repo.clearSynced()
+        }
+    }
+
+    fun removeQueuedRecord(offlineId: String) {
+        viewModelScope.launch {
+            repo.removeQueuedRecord(offlineId)
+        }
+    }
+
+    fun retryRefusedRecord(offlineId: String) {
+        viewModelScope.launch {
+            repo.retryRefusedRecord(offlineId)
         }
     }
 

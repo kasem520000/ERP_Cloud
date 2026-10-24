@@ -87,30 +87,49 @@ fun SaleScreen(vm: AppViewModel, onDone: () -> Unit) {
     val party = state.parties.firstOrNull { it.id == partyId }
 
     // آخرُ سعرٍ باع به المندوبُ لنفسِ صنفِ هذا الأمر — من مستنداته كما يعيدها الخادم
-    // (أمرُ التحميل الواحد لصنفٍ واحد)؛ إرشادٌ للعرض فقط، ولمسةٌ واحدةٌ تعبّئه في حقل السعر.
     val lastPrice = loadOrder?.let { order ->
         workspace?.documents
-            ?.filter { it.isSale && it.itemName == order.itemName }
+            ?.filter { it.isSale && !it.isVoided && it.itemName == order.itemName }
             ?.maxByOrNull { it.docDate }
             ?.takeIf { Dec.isPositive(it.unitPrice) }
+    }
+
+    val creditBlockedReason: String? = when {
+        paymentMethod == "credit" && (!registeredCustomer || partyId.isBlank()) ->
+            "البيعُ الآجل يتطلّب اختيار بطاقة عميل مسجَّل."
+        paymentMethod == "credit" && party?.creditHold == true ->
+            "العميلُ موقوفٌ ائتمانيًّا (إيقاف البيع الآجل) — اختر الدفع النقديّ أو البطاقة."
+        Dec.isPositive(bonusQty) && bonusReason.trim().isEmpty() ->
+            "يجب تحديد سبب منح الكمية المجانية / البونص (ترويجي، عينات، تعويض تلف…)."
+        else -> null
+    }
+
+    val custodyWarning: String? = remember(loadOrder, soldQty, bonusQty) {
+        val order = loadOrder ?: return@remember null
+        val requested = Dec.orZero(soldQty).add(Dec.orZero(bonusQty))
+        val expected = Dec.orZero(order.expectedRemainingQty)
+        if (requested.signum() > 0 && requested > expected) {
+            "تحذير: المطلوب (${Dec.kg(requested.toPlainString())} كجم) أكبر من المتبقّي المتوقّع (${Dec.kg(order.expectedRemainingQty)} كجم) — الحكم النهائي للخادم."
+        } else null
     }
 
     fun buildRequest(): SaleRequest? {
         if (loadOrderId.isBlank()) return null
         val sold = Dec.parse(soldQty)
         if (sold == null || sold.signum() <= 0) return null
+        if (creditBlockedReason != null) return null
         return SaleRequest(
             loadOrderId = loadOrderId,
-            partyId = partyId.ifBlank { null },
-            customerName = if (partyId.isBlank()) customerName.trim().ifBlank { "محل تجزئة نقدي" } else null,
+            partyId = if (registeredCustomer) partyId.ifBlank { null } else null,
+            customerName = if (!registeredCustomer || partyId.isBlank()) customerName.trim().ifBlank { "محل تجزئة نقدي" } else null,
             invoiceMode = invoiceMode,
             paymentMethod = paymentMethod,
-            soldQty = soldQty.trim(),
-            bonusQty = bonusQty.trim().ifBlank { null },
-            bonusReason = bonusReason.trim().ifBlank { null },
-            unitPrice = unitPrice.trim().ifBlank { null },
-            discountAmount = discountAmount.trim().ifBlank { null },
-            discountReason = discountReason.trim().ifBlank { null },
+            soldQty = Dec.wire(soldQty),
+            bonusQty = Dec.wire(bonusQty).ifBlank { null },
+            bonusReason = if (Dec.isPositive(bonusQty)) bonusReason.trim().ifBlank { null } else null,
+            unitPrice = Dec.wire(unitPrice).ifBlank { null },
+            discountAmount = Dec.wire(discountAmount).ifBlank { null },
+            discountReason = if (Dec.isPositive(discountAmount)) discountReason.trim().ifBlank { null } else null,
             notes = notes.trim().ifBlank { null },
         )
     }
@@ -172,6 +191,20 @@ fun SaleScreen(vm: AppViewModel, onDone: () -> Unit) {
                     OutlinedButton(onClick = { showPartyPicker = true }, modifier = Modifier.fillMaxWidth()) {
                         Text(party?.displayName ?: "اختر بطاقةَ العميل")
                     }
+                    if (party?.creditHold == true) {
+                        Text(
+                            "هذا العميل موقوفٌ ائتمانيًّا — يُسمح بالبيع النقدي أو البطاقة فقط.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    } else if (party?.creditLimit != null && Dec.isPositive(party.creditLimit)) {
+                        Text(
+                            "الحدُّ الائتمانيّ المسجَّل: ${Dec.money(party.creditLimit)} ريال" +
+                                (party.paymentTermsDays?.let { " · شروط السداد: $it يومًا" } ?: ""),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 } else {
                     OutlinedTextField(
                         value = customerName,
@@ -200,7 +233,17 @@ fun SaleScreen(vm: AppViewModel, onDone: () -> Unit) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(selected = paymentMethod == "cash", onClick = { paymentMethod = "cash" }, label = { Text("نقديّ") })
                     FilterChip(selected = paymentMethod == "card", onClick = { paymentMethod = "card" }, label = { Text("بطاقة") })
-                    FilterChip(selected = paymentMethod == "credit", onClick = { paymentMethod = "credit" }, label = { Text("آجل") })
+                    FilterChip(
+                        selected = paymentMethod == "credit",
+                        onClick = {
+                            paymentMethod = "credit"
+                            if (!registeredCustomer) {
+                                registeredCustomer = true
+                                customerName = ""
+                            }
+                        },
+                        label = { Text("آجل") },
+                    )
                 }
             }
 
@@ -226,7 +269,9 @@ fun SaleScreen(vm: AppViewModel, onDone: () -> Unit) {
                     OutlinedTextField(
                         value = bonusReason,
                         onValueChange = { bonusReason = it },
-                        label = { Text("سببُ البونص") },
+                        label = { Text("سببُ البونص *") },
+                        isError = bonusReason.trim().isEmpty(),
+                        supportingText = { Text("إلزاميّ عند منح بونص (ترويجي، عينات، تعويض تلف…)") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -261,14 +306,57 @@ fun SaleScreen(vm: AppViewModel, onDone: () -> Unit) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (Dec.isPositive(discountAmount)) {
+                    OutlinedTextField(
+                        value = discountReason,
+                        onValueChange = { discountReason = it },
+                        label = { Text("سببُ الخصم") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
                     label = { Text("ملاحظات") },
                     modifier = Modifier.fillMaxWidth(),
                 )
+                // معاينةٌ تقديريّةٌ للمجموع عند إدخال السعر محليًّا (والحكم النهائي للخادم)
+                val soldBd = Dec.parse(soldQty)
+                val priceBd = Dec.parse(unitPrice)
+                if (soldBd != null && soldBd.signum() > 0 && priceBd != null && priceBd.signum() > 0) {
+                    val discBd = Dec.orZero(discountAmount)
+                    val subBd = soldBd.multiply(priceBd).subtract(discBd)
+                        .max(java.math.BigDecimal.ZERO)
+                        .setScale(2, java.math.RoundingMode.HALF_UP)
+                    val vatBd = if (invoiceMode == "zatca_tax") {
+                        subBd.multiply(java.math.BigDecimal("0.15"))
+                            .setScale(2, java.math.RoundingMode.HALF_UP)
+                    } else java.math.BigDecimal.ZERO.setScale(2)
+                    val grandBd = subBd.add(vatBd)
+                    Text(
+                        "تقديرُ الفاتورة: صافي ${subBd.toPlainString()} + ضريبة ${vatBd.toPlainString()} = ${grandBd.toPlainString()} ريال (يُحتسب رسميًّا في الخادم).",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
 
+            if (custodyWarning != null) {
+                Text(
+                    custodyWarning,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            if (creditBlockedReason != null) {
+                Text(
+                    creditBlockedReason,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
             if (localError != null) {
                 Text(localError ?: "", color = MaterialTheme.colorScheme.error)
             }

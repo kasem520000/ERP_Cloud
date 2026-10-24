@@ -79,12 +79,12 @@ fun ClosingScreen(vm: AppViewModel, onDone: () -> Unit) {
         if (loadOrderId.isBlank()) return null
         if (Dec.isPositive(damagedQty) && damageReason.isBlank()) return null
         return ClosingRequest(
-            returnedQty = returnedQty.trim().ifBlank { null },
-            damagedQty = damagedQty.trim().ifBlank { null },
-            damageReason = damageReason.trim().ifBlank { null },
-            collectedCash = collectedCash.trim().ifBlank { null },
-            actualRemainingQty = if (countMode == "per-order") actualRemainingQty.trim().ifBlank { null } else null,
-            vehicleCountQty = if (countMode == "vehicle") vehicleCountQty.trim().ifBlank { null } else null,
+            returnedQty = Dec.wire(returnedQty).ifBlank { null },
+            damagedQty = Dec.wire(damagedQty).ifBlank { null },
+            damageReason = if (Dec.isPositive(damagedQty)) damageReason.trim().ifBlank { null } else null,
+            collectedCash = Dec.wire(collectedCash).ifBlank { null },
+            actualRemainingQty = if (countMode == "per-order") Dec.wire(actualRemainingQty).ifBlank { null } else null,
+            vehicleCountQty = if (countMode == "vehicle") Dec.wire(vehicleCountQty).ifBlank { null } else null,
             closingNotes = closingNotes.trim().ifBlank { null },
         )
     }
@@ -116,6 +116,9 @@ fun ClosingScreen(vm: AppViewModel, onDone: () -> Unit) {
                 if (order != null) {
                     KeyValue("العهدةُ (المستلَم)", "${Dec.kg(order.receivedQty.ifBlank { order.loadedQty })} كجم")
                     KeyValue("المباع + البونص", "${Dec.kg(order.soldQty)} + ${Dec.kg(order.bonusQty)} كجم")
+                    if (Dec.isPositive(order.customerReturnedQty)) {
+                        KeyValue("مرتجعاتُ العملاء المضافة للسيارة", "${Dec.kg(order.customerReturnedQty)} كجم")
+                    }
                     KeyValue("المتوقّعُ متبقّيًا", "${Dec.kg(order.expectedRemainingQty)} كجم")
                     KeyValue("النقديُّ المتوقّع", "${Dec.money(order.expectedCash)} ريال")
                     if (order.isPendingClosing) {
@@ -169,12 +172,12 @@ fun ClosingScreen(vm: AppViewModel, onDone: () -> Unit) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = countMode == "vehicle",
-                        onClick = { countMode = "vehicle" },
+                        onClick = { countMode = "vehicle"; actualRemainingQty = "" },
                         label = { Text("عددُ المركبة كلّها") },
                     )
                     FilterChip(
                         selected = countMode == "per-order",
-                        onClick = { countMode = "per-order" },
+                        onClick = { countMode = "per-order"; vehicleCountQty = "" },
                         label = { Text("عددٌ لهذا الأمر") },
                     )
                 }

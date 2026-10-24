@@ -65,13 +65,18 @@ fun ReturnScreen(vm: AppViewModel, onDone: () -> Unit) {
 
     val returnable = workspace?.returnableDocuments ?: emptyList()
     val document = returnable.firstOrNull { it.id == documentId }
+    val ceiling = document?.let {
+        Dec.orZero(it.soldQty).add(Dec.orZero(it.bonusQty))
+    }
+    val exceedsCeiling = ceiling != null && Dec.parse(returnedQty)?.let { it > ceiling } == true
 
     fun buildRequest(): ReturnRequest? {
         if (documentId.isBlank()) return null
         val qty = Dec.parse(returnedQty)
         if (qty == null || qty.signum() <= 0) return null
+        if (exceedsCeiling) return null
         return ReturnRequest(
-            returnedQty = returnedQty.trim(),
+            returnedQty = Dec.wire(returnedQty),
             reason = reason.trim().ifBlank { null },
             notes = notes.trim().ifBlank { null },
         )
@@ -124,7 +129,15 @@ fun ReturnScreen(vm: AppViewModel, onDone: () -> Unit) {
                     value = returnedQty,
                     onValueChange = { if (Dec.isValidInput(it)) returnedQty = it },
                     label = { Text("الكميّة المرجَعة (كجم) *") },
-                    isError = returnedQty.isNotBlank() && Dec.parse(returnedQty)?.signum() != 1,
+                    isError = (returnedQty.isNotBlank() && Dec.parse(returnedQty)?.signum() != 1) || exceedsCeiling,
+                    supportingText = if (exceedsCeiling && ceiling != null) {
+                        {
+                            Text(
+                                "كمية المرتجع تتجاوز سقف المستند الأصلي (${Dec.kg(ceiling.toPlainString())} كجم).",
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    } else null,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),

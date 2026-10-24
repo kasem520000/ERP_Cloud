@@ -6,6 +6,7 @@ import com.erpcloud.rep.data.api.AppJson
 import com.erpcloud.rep.data.api.ChangePasswordRequest
 import com.erpcloud.rep.data.api.ClosingRequest
 import com.erpcloud.rep.data.api.CollectionRequest
+import com.erpcloud.rep.data.api.ForgotPasswordRequest
 import com.erpcloud.rep.data.api.LoginRequest
 import com.erpcloud.rep.data.api.LoginResponse
 import com.erpcloud.rep.data.api.MeResponse
@@ -14,6 +15,7 @@ import com.erpcloud.rep.data.api.PartyDto
 import com.erpcloud.rep.data.api.PrintViewDto
 import com.erpcloud.rep.data.api.ProblemDto
 import com.erpcloud.rep.data.api.ReceiptRequest
+import com.erpcloud.rep.data.api.RejectReceiptRequest
 import com.erpcloud.rep.data.api.RepApi
 import com.erpcloud.rep.data.api.RepWorkspace
 import com.erpcloud.rep.data.api.ReturnRequest
@@ -96,9 +98,16 @@ class RepRepository(
 
     suspend fun parties(): List<PartyDto> = withContext(Dispatchers.IO) {
         val response = api.parties()
-        if (!response.isSuccessful) throw response.toApiException()
-        response.body() ?: emptyList()
+        unwrapEnvelope(response) ?: emptyList()
     }
+
+    suspend fun forgotPassword(server: String, email: String, tenantCode: String): ActionResult =
+        withContext(Dispatchers.IO) {
+            sessionStore.setServerUrl(server)
+            submitDirect("طلب إعادة تعيين كلمة المرور") {
+                api.forgotPassword(ForgotPasswordRequest(email = email.trim(), tenantCode = tenantCode.trim()))
+            }
+        }
 
     /**
      * صندوقُ الإشعارات — يتطلّب إذنَ tenant.notification.view؛ إن لم يملكه الحسابُ
@@ -139,6 +148,7 @@ class RepRepository(
         is ReturnRequest -> AppJson.encodeToJsonElement(ReturnRequest.serializer(), value)
         is CollectionRequest -> AppJson.encodeToJsonElement(CollectionRequest.serializer(), value)
         is ReceiptRequest -> AppJson.encodeToJsonElement(ReceiptRequest.serializer(), value)
+        is RejectReceiptRequest -> AppJson.encodeToJsonElement(RejectReceiptRequest.serializer(), value)
         is ClosingRequest -> AppJson.encodeToJsonElement(ClosingRequest.serializer(), value)
         else -> throw IllegalArgumentException("نوعُ طلبٍ غير مدعوم: ${value::class.simpleName}")
     }.jsonObject
@@ -215,6 +225,10 @@ class RepRepository(
     suspend fun confirmReceipt(loadOrderId: String, body: JsonObject): ActionResult =
         submitDirect("تأكيد استلام التوريد") { api.confirmReceipt(loadOrderId, body) }
 
+    /** رفضُ استلام التوريد — يُغلق المناقلة بالإرجاع إلى المصدر بلا إثبات عهدة على المندوب. */
+    suspend fun rejectReceipt(loadOrderId: String, body: JsonObject): ActionResult =
+        submitDirect("رفض استلام التوريد") { api.rejectReceipt(loadOrderId, body) }
+
     /** إغلاقُ الوردية — مسارٌ مباشرٌ، لا مفتاحَ في جسمه ولا حفظَ في الطابور. */
     suspend fun submitClosing(loadOrderId: String, body: JsonObject): ActionResult =
         submitDirect("إغلاق الوردية") { api.submitClosing(loadOrderId, body) }
@@ -229,15 +243,20 @@ class RepRepository(
      */
     suspend fun replayQueue(onEach: suspend (QueueRecord, ActionResult) -> Unit): Int {
         var sent = 0
-        for (record in queueStore.syncPlan()) {
+        val currentSession = sessionStore.cached
+        for (record in queueStore.syncPlan(currentSession.tenantCode, currentSession.userId)) {
+            var lastHttpStatus: Int? = null
+            var lastCode: String? = null
             val outcome: ActionResult
             try {
                 val response = api.postQueue(record.endpoint, record.body)
+                lastHttpStatus = response.code()
                 outcome = if (response.isSuccessful) {
                     sent += 1
                     ActionResult.Synced("وصلت النيّةُ إلى الخادم.")
                 } else {
                     val error = response.toApiException()
+                    lastCode = error.errorCode.ifBlank { null }
                     when {
                         error.httpStatus >= 500 -> ActionResult.StoredOffline(
                             "خطأُ خادمٍ (${error.httpStatus}) — النيّةُ لم تُرفض فتبقى في الطابور."
@@ -269,19 +288,33 @@ class RepRepository(
                 is ActionResult.Blocked -> outcome.reasonsAr.joinToString(" · ")
             }
             queueStore.update(record.offlineId) {
-                it.copy(status = nextStatus.name, attempts = it.attempts + 1, lastMessage = message)
+                it.copy(
+                    status = nextStatus.name,
+                    attempts = it.attempts + 1,
+                    lastStatusCode = lastHttpStatus ?: it.lastStatusCode,
+                    lastErrorCode = lastCode,
+                    lastMessage = message,
+                )
             }
             onEach(record, outcome)
         }
         return sent
     }
 
-    suspend fun clearSynced() = queueStore.removeSynced()
+    suspend fun clearSynced() {
+        val s = sessionStore.cached
+        queueStore.removeSynced(s.tenantCode, s.userId)
+    }
+
+    suspend fun removeQueuedRecord(offlineId: String) = queueStore.remove(offlineId)
+
+    suspend fun retryRefusedRecord(offlineId: String) = queueStore.resetToPending(offlineId)
 
     // ------------------------------------------------------------ أدوات داخلية
 
     private suspend fun enqueue(operation: QueueOperation, endpoint: String, body: JsonObject) {
         val key = (body["idempotencyKey"] as? JsonPrimitive)?.content.orEmpty()
+        val s = sessionStore.cached
         queueStore.add(
             QueueRecord(
                 operation = operation.name,
@@ -290,7 +323,9 @@ class RepRepository(
                 idempotencyKey = key,
                 label = operation.labelAr,
                 sequenceNo = queueStore.nextSequence(),
-                deviceId = sessionStore.cached.deviceId,
+                deviceId = s.deviceId,
+                tenantCode = s.tenantCode.trim().lowercase(java.util.Locale.US),
+                userId = s.userId,
             )
         )
     }

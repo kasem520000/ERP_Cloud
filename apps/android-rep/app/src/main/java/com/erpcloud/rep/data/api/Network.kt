@@ -73,7 +73,11 @@ class AuthInterceptor(private val sessionStore: SessionStore) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val path = request.url.encodedPath
-        if (path.endsWith("/auth/login") || path.endsWith("/auth/refresh")) {
+        if (
+            path.endsWith("/auth/login") ||
+            path.endsWith("/auth/refresh") ||
+            path.endsWith("/auth/forgot-password")
+        ) {
             return chain.proceed(request)
         }
         val token = sessionStore.cached.accessToken
@@ -96,7 +100,11 @@ class AuthAuthenticator(
 
     override fun authenticate(route: okhttp3.Route?, response: Response): Request? {
         val path = response.request.url.encodedPath
-        if (path.endsWith("/auth/login") || path.endsWith("/auth/refresh")) return null
+        if (
+            path.endsWith("/auth/login") ||
+            path.endsWith("/auth/refresh") ||
+            path.endsWith("/auth/forgot-password")
+        ) return null
         // لا تُكرِّر: إن سبق أن أُعيد المحاولة على الطلب نفسه فتوقّف.
         if (response.request.header("X-Retry-After-Refresh") != null) return null
 
@@ -173,8 +181,8 @@ class NetworkFactory(private val sessionStore: SessionStore, private val events:
             .build()
 
         val authed = bare.newBuilder()
-            .addInterceptor(HostSelectionInterceptor(sessionStore))
             .addInterceptor(AuthInterceptor(sessionStore))
+            .addInterceptor(HostSelectionInterceptor(sessionStore))
             .authenticator(AuthAuthenticator(sessionStore, events, bare))
             .build()
 

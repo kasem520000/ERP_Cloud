@@ -5,14 +5,31 @@ import java.math.RoundingMode
 
 /**
  * كل أرقام الخادم نصوص (numeric من PostgreSQL) — هذه الأداةُ تتعامل معها بدقةٍ عشرية
- * بلا تحويلٍ إلى double (انظر docs/ANDROID_REP_APP_API_REFERENCE.md §١).
+ * بلا تحويلٍ إلى double، مع تطبيع الأرقام العربية-الهندية والفارسية قبل التحليل والإرسال.
  */
 object Dec {
 
+    /** تحويلُ الأرقام العربية-الهندية (٠-٩) والفارسية (۰-۹) والفاصلة العشرية العربية إلى ASCII. */
+    fun normalizeDigits(raw: String?): String {
+        if (raw.isNullOrEmpty()) return ""
+        val sb = StringBuilder(raw.length)
+        for (ch in raw) {
+            when (ch) {
+                in '٠'..'٩' -> sb.append(('0'.code + (ch.code - '٠'.code)).toChar())
+                in '۰'..'۹' -> sb.append(('0'.code + (ch.code - '۰'.code)).toChar())
+                '٫', ',' -> sb.append('.')
+                '٬', ' ' -> {} // تجاهل فواصل الآلاف والمسافات
+                '−', '–' -> sb.append('-')
+                else -> sb.append(ch)
+            }
+        }
+        return sb.toString()
+    }
+
     /** تحليلُ نصٍّ إلى BigDecimal — null إن كان فارغًا أو غير رقمي. */
     fun parse(value: String?): BigDecimal? {
-        val text = value?.trim().orEmpty()
-        if (text.isEmpty()) return null
+        val text = normalizeDigits(value).trim()
+        if (text.isEmpty() || text == "-" || text == "." || text == "-.") return null
         return try {
             BigDecimal(text)
         } catch (_: NumberFormatException) {
@@ -32,12 +49,11 @@ object Dec {
         return parsed.signum() >= 0
     }
 
-    /** هل النصُّ رقمٌ عشريٌّ صالحٌ للإدخال (أرقام ونقطة وسالب فقط)؟ */
+    /** هل النصُّ رقمٌ عشريٌّ صالحٌ للإدخال (يقبل الأرقام العربية واللاتينية ونقطة وسالب)؟ */
     fun isValidInput(value: String): Boolean {
         if (value.isEmpty()) return true
-        if (!value.matches(Regex("^-?\\d*(\\.\\d*)?$"))) return false
-        // نقطة بلا أرقام أو علامة وحدها لا تُعدّ جاهزةً للإرسال لكنها إدخالٌ مشروع
-        return true
+        val normalized = normalizeDigits(value)
+        return normalized.matches(Regex("^-?\\d*(\\.\\d*)?$"))
     }
 
     /** تنسيقُ قيمةٍ للعرض: قصّ الأصفار الزائدة مع حدٍّ أعلى للخانات. */
@@ -53,10 +69,16 @@ object Dec {
     fun money(value: String?): String = parse(value)
         ?.setScale(2, RoundingMode.HALF_UP)?.toPlainString() ?: (value ?: "")
 
-    /** الكيلوغرام: خانتان للعرض (الخادم يرسل ٤). */
+    /** الكيلوغرام: حتى ٣ خانات للعرض (الخادم يرسل ٤). */
     fun kg(value: String?): String = parse(value)
         ?.setScale(3, RoundingMode.HALF_UP)?.stripTrailingZeros()?.toPlainString() ?: (value ?: "")
 
-    /** إعدادُ النصّ للإرسال: كما كتبه المندوب أو "" — لا اختراعَ أرقام. */
-    fun wire(value: String?): String = value?.trim().orEmpty()
+    /** إعدادُ النصّ للإرسال على السلك: أرقام ASCII صالحة بلا نقطةٍ معلّقة، أو "" عند الفراغ. */
+    fun wire(value: String?): String {
+        val normalized = normalizeDigits(value).trim().trimEnd('.')
+        if (normalized.isEmpty() || normalized == "-") return ""
+        return parse(normalized)?.stripTrailingZeros()?.let { bd ->
+            if (bd.scale() < 0) bd.setScale(0).toPlainString() else bd.toPlainString()
+        } ?: normalized
+    }
 }

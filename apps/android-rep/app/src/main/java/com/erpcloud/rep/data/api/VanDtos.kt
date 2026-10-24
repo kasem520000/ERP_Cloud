@@ -38,6 +38,7 @@ data class RepPendingReceipt(
     val status: String = "pending_receipt",
     val loadedQty: String = "0",
     val receivedQty: String = "0",
+    val discrepancyQty: String = "0",
     val productionBatchNo: String = "",
     val stockTransferId: String? = null,
     val itemName: String = "",
@@ -57,6 +58,7 @@ data class RepLoadOrderRow(
     val soldQty: String = "0",
     val bonusQty: String = "0",
     val returnedQty: String = "0",
+    val customerReturnedQty: String = "0",
     val damagedQty: String = "0",
     val shortageQty: String = "0",
     val shortageValue: String = "0",
@@ -100,6 +102,7 @@ data class RepDocumentRow(
     val invoiceStatus: String? = null,
 ) {
     val isSale: Boolean get() = documentKind == "sale"
+    val isVoided: Boolean get() = invoiceStatus == "voided"
 }
 
 @Serializable
@@ -186,17 +189,19 @@ data class RepWorkspace(
             it.status == "loaded" && Dec.isPositive(it.expectedRemainingQty)
         }
 
-    /** مستنداتٌ يُرجَع منها: صفوف البيع وحدها (فالخادمُ يرفض مرتجعَ مرتجع). */
-    val returnableDocuments: List<RepDocumentRow> get() = documents.filter { it.isSale }
+    /** مستنداتٌ يُرجَع منها: صفوف البيع غير الملغاة وحدها (فالخادمُ يرفض مرتجعَ مرتجع أو ملغى). */
+    val returnableDocuments: List<RepDocumentRow>
+        get() = documents.filter { it.isSale && !it.isVoided }
 
-    /** فواتيرُ آجلةٌ غير مسدَّدة — هدفُ شاشة التحصيل. */
+    /** فواتيرُ آجلةٌ غير مسدَّدة مرتّبةٌ من الأقدم إلى الأحدث — هدفُ شاشة التحصيل. */
     val unpaidSaleDocuments: List<RepDocumentRow>
-        get() = documents.filter { it.isSale && Dec.isPositive(it.outstanding) }
+        get() = documents
+            .filter { it.isSale && !it.isVoided && Dec.isPositive(it.outstanding) }
+            .sortedBy { it.docDate }
 }
 
 /**
- * صفُّ بطاقة عميل من `GET /parties?kind=customer` — مصفوفةٌ خامٌ بلا غلاف data،
- * والحقول camelCase (name لا nameAr).
+ * صفُّ بطاقة عميل من `GET /parties?kind=customer`.
  */
 @Serializable
 data class PartyDto(
@@ -208,8 +213,14 @@ data class PartyDto(
     val taxNo: String? = null,
     val phone: String? = null,
     val creditLimit: String? = null,
+    val paymentTermsDays: Int? = null,
+    val creditHold: Boolean = false,
     val address: JsonObject? = null,
     val customFields: JsonObject? = null,
 ) {
-    val displayName: String get() = if (code.isNotBlank()) "$name ($code)" else name
+    val displayName: String
+        get() {
+            val base = if (code.isNotBlank()) "$name ($code)" else name
+            return if (creditHold) "$base [إيقاف ائتماني]" else base
+        }
 }

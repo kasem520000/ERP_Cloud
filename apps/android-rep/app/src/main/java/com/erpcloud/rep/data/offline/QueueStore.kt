@@ -11,6 +11,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonObject
 import java.io.File
+import java.util.Locale
 import java.util.UUID
 
 /** عمليّاتُ الطابور — نفسُ تصنيف شاشة الويب (`apps/bakery/lib/rep-queue.ts`). */
@@ -43,23 +44,37 @@ data class QueueRecord(
     val status: String = QueueStatus.PENDING.name,
     val attempts: Int = 0,
     val sequenceNo: Int,
-    /** طابعٌ زمنيٌّ ثابتُ الشكل (بلا java.time — فالحدّ الأدنى 24 لا يحملها بلا desugaring). */
+    /** طابعٌ زمنيٌّ ثابتُ الشكل بـ Locale.US. */
     val createdAt: String = java.text.SimpleDateFormat(
-        "yyyy-MM-dd HH:mm:ss", java.util.Locale.US
+        "yyyy-MM-dd HH:mm:ss", Locale.US
     ).format(java.util.Date()),
     val deviceId: String = "",
+    /** عزلُ الطابور حسب المنشأة والمستخدم لمنع إرسال نيّات مندوبٍ آخر على جهازٍ مشترك. */
+    val tenantCode: String = "",
+    val userId: String = "",
     val lastStatusCode: Int? = null,
     val lastErrorCode: String? = null,
     val lastMessage: String = "",
 ) {
     val op: QueueOperation? get() = QueueOperation.entries.firstOrNull { it.name == operation }
     val queueStatus: QueueStatus get() = QueueStatus.entries.firstOrNull { it.name == status } ?: QueueStatus.PENDING
+
+    fun belongsTo(activeTenantCode: String, activeUserId: String): Boolean {
+        val normActiveTenant = activeTenantCode.trim().lowercase(Locale.US)
+        val normRecTenant = tenantCode.trim().lowercase(Locale.US)
+        if (normRecTenant.isNotEmpty() && normActiveTenant.isNotEmpty() && normRecTenant != normActiveTenant) {
+            return false
+        }
+        if (userId.isNotEmpty() && activeUserId.isNotEmpty() && userId != activeUserId) {
+            return false
+        }
+        return true
+    }
 }
 
 /**
  * طابورُ النيّات دون اتصال — ملفُّ JSON واحدٌ في تخزين التطبيق الخاصّ، كتابةٌ ذرّيّة
- * (مؤقّت + إعادة تسمية)، وحالةٌ حيّةٌ للشاشة. لا Room ولا مزودٍ آخر: النيّاتُ قليلةٌ
- * وصغيرةٌ، والملفُّ أصدقُ شاهدٍ عند إغلاق التطبيق.
+ * (مؤقّت + إعادة تسمية)، وعزلٌ صارمٌ حسب المنشأة والمستخدم المتّصل.
  */
 class QueueStore(context: Context) {
 
@@ -85,7 +100,6 @@ class QueueStore(context: Context) {
             emptyList()
         }
     } catch (_: Exception) {
-        // ملفٌّ تالفٌ لا يُسقط التطبيق — يبدأ فارغًا ويُقال ذلك في السجلّ.
         emptyList()
     }
 
@@ -107,20 +121,42 @@ class QueueStore(context: Context) {
         persist(_records.value.map { if (it.offlineId == offlineId) mutate(it) else it })
     }
 
-    suspend fun removeSynced(): Unit = mutex.withLock {
-        persist(_records.value.filter { it.queueStatus != QueueStatus.SYNCED })
+    suspend fun remove(offlineId: String): Unit = mutex.withLock {
+        persist(_records.value.filterNot { it.offlineId == offlineId })
+    }
+
+    suspend fun resetToPending(offlineId: String): Unit = mutex.withLock {
+        persist(
+            _records.value.map { rec ->
+                if (rec.offlineId == offlineId && rec.queueStatus == QueueStatus.REFUSED) {
+                    rec.copy(status = QueueStatus.PENDING.name, lastMessage = "أُعيدت إلى قائمة الانتظار بطلب المندوب.")
+                } else {
+                    rec
+                }
+            }
+        )
+    }
+
+    suspend fun removeSynced(tenantCode: String = "", userId: String = ""): Unit = mutex.withLock {
+        persist(
+            _records.value.filterNot { rec ->
+                rec.queueStatus == QueueStatus.SYNCED && rec.belongsTo(tenantCode, userId)
+            }
+        )
     }
 
     suspend fun nextSequence(): Int = mutex.withLock {
         (_records.value.maxOfOrNull { it.sequenceNo } ?: 0) + 1
     }
 
-    /** خطّةُ الإعادة: المعلّقةُ فقط، بترتيب الإدخال — المرتجعُ بعد مستنده والتحصيلُ بعد فاتورته. */
-    fun syncPlan(): List<QueueRecord> =
-        _records.value.filter { it.queueStatus == QueueStatus.PENDING }.sortedBy { it.sequenceNo }
+    /** خطّةُ الإعادة: المعلّقةُ الخاصة بالمندوب المتّصل فقط، بترتيب الإدخال. */
+    fun syncPlan(tenantCode: String = "", userId: String = ""): List<QueueRecord> =
+        _records.value
+            .filter { it.queueStatus == QueueStatus.PENDING && it.belongsTo(tenantCode, userId) }
+            .sortedBy { it.sequenceNo }
 
-    fun counts(): QueueCounts {
-        val list = _records.value
+    fun counts(tenantCode: String = "", userId: String = ""): QueueCounts {
+        val list = _records.value.filter { it.belongsTo(tenantCode, userId) }
         return QueueCounts(
             pending = list.count { it.queueStatus == QueueStatus.PENDING },
             synced = list.count { it.queueStatus == QueueStatus.SYNCED },

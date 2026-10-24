@@ -52,6 +52,7 @@ import com.erpcloud.rep.ui.components.SectionCard
 fun ChangePasswordScreen(vm: AppViewModel, onBack: () -> Unit) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val email = state.me?.user?.email ?: ""
+    val fullName = state.me?.user?.fullName ?: ""
 
     var current by rememberSaveable { mutableStateOf("") }
     var new by rememberSaveable { mutableStateOf("") }
@@ -61,7 +62,7 @@ fun ChangePasswordScreen(vm: AppViewModel, onBack: () -> Unit) {
     var done by remember { mutableStateOf(false) }
 
     // سياسةُ الخادم نفسُها — إرشادٌ حيٌّ لا تحققٌ نهائيّ (الخادمُ يحسم).
-    val checks = remember(new, email) { passwordChecks(new, email) }
+    val checks = remember(new, email, fullName) { passwordChecks(new, email, fullName) }
     val allPass = checks.all { it.ok } && new == confirm && current.isNotBlank()
 
     Scaffold(
@@ -155,7 +156,7 @@ fun ChangePasswordScreen(vm: AppViewModel, onBack: () -> Unit) {
 
             SectionCard(title = "ماذا يحدث بعد التغيير؟") {
                 Text(
-                    "يُبطل الخادمُ **كلَّ جلساتك** على كلّ الأجهزة (سياسةُ أمانٍ عند تغيير كلمة المرور)، " +
+                    "يُبطل الخادمُ كلَّ جلساتك على كلّ الأجهزة (سياسةُ أمانٍ عند تغيير كلمة المرور)، " +
                         "فتُسجَّل خروجًا هنا تلقائيًّا وتعيد الدخول بكلمتك الجديدة. " +
                         "إن كانت بياناتُك محفوظةً في هذا الجهاز فتُحدَّث كلمتُها أيضًا.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -198,19 +199,28 @@ fun ChangePasswordScreen(vm: AppViewModel, onBack: () -> Unit) {
 
 private data class PasswordCheck(val label: String, val ok: Boolean)
 
-/** سياسةُ password-policy.ts في الخادم — ١٢+ محرفًا، ٣ فئات، لا بريد ولا اسم. */
-private fun passwordChecks(new: String, email: String): List<PasswordCheck> {
+/** سياسةُ password-policy.ts في الخادم — ١٢+ محرفًا، ٣ فئات ASCII، لا بريد ولا اسم. */
+private fun passwordChecks(new: String, email: String, fullName: String): List<PasswordCheck> {
     val classes = listOf(
-        new.any { it.isLowerCase() },
-        new.any { it.isUpperCase() },
-        new.any { it.isDigit() },
-        new.any { !it.isLetterOrDigit() },
+        new.any { it in 'a'..'z' },
+        new.any { it in 'A'..'Z' },
+        new.any { it in '0'..'9' },
+        new.any { it.code in 0x21..0x7E && it !in 'a'..'z' && it !in 'A'..'Z' && it !in '0'..'9' } ||
+            new.any { !it.isLetterOrDigit() && !it.isWhitespace() },
     ).count { it }
-    val emailToken = email.substringBefore('@').lowercase().takeIf { it.length >= 4 }
+    val lowered = new.lowercase(java.util.Locale.US)
+    val emailToken = email.substringBefore('@').lowercase(java.util.Locale.US).takeIf { it.length >= 4 }
+    val nameTokens = fullName
+        .split(Regex("\\s+"))
+        .map { it.trim().lowercase(java.util.Locale.US) }
+        .filter { it.length >= 4 }
+    val containsIdentity =
+        (emailToken != null && lowered.contains(emailToken)) ||
+            nameTokens.any { lowered.contains(it) }
     return listOf(
         PasswordCheck("١٢ محرفًا فأكثر", new.length >= 12),
-        PasswordCheck("٣ فئاتٍ من: حروفٌ صغيرة، كبيرة، أرقام، رموز", classes >= 3),
-        PasswordCheck("لا تحتوي بريدك", emailToken == null || !new.lowercase().contains(emailToken)),
+        PasswordCheck("٣ فئاتٍ من: حروفٌ صغيرة (a-z)، كبيرة (A-Z)، أرقام (0-9)، رموز", classes >= 3),
+        PasswordCheck("لا تحتوي بريدك أو اسمك", !containsIdentity),
         PasswordCheck("٢٠٠ محرفًا فأقلّ", new.length <= 200),
     )
 }

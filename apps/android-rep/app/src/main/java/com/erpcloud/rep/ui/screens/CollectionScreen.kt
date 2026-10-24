@@ -64,14 +64,20 @@ fun CollectionScreen(vm: AppViewModel, onDone: () -> Unit) {
 
     val unpaid = workspace?.unpaidSaleDocuments ?: emptyList()
     val document = unpaid.firstOrNull { it.id == documentId }
+    val remainingBd = document?.let {
+        Dec.orZero(it.outstanding).setScale(2, java.math.RoundingMode.HALF_UP)
+    }
+    val amountBd = Dec.parse(collectedAmount)?.setScale(2, java.math.RoundingMode.HALF_UP)
+    val exceedsRemaining = remainingBd != null && amountBd != null && amountBd > remainingBd
 
     fun buildRequest(): CollectionRequest? {
         if (documentId.isBlank()) return null
         val amount = Dec.parse(collectedAmount)
         if (amount == null || amount.signum() <= 0) return null
+        if (exceedsRemaining) return null
         return CollectionRequest(
             documentId = documentId,
-            collectedAmount = collectedAmount.trim(),
+            collectedAmount = Dec.wire(collectedAmount),
             notes = notes.trim().ifBlank { null },
         )
     }
@@ -113,18 +119,31 @@ fun CollectionScreen(vm: AppViewModel, onDone: () -> Unit) {
                     value = collectedAmount,
                     onValueChange = { if (Dec.isValidInput(it)) collectedAmount = it },
                     label = { Text("المبلغُ المُحصَّل (ريال) *") },
-                    isError = collectedAmount.isNotBlank() && Dec.parse(collectedAmount)?.signum() != 1,
+                    isError = (collectedAmount.isNotBlank() && Dec.parse(collectedAmount)?.signum() != 1) || exceedsRemaining,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (document != null) {
-                    Text(
-                        "المتبقّي على الفاتورة: ${Dec.money(document.outstanding)} ريال — " +
-                            "الخادمُ يرفضُ ما يتجاوزه (422).",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    androidx.compose.material3.TextButton(
+                        onClick = { collectedAmount = Dec.money(document.outstanding) },
+                    ) {
+                        Text("تحصيلُ كامل المتبقّي (${Dec.money(document.outstanding)} ريال)")
+                    }
+                    if (exceedsRemaining) {
+                        Text(
+                            "مبلغ التحصيل (${Dec.money(collectedAmount)} ريال) يتجاوز الرصيد المتبقي على الفاتورة (${Dec.money(document.outstanding)} ريال)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    } else {
+                        Text(
+                            "المتبقّي على الفاتورة: ${Dec.money(document.outstanding)} ريال — " +
+                                "الخادمُ يرفضُ ما يتجاوزه (422).",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 OutlinedTextField(
                     value = notes,

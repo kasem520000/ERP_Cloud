@@ -26,6 +26,7 @@ data class SessionState(
     val accessToken: String = "",
     val refreshToken: String = "",
     val tenantCode: String = "",
+    val userId: String = "",
     val expiresAt: Long = 0,
     val serverUrl: String = DEFAULT_SERVER_URL,
     val printerMac: String = "",
@@ -50,6 +51,7 @@ class SessionStore(private val context: Context) {
         val ACCESS = stringPreferencesKey("access_token")
         val REFRESH = stringPreferencesKey("refresh_token")
         val TENANT = stringPreferencesKey("tenant_code")
+        val USER_ID = stringPreferencesKey("user_id")
         val EXPIRES = longPreferencesKey("expires_at")
         val SERVER = stringPreferencesKey("server_url")
         val PRINTER_MAC = stringPreferencesKey("printer_mac")
@@ -81,6 +83,7 @@ class SessionStore(private val context: Context) {
             accessToken = access,
             refreshToken = prefs[Keys.REFRESH].orEmpty(),
             tenantCode = prefs[Keys.TENANT].orEmpty(),
+            userId = prefs[Keys.USER_ID].orEmpty(),
             expiresAt = prefs[Keys.EXPIRES] ?: 0L,
             serverUrl = prefs[Keys.SERVER] ?: SessionState.DEFAULT_SERVER_URL,
             printerMac = prefs[Keys.PRINTER_MAC].orEmpty(),
@@ -101,7 +104,8 @@ class SessionStore(private val context: Context) {
         context.sessionDataStore.edit { prefs ->
             prefs[Keys.ACCESS] = response.accessToken
             prefs[Keys.REFRESH] = response.refreshToken
-            prefs[Keys.TENANT] = tenantCode
+            prefs[Keys.TENANT] = tenantCode.trim().lowercase(java.util.Locale.US)
+            prefs[Keys.USER_ID] = response.user.id
             prefs[Keys.EXPIRES] = System.currentTimeMillis() + response.expiresIn * 1000L
         }
         cached = readState(context.sessionDataStore.data.first())
@@ -134,6 +138,7 @@ class SessionStore(private val context: Context) {
             prefs.remove(Keys.ACCESS)
             prefs.remove(Keys.REFRESH)
             prefs.remove(Keys.TENANT)
+            prefs.remove(Keys.USER_ID)
             prefs.remove(Keys.EXPIRES)
         }
         cached = readState(context.sessionDataStore.data.first())

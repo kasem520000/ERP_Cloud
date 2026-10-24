@@ -56,6 +56,8 @@ fun ReceiptScreen(vm: AppViewModel, loadOrderId: String, onDone: () -> Unit) {
     var notes by rememberSaveable { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf<String?>(null) }
+    var showRejectDialog by remember { mutableStateOf(false) }
+    var rejectReason by rememberSaveable { mutableStateOf("") }
 
     // إن فُتحت الشاشةُ قبل اكتمال تحميل المساحة: القيمةُ الافتراضيّة = الحملُ كاملًا.
     LaunchedEffect(receipt?.id) {
@@ -127,7 +129,7 @@ fun ReceiptScreen(vm: AppViewModel, loadOrderId: String, onDone: () -> Unit) {
                     label = "تأكيدُ الاستلام",
                     icon = Icons.Default.Inbox,
                     loading = busy,
-                    enabled = receivedQty.isBlank() || Dec.isNonNegative(receivedQty),
+                    enabled = (receivedQty.isBlank() || Dec.isNonNegative(receivedQty)) && !busy,
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         busy = true
@@ -135,7 +137,7 @@ fun ReceiptScreen(vm: AppViewModel, loadOrderId: String, onDone: () -> Unit) {
                         vm.confirmReceipt(
                             loadOrderId = loadOrderId,
                             request = ReceiptRequest(
-                                receivedQty = receivedQty.trim().ifBlank { null },
+                                receivedQty = Dec.wire(receivedQty).ifBlank { null },
                                 notes = notes.trim().ifBlank { null },
                             ),
                         ) { result: ActionResult ->
@@ -149,7 +151,68 @@ fun ReceiptScreen(vm: AppViewModel, loadOrderId: String, onDone: () -> Unit) {
                         }
                     },
                 )
+
+                androidx.compose.material3.OutlinedButton(
+                    onClick = { showRejectDialog = true },
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        "رفضُ استلام التوريد وإرجاعُه للمستودع",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         }
+    }
+
+    if (showRejectDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { if (!busy) showRejectDialog = false },
+            title = { Text("رفضُ استلام التوريد") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "سيُغلق التحويلُ بإرجاعِ البضاعة رسميًّا إلى المستودع المصدر بلا إثبات عهدةٍ على سيارتك.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    OutlinedTextField(
+                        value = rejectReason,
+                        onValueChange = { rejectReason = it },
+                        label = { Text("سببُ الرفض (مثل: تلف البضاعة أو خطأ الصنف)") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    enabled = !busy,
+                    onClick = {
+                        busy = true
+                        localError = null
+                        vm.rejectReceipt(loadOrderId = loadOrderId, reason = rejectReason) { result ->
+                            busy = false
+                            showRejectDialog = false
+                            when (result) {
+                                is ActionResult.Synced -> onDone()
+                                is ActionResult.Refused -> localError = result.messageAr
+                                is ActionResult.Blocked -> localError = result.reasonsAr.joinToString(" · ")
+                                is ActionResult.StoredOffline -> localError = result.messageAr
+                            }
+                        }
+                    },
+                ) {
+                    Text("تأكيد الرفض", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    enabled = !busy,
+                    onClick = { showRejectDialog = false },
+                ) {
+                    Text("تراجع")
+                }
+            },
+        )
     }
 }

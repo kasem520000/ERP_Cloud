@@ -57,6 +57,12 @@ data class ReceiptRequest(
     val notes: String? = null,
 )
 
+/** جسمُ رفض استلام التوريد — يُعيد المناقلةَ إلى المستودع المصدر بلا إثبات عهدة على المندوب. */
+@Serializable
+data class RejectReceiptRequest(
+    val reason: String? = null,
+)
+
 /** جسمُ إغلاق الوردية — **بلا idempotencyKey** كذلك. */
 @Serializable
 data class ClosingRequest(

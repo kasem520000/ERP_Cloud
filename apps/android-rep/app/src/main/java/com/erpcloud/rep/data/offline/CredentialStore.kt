@@ -16,63 +16,84 @@ data class SavedCredentials(
  * مخزنُ بيانات الدخول — **مشفَّرٌ بمفتاح Android Keystore** (AES-256):
  * البريدُ ورمزُ المنشأة وكلمةُ المرور لا تُكتب على القرص نصًّا صريحًا أبدًا.
  *
- * - «تذكّرني» (افتراضيًّا مفعّل) يحفظ الثلاثة بعد دخولٍ ناجح.
- * - «الدخول بالبصمة/النمط» خيارٌ فوق الحفظ: يفتح الجلسةَ بالبصمة أو نمط الهاتف
- *   بدل إعادة كتابة كلمة المرور.
- *
- * إن تلف مفتاحُ المتجر (إعادةُ ضبط المصنع/استرجاع نسخةٍ احتياطية) نبدأ بذاكرةٍ
- * نظيفة — كلمةُ المرور تُعاد كتابتها لا تُسترجع.
+ * إن تلف مفتاحُ المتجر (إعادةُ ضبط المصنع/استرجاع نسخةٍ احتياطية) يُحذف الملفُّ
+ * التالفُ ويُعاد إنشاؤه نظيفًا؛ وإن تعذّر Keystore على الجهاز يتعطّل الحفظُ بدل
+ * الكتابة نصًّا صريحًا.
  */
 class CredentialStore(context: Context) {
 
-    private val prefs: SharedPreferences = try {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-        EncryptedSharedPreferences.create(
-            context,
-            "rep_credentials",
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-        )
-    } catch (_: Exception) {
-        context.getSharedPreferences("rep_credentials_plain", Context.MODE_PRIVATE)
+    init {
+        // حذفُ أيّ ملفٍ غير مشفَّر من إصداراتٍ أقدم إن وُجد.
+        try {
+            context.deleteSharedPreferences("rep_credentials_plain")
+        } catch (_: Exception) {
+        }
     }
 
-    /** بياناتُ الدخول المحفوظة، أو null إن لم تُحفظ. */
+    private val prefs: SharedPreferences? = openEncryptedPrefs(context)
+
+    private fun openEncryptedPrefs(context: Context): SharedPreferences? {
+        fun create(): SharedPreferences {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            return EncryptedSharedPreferences.create(
+                context,
+                PREFS_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+            )
+        }
+        return try {
+            create()
+        } catch (_: Exception) {
+            try {
+                context.deleteSharedPreferences(PREFS_NAME)
+                create()
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    /** بياناتُ الدخول المحفوظة، أو null إن لم تُحفظ أو تعذّر التشفير. */
     val credentials: SavedCredentials?
         get() {
-            val email = prefs.getString(KEY_EMAIL, "").orEmpty()
-            val password = prefs.getString(KEY_PASSWORD, "").orEmpty()
-            val tenant = prefs.getString(KEY_TENANT, "").orEmpty()
+            val store = prefs ?: return null
+            val email = store.getString(KEY_EMAIL, "").orEmpty()
+            val password = store.getString(KEY_PASSWORD, "").orEmpty()
+            val tenant = store.getString(KEY_TENANT, "").orEmpty()
             if (email.isEmpty() || password.isEmpty()) return null
             return SavedCredentials(email = email, tenantCode = tenant, password = password)
         }
 
     /** هل فُعّل الدخولُ بالبصمة/النمط لهذا الحساب المحفوظ؟ */
     var biometricEnabled: Boolean
-        get() = prefs.getBoolean(KEY_BIOMETRIC, false)
-        set(value) = prefs.edit().putBoolean(KEY_BIOMETRIC, value).apply()
+        get() = prefs?.getBoolean(KEY_BIOMETRIC, false) ?: false
+        set(value) {
+            prefs?.edit()?.putBoolean(KEY_BIOMETRIC, value)?.apply()
+        }
 
     fun save(credentials: SavedCredentials) {
-        prefs.edit()
-            .putString(KEY_EMAIL, credentials.email)
-            .putString(KEY_TENANT, credentials.tenantCode)
-            .putString(KEY_PASSWORD, credentials.password)
-            .apply()
+        prefs?.edit()
+            ?.putString(KEY_EMAIL, credentials.email)
+            ?.putString(KEY_TENANT, credentials.tenantCode)
+            ?.putString(KEY_PASSWORD, credentials.password)
+            ?.apply()
     }
 
     /** تحديثُ كلمة المرور المحفوظة بعد تغييرها من داخل التطبيق. */
     fun updatePassword(newPassword: String) {
-        prefs.edit().putString(KEY_PASSWORD, newPassword).apply()
+        prefs?.edit()?.putString(KEY_PASSWORD, newPassword)?.apply()
     }
 
     fun clear() {
-        prefs.edit().clear().apply()
+        prefs?.edit()?.clear()?.apply()
     }
 
     private companion object {
+        const val PREFS_NAME = "rep_credentials"
         const val KEY_EMAIL = "email"
         const val KEY_TENANT = "tenant_code"
         const val KEY_PASSWORD = "password"

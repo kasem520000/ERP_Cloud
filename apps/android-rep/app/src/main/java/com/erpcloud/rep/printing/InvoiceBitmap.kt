@@ -109,7 +109,10 @@ object InvoiceBitmap {
         ops += Op.Dash
 
         // ٢) عنوانُ المستند وأرقامُه
+        val isReturnDoc = view.documentKind == "return" || view.documentKind == "sale_return"
         val docTitle = when {
+            isReturnDoc && view.isZatca -> "إشعار دائن ضريبي (مرتجع)"
+            isReturnDoc -> "مستند مرتجع مبيعات"
             view.isZatca -> "فاتورة ضريبية"
             view.invoiceMode == "internal_delivery" -> "مستند تسليم داخلي"
             else -> "مستند بيع"
@@ -143,10 +146,19 @@ object InvoiceBitmap {
 
         // ٤) الأسطر
         for (line in view.lines) {
-            val nameText = if (line.kind == "bonus") "${line.itemName} — كمية مجانية (بونص)" else line.itemName
+            val nameText = when {
+                line.kind == "bonus" && !line.itemName.contains("بونص") ->
+                    "${line.itemName} — كمية مجانية (بونص)"
+                line.kind == "return" && !line.itemName.contains("مرتجع") ->
+                    "${line.itemName} — مرتجع"
+                else -> line.itemName
+            }
             val details = buildList {
                 add("الكميّة: ${Dec.fmt(line.quantity, 3)}")
                 if (line.kind != "bonus") add("سعرُ الوحدة: ${Dec.money(line.unitPrice)}")
+                if (line.kind != "bonus" && Dec.isPositive(line.discount)) {
+                    add("خصم: ${Dec.money(line.discount)}")
+                }
                 if (line.reason != null && line.reason.isNotBlank()) add("السبب: ${line.reason}")
                 if (line.kind != "bonus") add("الإجمالي: ${Dec.money(line.lineTotal)}")
             }
@@ -178,9 +190,10 @@ object InvoiceBitmap {
         }
 
         // ٦) رمزُ QR — من الخادم كما هو، داخل إطارٍ مع تسمية
-        if (view.isZatca && view.qrPayload.isNotBlank()) {
+        val qrValue = view.effectiveQr
+        if (view.isZatca && qrValue.isNotBlank()) {
             val qrSize = (innerWidth * 0.58f).toInt().coerceAtLeast(80)
-            val qrImage = qrBitmap(view.qrPayload, qrSize)
+            val qrImage = qrBitmap(qrValue, qrSize)
             val caption = layout("امسح الرمز للتحقّق من الفاتورة", smallPaint, innerWidth, center)
             ops += Op.Qr(qrImage, caption, frameSide = qrSize + pad / 2)
         }
@@ -209,12 +222,19 @@ object InvoiceBitmap {
                 ),
                 boxWidth = boxWidth,
             )
+            val accNote = copy.signatureBlock?.accountantNote?.trim().orEmpty()
+            if (accNote.isNotEmpty()) {
+                ops += Op.Section(layout(accNote, smallPaint, innerWidth, center), topGap = 4)
+            }
         }
 
         // ---------------- القياسُ بالترتيبِ نفسه ----------------
         fun kvRowHeight(row: KvRow): Int {
             val tp = if (row.bold) boldPaint else bodyPaint
-            return maxOf(tp.fontSpacing, tp.textSize * 1.25f).toInt()
+            val labelLayout = layout(row.label, tp, (innerWidth * 0.62f).toInt(), right)
+            val valueLayout = layout(row.value, tp, (innerWidth * 0.36f).toInt(), right)
+            val minH = maxOf(tp.fontSpacing, tp.textSize * 1.25f).toInt()
+            return maxOf(minH, labelLayout.height + 4, valueLayout.height + 4)
         }
 
         var height = pad

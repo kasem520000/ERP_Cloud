@@ -43,6 +43,7 @@ data class PrintCopyDto(
 data class PrintViewDto(
     val documentId: String,
     val documentNumber: String = "",
+    val documentKind: String = "sale",
     val invoiceNumber: String? = null,
     val invoiceStatus: String? = null,
     val saleDate: String = "",
@@ -75,11 +76,13 @@ data class PrintViewDto(
     val outstandingAmount: String = "0",
     val bonusQtyTotal: String = "0",
     val qrPayload: String = "",
+    val zatcaQr: String? = null,
     val notes: String = "",
     val printedAt: String = "",
     val copies: List<PrintCopyDto> = emptyList(),
     val copiesCount: Int = 1,
 ) {
     val isZatca: Boolean get() = invoiceMode == "zatca_tax"
+    val effectiveQr: String get() = zatcaQr?.takeIf { it.isNotBlank() } ?: qrPayload
     val repCopy: PrintCopyDto? get() = copies.firstOrNull { it.kind == "rep" }
 }

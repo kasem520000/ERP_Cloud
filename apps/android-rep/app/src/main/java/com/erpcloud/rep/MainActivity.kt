@@ -46,6 +46,7 @@ import com.erpcloud.rep.ui.theme.RepTheme
 class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.erpcloud.rep.printing.InvoicePrint.attachActivity(this)
         enableEdgeToEdge()
         setContent {
             RepTheme {
@@ -61,6 +62,11 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        com.erpcloud.rep.printing.InvoicePrint.detachActivity(this)
+        super.onDestroy()
     }
 }
 

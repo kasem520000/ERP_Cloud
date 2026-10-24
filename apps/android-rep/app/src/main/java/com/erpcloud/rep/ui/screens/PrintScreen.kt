@@ -156,7 +156,10 @@ fun PrintScreen(vm: AppViewModel, documentId: String, onBack: () -> Unit) {
                     ActionButton(
                         label = "طباعة / PDF",
                         icon = Icons.Default.Print,
-                        onClick = { InvoicePrint.printViaSystem(context, preview, "فاتورة ${printView.documentNumber}") },
+                        onClick = {
+                            val ok = InvoicePrint.printViaSystem(context, preview, "فاتورة ${printView.documentNumber}")
+                            if (!ok) btError = "تعذّر فتح نافذة الطباعة في النظام — جرّب المشاركة أو أعد فتح الشاشة."
+                        },
                         modifier = Modifier.weight(1f),
                     )
                     ActionButton(

@@ -78,6 +78,8 @@ fun LoginScreen(vm: AppViewModel) {
     var busy by remember { mutableStateOf(false) }
     var biometricBusy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var showForgotDialog by remember { mutableStateOf(false) }
+    var forgotMessage by remember { mutableStateOf<String?>(null) }
 
     // البصمةُ أو نمطُ الهاتف: على ١١+ معًا؛ وما قبلها بصمةٌ فقط (قيدُ المكتبة).
     val authenticators = if (Build.VERSION.SDK_INT >= 30) {
@@ -312,7 +314,11 @@ fun LoginScreen(vm: AppViewModel) {
                 onClick = { doLogin(email, password, tenantCode) },
             )
 
-            Spacer(Modifier.height(20.dp))
+            TextButton(onClick = { forgotMessage = null; showForgotDialog = true }) {
+                Text("نسيتُ كلمة المرور؟")
+            }
+
+            Spacer(Modifier.height(12.dp))
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
@@ -329,5 +335,64 @@ fun LoginScreen(vm: AppViewModel) {
             }
             Spacer(Modifier.height(24.dp))
         }
+    }
+
+    if (showForgotDialog) {
+        var resetBusy by remember { mutableStateOf(false) }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { if (!resetBusy) showForgotDialog = false },
+            title = { Text("استعادةُ كلمة المرور") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "أدخل عنوان الخادم وبريدك الإلكتروني ورمز المنشأة لإرسال رابط إعادة التعيين.",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("البريد الإلكترونيّ") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = tenantCode,
+                        onValueChange = { tenantCode = it },
+                        label = { Text("رمزُ المنشأة") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (forgotMessage != null) {
+                        Text(forgotMessage ?: "", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !resetBusy && server.isNotBlank() && email.isNotBlank() && tenantCode.isNotBlank(),
+                    onClick = {
+                        resetBusy = true
+                        forgotMessage = null
+                        vm.forgotPassword(server.trim(), email.trim(), tenantCode.trim()) { res ->
+                            resetBusy = false
+                            forgotMessage = when (res) {
+                                is com.erpcloud.rep.data.ActionResult.Synced ->
+                                    "تم إرسال طلب استعادة كلمة المرور إن كان الحساب مسجّلًا — راجع بريدك أو تواصل مع المحاسب."
+                                is com.erpcloud.rep.data.ActionResult.Refused -> res.messageAr
+                                is com.erpcloud.rep.data.ActionResult.Blocked -> res.reasonsAr.joinToString(" · ")
+                                is com.erpcloud.rep.data.ActionResult.StoredOffline -> res.messageAr
+                            }
+                        }
+                    },
+                ) {
+                    Text(if (resetBusy) "جارٍ الإرسال…" else "إرسال الطلب")
+                }
+            },
+            dismissButton = {
+                TextButton(enabled = !resetBusy, onClick = { showForgotDialog = false }) {
+                    Text("إغلاق")
+                }
+            },
+        )
     }
 }
