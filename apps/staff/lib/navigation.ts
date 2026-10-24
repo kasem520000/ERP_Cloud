@@ -137,6 +137,10 @@ const accounting: ModuleNode = {
           permission: 'accounting.reports.view',
           endpoint: '/fixed-assets',
         }),
+        screen('collection', 'إدارة التحصيل', 'Collection management', '/accounting/collection', 'ready', {
+          permission: 'parties.view',
+          endpoint: '/ar-reminders',
+        }),
       ],
     },
     {

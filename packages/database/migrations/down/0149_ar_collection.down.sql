@@ -1,0 +1,11 @@
+DROP INDEX IF EXISTS ar_writeoffs_date_idx;
+DROP INDEX IF EXISTS ar_writeoffs_status_idx;
+DROP INDEX IF EXISTS ar_writeoffs_party_idx;
+DROP TABLE IF EXISTS ar_writeoffs;
+DROP INDEX IF EXISTS ar_provisions_date_idx;
+DROP INDEX IF EXISTS ar_provisions_party_idx;
+DROP TABLE IF EXISTS ar_provisions;
+DROP INDEX IF EXISTS ar_reminder_events_time_idx;
+DROP INDEX IF EXISTS ar_reminder_events_party_idx;
+DROP TABLE IF EXISTS ar_reminder_events;
+DROP TABLE IF EXISTS ar_reminders;

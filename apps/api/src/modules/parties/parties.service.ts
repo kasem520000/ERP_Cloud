@@ -4,7 +4,7 @@ import { Decimal } from 'decimal.js';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 
 import { DomainError, errorCodes, newId } from '@erp/contracts';
-import { accounts, journalEntries, journalEntryLines, parties, partyContacts, paymentAllocations, paymentMethods, purchaseInvoices, salesInvoices, vouchers, withTenantTx, type DatabaseHandle } from '@erp/database';
+import { accounts, arReminderEvents, arWriteoffs, journalEntries, journalEntryLines, parties, partyContacts, paymentAllocations, paymentMethods, purchaseInvoices, salesInvoices, vouchers, withTenantTx, type DatabaseHandle } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
@@ -320,10 +320,35 @@ export class PartiesService {
         .from(paymentAllocations)
         .where(and(eq(paymentAllocations.tenantId, tenantId), eq(paymentAllocations.partyId, partyId))),
     );
+    // MF-17 / D9 — «يظهر في الكشف كمستند»: سجل التذكيرات + مستندات الشطب.
+    const writeoffs = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .select()
+        .from(arWriteoffs)
+        .where(and(eq(arWriteoffs.tenantId, tenantId), eq(arWriteoffs.partyId, partyId)))
+        .orderBy(desc(arWriteoffs.createdAt))
+        .limit(100),
+    );
+    const reminders = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .select()
+        .from(arReminderEvents)
+        .where(and(eq(arReminderEvents.tenantId, tenantId), eq(arReminderEvents.partyId, partyId)))
+        .orderBy(desc(arReminderEvents.dispatchedAt))
+        .limit(20),
+    );
+    // الشطب المعتمد يُضاف إلى تخصيص سطر الفاتورة فيظهر «مغلقاً» في الكشف.
+    const writeoffByInvoice = new Map<string, Decimal>();
+    for (const w of writeoffs) {
+      if (w.status !== 'approved') continue;
+      writeoffByInvoice.set(w.invoiceId, (writeoffByInvoice.get(w.invoiceId) ?? new Decimal(0)).plus(new Decimal(w.amount)));
+    }
     // ACC-017: مطابقة التخصيص عبر sourceId للمستند (الفاتورة أو السند) بدلاً من معرّف القيد
     return {
       receivable: total.toFixed(4),
       payable: '0.0000',
+      reminders,
+      writeoffs,
       open: rows.map((row) => ({
         ...row,
         allocated: allocations
@@ -334,6 +359,7 @@ export class PartiesService {
               (row.sourceId && a.voucherId === row.sourceId),
           )
           .reduce((sum, a) => sum.plus(a.amount), new Decimal(0))
+          .plus(row.sourceId ? writeoffByInvoice.get(row.sourceId) ?? new Decimal(0) : new Decimal(0))
           .toFixed(4),
       })),
     };

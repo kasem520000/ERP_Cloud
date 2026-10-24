@@ -242,6 +242,24 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     "source": "navigation"
   },
   {
+    "id": "nav:collection",
+    "title": "إدارة التحصيل",
+    "href": "/accounting/collection",
+    "keywords": [
+      "إدارة",
+      "التحصيل",
+      "Collection",
+      "management",
+      "accounting",
+      "collection"
+    ],
+    "steps": [
+      "افتح «إدارة التحصيل» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
     "id": "nav:journals-report",
     "title": "القيود اليومية",
     "href": "/accounting/journal-entries",

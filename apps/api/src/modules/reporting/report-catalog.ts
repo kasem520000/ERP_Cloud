@@ -3720,6 +3720,34 @@ const definitions: ReportDefinition[] = [
     build: (tenantId, f) => agingSql(tenantId, f, 'supplier'),
   },
   {
+    key: 'balance-confirmation',
+    titleAr: 'مصادقة رصيد',
+    group: 'accounting',
+    hintAr:
+      'MF-17 (دفقة D9): رصيد الطرف كما يحسبه كشف الطرف نفسه — كل القيود المرحّلة الموسومة بالطرف حتى التاريخ — ليُطبع ويُوقَّع من الطرف إفصاحاً. اختيار طرف واحد يُخرجه وحده؛ بلا طرف يعرض كل من له رصيد (عددهم في الإجمالي). تقرير لا يُنشئ ولا يُرحّل شيئاً؛ بعد اعتماد شطب يعود رصيد الفاتورة المصفّاة صفراً فيه.',
+    params: [PARTY, PERIOD[1]!],
+    columns: [text('party', 'الطرف'), text('kind', 'الصفة'), money('receivable', 'الرصيد المصادَق عليه'), date('as_of', 'حتى تاريخ')],
+    totals: ['receivable'],
+    grandTotal: [{ key: 'receivable', labelAr: '💰 إجمالي المصادَق عليه' }],
+    build: (tenantId, f) => sql`
+      SELECT
+        p.name AS party,
+        p.kind AS kind,
+        COALESCE(SUM(jl.debit - jl.credit), 0)::numeric(20, 4)::text AS receivable,
+        ${f.to ?? new Date().toISOString().slice(0, 10)}::date AS as_of
+      FROM journal_entry_lines jl
+      INNER JOIN journal_entries je ON je.id = jl.entry_id
+      INNER JOIN parties p ON p.id = jl.party_id
+      WHERE jl.tenant_id = ${tenantId}
+        AND je.status = 'posted'
+        ${f.to ? sql`AND je.date <= ${f.to}` : sql``}
+        ${f.partyId ? sql`AND jl.party_id = ${f.partyId}` : sql``}
+      GROUP BY p.id
+      HAVING SUM(jl.debit - jl.credit) <> 0
+      ORDER BY p.name
+    `,
+  },
+  {
     key: 'subledger-reconciliation',
     titleAr: 'مطابقة الأستاذ مع الدفاتر الفرعية',
     group: 'accounting',
