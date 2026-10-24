@@ -1,0 +1,13 @@
+probe-d6-cash-flow — 2026-10-24T14:11:31.784Z
+API=http://127.0.0.1:3000/api/v1
+
+PASS L01 — login owner → 200
+PASS C01 — cash-flow-statement=مُسجَّل — params=[from,to,branchId]
+PASS F01 — GET → 200، أعمدة=[section,item,amount]، صفوف=11
+PASS F02 — هوية حية: تشغيلي=-10.00 · استثماري=-20000.00 · تمويلي=250000.00 · تغير=229990.00 · أول=0.00 · آخر=229990.00
+PASS F03 — صفوف الملخص الستة موجودة
+PASS F04 — صف «غير مصنّف» = 0.0000
+PASS X01 — CSV export → 201، رؤوس=[القسم:true، البند:true، المبلغ:true]
+PASS S01 — GET staff /reports → 200
+
+TOTAL 8 · FAIL 0

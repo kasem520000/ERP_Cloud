@@ -3507,6 +3507,128 @@ const definitions: ReportDefinition[] = [
     },
   },
   {
+    key: 'cash-flow-statement',
+    titleAr: 'قائمة التدفقات النقدية (الطريقة المباشرة)',
+    group: 'accounting',
+    hintAr:
+      'الطريقة المباشرة بقرار المالك (D5b 2026-10-24): كل حركة نقدية في حسابات مواقع النقد/البنك المسجَّلة تُصنَّف بحساب الطرف المقابل — تشغيلي (إيرادات/مصروفات/حسابات حالية12/خصوم22) · استثماري (أصول ثابتة11) · تمويلي (حقوق ملكية21/غير متداول23) — والتحويلات الداخلية بين المحافظ تُستبعد تلقائياً (لا سطر غير نقدي). الهوية: صافي التغير = مجموع الأنشطة = رصيد آخر − رصيد أول.',
+    params: [...PERIOD, BRANCH],
+    columns: [text('section', 'القسم'), text('item', 'البند'), money('amount', 'المبلغ')],
+    totals: [],
+    build: (tenantId, f) => {
+      const fromBound = f.from ?? '1000-01-01';
+      const toBound = f.to ?? '9999-12-31';
+      return sql`
+        WITH cash AS (
+          SELECT cl.account_id FROM cash_locations cl
+          WHERE cl.tenant_id = ${tenantId} AND cl.deleted_at IS NULL AND cl.account_id IS NOT NULL
+          UNION
+          SELECT ba.account_id FROM bank_accounts ba
+          WHERE ba.tenant_id = ${tenantId} AND ba.account_id IS NOT NULL
+        ),
+        flows AS (
+          SELECT
+            CASE
+              WHEN acc.type = 'revenue' OR (acc.type = 'asset' AND left(acc.code, 2) = '12') THEN 'op_rev'
+              WHEN acc.type = 'expense' THEN 'op_exp'
+              WHEN acc.type = 'liability' AND left(acc.code, 2) = '22' THEN 'op_ap'
+              WHEN acc.type = 'asset' AND left(acc.code, 2) = '11' THEN 'inv_fa'
+              WHEN acc.type = 'equity' THEN 'fin_eq'
+              WHEN acc.type = 'liability' AND left(acc.code, 2) = '23' THEN 'fin_nc'
+              ELSE 'other'
+            END AS bucket,
+            (jel.credit - jel.debit) AS amount
+          FROM journal_entry_lines jel
+          JOIN journal_entries je ON je.id = jel.entry_id
+          JOIN accounts acc ON acc.id = jel.account_id
+          WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted'
+            AND je.date >= ${fromBound} AND je.date <= ${toBound}
+            AND ${eqIf(sql`je.branch_id`, f.branchId)}
+            AND NOT EXISTS (SELECT 1 FROM cash c WHERE c.account_id = jel.account_id)
+            AND EXISTS (
+              SELECT 1 FROM journal_entry_lines cl2
+              WHERE cl2.entry_id = jel.entry_id
+                AND EXISTS (SELECT 1 FROM cash c2 WHERE c2.account_id = cl2.account_id)
+            )
+        ),
+        buckets AS (
+          SELECT bucket, sum(amount) AS amount FROM flows GROUP BY bucket
+        ),
+        cash_bal AS (
+          SELECT
+            coalesce(sum(
+              coalesce(acc.opening_balance, 0) + coalesce((
+                SELECT sum(j2.debit - j2.credit)
+                FROM journal_entry_lines j2
+                JOIN journal_entries je2 ON je2.id = j2.entry_id
+                WHERE j2.tenant_id = ${tenantId} AND je2.status = 'posted'
+                  AND j2.account_id = c.account_id AND je2.date < ${fromBound}
+                  AND ${eqIf(sql`je2.branch_id`, f.branchId)}
+              ), 0)
+            ), 0) AS opening_amount,
+            coalesce(sum(
+              coalesce(acc.opening_balance, 0) + coalesce((
+                SELECT sum(j2.debit - j2.credit)
+                FROM journal_entry_lines j2
+                JOIN journal_entries je2 ON je2.id = j2.entry_id
+                WHERE j2.tenant_id = ${tenantId} AND je2.status = 'posted'
+                  AND j2.account_id = c.account_id AND je2.date <= ${toBound}
+                  AND ${eqIf(sql`je2.branch_id`, f.branchId)}
+              ), 0)
+            ), 0) AS ending_amount
+          FROM cash c
+          JOIN accounts acc ON acc.id = c.account_id
+        )
+        SELECT section, item, amount::text AS amount, ord
+        FROM (
+          SELECT
+            CASE b.bucket
+              WHEN 'op_rev' THEN 'الأنشطة التشغيلية'
+              WHEN 'op_exp' THEN 'الأنشطة التشغيلية'
+              WHEN 'op_ap' THEN 'الأنشطة التشغيلية'
+              WHEN 'inv_fa' THEN 'الأنشطة الاستثمارية'
+              WHEN 'fin_eq' THEN 'الأنشطة التمويلية'
+              WHEN 'fin_nc' THEN 'الأنشطة التمويلية'
+              ELSE 'غير مصنّف'
+            END AS section,
+            CASE b.bucket
+              WHEN 'op_rev' THEN 'تحصيلات تشغيلية'
+              WHEN 'op_exp' THEN 'مدفوعات مصروفات'
+              WHEN 'op_ap' THEN 'مدفوعات موردين وضرائب'
+              WHEN 'inv_fa' THEN 'شراء وبيع أصول ثابتة'
+              WHEN 'fin_eq' THEN 'حركة حقوق الملكية'
+              WHEN 'fin_nc' THEN 'تمويل غير متداول'
+              ELSE 'غير مصنّف'
+            END AS item,
+            b.amount,
+            CASE b.bucket
+              WHEN 'op_rev' THEN 11 WHEN 'op_exp' THEN 12 WHEN 'op_ap' THEN 13
+              WHEN 'inv_fa' THEN 21
+              WHEN 'fin_eq' THEN 31 WHEN 'fin_nc' THEN 32
+              ELSE 41
+            END AS ord
+          FROM buckets b
+          WHERE b.amount <> 0
+          UNION ALL
+          SELECT 'الأنشطة التشغيلية', 'صافي التدفقات التشغيلية',
+                 coalesce((SELECT sum(amount) FROM buckets WHERE bucket IN ('op_rev', 'op_exp', 'op_ap')), 0), 14
+          UNION ALL
+          SELECT 'الأنشطة الاستثمارية', 'صافي التدفقات الاستثمارية',
+                 coalesce((SELECT amount FROM buckets WHERE bucket = 'inv_fa'), 0), 22
+          UNION ALL
+          SELECT 'الأنشطة التمويلية', 'صافي التدفقات التمويلية',
+                 coalesce((SELECT sum(amount) FROM buckets WHERE bucket IN ('fin_eq', 'fin_nc')), 0), 33
+          UNION ALL
+          SELECT 'الملخص', 'صافي التغير في النقد', coalesce((SELECT sum(amount) FROM buckets), 0), 51
+          UNION ALL
+          SELECT 'الملخص', 'رصيد النقد أول الفترة', (SELECT opening_amount FROM cash_bal), 52
+          UNION ALL
+          SELECT 'الملخص', 'رصيد النقد آخر الفترة', (SELECT ending_amount FROM cash_bal), 53
+        ) AS rows
+        ORDER BY rows.ord`;
+    },
+  },
+  {
     key: 'vat-return',
     titleAr: 'الإقرار الضريبي',
     group: 'accounting',
