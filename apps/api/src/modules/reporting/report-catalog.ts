@@ -2806,7 +2806,7 @@ const definitions: ReportDefinition[] = [
       FROM vouchers v
       LEFT JOIN parties party ON party.id = v.party_id
       WHERE v.tenant_id = ${tenantId} AND v.kind = 'payment' AND v.status = 'posted'
-        AND (party.kind = 'supplier' OR v.subtype = 'supplier')
+        AND (coalesce(party.kind, '') = 'supplier' OR v.subtype = 'supplier')
         AND ${onDate(sql`v.date`, f.from, f.to)} AND ${eqIf(sql`v.party_id`, f.partyId)}
       ORDER BY v.date DESC LIMIT 1000`,
   },
@@ -3085,7 +3085,7 @@ const definitions: ReportDefinition[] = [
     key: 'cash-movement',
     titleAr: 'حركة الصندوق',
     group: 'accounting',
-    hintAr: 'القبض والصرف المرحّل لكل صندوق أو بنك.',
+    hintAr: 'سندات القبض/الصرف المرحّلة لكل صندوق أو بنك — لا تشمل تحصيل مبيعات النقد ولا دفعات الفواتير (تلك في «كشف الصندوق» الذي يقرأ الأستاذ و«سداد العملاء»).',
     params: [...PERIOD, BRANCH],
     columns: [text('location', 'الصندوق / البنك'), money('receipts', 'قبض'), money('payments', 'صرف'), money('net', 'الصافي')],
     totals: ['receipts', 'payments', 'net'],
