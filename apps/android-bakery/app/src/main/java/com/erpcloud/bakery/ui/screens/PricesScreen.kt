@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -172,7 +173,7 @@ private fun PriceForm(vm: AppViewModel, onDone: () -> Unit) {
                     readOnly = true,
                     label = { Text("العميل *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickParty = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickParty = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -181,7 +182,7 @@ private fun PriceForm(vm: AppViewModel, onDone: () -> Unit) {
                     readOnly = true,
                     label = { Text("الصنف (اتركه فارغًا = جميع أصناف المخبز)") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickItem = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickItem = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(

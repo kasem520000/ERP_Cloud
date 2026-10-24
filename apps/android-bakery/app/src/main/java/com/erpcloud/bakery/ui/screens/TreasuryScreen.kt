@@ -52,6 +52,7 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.data.api.TreasuryVoucherDto
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.ConfirmDialog
@@ -462,7 +463,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                     readOnly = true,
                     label = { Text("التصنيف *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickSubtype = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickSubtype = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -471,7 +472,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                     readOnly = true,
                     label = { Text("الفرع *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickBranch = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -480,7 +481,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                     readOnly = true,
                     label = { Text("الخزينة *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickCash = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickCash = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -489,7 +490,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                     readOnly = true,
                     label = { Text("طريقةُ الدفع") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickMethod = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickMethod = true }) },
                 )
                 if (method == "cheque") {
                     Spacer(Modifier.height(8.dp))
@@ -535,7 +536,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                         readOnly = true,
                         label = { Text(if (subtype == "supplier") "المورّد *" else "العميل *") },
                         modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = { IconButton(onClick = { pickParty = true }) { Text("اختر") } },
+                        trailingIcon = { PickerTrigger(onClick = { pickParty = true }) },
                     )
                 }
                 if (subtype != "customer" && subtype != "supplier" || counterAccountId.isNotBlank()) {
@@ -554,7 +555,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = { IconButton(onClick = { pickAccount = true }) { Text("اختر") } },
+                        trailingIcon = { PickerTrigger(onClick = { pickAccount = true }) },
                     )
                 }
                 Spacer(Modifier.height(8.dp))

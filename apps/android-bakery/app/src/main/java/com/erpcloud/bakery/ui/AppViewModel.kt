@@ -1322,13 +1322,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.update { it.copy(notifications = it.notifications.copy(loading = true, unreadOnly = unreadOnly, error = null)) }
             try {
                 val page = repo.notifications(unreadOnly = unreadOnly)
+                val visibleItems = page.data.filter { it.isManagementRelevant }
+                val filteredOutUnread = page.data.count { !it.isManagementRelevant && !it.isRead }
+                val filteredOutTotal = page.data.size - visibleItems.size
                 _uiState.update {
                     it.copy(
                         notifications = it.notifications.copy(
                             loading = false,
-                            items = page.data,
-                            unread = page.meta.unread,
-                            total = page.meta.total,
+                            items = visibleItems,
+                            unread = (page.meta.unread - filteredOutUnread).coerceAtLeast(visibleItems.count { !it.isRead }),
+                            total = (page.meta.total - filteredOutTotal).coerceAtLeast(visibleItems.size),
                         )
                     )
                 }
@@ -1345,16 +1348,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** شارةُ الجرس عند الإقلاع — قراءةٌ خفيفةٌ (عنصرٌ واحد) يكفيها عدُّ غير المقروء. */
+    /** شارةُ الجرس عند الإقلاع — قراءةٌ سريعة مع عزل إشعارات عهدة المندوب الفرديّة. */
     fun refreshNotificationBadge() {
         viewModelScope.launch {
             try {
-                val page = repo.notifications(limit = 1)
+                val page = repo.notifications(limit = 30)
+                val visibleItems = page.data.filter { it.isManagementRelevant }
+                val filteredOutUnread = page.data.count { !it.isManagementRelevant && !it.isRead }
+                val filteredOutTotal = page.data.size - visibleItems.size
                 _uiState.update {
                     it.copy(
                         notifications = it.notifications.copy(
-                            unread = page.meta.unread,
-                            total = page.meta.total,
+                            items = visibleItems,
+                            unread = (page.meta.unread - filteredOutUnread).coerceAtLeast(visibleItems.count { !it.isRead }),
+                            total = (page.meta.total - filteredOutTotal).coerceAtLeast(visibleItems.size),
                         )
                     )
                 }

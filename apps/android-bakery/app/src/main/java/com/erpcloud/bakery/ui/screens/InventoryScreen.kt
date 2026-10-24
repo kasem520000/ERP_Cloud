@@ -41,6 +41,7 @@ import java.util.Calendar
 import java.util.Locale
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.CenterLoading
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.DatePickerField
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -120,7 +121,7 @@ private fun LevelsTab(vm: AppViewModel) {
                 readOnly = true,
                 label = { Text("المستودع (كلُّ المستودعات إن تُرك)") },
                 modifier = Modifier.fillMaxWidth(),
-                trailingIcon = { IconButton(onClick = { pickWarehouse = true }) { Text("اختر") } },
+                trailingIcon = { PickerTrigger(onClick = { pickWarehouse = true }) },
             )
             Spacer(Modifier.height(10.dp))
             SearchField(value = query, onValueChange = { query = it }, placeholder = "ابحث باسم الصنف…")
@@ -220,7 +221,7 @@ private fun MovementsTab(vm: AppViewModel) {
                         readOnly = true,
                         label = { Text("الصنف (الكلّ)") },
                         modifier = Modifier.weight(1f),
-                        trailingIcon = { IconButton(onClick = { pickItem = true }) { Text("اختر") } },
+                        trailingIcon = { PickerTrigger(onClick = { pickItem = true }) },
                     )
                     OutlinedTextField(
                         value = warehouseLabel,
@@ -228,7 +229,7 @@ private fun MovementsTab(vm: AppViewModel) {
                         readOnly = true,
                         label = { Text("المستودع (الكلّ)") },
                         modifier = Modifier.weight(1f),
-                        trailingIcon = { IconButton(onClick = { pickWarehouse = true }) { Text("اختر") } },
+                        trailingIcon = { PickerTrigger(onClick = { pickWarehouse = true }) },
                     )
                 }
                 Spacer(Modifier.height(8.dp))
@@ -308,7 +309,7 @@ private fun ItemCardTab(vm: AppViewModel) {
                 readOnly = true,
                 label = { Text("الصنف *") },
                 modifier = Modifier.fillMaxWidth(),
-                trailingIcon = { IconButton(onClick = { pickItem = true }) { Text("اختر") } },
+                trailingIcon = { PickerTrigger(onClick = { pickItem = true }) },
             )
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

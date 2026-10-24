@@ -39,6 +39,7 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.data.api.RoleDto
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
@@ -245,7 +246,7 @@ private fun RolePermissionsEditor(vm: AppViewModel, role: RoleDto, onDone: () ->
                     readOnly = true,
                     label = { Text("الصلاحيات") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickPermissions = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickPermissions = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 KeyValue("الدور", role.name)
@@ -311,7 +312,7 @@ private fun RoleForm(vm: AppViewModel, onDone: () -> Unit) {
                     readOnly = true,
                     label = { Text("الأذونات") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickPermissions = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickPermissions = true }) },
                 )
                 if (error != null) {
                     Spacer(Modifier.height(8.dp))

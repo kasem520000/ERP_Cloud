@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.api.ReportResultDto
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.DatePickerField
 import com.erpcloud.bakery.ui.components.PullRefreshBox
@@ -174,7 +175,7 @@ private fun ReportRunner(vm: AppViewModel, reportKey: String, onBack: () -> Unit
                 readOnly = true,
                 label = { Text("الفرع (كلُّ الفروع إن تُرك)") },
                 modifier = Modifier.fillMaxWidth(),
-                trailingIcon = { IconButton(onClick = { pickBranch = true }) { Text("اختر") } },
+                trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
             )
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

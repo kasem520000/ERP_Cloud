@@ -39,10 +39,13 @@ import com.erpcloud.rep.data.ActionResult
 import com.erpcloud.rep.data.api.ClosingRequest
 import com.erpcloud.rep.ui.AppViewModel
 import com.erpcloud.rep.ui.components.ActionButton
+import com.erpcloud.rep.ui.components.ChipTone
+import com.erpcloud.rep.ui.components.InfoCallout
 import com.erpcloud.rep.ui.components.KeyValue
 import com.erpcloud.rep.ui.components.PickerDialog
 import com.erpcloud.rep.ui.components.PickerItem
 import com.erpcloud.rep.ui.components.SectionCard
+import com.erpcloud.rep.ui.components.SelectorField
 import com.erpcloud.rep.util.Dec
 
 /**
@@ -110,9 +113,14 @@ fun ClosingScreen(vm: AppViewModel, onDone: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             SectionCard(title = "١) أمرُ التحميل") {
-                OutlinedButton(onClick = { showOrderPicker = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(order?.let { "${it.number} — ${it.itemName}" } ?: "اختر أمرَ التحميل")
-                }
+                SelectorField(
+                    label = "أمرُ التحميل *",
+                    value = order?.let { "${it.number} — ${it.itemName}" },
+                    placeholder = "اختر أمر التحميل المراد إغلاقه…",
+                    subtitle = order?.let { statusText(it.status) },
+                    badge = order?.let { "${Dec.kg(it.expectedRemainingQty)} كجم" },
+                    onClick = { showOrderPicker = true },
+                )
                 if (order != null) {
                     KeyValue("العهدةُ (المستلَم)", "${Dec.kg(order.receivedQty.ifBlank { order.loadedQty })} كجم")
                     KeyValue("المباع + البونص", "${Dec.kg(order.soldQty)} + ${Dec.kg(order.bonusQty)} كجم")
@@ -122,10 +130,9 @@ fun ClosingScreen(vm: AppViewModel, onDone: () -> Unit) {
                     KeyValue("المتوقّعُ متبقّيًا", "${Dec.kg(order.expectedRemainingQty)} كجم")
                     KeyValue("النقديُّ المتوقّع", "${Dec.money(order.expectedCash)} ريال")
                     if (order.isPendingClosing) {
-                        Text(
+                        InfoCallout(
                             "هذا الأمرُ بانتظار اعتماد المحاسب — إرسالُ إعلانٍ جديدٍ يعيد كتابةَ الإعلان السابق.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.tertiary,
+                            ChipTone.WARN,
                         )
                     }
                 }
@@ -211,13 +218,12 @@ fun ClosingScreen(vm: AppViewModel, onDone: () -> Unit) {
             }
 
             if (localError != null) {
-                Text(localError ?: "", color = MaterialTheme.colorScheme.error)
+                InfoCallout(localError ?: "", ChipTone.DANGER)
             }
             if (!state.online) {
-                Text(
+                InfoCallout(
                     "لا اتصال — إغلاقُ الوردية لا يُحفظ في الطابور: أرسله لحظةَ عودة الشبكة وأنت تنظر إلى السيارة.",
-                    color = MaterialTheme.colorScheme.tertiary,
-                    style = MaterialTheme.typography.bodyMedium,
+                    ChipTone.WARN,
                 )
             }
 

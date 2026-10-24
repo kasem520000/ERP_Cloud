@@ -39,9 +39,12 @@ import com.erpcloud.rep.data.offline.QueueOperation
 import com.erpcloud.rep.ui.AppViewModel
 import com.erpcloud.rep.ui.SubmitOutcome
 import com.erpcloud.rep.ui.components.ActionButton
+import com.erpcloud.rep.ui.components.ChipTone
+import com.erpcloud.rep.ui.components.InfoCallout
 import com.erpcloud.rep.ui.components.PickerDialog
 import com.erpcloud.rep.ui.components.PickerItem
 import com.erpcloud.rep.ui.components.SectionCard
+import com.erpcloud.rep.ui.components.SelectorField
 import com.erpcloud.rep.util.Dec
 
 /** شاشةُ تحصيلِ دين — على فاتورةٍ آجلةٍ غيرِ مسدَّدةٍ من مستندات المندوب نفسه. */
@@ -106,12 +109,14 @@ fun CollectionScreen(vm: AppViewModel, onDone: () -> Unit) {
                 title = "١) الفاتورة الآجلة",
                 subtitle = "التحصيلُ على مستنداتِك غيرِ المسدَّدة — والمبلغُ لا يتجاوز المتبقّي.",
             ) {
-                OutlinedButton(onClick = { showDocPicker = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        document?.let { "${it.number} — ${it.customerName} (متبقٍّ ${Dec.money(it.outstanding)} ريال)" }
-                            ?: "اختر الفاتورة"
-                    )
-                }
+                SelectorField(
+                    label = "الفاتورة الآجلة *",
+                    value = document?.let { "${it.number} — ${it.customerName}" },
+                    placeholder = "اختر الفاتورة الآجلة…",
+                    subtitle = document?.let { "${it.docDate} · ${it.itemName}" },
+                    badge = document?.let { "${Dec.money(it.outstanding)} ريال" },
+                    onClick = { showDocPicker = true },
+                )
             }
 
             SectionCard(title = "٢) المبلغ") {
@@ -154,13 +159,12 @@ fun CollectionScreen(vm: AppViewModel, onDone: () -> Unit) {
             }
 
             if (localError != null) {
-                Text(localError ?: "", color = MaterialTheme.colorScheme.error)
+                InfoCallout(localError ?: "", ChipTone.DANGER)
             }
             if (!state.online) {
-                Text(
+                InfoCallout(
                     "لا اتصال — سيُحفظ التحصيلُ في الطابور ويُرسل بمفتاح عدم تكرارٍ واحد عند عودة الشبكة.",
-                    color = MaterialTheme.colorScheme.tertiary,
-                    style = MaterialTheme.typography.bodyMedium,
+                    ChipTone.WARN,
                 )
             }
 

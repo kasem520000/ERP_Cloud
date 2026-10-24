@@ -60,6 +60,7 @@ import com.erpcloud.bakery.data.api.PosItemDto
 import com.erpcloud.bakery.printing.posReceipt
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.CenterLoading
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.EmptyState
 import com.erpcloud.bakery.ui.components.InlineAction
@@ -900,7 +901,7 @@ private fun PayDialog(
                     readOnly = true,
                     label = { Text("المستودعُ المُصرفُ منه *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickWarehouse = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickWarehouse = true }) },
                 )
                 if (method == "credit") {
                     Spacer(Modifier.height(6.dp))
@@ -910,7 +911,7 @@ private fun PayDialog(
                         readOnly = true,
                         label = { Text("العميل * (الآجلُ يحتاج عميلًا مسجّلًا)") },
                         modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = { IconButton(onClick = { pickCustomer = true }) { Text("اختر") } },
+                        trailingIcon = { PickerTrigger(onClick = { pickCustomer = true }) },
                     )
                 } else {
                     Spacer(Modifier.height(6.dp))
@@ -920,7 +921,7 @@ private fun PayDialog(
                         readOnly = true,
                         label = { Text(if (method == "cash") "الصندوقُ الذي يستلمُ المبلغ *" else "الحسابُ البنكيّ الذي يستلمُ المبلغ *") },
                         modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = { IconButton(onClick = { pickCash = true }) { Text("اختر") } },
+                        trailingIcon = { PickerTrigger(onClick = { pickCash = true }) },
                     )
                 }
                 if (error != null) {

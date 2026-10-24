@@ -65,7 +65,10 @@ import com.erpcloud.rep.ui.components.BadgeCount
 import com.erpcloud.rep.ui.components.CenterLoading
 import com.erpcloud.rep.ui.components.ChipTone
 import com.erpcloud.rep.ui.components.EmptyState
+import com.erpcloud.rep.ui.components.InfoCallout
 import com.erpcloud.rep.ui.components.KeyValue
+import com.erpcloud.rep.ui.components.ListItemCard
+import com.erpcloud.rep.ui.components.SearchField
 import com.erpcloud.rep.ui.components.SectionCard
 import com.erpcloud.rep.ui.components.StatTile
 import com.erpcloud.rep.ui.components.StatusChip
@@ -186,6 +189,7 @@ private fun WorkspaceBody(
     val workspace = state.workspace ?: return
     val context = LocalContext.current
     var docFilter by rememberSaveable { mutableStateOf("all") }
+    var docQuery by rememberSaveable { mutableStateOf("") }
 
     fun shareSummary() {
         val totals = workspace.totals
@@ -300,25 +304,28 @@ private fun WorkspaceBody(
                     if (workspace.balances.isEmpty()) {
                         EmptyState("لا أصنافَ في عهدتك الآن.")
                     } else {
-                        workspace.balances.forEach { balance ->
-                            Column(Modifier.padding(vertical = 4.dp)) {
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(balance.itemName.ifBlank { "صنف" }, fontWeight = FontWeight.SemiBold)
-                                    if (balance.sku.isNotBlank()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            workspace.balances.forEach { balance ->
+                                ListItemCard {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
                                         Text(
-                                            balance.sku,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            balance.itemName.ifBlank { "صنف" },
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.weight(1f),
                                         )
+                                        if (balance.sku.isNotBlank()) {
+                                            StatusChip(balance.sku, ChipTone.NEUTRAL)
+                                        }
                                     }
-                                }
-                                KeyValue("الكميّة", "${Dec.kg(balance.quantity)} كجم")
-                                if (Dec.isPositive(balance.value)) {
-                                    KeyValue("القيمة", "${Dec.money(balance.value)} ريال")
+                                    KeyValue("الكميّة المتاحة", "${Dec.kg(balance.quantity)} كجم")
+                                    if (Dec.isPositive(balance.value)) {
+                                        KeyValue("القيمة الدفترية", "${Dec.money(balance.value)} ريال")
+                                    }
                                 }
                             }
                         }
@@ -350,17 +357,33 @@ private fun WorkspaceBody(
                     if (workspace.pendingReceipts.isEmpty()) {
                         EmptyState("لا توريدَ بانتظار الاستلام.")
                     } else {
-                        workspace.pendingReceipts.forEach { receipt ->
-                            Column(Modifier.padding(vertical = 6.dp)) {
-                                KeyValue("الأمر", receipt.number)
-                                KeyValue("الصنف", receipt.itemName)
-                                KeyValue("المحمَّل", "${Dec.kg(receipt.loadedQty)} كجم")
-                                KeyValue("من مستودع", receipt.fromWarehouseName)
-                                KeyValue("الدفعة", receipt.productionBatchNo)
-                                FilledTonalButton(
-                                    onClick = { onReceipt(receipt.id) },
-                                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                                ) { Text("تأكيدُ الاستلام") }
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            workspace.pendingReceipts.forEach { receipt ->
+                                ListItemCard(highlighted = true, onClick = { onReceipt(receipt.id) }) {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            receipt.number,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                        )
+                                        StatusChip("بانتظار الاستلام", ChipTone.WARN)
+                                    }
+                                    KeyValue("الصنف", receipt.itemName)
+                                    KeyValue("الكميّة المحمَّلة", "${Dec.kg(receipt.loadedQty)} كجم")
+                                    KeyValue("من مستودع", receipt.fromWarehouseName)
+                                    KeyValue("دفعة الإنتاج", receipt.productionBatchNo)
+                                    FilledTonalButton(
+                                        onClick = { onReceipt(receipt.id) },
+                                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                                    ) {
+                                        Text("مراجعة وتأكيد الاستلام", fontWeight = FontWeight.Bold)
+                                    }
+                                }
                             }
                         }
                     }
@@ -376,31 +399,30 @@ private fun WorkspaceBody(
                     if (workspace.loadOrders.isEmpty()) {
                         EmptyState("لا أوامرَ تحميل.")
                     } else {
-                        workspace.loadOrders.forEach { order ->
-                            Column(Modifier.padding(vertical = 6.dp)) {
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Text(order.number, fontWeight = FontWeight.SemiBold)
-                                    StatusChip(statusAr(order.status), statusTone(order.status))
-                                }
-                                KeyValue("الصنف", order.itemName)
-                                KeyValue("المحمَّل / المستلَم", "${Dec.kg(order.loadedQty)} / ${Dec.kg(order.receivedQty)} كجم")
-                                KeyValue("المتبقّي المتوقّع", "${Dec.kg(order.expectedRemainingQty)} كجم")
-                                receiptShortfallText(order)?.let { shortfallMsg ->
-                                    Text(
-                                        shortfallMsg,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.error,
-                                    )
-                                }
-                                closingShortageText(order)?.let { shortageMsg ->
-                                    Text(
-                                        shortageMsg,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.error,
-                                    )
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            workspace.loadOrders.forEach { order ->
+                                ListItemCard {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            order.number,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                        StatusChip(statusAr(order.status), statusTone(order.status))
+                                    }
+                                    KeyValue("الصنف", order.itemName)
+                                    KeyValue("المحمَّل / المستلَم", "${Dec.kg(order.loadedQty)} / ${Dec.kg(order.receivedQty)} كجم")
+                                    KeyValue("المتبقّي المتوقّع", "${Dec.kg(order.expectedRemainingQty)} كجم")
+                                    receiptShortfallText(order)?.let { shortfallMsg ->
+                                        InfoCallout(shortfallMsg, ChipTone.WARN, Modifier.padding(top = 4.dp))
+                                    }
+                                    closingShortageText(order)?.let { shortageMsg ->
+                                        InfoCallout(shortageMsg, ChipTone.DANGER, Modifier.padding(top = 4.dp))
+                                    }
                                 }
                             }
                         }
@@ -408,12 +430,19 @@ private fun WorkspaceBody(
                 }
             }
 
-            // المستندات — مع فلاتر عرض (بيع/مرتجع/عليه متبقٍّ)
+            // المستندات — مع بحث حي وفلاتر عرض (بيع/مرتجع/عليه متبقٍّ)
             item {
                 SectionCard(
                     title = "مستنداتُك (${workspace.documents.size})",
                     subtitle = windowNote(workspace.windows?.documents?.returned, workspace.windows?.documents?.total),
                 ) {
+                    if (workspace.documents.size >= 4) {
+                        SearchField(
+                            value = docQuery,
+                            onValueChange = { docQuery = it },
+                            placeholder = "ابحث برقم الفاتورة أو اسم العميل…",
+                        )
+                    }
                     Row(
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -422,43 +451,67 @@ private fun WorkspaceBody(
                         FilterPill("بيع", workspace.documents.count { it.isSale }, docFilter == "sale") { docFilter = "sale" }
                         FilterPill("مرتجع", workspace.documents.count { !it.isSale }, docFilter == "return") { docFilter = "return" }
                         FilterPill(
-                            "عليه متبقٍّ",
+                            "آجل",
                             workspace.documents.count { Dec.isPositive(it.outstanding) },
                             docFilter == "due",
                         ) { docFilter = "due" }
                     }
-                    val visibleDocs = when (docFilter) {
+                    val filteredByKind = when (docFilter) {
                         "sale" -> workspace.documents.filter { it.isSale }
                         "return" -> workspace.documents.filter { !it.isSale }
                         "due" -> workspace.documents.filter { Dec.isPositive(it.outstanding) }
                         else -> workspace.documents
                     }
+                    val visibleDocs = if (docQuery.isBlank()) filteredByKind else {
+                        val needle = docQuery.trim()
+                        filteredByKind.filter {
+                            it.number.contains(needle, ignoreCase = true) ||
+                                it.customerName.contains(needle, ignoreCase = true)
+                        }
+                    }
                     if (visibleDocs.isEmpty()) {
                         EmptyState(
-                            if (docFilter == "all") "لا مستندات بعد." else "لا مستنداتٍ تطابقُ هذا الفلتر.",
+                            if (docFilter == "all" && docQuery.isBlank()) "لا مستندات بعد."
+                            else "لا مستنداتٍ تطابقُ الفلتر أو البحث.",
                         )
                     } else {
-                        visibleDocs.forEach { doc ->
-                            Column(Modifier.padding(vertical = 6.dp)) {
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Text(doc.number, fontWeight = FontWeight.SemiBold)
-                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        if (doc.isSale) StatusChip("بيع", ChipTone.INFO) else StatusChip("مرتجع", ChipTone.WARN)
-                                        if (Dec.isPositive(doc.outstanding)) StatusChip("عليه متبقٍّ", ChipTone.DANGER)
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            visibleDocs.forEach { doc ->
+                                ListItemCard {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            doc.number,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.ExtraBold,
+                                        )
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            if (doc.isSale) StatusChip("بيع", ChipTone.INFO) else StatusChip("مرتجع", ChipTone.WARN)
+                                            if (Dec.isPositive(doc.outstanding)) StatusChip("متبقٍّ", ChipTone.DANGER)
+                                        }
                                     }
-                                }
-                                KeyValue("التاريخ", doc.docDate)
-                                KeyValue("العميل", doc.customerName)
-                                KeyValue("الكميّة / السعر", "${Dec.kg(doc.soldQty)} كجم × ${Dec.money(doc.unitPrice)}")
-                                KeyValue("الإجماليّ / المتبقّي", "${Dec.money(doc.total)} / ${Dec.money(doc.outstanding)} ريال")
-                                Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    TextButton(onClick = { onPrint(doc.id) }) {
-                                        Icon(Icons.Default.Print, contentDescription = null, Modifier.height(18.dp))
-                                        Spacer(Modifier.padding(start = 4.dp))
-                                        Text("طباعة")
+                                    KeyValue("العميل", doc.customerName)
+                                    KeyValue("التاريخ", doc.docDate)
+                                    KeyValue("الكميّة × السعر", "${Dec.kg(doc.soldQty)} كجم × ${Dec.money(doc.unitPrice)} ر.س")
+                                    KeyValue("الإجمالي", "${Dec.money(doc.total)} ريال")
+                                    if (Dec.isPositive(doc.outstanding)) {
+                                        KeyValue("المتبقّي غير المسدَّد", "${Dec.money(doc.outstanding)} ريال")
+                                    }
+                                    Row(
+                                        Modifier.fillMaxWidth().padding(top = 4.dp),
+                                        horizontalArrangement = Arrangement.End,
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = { onPrint(doc.id) },
+                                            shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                                        ) {
+                                            Icon(Icons.Default.Print, contentDescription = null, Modifier.size(16.dp))
+                                            Spacer(Modifier.size(6.dp))
+                                            Text("معاينة وطباعة", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                        }
                                     }
                                 }
                             }
@@ -476,11 +529,23 @@ private fun WorkspaceBody(
                     if (workspace.collections.isEmpty()) {
                         EmptyState("لا تحصيلات بعد.")
                     } else {
-                        workspace.collections.forEach { collection ->
-                            Column(Modifier.padding(vertical = 4.dp)) {
-                                KeyValue("التاريخ", collection.collectedAt.take(19).replace('T', ' '))
-                                KeyValue("المبلغ", "${Dec.money(collection.amount)} ريال")
-                                KeyValue("السند", collection.voucherNumber ?: "—")
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            workspace.collections.forEach { collection ->
+                                ListItemCard {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            collection.voucherNumber ?: "سند تحصيل",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                        StatusChip("${Dec.money(collection.amount)} ريال", ChipTone.OK)
+                                    }
+                                    KeyValue("التاريخ والوقت", collection.collectedAt.take(16).replace('T', ' '))
+                                }
                             }
                         }
                     }

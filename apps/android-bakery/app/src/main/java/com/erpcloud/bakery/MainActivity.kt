@@ -404,7 +404,11 @@ fun AppRoot(vm: AppViewModel) {
             composable(Routes.POLICY) { PolicyScreen(vm, onBack = { navController.popBackStack() }) }
             composable(Routes.PRINTERS) { PrintersScreen(vm, onBack = { navController.popBackStack() }) }
             composable(Routes.NOTIFICATIONS) {
-                NotificationsScreen(vm, onBack = { navController.popBackStack() })
+                NotificationsScreen(
+                    vm = vm,
+                    onBack = { navController.popBackStack() },
+                    onNavigateRoute = { route -> navController.navigate(route) },
+                )
             }
             composable(Routes.CHANGE_PASSWORD) {
                 ChangePasswordScreen(vm, onBack = { navController.popBackStack() })

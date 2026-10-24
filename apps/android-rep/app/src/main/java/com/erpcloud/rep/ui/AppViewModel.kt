@@ -56,8 +56,13 @@ data class UiState(
     val scopedQueue: List<QueueRecord>
         get() = queue.filter { it.belongsTo(session.tenantCode, session.userId) }
 
-    /** غيرُ المقروء من نافذة إشعارات المساحة (شارةُ الجرس) — الكتابةُ في صندوق الإشعارات. */
-    val workspaceUnread: Int get() = workspace?.notifications?.count { !it.read } ?: 0
+    /** غيرُ المقروء من إشعارات عهدة المندوب فقط (شارةُ الجرس) — بلا إشعارات الإدارة. */
+    val workspaceUnread: Int
+        get() = workspace?.notifications?.count {
+            !it.read &&
+                com.erpcloud.rep.data.api.notificationScope(it.type, it.payload) !=
+                com.erpcloud.rep.data.api.NotificationScope.MANAGEMENT
+        } ?: 0
 
     /** هل يطلب الخادمُ من هذا الحساب تغييرَ كلمة مروره؟ (mustChangePassword) */
     val mustChangePassword: Boolean get() = me?.user?.mustChangePassword == true
@@ -296,19 +301,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // ------------------------------------------------------------ الإشعارات
 
-    /** صندوقُ الإشعارات الرسميّ — يتطلّب tenant.notification.view وإلا وصل خطأُ الخادم. */
+    /** صندوقُ الإشعارات الرسميّ — محصورٌ بإشعارات عهدة المندوب والنظام فقط (بلا إشعارات الإدارة). */
     fun refreshNotifications(unreadOnly: Boolean) {
         viewModelScope.launch {
             _uiState.update { it.copy(notifications = it.notifications.copy(loading = true, unreadOnly = unreadOnly, error = null)) }
             try {
                 val page = repo.notifications(unreadOnly)
+                val repItems = page.data.filter {
+                    it.scope != com.erpcloud.rep.data.api.NotificationScope.MANAGEMENT
+                }
+                val repUnread = if (unreadOnly) {
+                    repItems.size
+                } else {
+                    repItems.count { !it.isRead }
+                }
                 _uiState.update {
                     it.copy(
                         notifications = it.notifications.copy(
                             loading = false,
-                            items = page.data,
-                            unread = page.meta.unread,
-                            total = page.meta.total,
+                            items = repItems,
+                            unread = repUnread,
+                            total = repItems.size,
                         )
                     )
                 }
@@ -328,7 +341,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** تعليمُ إشعارٍ كمقروء (تكرارٌ آمن في الخادم) وتحديثُ الحالة محليًّا. */
     fun markNotificationRead(id: String) {
         viewModelScope.launch {
-            // تفاؤلٌ محليٌّ أوّلًا: الشارةُ تختفي فورًا، والخادمُ يُؤكِّد لاحقًا.
+            // تفاؤلٌ محليٌّ أوّلًا: الشارةُ تختفي فورًا في مركز الإشعارات وفي مساحة العمل.
             _uiState.update {
                 it.copy(
                     notifications = it.notifications.copy(
@@ -336,7 +349,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             if (n.id == id) n.copy(readAt = n.readAt ?: "local") else n
                         },
                         unread = (it.notifications.unread - 1).coerceAtLeast(0),
-                    )
+                    ),
+                    workspace = it.workspace?.copy(
+                        notifications = it.workspace.notifications.map { n ->
+                            if (n.id == id) n.copy(read = true) else n
+                        }
+                    ),
                 )
             }
             repo.markNotificationRead(id)
@@ -427,7 +445,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         val mine = unreadFresh.filter {
-            com.erpcloud.rep.data.api.notificationScope(it.type) ==
+            com.erpcloud.rep.data.api.notificationScope(it.type, it.payload) ==
                 com.erpcloud.rep.data.api.NotificationScope.MY_WORK
         }
         if (mine.isEmpty()) return

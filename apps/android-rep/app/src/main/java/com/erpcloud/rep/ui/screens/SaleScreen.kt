@@ -42,9 +42,13 @@ import com.erpcloud.rep.data.offline.QueueOperation
 import com.erpcloud.rep.ui.AppViewModel
 import com.erpcloud.rep.ui.SubmitOutcome
 import com.erpcloud.rep.ui.components.ActionButton
+import com.erpcloud.rep.ui.components.ChipTone
+import com.erpcloud.rep.ui.components.InfoCallout
+import com.erpcloud.rep.ui.components.KeyValue
 import com.erpcloud.rep.ui.components.PickerDialog
 import com.erpcloud.rep.ui.components.PickerItem
 import com.erpcloud.rep.ui.components.SectionCard
+import com.erpcloud.rep.ui.components.SelectorField
 import com.erpcloud.rep.util.Dec
 
 /**
@@ -154,27 +158,21 @@ fun SaleScreen(vm: AppViewModel, onDone: () -> Unit) {
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            SectionCard(title = "١) أمرُ التحميل") {
-                OutlinedButton(
+            SectionCard(
+                title = "١) أمرُ التحميل",
+                subtitle = "اختر أمر التحميل الفعّال الذي تبيع منه في هذه العملية",
+            ) {
+                SelectorField(
+                    label = "أمرُ التحميل *",
+                    value = loadOrder?.let { "${it.number} — ${it.itemName}" },
+                    placeholder = "اضغط لاختيار أمر التحميل…",
+                    subtitle = loadOrder?.let { "الدفعة: ${it.productionBatchNo}" },
+                    badge = loadOrder?.let { "${Dec.kg(it.expectedRemainingQty)} كجم" },
                     onClick = { showLoadPicker = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        loadOrder?.let { "${it.number} — ${it.itemName} (متبقٍّ ${Dec.kg(it.expectedRemainingQty)} كجم)" }
-                            ?: "اختر أمرَ التحميل"
-                    )
-                }
-                if (loadOrder != null && Dec.isPositive(loadOrder.expectedRemainingQty)) {
-                    Text(
-                        "بيعُك من هذا الأمر فقط — وما تبقّى فيه ${Dec.kg(loadOrder.expectedRemainingQty)} كجم، " +
-                            "والخادمُ يرفضُ ما يتجاوزُ عهدتَك.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                )
             }
 
-            SectionCard(title = "٢) العميل") {
+            SectionCard(title = "٢) بياناتُ العميل") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = !registeredCustomer,
@@ -184,25 +182,27 @@ fun SaleScreen(vm: AppViewModel, onDone: () -> Unit) {
                     FilterChip(
                         selected = registeredCustomer,
                         onClick = { registeredCustomer = true; customerName = "" },
-                        label = { Text("عميلٌ ببطاقة") },
+                        label = { Text("عميلٌ مسجّل ببطاقة") },
                     )
                 }
                 if (registeredCustomer) {
-                    OutlinedButton(onClick = { showPartyPicker = true }, modifier = Modifier.fillMaxWidth()) {
-                        Text(party?.displayName ?: "اختر بطاقةَ العميل")
-                    }
+                    SelectorField(
+                        label = "بطاقةُ العميل *",
+                        value = party?.displayName,
+                        placeholder = "ابحث واختر بطاقة العميل…",
+                        subtitle = party?.phone,
+                        onClick = { showPartyPicker = true },
+                    )
                     if (party?.creditHold == true) {
-                        Text(
+                        InfoCallout(
                             "هذا العميل موقوفٌ ائتمانيًّا — يُسمح بالبيع النقدي أو البطاقة فقط.",
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodyMedium,
+                            ChipTone.DANGER,
                         )
                     } else if (party?.creditLimit != null && Dec.isPositive(party.creditLimit)) {
-                        Text(
+                        InfoCallout(
                             "الحدُّ الائتمانيّ المسجَّل: ${Dec.money(party.creditLimit)} ريال" +
                                 (party.paymentTermsDays?.let { " · شروط السداد: $it يومًا" } ?: ""),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ChipTone.INFO,
                         )
                     }
                 } else {
@@ -334,37 +334,25 @@ fun SaleScreen(vm: AppViewModel, onDone: () -> Unit) {
                             .setScale(2, java.math.RoundingMode.HALF_UP)
                     } else java.math.BigDecimal.ZERO.setScale(2)
                     val grandBd = subBd.add(vatBd)
-                    Text(
-                        "تقديرُ الفاتورة: صافي ${subBd.toPlainString()} + ضريبة ${vatBd.toPlainString()} = ${grandBd.toPlainString()} ريال (يُحتسب رسميًّا في الخادم).",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                    KeyValue("الصافي قبل الضريبة", "${subBd.toPlainString()} ريال")
+                    KeyValue("ضريبة القيمة المضافة", "${vatBd.toPlainString()} ريال")
+                    KeyValue("الإجمالي التقديري", "${grandBd.toPlainString()} ريال")
                 }
             }
 
             if (custodyWarning != null) {
-                Text(
-                    custodyWarning,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                InfoCallout(custodyWarning, ChipTone.WARN)
             }
             if (creditBlockedReason != null) {
-                Text(
-                    creditBlockedReason,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                InfoCallout(creditBlockedReason, ChipTone.DANGER)
             }
             if (localError != null) {
-                Text(localError ?: "", color = MaterialTheme.colorScheme.error)
+                InfoCallout(localError ?: "", ChipTone.DANGER)
             }
             if (!state.online) {
-                Text(
+                InfoCallout(
                     "لا اتصال — سيُحفظ البيعُ في الطابور ويُرسل بمفتاح عدم تكرارٍ واحد عند عودة الشبكة.",
-                    color = MaterialTheme.colorScheme.tertiary,
-                    style = MaterialTheme.typography.bodyMedium,
+                    ChipTone.WARN,
                 )
             }
 

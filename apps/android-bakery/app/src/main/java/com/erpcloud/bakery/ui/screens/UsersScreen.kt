@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
@@ -201,7 +202,7 @@ private fun InviteUserForm(vm: AppViewModel, onDone: () -> Unit) {
             readOnly = true,
             label = { Text("الأدوار * (واحدٌ على الأقلّ)") },
             modifier = Modifier.fillMaxWidth(),
-            trailingIcon = { IconButton(onClick = { pickRoles = true }) { Text("اختر") } },
+            trailingIcon = { PickerTrigger(onClick = { pickRoles = true }) },
         )
         Spacer(Modifier.height(8.dp))
         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -215,7 +216,7 @@ private fun InviteUserForm(vm: AppViewModel, onDone: () -> Unit) {
                 readOnly = true,
                 label = { Text("نطاقُ الفروع *") },
                 modifier = Modifier.fillMaxWidth(),
-                trailingIcon = { IconButton(onClick = { pickBranches = true }) { Text("اختر") } },
+                trailingIcon = { PickerTrigger(onClick = { pickBranches = true }) },
             )
         }
         if (error != null) {

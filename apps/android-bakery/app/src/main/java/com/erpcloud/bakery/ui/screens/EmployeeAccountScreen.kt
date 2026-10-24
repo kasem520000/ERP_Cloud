@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.CenterLoading
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.DatePickerField
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -87,7 +88,7 @@ fun EmployeeAccountScreen(vm: AppViewModel, onBack: () -> Unit) {
                         readOnly = true,
                         label = { Text("الموظف *") },
                         modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = { IconButton(onClick = { pickEmployee = true }) { Text("اختر") } },
+                        trailingIcon = { PickerTrigger(onClick = { pickEmployee = true }) },
                     )
                     if (!fullPeriod) {
                         Spacer(Modifier.height(8.dp))

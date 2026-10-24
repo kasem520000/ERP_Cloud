@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,13 +18,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -41,10 +47,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -53,7 +63,10 @@ import com.erpcloud.rep.BuildConfig
 import com.erpcloud.rep.R
 import com.erpcloud.rep.ui.AppViewModel
 import com.erpcloud.rep.ui.components.ActionButton
+import com.erpcloud.rep.ui.components.ChipTone
+import com.erpcloud.rep.ui.components.InfoCallout
 import com.erpcloud.rep.ui.components.SectionCard
+import com.erpcloud.rep.ui.theme.RepColors
 import kotlinx.coroutines.launch
 
 /**
@@ -75,6 +88,7 @@ fun LoginScreen(vm: AppViewModel) {
     var mfaCode by rememberSaveable { mutableStateOf("") }
     var rememberMe by rememberSaveable { mutableStateOf(true) }
     var useBiometric by rememberSaveable { mutableStateOf(vm.biometricEnabled) }
+    var showPassword by rememberSaveable { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var biometricBusy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -161,32 +175,49 @@ fun LoginScreen(vm: AppViewModel) {
             Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(28.dp))
-
-            // الهويّةُ البصريّة
-            Surface(
-                color = MaterialTheme.colorScheme.primary,
-                shape = RoundedCornerShape(24.dp),
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        brush = Brush.verticalGradient(listOf(RepColors.Primary, RepColors.PrimaryDark)),
+                        shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
+                    )
+                    .padding(horizontal = 20.dp, vertical = 26.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_launcher_foreground),
-                    contentDescription = "شعار التطبيق",
-                    modifier = Modifier.size(96.dp),
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Surface(
+                        color = Color.White.copy(alpha = 0.16f),
+                        shape = CircleShape,
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.ic_launcher_foreground),
+                            contentDescription = "شعار التطبيق",
+                            modifier = Modifier.size(84.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "مندوب التوزيع",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                    )
+                    Text(
+                        "البيع الميدانيّ · تحصيل الذمم · جرد العهدة",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.88f),
+                    )
+                }
             }
-            Spacer(Modifier.height(10.dp))
-            Text("مندوب التوزيع", style = MaterialTheme.typography.headlineMedium)
-            Text(
-                "تطبيقُ مناديب التوزيع — البيعُ والتحصيلُ والعهدة",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
 
-            Spacer(Modifier.height(18.dp))
+            Column(
+                Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
 
             // الدخولُ السريع بالبصمة/النمط — للحساب المحفوظ
             if (saved != null && biometricAvailable) {
@@ -240,7 +271,15 @@ fun LoginScreen(vm: AppViewModel) {
                         onValueChange = { password = it },
                         label = { Text("كلمةُ المرور") },
                         singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showPassword = !showPassword }) {
+                                Icon(
+                                    if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                    contentDescription = if (showPassword) "إخفاء كلمة المرور" else "إظهار كلمة المرور",
+                                )
+                            }
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -296,12 +335,8 @@ fun LoginScreen(vm: AppViewModel) {
             }
 
             if (error != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    error ?: "",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Spacer(Modifier.height(8.dp))
+                InfoCallout(error ?: "", ChipTone.DANGER)
             }
 
             Spacer(Modifier.height(14.dp))
@@ -334,6 +369,7 @@ fun LoginScreen(vm: AppViewModel) {
                 }
             }
             Spacer(Modifier.height(24.dp))
+            }
         }
     }
 

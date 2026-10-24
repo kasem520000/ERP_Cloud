@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -454,7 +455,7 @@ private fun ItemForm(
                     label = { Text("المجموعة *") },
                     placeholder = { Text("اختر المجموعة") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickCategory = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickCategory = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -467,7 +468,7 @@ private fun ItemForm(
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
                         if (initial == null) {
-                            IconButton(onClick = { pickUnit = true }) { Text("اختر") }
+                            PickerTrigger(onClick = { pickUnit = true })
                         }
                     },
                 )
@@ -478,7 +479,7 @@ private fun ItemForm(
                     readOnly = true,
                     label = { Text("المجموعةُ الضريبيّة") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickTaxGroup = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickTaxGroup = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -691,7 +692,7 @@ private fun CategoryForm(
             readOnly = true,
             label = { Text("المجموعةُ الأب (اختياريّ)") },
             modifier = Modifier.fillMaxWidth(),
-            trailingIcon = { IconButton(onClick = { pickParent = true }) { Text("اختر") } },
+            trailingIcon = { PickerTrigger(onClick = { pickParent = true }) },
         )
         if (error != null) {
             Spacer(Modifier.height(8.dp))

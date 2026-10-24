@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
@@ -254,7 +255,7 @@ private fun EmployeeForm(
                     readOnly = true,
                     label = { Text("القسم") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickDepartment = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickDepartment = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -263,7 +264,7 @@ private fun EmployeeForm(
                     readOnly = true,
                     label = { Text("الوظيفة") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickJob = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickJob = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -272,7 +273,7 @@ private fun EmployeeForm(
                     readOnly = true,
                     label = { Text("الفرع") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickBranch = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
                 )
                 Spacer(Modifier.height(10.dp))
                 Text("مكوّناتُ الراتب (ر.س)", style = MaterialTheme.typography.titleSmall)

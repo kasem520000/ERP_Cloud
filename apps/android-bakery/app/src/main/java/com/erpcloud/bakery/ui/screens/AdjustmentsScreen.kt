@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
@@ -226,7 +227,7 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
                     readOnly = true,
                     label = { Text("الموظف *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickEmployee = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickEmployee = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -235,7 +236,7 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
                     readOnly = true,
                     label = { Text("نوعُ الإجراء *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickType = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickType = true }) },
                     supportingText = {
                         if (activeTypes.isEmpty()) {
                             Text("لا أنواعُ إجراءاتٍ مسجَّلة بعد — أضِف نوعًا من إدارة الطاقم أولًا.")
@@ -280,7 +281,7 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
                         readOnly = true,
                         label = { Text("طريقةُ الصرف *") },
                         modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = { IconButton(onClick = { pickMethod = true }) { Text("اختر") } },
+                        trailingIcon = { PickerTrigger(onClick = { pickMethod = true }) },
                     )
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
@@ -289,7 +290,7 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
                         readOnly = true,
                         label = { Text(if (paymentMethod == "cash") "الصندوق (للنقدي) *" else "البنك (للتحويل) *") },
                         modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = { IconButton(onClick = { pickCash = true }) { Text("اختر") } },
+                        trailingIcon = { PickerTrigger(onClick = { pickCash = true }) },
                     )
                 }
                 Spacer(Modifier.height(8.dp))

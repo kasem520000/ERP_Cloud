@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ChipTone
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.DatePickerField
 import com.erpcloud.bakery.ui.components.EmptyState
 import com.erpcloud.bakery.ui.components.KeyValue
@@ -104,7 +105,7 @@ fun ReportsScreen(vm: AppViewModel, onBack: () -> Unit) {
                         readOnly = true,
                         label = { Text("المندوب (الكلّ)") },
                         modifier = Modifier.weight(1f),
-                        trailingIcon = { IconButton(onClick = { pickSalesman = true }) { Text("اختر") } },
+                        trailingIcon = { PickerTrigger(onClick = { pickSalesman = true }) },
                     )
                     com.erpcloud.bakery.ui.components.ActionButton(
                         label = "عرضُ التقرير",

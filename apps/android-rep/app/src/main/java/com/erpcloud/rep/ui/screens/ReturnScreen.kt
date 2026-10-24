@@ -39,9 +39,12 @@ import com.erpcloud.rep.data.offline.QueueOperation
 import com.erpcloud.rep.ui.AppViewModel
 import com.erpcloud.rep.ui.SubmitOutcome
 import com.erpcloud.rep.ui.components.ActionButton
+import com.erpcloud.rep.ui.components.ChipTone
+import com.erpcloud.rep.ui.components.InfoCallout
 import com.erpcloud.rep.ui.components.PickerDialog
 import com.erpcloud.rep.ui.components.PickerItem
 import com.erpcloud.rep.ui.components.SectionCard
+import com.erpcloud.rep.ui.components.SelectorField
 import com.erpcloud.rep.util.Dec
 
 /** شاشةُ مرتجعِ العميل — مرتجعٌ مرجعيٌّ على مستندِ البيع الأصليّ (لا مرتجعَ مرتجع). */
@@ -106,20 +109,18 @@ fun ReturnScreen(vm: AppViewModel, onDone: () -> Unit) {
                 title = "١) مستندُ البيع الأصليّ",
                 subtitle = "المرتجعُ يكون على صفوف البيع وحدها — والخادمُ يجمع كلَّ مرتجعات المستند.",
             ) {
-                OutlinedButton(onClick = { showDocPicker = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        document?.let { "${it.number} — ${it.customerName} (${Dec.kg(it.soldQty)} كجم)" }
-                            ?: "اختر مستندَ البيع"
-                    )
-                }
-                if (document != null) {
-                    val ceiling = (Dec.parse(document.soldQty) ?: java.math.BigDecimal.ZERO)
-                        .add(Dec.parse(document.bonusQty) ?: java.math.BigDecimal.ZERO)
-                    Text(
-                        "سقفُ المرتجع ${Dec.kg(ceiling.toPlainString())} كجم حدًّا أعلى (المبيع + المجانيّ) — " +
-                            "ويخصم الخادمُ ما أُرجع على هذا المستند سابقًا.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                SelectorField(
+                    label = "مستندُ البيع *",
+                    value = document?.let { "${it.number} — ${it.customerName}" },
+                    placeholder = "اختر مستند البيع الأصلي…",
+                    subtitle = document?.let { "${it.docDate} · ${it.itemName}" },
+                    badge = document?.let { "${Dec.kg(it.soldQty)} كجم" },
+                    onClick = { showDocPicker = true },
+                )
+                if (document != null && ceiling != null) {
+                    InfoCallout(
+                        "سقفُ المرتجع ${Dec.kg(ceiling.toPlainString())} كجم حدًّا أعلى (المبيع + المجانيّ).",
+                        ChipTone.INFO,
                     )
                 }
             }
@@ -159,13 +160,12 @@ fun ReturnScreen(vm: AppViewModel, onDone: () -> Unit) {
             }
 
             if (localError != null) {
-                Text(localError ?: "", color = MaterialTheme.colorScheme.error)
+                InfoCallout(localError ?: "", ChipTone.DANGER)
             }
             if (!state.online) {
-                Text(
+                InfoCallout(
                     "لا اتصال — سيُحفظ المرتجعُ في الطابور ويُرسل بمفتاح عدم تكرارٍ واحد عند عودة الشبكة.",
-                    color = MaterialTheme.colorScheme.tertiary,
-                    style = MaterialTheme.typography.bodyMedium,
+                    ChipTone.WARN,
                 )
             }
 

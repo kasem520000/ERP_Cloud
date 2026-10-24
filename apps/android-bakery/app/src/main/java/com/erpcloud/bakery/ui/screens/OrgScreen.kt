@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -384,7 +385,7 @@ private fun WarehouseForm(vm: AppViewModel, onDone: () -> Unit) {
             readOnly = true,
             label = { Text("الفرع *") },
             modifier = Modifier.fillMaxWidth(),
-            trailingIcon = { IconButton(onClick = { pickBranch = true }) { Text("اختر") } },
+            trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
         )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(value = code, onValueChange = { code = it }, label = { Text("الرمز * (مثال: WH1)") }, modifier = Modifier.fillMaxWidth())
@@ -457,7 +458,7 @@ private fun CashForm(vm: AppViewModel, onDone: () -> Unit) {
             readOnly = true,
             label = { Text("الفرع *") },
             modifier = Modifier.fillMaxWidth(),
-            trailingIcon = { IconButton(onClick = { pickBranch = true }) { Text("اختر") } },
+            trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
         )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
@@ -466,7 +467,7 @@ private fun CashForm(vm: AppViewModel, onDone: () -> Unit) {
             readOnly = true,
             label = { Text("النوع *") },
             modifier = Modifier.fillMaxWidth(),
-            trailingIcon = { IconButton(onClick = { pickKind = true }) { Text("اختر") } },
+            trailingIcon = { PickerTrigger(onClick = { pickKind = true }) },
         )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("الاسم * (مثال: صندوق الفرع الرئيسيّ)") }, modifier = Modifier.fillMaxWidth())
@@ -557,7 +558,7 @@ private fun WarehouseEditDialog(
                     readOnly = true,
                     label = { Text("الفرع") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickBranch = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = isDefault, onCheckedChange = { isDefault = it })

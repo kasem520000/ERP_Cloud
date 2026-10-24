@@ -1,74 +1,84 @@
 package com.erpcloud.bakery.ui.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.WarningAmber
-import androidx.compose.material3.Checkbox
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.UnfoldMore
+import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.erpcloud.bakery.ui.theme.BakeryColors
+import com.erpcloud.bakery.ui.theme.ShapeCard
+import com.erpcloud.bakery.ui.theme.ShapeDialog
+import com.erpcloud.bakery.ui.theme.ShapeField
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-import com.erpcloud.bakery.ui.theme.BakeryColors
-import com.erpcloud.bakery.ui.theme.ShapeCard
 
 /** إشعارٌ عابر — نتيجةُ إجراءٍ أو خطأ. */
 data class Notice(
     val kind: Kind,
     val text: String,
-    /** مُعرِّفٌ متزايد — يُميّز رسالتين متطابقتين فتلتقطهما الحركةُ العائمة. */
     val id: Long = nextId(),
 ) {
     enum class Kind { OK, WARN, DANGER }
@@ -83,7 +93,10 @@ data class Notice(
     }
 }
 
-/** بطاقةُ قسمٍ بعنوان. */
+@Composable
+private fun isDarkSurface(): Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+/** بطاقةُ قسمٍ مؤسسيّة منظّمة — إطارٌ دافئٌ دقيق وشريطُ تمييزٍ رأسيّ وتباعدٌ داخليّ متوازن. */
 @Composable
 fun SectionCard(
     title: String?,
@@ -91,67 +104,96 @@ fun SectionCard(
     subtitle: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    // بطاقةُ نظامِ التصميم v3: سطحٌ أبيضُ بظلٍّ كهرمانيٍّ ناعمٍ نصفِ شفّافٍ
-    // (كما في الموك-أب)، حدٌّ دافئٌ خفيف، وزوايا ٢٦ — لا ظلٍّ رماديَّ خام.
+    val headingColor = if (isDarkSurface()) MaterialTheme.colorScheme.primary else BakeryColors.PrimaryDark
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 8.dp,
+                elevation = 3.dp,
                 shape = ShapeCard,
-                ambientColor = BakeryColors.Primary.copy(alpha = 0.10f),
-                spotColor = BakeryColors.Primary.copy(alpha = 0.14f),
+                ambientColor = BakeryColors.Primary.copy(alpha = 0.08f),
+                spotColor = BakeryColors.Primary.copy(alpha = 0.12f),
             ),
         shape = ShapeCard,
         color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, BakeryColors.Hairline),
+        border = BorderStroke(1.dp, BakeryColors.Hairline),
     ) {
-        Column(Modifier.padding(18.dp)) {
-            if (title != null) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = com.erpcloud.bakery.ui.theme.BakeryColors.PrimaryDark,
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            if (title != null || subtitle != null) {
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    if (title != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Box(
+                                Modifier
+                                    .width(4.dp)
+                                    .height(18.dp)
+                                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
+                            )
+                            Text(
+                                title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = headingColor,
+                            )
+                        }
+                    }
+                    if (subtitle != null) {
+                        Text(
+                            subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                HorizontalDivider(
+                    modifier = Modifier.padding(bottom = 2.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f),
                 )
             }
-            if (subtitle != null) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (title != null || subtitle != null) Spacer(Modifier.height(12.dp))
             content()
         }
     }
 }
 
-/** سطرُ مفتاح/قيمة. */
+/** سطرُ مفتاح/قيمة منظّم بفاصلٍ رفيعٍ وحمايةٍ من التداخل في الشاشات الضيقة. */
 @Composable
 fun KeyValue(label: String, value: String, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.End,
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f).padding(end = 10.dp),
+            )
+            Text(
+                value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.End,
+            )
+        }
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
         )
     }
 }
 
-/** شريحةُ حالةٍ ملوّنة. */
+/** شريحةُ حالةٍ ملوّنة بحافّةٍ واضحة. */
 @Composable
 fun StatusChip(text: String, tone: ChipTone = ChipTone.NEUTRAL) {
     val (bg, fg) = when (tone) {
@@ -161,23 +203,24 @@ fun StatusChip(text: String, tone: ChipTone = ChipTone.NEUTRAL) {
         ChipTone.INFO -> BakeryColors.InfoBg to BakeryColors.Info
         ChipTone.NEUTRAL -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
-    Surface(color = bg, shape = RoundedCornerShape(50)) {
+    Surface(
+        color = bg,
+        shape = RoundedCornerShape(50),
+        border = BorderStroke(1.dp, fg.copy(alpha = 0.22f)),
+    ) {
         Text(
             text,
             color = fg,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
 }
 
 enum class ChipTone { OK, WARN, DANGER, INFO, NEUTRAL }
 
-/**
- * بطاقةُ إحصائيّةٍ للرأس — قيمةٌ كبيرة وخطٌّ ثانويّ ولونُ نغمة. الرقمُ دائمًا من
- * الخادم (نصًّا) — البطاقةُ تعرضُه ولا تحسبُه.
- */
+/** بطاقةُ إحصائيّةٍ للرأس. */
 @Composable
 fun StatTile(
     label: String,
@@ -194,8 +237,6 @@ fun StatTile(
         ChipTone.INFO -> BakeryColors.Info
         ChipTone.NEUTRAL -> MaterialTheme.colorScheme.primary
     }
-    // بلاطةُ الإحصائيّة v3 (كما في لوحة القيادة بالموك-أب): الأيقونةُ داخلَ
-    // صندوقٍ مستديرٍ بلونِ النغمةِ الشفّاف، والرقمُ ضخمٌ بوزنٍ ثقيل.
     val iconBg = when (tone) {
         ChipTone.OK -> BakeryColors.OkBg
         ChipTone.WARN -> BakeryColors.WarnBg
@@ -207,21 +248,21 @@ fun StatTile(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 8.dp,
-                shape = RoundedCornerShape(22.dp),
-                ambientColor = BakeryColors.Primary.copy(alpha = 0.10f),
-                spotColor = BakeryColors.Primary.copy(alpha = 0.14f),
+                elevation = 3.dp,
+                shape = RoundedCornerShape(20.dp),
+                ambientColor = BakeryColors.Primary.copy(alpha = 0.08f),
+                spotColor = BakeryColors.Primary.copy(alpha = 0.12f),
             ),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, BakeryColors.Hairline),
+        border = BorderStroke(1.dp, BakeryColors.Hairline),
     ) {
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (icon != null) {
                     Surface(
                         color = iconBg,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(11.dp),
                         modifier = Modifier.size(34.dp),
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -229,7 +270,7 @@ fun StatTile(
                                 icon,
                                 contentDescription = null,
                                 tint = valueColor,
-                                modifier = Modifier.size(19.dp),
+                                modifier = Modifier.size(18.dp),
                             )
                         }
                     }
@@ -238,8 +279,10 @@ fun StatTile(
                 Text(
                     label,
                     style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Spacer(Modifier.height(8.dp))
@@ -261,7 +304,7 @@ fun StatTile(
     }
 }
 
-/** شارةُ عدّادٍ صغيرة (غيرُ المقروء من الإشعارات، عددُ نيّات الطابور…). */
+/** شارةُ عدّادٍ صغيرة. */
 @Composable
 fun BadgeCount(count: Int, modifier: Modifier = Modifier) {
     if (count <= 0) return
@@ -280,7 +323,6 @@ fun BadgeCount(count: Int, modifier: Modifier = Modifier) {
     }
 }
 
-/** أرقامٌ عربيّة-هندية للعرض — كلمةُ العدّاد في واجهةٍ عربيّة. */
 private fun formatArabicDigits(value: Int): String =
     value.toString().map { char ->
         if (char in '0'..'9') ('٠' + (char - '0')) else char
@@ -290,27 +332,42 @@ private fun formatArabicDigits(value: Int): String =
 @Composable
 fun EmptyState(text: String, modifier: Modifier = Modifier) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-        shape = RoundedCornerShape(18.dp),
-        modifier = modifier.fillMaxWidth().padding(vertical = 10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier.fillMaxWidth().padding(vertical = 8.dp),
     ) {
-        Text(
-            text,
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 22.dp).fillMaxWidth(),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 22.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(42.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Filled.Inbox,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(21.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 
-/**
- * لافتةُ الإشعار — رسائلُ الخادم وأخطاؤه كما يجبُ أن تُرى:
- * بطاقةٌ عائمةٌ بحوافٍ ١٨ وأيقونةٍ دائريّةٍ تقودُ العينَ ولونِ الحالة من
- * لوحة v3 (أخضرُ نجاحٍ / كهرمانُ تحذيرٍ / أحمرُ خطرٍ)، لا شريطٌ خامٌ
- * يلتصقُ بأعلى الشاشة.
- */
+/** لافتةُ الإشعار العائمة. */
 @Composable
 fun NoticeBanner(notice: Notice?, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     if (notice == null) return
@@ -322,7 +379,7 @@ fun NoticeBanner(notice: Notice?, onDismiss: () -> Unit, modifier: Modifier = Mo
     Surface(
         color = bg,
         shape = RoundedCornerShape(18.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, fg.copy(alpha = 0.25f)),
+        border = BorderStroke(1.dp, fg.copy(alpha = 0.25f)),
         modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Row(
@@ -346,27 +403,21 @@ fun NoticeBanner(notice: Notice?, onDismiss: () -> Unit, modifier: Modifier = Mo
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onDismiss) {
+            IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
                 Icon(Icons.Filled.Close, contentDescription = "إغلاق", tint = fg, modifier = Modifier.size(18.dp))
             }
         }
     }
 }
 
-
-/**
- * تنبيهُ الصلاحية المفقودة — **لا يُخفى الزرُّ بصمتًا أبدًا**: حين لا يملك دورُ
- * المستخدم إذنَ العملية، تُعرض هذه اللافتةُ مكانَ الزرّ، باسمِ الصلاحيةِ
- * **بالعربية**، فيعرفُ المستخدمُ أنّ الشاشةَ موجودةٌ والعمليةَ ممكنةٌ وأنّ
- * النقصَ في دورِه لا في التطبيق.
- */
+/** تنبيهُ الصلاحية المفقودة. */
 @Composable
 fun MissingPermissionHint(actionAr: String, permissionCode: String, modifier: Modifier = Modifier) {
     Surface(
         color = BakeryColors.WarnBg,
         shape = RoundedCornerShape(14.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, BakeryColors.Warn.copy(alpha = 0.25f)),
-        modifier = modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
+        border = BorderStroke(1.dp, BakeryColors.Warn.copy(alpha = 0.25f)),
+        modifier = modifier.fillMaxWidth().padding(vertical = 4.dp),
     ) {
         Text(
             "🔒 «$actionAr» متاحٌ لمن يحملُ صلاحية «${com.erpcloud.bakery.ui.screens.Labels.permission(permissionCode)}» — " +
@@ -388,7 +439,7 @@ data class PickerItem(
     val trailing: String? = null,
 )
 
-/** نافذةُ انتقاءٍ من قائمة (أمرُ تحميل، عميل، فاتورة…). */
+/** نافذةُ انتقاءٍ من قائمة ببحثٍ فوريّ وتصميمٍ منظّم (عملاء، أصناف، مستودعات، حسابات…). */
 @Composable
 fun PickerDialog(
     title: String,
@@ -396,54 +447,139 @@ fun PickerDialog(
     onDismiss: () -> Unit,
     onSelect: (PickerItem) -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("إلغاء") }
-        },
-        title = { Text(title) },
-        text = {
-            if (items.isEmpty()) {
-                Text("لا عناصرَ متاحة.")
-            } else {
-                LazyColumn(
-                    modifier = Modifier.height(360.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+    var query by rememberSaveable { mutableStateOf("") }
+    val searchable = items.size >= 5
+    val visible = if (!searchable || query.isBlank()) items else {
+        val needle = query.trim()
+        items.filter { item ->
+            item.title.contains(needle, ignoreCase = true) ||
+                (item.subtitle?.contains(needle, ignoreCase = true) == true) ||
+                (item.trailing?.contains(needle, ignoreCase = true) == true)
+        }
+    }
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = ShapeDialog,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 4.dp,
+            border = BorderStroke(1.dp, BakeryColors.Hairline),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    items(items, key = { it.id }) { item ->
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            onClick = { onSelect(item); onDismiss() },
-                        ) {
-                            Row(
-                                Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(item.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                                    if (item.subtitle != null) {
-                                        Text(
-                                            item.subtitle,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                        )
+                        Text(
+                            if (query.isBlank()) "${items.size} خيارًا متاحًا"
+                            else "النتائج: ${visible.size} من ${items.size}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Filled.Close, contentDescription = "إغلاق")
+                    }
+                }
+                if (searchable) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = ShapeField,
+                        placeholder = { Text("ابحث بالاسم أو الكود…") },
+                        leadingIcon = {
+                            Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                        },
+                        trailingIcon = if (query.isNotEmpty()) {
+                            {
+                                IconButton(onClick = { query = "" }) {
+                                    Icon(Icons.Filled.Clear, contentDescription = "مسح البحث", modifier = Modifier.size(18.dp))
                                 }
-                                if (item.trailing != null) {
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(item.trailing, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        } else null,
+                    )
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                if (visible.isEmpty()) {
+                    EmptyState(
+                        if (searchable && query.isNotBlank()) "لا نتائج تطابق «${query.trim()}»."
+                        else "لا عناصرَ متاحة حاليًّا.",
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 380.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        items(visible, key = { it.id }) { item ->
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                onClick = {
+                                    onSelect(item)
+                                    onDismiss()
+                                },
+                            ) {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(horizontal = 13.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            item.title,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                        if (!item.subtitle.isNullOrBlank()) {
+                                            Text(
+                                                item.subtitle,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    }
+                                    if (!item.trailing.isNullOrBlank()) {
+                                        Spacer(Modifier.width(8.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(50),
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                        ) {
+                                            Text(
+                                                item.trailing,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) { Text("إلغاء", fontWeight = FontWeight.Bold) }
+                }
             }
-        },
-    )
+        }
+    }
 }
 
-/** نافذةُ انتقاءٍ متعدّدٍ (أذوناتُ دور، أدوارُ مستخدم، نطاقُ فروع) — toggle مباشر. */
+/** نافذةُ انتقاءٍ متعدّدٍ ببحثٍ فوريّ وتمييزٍ بصريّ للعناصر المختارة. */
 @Composable
 fun MultiPickerDialog(
     title: String,
@@ -452,44 +588,124 @@ fun MultiPickerDialog(
     onToggle: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title, style = MaterialTheme.typography.titleMedium) },
-        text = {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+    var query by rememberSaveable { mutableStateOf("") }
+    val searchable = items.size >= 6
+    val visible = if (!searchable || query.isBlank()) items else {
+        val needle = query.trim()
+        items.filter { item ->
+            item.title.contains(needle, ignoreCase = true) ||
+                (item.subtitle?.contains(needle, ignoreCase = true) == true)
+        }
+    }
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = ShapeDialog,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 4.dp,
+            border = BorderStroke(1.dp, BakeryColors.Hairline),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(items, key = { it.id }) { item ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onToggle(item.id) }
-                            .padding(vertical = 2.dp),
-                    ) {
-                        Checkbox(
-                            checked = item.id in selectedIds,
-                            onCheckedChange = { onToggle(item.id) },
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+                        Text(
+                            "المحدَّد: ${selectedIds.size} من ${items.size}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
                         )
-                        Column(Modifier.padding(start = 4.dp)) {
-                            Text(item.title, style = MaterialTheme.typography.bodyMedium)
-                            item.subtitle?.takeIf { it.isNotBlank() }?.let {
-                                Text(
-                                    it,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Filled.Close, contentDescription = "إغلاق")
+                    }
+                }
+                if (searchable) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { query = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = ShapeField,
+                        placeholder = { Text("ابحث في الصلاحيات أو الفروع…") },
+                        leadingIcon = {
+                            Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                        },
+                        trailingIcon = if (query.isNotEmpty()) {
+                            {
+                                IconButton(onClick = { query = "" }) {
+                                    Icon(Icons.Filled.Clear, contentDescription = "مسح البحث", modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        } else null,
+                    )
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 380.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    items(visible, key = { it.id }) { item ->
+                        val checked = item.id in selectedIds
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (checked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            border = BorderStroke(
+                                1.dp,
+                                if (checked) MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+                                else MaterialTheme.colorScheme.outlineVariant,
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { onToggle(item.id) },
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                            ) {
+                                Checkbox(
+                                    checked = checked,
+                                    onCheckedChange = { onToggle(item.id) },
                                 )
+                                Column(Modifier.padding(start = 4.dp).weight(1f)) {
+                                    Text(
+                                        item.title,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = if (checked) FontWeight.Bold else FontWeight.Medium,
+                                    )
+                                    item.subtitle?.takeIf { it.isNotBlank() }?.let {
+                                        Text(
+                                            it,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Button(
+                        onClick = onDismiss,
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text("تمّ (${selectedIds.size})", fontWeight = FontWeight.Bold)
+                    }
+                }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("تمّ") }
-        },
-    )
+        }
+    }
 }
 
 /** نافذةُ تأكيد. */
@@ -503,13 +719,14 @@ fun ConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = ShapeDialog,
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text(confirmLabel) }
+            TextButton(onClick = onConfirm) { Text(confirmLabel, fontWeight = FontWeight.Bold) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("رجوع") }
         },
-        title = { Text(title) },
+        title = { Text(title, fontWeight = FontWeight.Bold) },
         text = { Text(message) },
     )
 }
@@ -524,7 +741,7 @@ fun ActionButton(
     enabled: Boolean = true,
     loading: Boolean = false,
 ) {
-    androidx.compose.material3.Button(
+    Button(
         onClick = onClick,
         enabled = enabled && !loading,
         modifier = modifier.height(52.dp),
@@ -541,7 +758,7 @@ fun ActionButton(
             Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
         }
-        Text(label)
+        Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.ExtraBold)
     }
 }
 
@@ -549,20 +766,22 @@ fun ActionButton(
 @Composable
 fun CenterLoading(text: String? = null, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.fillMaxWidth().padding(24.dp),
+        modifier = modifier.fillMaxWidth().padding(28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         CircularProgressIndicator()
         if (text != null) {
             Spacer(Modifier.height(10.dp))
-            Text(text, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
 
-// ============================================================ مكوّنات المرحلة الثانية
-
-/** حقلُ بحثٍ — لكلّ قائمةٍ طويلةٍ (أصناف/موظفون/أطراف/فواتير). */
+/** حقلُ بحثٍ أنيق بزرّ مسحٍ فوريّ وتباعدٍ سفليّ مريح للقوائم. */
 @Composable
 fun SearchField(
     value: String,
@@ -573,19 +792,28 @@ fun SearchField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().padding(bottom = 8.dp),
         singleLine = true,
+        shape = ShapeField,
         placeholder = { Text(placeholder) },
         leadingIcon = {
-            Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+            Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(19.dp))
         },
+        trailingIcon = if (value.isNotEmpty()) {
+            {
+                IconButton(onClick = { onValueChange("") }) {
+                    Icon(Icons.Filled.Clear, contentDescription = "مسح البحث", modifier = Modifier.size(18.dp))
+                }
+            }
+        } else null,
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+        ),
     )
 }
 
-/**
- * حقلُ تاريخٍ بمنتقيٍّ رسميّ — النصُّ يبقى قابلًا للكتابة (yyyy-mm-dd) والزرُّ
- * يفتحُ منتقيَ Material3؛ لا مزيدَ من التواريخ الخام بلا تحقّق.
- */
+/** حقلُ تاريخٍ بمنتقيٍّ رسميّ. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatePickerField(
@@ -601,12 +829,21 @@ fun DatePickerField(
         label = { Text(label) },
         placeholder = { Text("yyyy-mm-dd") },
         singleLine = true,
+        shape = ShapeField,
         modifier = modifier.fillMaxWidth(),
         trailingIcon = {
             IconButton(onClick = { open = true }) {
-                Icon(Icons.Filled.CalendarMonth, contentDescription = "اختيار التاريخ")
+                Icon(
+                    Icons.Filled.CalendarMonth,
+                    contentDescription = "اختيار التاريخ",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
             }
         },
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+        ),
     )
     if (open) {
         val initialMillis = runCatching {
@@ -625,7 +862,7 @@ fun DatePickerField(
                         }
                         open = false
                     }
-                ) { Text("اختيار") }
+                ) { Text("اختيار", fontWeight = FontWeight.Bold) }
             },
             dismissButton = { TextButton(onClick = { open = false }) { Text("رجوع") } },
         ) {
@@ -634,7 +871,7 @@ fun DatePickerField(
     }
 }
 
-/** سحبٌ للتحديث — لكلّ شاشةِ قائمةٍ رئيسة (Material3 PullToRefresh). */
+/** سحبٌ للتحديث. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PullRefreshBox(
@@ -654,10 +891,7 @@ fun PullRefreshBox(
     }
 }
 
-/**
- * نافذةُ بطاقةٍ تفصيليّةٍ لمستندٍ (فاتورة/سند) — ترويسةٌ قابلةٌ للإغلاق ومحتوى
- * يمسحُ عموديًّا مهما طال: عرضُ كلّ السطور والدفعات في مكانٍ واحد.
- */
+/** نافذةُ بطاقةٍ تفصيليّةٍ لمستندٍ (فاتورة/سند). */
 @Composable
 fun DocumentDetailDialog(
     title: String,
@@ -668,23 +902,26 @@ fun DocumentDetailDialog(
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = MaterialTheme.shapes.extraLarge,
+            shape = ShapeDialog,
+            color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp,
-            modifier = modifier.fillMaxWidth(),
+            border = BorderStroke(1.dp, BakeryColors.Hairline),
+            modifier = modifier.fillMaxWidth().heightIn(max = 620.dp),
         ) {
             Column(
                 Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(title, style = MaterialTheme.typography.titleLarge)
+                        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
                         if (subtitle != null) {
                             Text(
                                 subtitle,
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -693,17 +930,14 @@ fun DocumentDetailDialog(
                         Icon(Icons.Filled.Close, contentDescription = "إغلاق")
                     }
                 }
-                Spacer(Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 content()
             }
         }
     }
 }
 
-/**
- * تأكيدُ إجراءٍ بسببٍ — لكلّ عمليّةِ إبطالٍ أو رفضٍ أو قرارِ فرقٍ: الخادمُ يطلبُ
- * سببًا نصيًّا فلا يُرسلَ سببٌ مُخترَعٌ نيابةً عن المستخدم.
- */
+/** تأكيدُ إجراءٍ بسببٍ. */
 @Composable
 fun ConfirmReasonDialog(
     title: String,
@@ -717,7 +951,8 @@ fun ConfirmReasonDialog(
     var reason by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        shape = ShapeDialog,
+        title = { Text(title, fontWeight = FontWeight.Bold) },
         text = {
             Column {
                 Text(message)
@@ -727,6 +962,7 @@ fun ConfirmReasonDialog(
                     onValueChange = { reason = it },
                     label = { Text(reasonLabel) },
                     singleLine = true,
+                    shape = ShapeField,
                     isError = reasonRequired && reason.isBlank(),
                     supportingText = if (reasonRequired && reason.isBlank()) {
                         { Text("السببُ مطلوبٌ قبل المتابعة.") }
@@ -747,7 +983,7 @@ fun ConfirmReasonDialog(
     )
 }
 
-/** سطورُ مستندٍ (فاتورة مبيعات/مشتريات) في البطاقة التفصيليّة — أرقامُ الخادم نصًّا. */
+/** سطورُ مستندٍ (فاتورة مبيعات/مشتريات) في البطاقة التفصيليّة. */
 @Composable
 fun DocumentLines(
     lines: List<com.erpcloud.bakery.data.api.InvoiceLineDto>,
@@ -755,11 +991,12 @@ fun DocumentLines(
 ) {
     lines.forEachIndexed { index, line ->
         Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
             shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
         ) {
-            Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Column(Modifier.padding(horizontal = 12.dp, vertical = 9.dp)) {
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -768,12 +1005,12 @@ fun DocumentLines(
                     Text(
                         "${index + 1}. ${line.description ?: itemName(line.itemId)}",
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f),
                     )
-                    Text("×${line.quantity}", style = MaterialTheme.typography.bodyMedium)
+                    StatusChip("×${line.quantity}", ChipTone.NEUTRAL)
                 }
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(4.dp))
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -786,7 +1023,7 @@ fun DocumentLines(
                     Text(
                         "الإجمالي: ${line.total ?: "—"}",
                         style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                     )
                 }
             }
@@ -794,7 +1031,7 @@ fun DocumentLines(
     }
 }
 
-/** زرُّ نصٍّ صغيرٌ للإجراءات الثانويّة داخل البطاقات (تفاصيل/تعديل/إبطال). */
+/** زرُّ إجراءٍ ثانويّ أنيق بحوافّ مستديرة داخل البطاقات (تفاصيل/تعديل/إبطال). */
 @Composable
 fun InlineAction(
     label: String,
@@ -803,14 +1040,65 @@ fun InlineAction(
     enabled: Boolean = true,
     tone: ChipTone = ChipTone.INFO,
 ) {
-    val color = when (tone) {
-        ChipTone.OK -> BakeryColors.Ok
-        ChipTone.WARN -> BakeryColors.Warn
-        ChipTone.DANGER -> BakeryColors.Danger
-        ChipTone.INFO -> MaterialTheme.colorScheme.primary
-        ChipTone.NEUTRAL -> MaterialTheme.colorScheme.onSurfaceVariant
+    val (bg, fg) = when (tone) {
+        ChipTone.OK -> BakeryColors.OkBg to BakeryColors.Ok
+        ChipTone.WARN -> BakeryColors.WarnBg to BakeryColors.Warn
+        ChipTone.DANGER -> BakeryColors.DangerBg to BakeryColors.Danger
+        ChipTone.INFO -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f) to MaterialTheme.colorScheme.primary
+        ChipTone.NEUTRAL -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
-    TextButton(onClick = onClick, enabled = enabled, modifier = modifier) {
-        Text(label, color = if (enabled) color else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(50),
+        color = if (enabled) bg else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        border = BorderStroke(
+            1.dp,
+            if (enabled) fg.copy(alpha = 0.28f) else MaterialTheme.colorScheme.outlineVariant,
+        ),
+        modifier = modifier,
+    ) {
+        Text(
+            label,
+            color = if (enabled) fg else MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+        )
+    }
+}
+
+/** زرُّ فتحِ منتقي العناصر داخل الحقول المقروءة — كبسولةٌ واضحةٌ بأيقونة سهمين لا تُقصُّ نصَّ «اختر». */
+@Composable
+fun PickerTrigger(
+    onClick: () -> Unit,
+    label: String = "اختر",
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)),
+        modifier = modifier.padding(end = 6.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
+            Text(
+                label,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Icon(
+                Icons.Filled.UnfoldMore,
+                contentDescription = label,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(16.dp),
+            )
+        }
     }
 }

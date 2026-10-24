@@ -50,6 +50,7 @@ import com.erpcloud.bakery.printing.EscPos
 import com.erpcloud.bakery.printing.PrintKit
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.ConfirmReasonDialog
@@ -514,7 +515,7 @@ private fun LoadOrderForm(vm: AppViewModel, onDone: () -> Unit) {
                     readOnly = true,
                     label = { Text("المندوب *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickSalesman = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickSalesman = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -523,7 +524,7 @@ private fun LoadOrderForm(vm: AppViewModel, onDone: () -> Unit) {
                     readOnly = true,
                     label = { Text("الصنف *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickItem = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickItem = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(

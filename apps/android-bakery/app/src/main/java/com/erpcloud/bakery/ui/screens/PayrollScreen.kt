@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
@@ -308,7 +309,7 @@ private fun PayRunDialog(vm: AppViewModel, runId: String, onDone: () -> Unit) {
                     readOnly = true,
                     label = { Text("الفرع * (لملفّ الدفع)") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickBranch = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
                 )
                 Spacer(Modifier.height(6.dp))
                 listOf(
@@ -326,7 +327,7 @@ private fun PayRunDialog(vm: AppViewModel, runId: String, onDone: () -> Unit) {
                     readOnly = true,
                     label = { Text("الخزينة *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickCash = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickCash = true }) },
                 )
                 if (error != null) {
                     Spacer(Modifier.height(6.dp))

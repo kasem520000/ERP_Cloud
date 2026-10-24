@@ -43,6 +43,8 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.printing.batchLabel
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.DatePickerField
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -274,7 +276,7 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                     placeholder = { Text("اختر الصنف") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
-                        IconButton(onClick = { pickItems = true }) { Text("اختر") }
+                        PickerTrigger(onClick = { pickItems = true })
                     },
                 )
                 Spacer(Modifier.height(8.dp))
@@ -286,15 +288,14 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                     placeholder = { Text("المستودع الرئيسيّ") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
-                        IconButton(onClick = { pickWarehouses = true }) { Text("اختر") }
+                        PickerTrigger(onClick = { pickWarehouses = true })
                     },
                 )
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
+                DatePickerField(
+                    label = "تاريخ الإنتاج",
                     value = productionDate,
                     onValueChange = { productionDate = it },
-                    label = { Text("تاريخ الإنتاج (YYYY-MM-DD)") },
-                    modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -371,7 +372,7 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                         placeholder = { Text("اختر قائمة الموادّ") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = {
-                            IconButton(onClick = { pickBoms = true }) { Text("اختر") }
+                            PickerTrigger(onClick = { pickBoms = true })
                         },
                     )
                     Text(
@@ -401,7 +402,7 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                                 placeholder = { Text("اختر الصنف") },
                                 modifier = Modifier.weight(1.6f),
                                 trailingIcon = {
-                                    IconButton(onClick = { pickComponentAt = index }) { Text("اختر") }
+                                    PickerTrigger(onClick = { pickComponentAt = index })
                                 },
                             )
                             OutlinedTextField(

@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
@@ -298,7 +299,7 @@ private fun VoucherForm(vm: AppViewModel, onDone: () -> Unit) {
                     readOnly = true,
                     label = { Text("نوعُ السند *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickKind = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickKind = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -307,7 +308,7 @@ private fun VoucherForm(vm: AppViewModel, onDone: () -> Unit) {
                     readOnly = true,
                     label = { Text("الفرع *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickBranch = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -316,7 +317,7 @@ private fun VoucherForm(vm: AppViewModel, onDone: () -> Unit) {
                     readOnly = true,
                     label = { Text("المستودع *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickWarehouse = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickWarehouse = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(value = reason, onValueChange = { reason = it }, label = { Text("السبب (اختياريّ)") }, modifier = Modifier.fillMaxWidth())
@@ -333,7 +334,7 @@ private fun VoucherForm(vm: AppViewModel, onDone: () -> Unit) {
                                 readOnly = true,
                                 label = { Text("الصنف ${index + 1} *") },
                                 modifier = Modifier.weight(1.4f),
-                                trailingIcon = { IconButton(onClick = { pickLineAt = index }) { Text("اختر") } },
+                                trailingIcon = { PickerTrigger(onClick = { pickLineAt = index }) },
                             )
                             IconButton(onClick = { lines.removeAt(index) }, enabled = lines.size > 1) { Text("✕") }
                         }

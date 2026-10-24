@@ -51,6 +51,7 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.data.api.SalesInvoiceDetailDto
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.ConfirmReasonDialog
@@ -663,7 +664,7 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                     readOnly = true,
                     label = { Text("الفرع *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickBranch = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -672,7 +673,7 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                     readOnly = true,
                     label = { Text("مستودعُ الصرف *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickWarehouse = true }) { Text("اختر") } },
+                    trailingIcon = { PickerTrigger(onClick = { pickWarehouse = true }) },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -687,7 +688,7 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                             if (partyId.isNotBlank()) {
                                 IconButton(onClick = { partyId = ""; partyLabel = "" }) { Text("✕") }
                             }
-                            IconButton(onClick = { pickParty = true }) { Text("اختر") }
+                            PickerTrigger(onClick = { pickParty = true })
                         }
                     },
                 )
@@ -742,7 +743,7 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                                 readOnly = true,
                                 label = { Text("الصنف ${index + 1} *") },
                                 modifier = Modifier.weight(1.4f),
-                                trailingIcon = { IconButton(onClick = { pickLineAt = index }) { Text("اختر") } },
+                                trailingIcon = { PickerTrigger(onClick = { pickLineAt = index }) },
                             )
                             IconButton(onClick = { lines.removeAt(index) }, enabled = lines.size > 1) { Text("✕") }
                         }

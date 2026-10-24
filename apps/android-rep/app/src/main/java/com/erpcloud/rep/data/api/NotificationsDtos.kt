@@ -9,14 +9,7 @@ import kotlinx.serialization.json.contentOrNull
  * عقودُ صناديق الإشعارات — من packages/contracts/src/platform/notifications.ts
  * ومتحكّم platform-services/notifications:
  * - `GET /notifications?limit&offset&filter[read]` ⇒ `{ data: [], meta: {total, limit, offset, unread} }`
- *   (بلا غلاف data إضافيّ — الردُّ هو الغلافُ نفسُه).
  * - `POST /notifications/{id}/read` ⇒ 201، تكرارٌ آمن (idempotent).
- * كلاهما يتطلّب إذنَ tenant.notification.view.
- *
- * الصندوقُ نفسُه محصورٌ بعضويّة المُتصل (كلُّ إشعارٍ له membershipId واحد) — والفصلُ
- * بين إشعارات المناديب وإشعارات الإدارة يصنعُه الخادمُ عند الإنشاء (انظر وثيقة
- * docs/NOTIFICATION_ROUTING_SERVER_REQUIREMENTS.md)؛ وهنا نُعرّبُ الأنواع ونصنّفُ
- * نطاقَها كي تعرضَها شاشةُ الإشعاراتِ مصنَّفةً حتى يتمّ إصلاحُ التوجيه في الخادم.
  */
 @Serializable
 data class NotificationDto(
@@ -34,12 +27,15 @@ data class NotificationDto(
     val body: String
         get() = payloadString("body").orEmpty()
 
+    val loadOrderNumber: String?
+        get() = payloadString("loadOrderNumber")?.takeIf { it.isNotBlank() }
+
     val isRead: Boolean
         get() = readAt != null
 
-    /** نطاقُ الإشعار — من صاحب هذا الصندوق؟ (تُشتقّ من النوع لا من الحمولة). */
+    /** نطاقُ الإشعار — يراعي حقلَ الجمهور `audience` بالإضافة إلى نوع الإشعار. */
     val scope: NotificationScope
-        get() = notificationScope(type)
+        get() = notificationScope(type, payload)
 
     private fun payloadString(key: String): String? =
         (payload?.get(key) as? JsonPrimitive)?.contentOrNull
@@ -61,17 +57,16 @@ data class NotificationListResponse(
 
 /**
  * نطاقُ الإشعار: **عهدةُ المندوب** (توريدُه واستلامُه واعتمادُ إقفاله) أم
- * **قراراتُ الإدارة** (طلباتُ الاعتمادِ وفرقُ الاستلام) أم **النظامُ** (إعدادات…).
- * الصندوقُ واحدٌ لكلّ عضويّة، والنطاقُ يُشتقّ من نوع الوسم الذي يرسله الخادم.
+ * **قراراتُ الإدارة** (طلباتُ الاعتمادِ وفرقُ الاستلام) أم **النظامُ**.
  */
 enum class NotificationScope {
     /** يخصُّ عملَ هذا المندوب نفسِه: توريدٌ بانتظاره، اعتمادُ إقفاله، إلغاءُ أمره. */
     MY_WORK,
 
-    /** قراراتٌ وطلباتٌ جهةَ الإدارة/المحاسبة: اعتمادُ الإقفال، فرقُ الاستلام. */
+    /** قراراتٌ وطلباتٌ جهةَ الإدارة/المحاسبة: اعتمادُ الإقفال، فرقُ الاستلام، المالية. */
     MANAGEMENT,
 
-    /** إشعاراتٌ عامّةٌ من النظام (إعداداتُ المنشأة…). */
+    /** إشعاراتٌ عامّةٌ موجَّهة للعضويّة (تعميمٌ أو ردُّ دعم). */
     SYSTEM,
 }
 
@@ -84,25 +79,48 @@ fun typeTitleAr(type: String): String = when (type) {
     "van_sales_receipt_discrepancy" -> "فرقٌ في استلام توريد"
     "van_sales_load_canceled" -> "إلغاءُ أمر تحميل"
     "payment.received" -> "استُلمت دفعة"
+    "invoice.issued" -> "إصدار فاتورة"
+    "invoice.overdue" -> "فاتورة متأخّرة"
+    "purchase_bill.recorded" -> "تسجيل مشتريات"
+    "stock.low" -> "تنبيه انخفاض مخزون"
+    "announcement" -> "تعميمٌ من الإدارة"
+    "support_ticket_reply" -> "ردٌّ من الدعم الفنّي"
     "comment.mention" -> "إشارةٌ إليك في تعليق"
     "settings.updated" -> "تحديثُ إعدادات المنشأة"
-    else -> type
+    else -> "إشعار نظام"
 }
 
 /** تصنيفُ النطاق — الأنواعُ التي تخصُّ عملَ المندوب نفسِه مقابل قرارات الإدارة. */
-fun notificationScope(type: String): NotificationScope = when (type) {
-    "van_sales_supply_pending_receipt",
-    "van_sales_closing_approved",
-    "van_sales_load_canceled",
-    -> NotificationScope.MY_WORK
+fun notificationScope(type: String, payload: JsonObject? = null): NotificationScope {
+    val audience = (payload?.get("audience") as? JsonPrimitive)?.contentOrNull?.lowercase()
+    if (audience == "management") return NotificationScope.MANAGEMENT
+    if (audience == "rep") return NotificationScope.MY_WORK
 
-    "van_sales_closing_request",
-    "van_sales_receipt_confirmed",
-    "van_sales_receipt_discrepancy",
-    "payment.received",
-    "comment.mention",
-    "settings.updated",
-    -> NotificationScope.MANAGEMENT
+    return when (type) {
+        "van_sales_supply_pending_receipt",
+        "van_sales_load_canceled",
+        -> NotificationScope.MY_WORK
 
-    else -> NotificationScope.SYSTEM
+        "van_sales_closing_approved" -> {
+            val hasSalesmanName = !(payload?.get("salesmanName") as? JsonPrimitive)?.contentOrNull.isNullOrBlank()
+            if (hasSalesmanName) NotificationScope.MANAGEMENT else NotificationScope.MY_WORK
+        }
+
+        "van_sales_closing_request",
+        "van_sales_receipt_confirmed",
+        "van_sales_receipt_discrepancy",
+        "payment.received",
+        "invoice.issued",
+        "invoice.overdue",
+        "purchase_bill.recorded",
+        "stock.low",
+        "subscription.expiring",
+        "user.invited",
+        "marketplace_addon_approved",
+        "marketplace_addon_rejected",
+        "settings.updated",
+        -> NotificationScope.MANAGEMENT
+
+        else -> NotificationScope.SYSTEM
+    }
 }

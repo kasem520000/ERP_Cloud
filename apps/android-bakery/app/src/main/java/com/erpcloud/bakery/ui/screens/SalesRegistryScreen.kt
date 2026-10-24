@@ -38,6 +38,7 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.data.api.SalesRegistryDto
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
+import com.erpcloud.bakery.ui.components.PickerTrigger
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.DocumentDetailDialog
 import com.erpcloud.bakery.ui.components.InlineAction
@@ -202,7 +203,7 @@ private fun SalesmanRegistryForm(vm: AppViewModel, onDone: () -> Unit) {
             readOnly = true,
             label = { Text("بطاقةُ الموظف (اختياريّ)") },
             modifier = Modifier.fillMaxWidth(),
-            trailingIcon = { IconButton(onClick = { pickEmployee = true }) { Text("اختر") } },
+            trailingIcon = { PickerTrigger(onClick = { pickEmployee = true }) },
         )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
@@ -330,7 +331,7 @@ private fun EditSalesmanDialog(vm: AppViewModel, salesman: SalesRegistryDto, onD
             readOnly = true,
             label = { Text("بطاقةُ الموظف") },
             modifier = Modifier.fillMaxWidth(),
-            trailingIcon = { IconButton(onClick = { pickEmployee = true }) { Text("اختر") } },
+            trailingIcon = { PickerTrigger(onClick = { pickEmployee = true }) },
         )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
@@ -339,7 +340,7 @@ private fun EditSalesmanDialog(vm: AppViewModel, salesman: SalesRegistryDto, onD
             readOnly = true,
             label = { Text("مستودعُ المندوب") },
             modifier = Modifier.fillMaxWidth(),
-            trailingIcon = { IconButton(onClick = { pickWarehouse = true }) { Text("اختر") } },
+            trailingIcon = { PickerTrigger(onClick = { pickWarehouse = true }) },
         )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
