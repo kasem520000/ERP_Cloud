@@ -27,6 +27,13 @@
 - `DEFECTS.md`: بطاقات ACC-188…197 + ملاحظة المرحلة 3 + سطور حالة ACC-021/UI-005/006/020/025/047/051 و77 بطاقة بقيت بلا سطر.
 - **تنبيه تشغيلي:** `round30-snapshot.cjs` يرفض العمل إن وُجد مستأجر غير «AUDIT-TEST-2026-R24» و«Platform Operations»؛ أي تجربة بذرة على قاعدة التدقيق تُنشئ مستأجراً مؤقتاً يجب حذفه بعدها (حذف القيود يحتاج تعطيل triggers التدقيق مؤقتاً على `journal_entries`/`journal_entry_lines` ثم إعادتها).
 
+### 1.د — حالة التسليم الحالية (آخر تحديث: بعد `33efb26`)
+- **فُحص وأُصلح في الدفعة الثانية:** ACC-193 (ضريبة السندات)، ACC-194 (بذرة العرض)، ACC-195 (أرصدة الحسابات)، ACC-196 (إجمالي الإقرار)، ACC-197 (نطاق سداد الموردين). الإجمالي في R33: **26 عيباً جديداً** (ACC-172…197) كلها مُصلَحة ومُثبَتة.
+- **الأدلة:** probe11 RUN 56 (11/11)؛ sweep12 (6 كتل: AG07–AG11)؛ vitest كامل **251 ملفاً / 2062 اختباراً ✓** (`R33-vitest-full-bc53af6.log`)؛ `@erp/database` 58/58.
+- **الالتزامات:** `fa1416f` (سطور الحالة 234/234)، `c5ca11a`, `5cdd070`, `5d2f227`, `c6c1c24`, `2108113`, `bc53af6`, `fa10f26`, `33efb26`.
+- **البيئة الآن:** DB `database-0046a5f8` (seed 15، آخر RUN 56)، API `api-server-27ef9e64` (منفذ 3000، مبني حتى `33efb26`). لا متصفح.
+- **العائق الوحيد المتبقي:** اللقطات البصرية — سبب جذري مُتحقَّق ومُوثَّق في `evidence/round-33/R33-browser-blocker.md`: Chromium من npm يعمل ويُستخرج لكنه يحتاج `libnspr4/libnss3/libnssutil3` غير الموجودة في الصورة، ومستودعات apt خارج قائمة المضيفين المسموحة، ولا حزمة npm تحملها.
+- **التالي إن استُئنف:** أي مسار جديد يُضاف إلى probe11 ككتلة AG، وتوثيق فوري؛ لا تغيير على بذرة 15 إلا بإصلاح مبرَّر (البذرة تحمل آثاراً تاريخية موثَّقة).
 ## 2. البيئة (التهيئة 13 — بذرة 13؛ bootstrap RUN 34) — إعادة البناء عند الحاجة (~4 دقائق)
 1. العلامة أن البيئة أُعيدت تهيئتها: `git log -1` = `54171c6` و`git status` يُظهر `?? docs/accounting-audit/` ولا يوجد `/home/user/.bin` ولا `.env`.
 2. الوصفة: `git fetch origin +refs/heads/arena/0e400dd3-erp-cloud:refs/remotes/origin/arena/0e400dd3-erp-cloud && rm -rf docs/accounting-audit && git reset --hard origin/arena/0e400dd3-erp-cloud` → `mkdir -p /home/user/.bin /home/user/.corepack; COREPACK_HOME=/home/user/.corepack corepack enable --install-directory /home/user/.bin; corepack prepare pnpm@9.15.0 --activate` → `export PATH=/home/user/.bin:$PATH COREPACK_HOME=/home/user/.corepack` → `pnpm install --frozen-lockfile` → `pnpm -r --filter "./packages/*" build` → `node scripts/setup-env.mjs` → `sed -i 's/^DEMO_TENANT_NAME=.*/DEMO_TENANT_NAME=AUDIT-TEST-2026-R24/' .env` (قبل البذرة فيأخذه الـseed) → start_process `DB_LOCAL_PERSIST=true DB_LOCAL_DATA_DIR=/home/user/.pgdata-r33 node scripts/local-db.mjs` → `pnpm db:migrate` (143) → `pnpm db:seed` → `cd apps/api && pnpm build` → start_process `node dist/main.js` → `R33_RUN=NN … round33-bootstrap.cjs`.
