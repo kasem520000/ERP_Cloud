@@ -76,7 +76,7 @@ export default function ForgotPage() {
               className="input"
               value={tenantCode}
               onChange={(event) => setTenantCode(event.target.value)}
-              placeholder="رمز المنشأة (اختياري)"
+              placeholder="رمز الشركة (اختياري)"
               dir="ltr"
             />
             <input

@@ -18,6 +18,7 @@ import {
   addressToForm,
   formToAddress,
 } from '../../../lib/national-address';
+import { runReport } from '../../../lib/reports';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
@@ -27,6 +28,22 @@ export default function CustomersPage() {
   const { can } = useSession();
   const parties = useQuery<Party[]>(() => listParties('customer'), []);
   const methods = useQuery<PaymentMethod[]>(() => apiList<PaymentMethod>('/payment-methods'), []);
+  // ACC-204 (R33): عمود الرصيد يقرأ من تقرير «أرصدة حساب العملاء» نفسه — نفس أرقام
+  // /reports/customer-balances تماماً، بلا استعلام لكل صف. من لا حركة له لا يرد من
+  // التقرير فيُعرض 0.00 (أو «—» إن مُنع التقرير لعدم reporting.view).
+  const balances = useQuery(() => runReport('customer-balances', {}), []);
+  const balanceCell = (row: Party) => {
+    if (balances.status === 'loading') return '…';
+    if (balances.status === 'error') return '—';
+    const hit = (balances.data?.rows ?? []).find((entry) => entry.party === row.name);
+    if (!hit) return money('0');
+    return (
+      <span className="inline-flex items-baseline gap-1.5">
+        <strong>{money(hit.balance)}</strong>
+        <span className="muted small">{hit.status}</span>
+      </span>
+    );
+  };
   const methodLabel = (id: string | null | undefined) => {
     const method = (methods.data ?? []).find((row) => row.id === id);
     return method ? `${method.nameAr}${method.dueDays > 0 ? ` (${method.dueDays} يوم)` : ''}` : '—';
@@ -124,6 +141,7 @@ export default function CustomersPage() {
             cell: (row) => row.taxNo ?? row.tax_no ?? '—',
           },
           { key: 'credit', header: 'سقف الائتمان', align: 'num', cell: (row) => money(row.creditLimit) },
+          { key: 'balance', header: 'الرصيد', align: 'num', cell: (row) => balanceCell(row) },
           { key: 'method', header: 'طريقة الدفع', cell: (row) => methodLabel(row.paymentMethodId) },
           {
             key: 'statement',

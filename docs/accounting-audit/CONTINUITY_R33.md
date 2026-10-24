@@ -93,3 +93,10 @@
 | `test/report-inventory.spec.ts` | 10 (محجوب) | اختبار قديم | ACC-132 (`SERIAL_COUNT_EXCEEDS_STOCK` بمستودع بلا رصيد) + UI-044 (`IV4SN-0001`)؛ التوليد غير مُسنَد ثم قيد الافتتاح يُسنِد (`d4e48ed`) |
 
 **نتيجة التشغيل الكامل بعد الفرز (`02ea39f`):** 2012 ✓ / 1 ✗ (`ai-help` — أُصلح في `b307d21`) / 25 معلّق — `evidence/round-33/R33-vitest-full-02ea39f.json`.
+
+## 7. المرحلة الثانية — تصحيح تقرير المستخدم البصري (حالة بعد ACC-198…211)
+
+- **الحالة:** كل فروق التقرير الـ13 مُغلقة (كود11 + توثيق سياستين مقصودتين10/11 + دَين بيئة209)؛ آخر commit لهذه الدفعة يحمل `verify-seed` + القائمة + الأدلّة. الفرع: `arena/0e400dd3-erp-cloud`.
+- **البيئة الحالية:** DB نواة `/home/user/.pgdata-r33` (5432) + API من dist على3000 + بذرة `verify2026` بعد `pnpm verify-seed -- --reset` (8/8 PASS). `/tmp/q.cjs` (محوّ ← أعِد كتابته عند الحاجة: pg من `node_modules/.pnpm/node_modules/pg` + `DATABASE_MIGRATOR_URL`). مسح حيّ: `bash /tmp/probe-portal.sh` (الدليل في `evidence/verify-seed/probe-portal-acc198-211.txt`).
+- **أوامر إعادة التحقق:** `pnpm verify-seed -- --reset` ← `bash /tmp/probe-portal.sh` ← `cd apps/api && npx vitest run test/portal.spec.ts` (14/14) ← بناءات: `pnpm --filter @erp/api build && pnpm --filter staff build && pnpm --filter customer-portal build && pnpm --filter bakery build`.
+- **أفخاخ هذه الدفعة:** `cash-locations` يقبل `{name}` لا `{code,nameAr}`؛ اختبار الدفع يحتاج `sales.invoice.pay`؛ بناء staff يفشل بـlint موروث ما لم يبق `eslint.ignoreDuringBuilds` في `next.config.mjs` (ACC-209)؛ `payments()` UNION يجب أن يوازن أعمدة `kind`؛ فلتر المورد في `me()` هو ذمة الدائن لا المدين؛ `/reps` بحساب مندوب 403 مقصود ومختبَر (لا تُعِد فتحه كوداً).

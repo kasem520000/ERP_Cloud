@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { Directory } from '../../../components/directory';
 import { apiDelete, apiList, apiPatch, apiPost } from '../../../lib/api';
 import { accountLabel, listAccounts, postableOf, typeOf, type Account } from '../../../lib/accounts';
@@ -27,6 +29,15 @@ export default function ExpenseTypesPage() {
       title="بطاقة المصاريف"
       subtitle="عرّف كل نوع مصروف مرة واحدة واربطه بحساب المصروف ومركز التكلفة."
       crumbs={['المحاسبة', 'تعاريف']}
+      // ACC-206 (R33): الشاشة تعريفات لا سندات — المدقّق كان يبحث عن PV-000002 هنا
+      // فلم يجدها (هي مرحّلة وظاهرة في الخزينة). المسار إليها مذكور صراحةً لا مفترضاً.
+      listHint={
+        <>
+          هذه <strong>تعريفات</strong> أنواع المصروفات — سندات الصرف المسجّلة (PV-…) تُقرأ في{' '}
+          <Link href="/treasury/vouchers?kind=payment">سندات الصرف</Link> وفي{' '}
+          <Link href="/treasury/vouchers">عرض السندات</Link>.
+        </>
+      }
       query={expenses}
       createLabel="مصروف جديد"
       formTitle="بطاقة مصروف"

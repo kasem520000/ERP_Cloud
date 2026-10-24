@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 import { Directory } from '../../../components/directory';
 import { apiDelete, apiList, apiPatch, apiPost } from '../../../lib/api';
-import { listEmployees, type Employee } from '../../../lib/lookups';
+import { listEmployees, listWarehouses, type Employee, type Warehouse } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
@@ -39,6 +39,8 @@ type Salesman = {
   mobile?: string | null;
   email?: string | null;
   notes?: string | null;
+  /** 🚐 مستودع سيارة التوزيع الذي يحتفظ به المندوب (عمود «المستودع» ACC-205). */
+  warehouseId?: string | null;
 };
 
 /** نسبة مئوية — 10 means «10%»; the API refuses anything outside 0–100. */
@@ -52,6 +54,12 @@ export default function SalesmenPage() {
   const { can } = useSession();
   const salesmen = useQuery<Salesman[]>(() => apiList<Salesman>('/sales/salesmen'), []);
   const employees = useQuery<Employee[]>(() => listEmployees(), []);
+  const warehouses = useQuery<Warehouse[]>(() => listWarehouses(), []);
+  const warehouseLabel = (id?: string | null) => {
+    if (!id) return '—';
+    const hit = (warehouses.data ?? []).find((row) => row.id === id);
+    return hit ? `${hit.name} (${hit.code})` : '—';
+  };
 
   const employeeOptions = (employees.data ?? []).map((row) => ({
     id: row.id,
@@ -182,6 +190,9 @@ export default function SalesmenPage() {
         { key: 'email', header: 'البريد الإلكتروني', align: 'ltr', cell: (row) => row.email ?? '—' },
         { key: 'tel', header: 'الهاتف', align: 'ltr', cell: (row) => row.tel ?? '—' },
         { key: 'mobile', header: 'الجوال', align: 'ltr', cell: (row) => row.mobile ?? '—' },
+        // ACC-205 (R33): مستودع سيارة التوزيع — بطاقة المندوب كانت تخفيه (يُدار في
+        // van-sales فيبقى المدقّق لا يرى مصدر بضاعة المندوب من هذه الشاشة).
+        { key: 'wh', header: 'المستودع', cell: (row) => warehouseLabel(row.warehouseId) },
         { key: 'active', header: 'الحالة', cell: (row) => (row.active ? 'نشط' : 'موقوف') },
       ]}
     />

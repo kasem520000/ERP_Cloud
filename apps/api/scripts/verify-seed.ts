@@ -742,9 +742,9 @@ async function buildExpectations(I: Ids): Promise<void> {
         String(s.name_ar),
       ]),
       ['/inventory/items عدد الأصناف', '2', 'VRF-FL (10/20) و VRF-BRK (5/12)'],
-      ['/inventory/moves عدد حركات المخزون', String(movements?.n ?? 0), 'مشتريات+مبيعات+مرتجع+مناقلة'],
+      ['/inventory/movements عدد حركات المخزون', String(movements?.n ?? 0), 'مشتريات+مبيعات+مرتجع+مناقلة'],
       ['/inventory/transfers المناقلة', '1 مناقلة MAIN→VAN-1 بكمية 5 — مُرسَلة واستُلمت بالكامل', transferCounts.join('، ')],
-      ['/inventory/valuation قيمة المخزون (الإجمالي)', money(stock.reduce((a, s) => a + Number(s.value), 0)), 'يجب أن تعادل رصيد 1270001 أدناه'],
+      ['/reports/inventory-valuation قيمة المخزون (الإجمالي)', money(stock.reduce((a, s) => a + Number(s.value), 0)), 'يجب أن تعادل رصيد 1270001 أدناه'],
     ],
   });
 
@@ -814,7 +814,11 @@ async function buildExpectations(I: Ids): Promise<void> {
         `مدين ${money(r.d)} / دائن ${money(r.c)} → صافي ${money(Number(r.d) - Number(r.c))}`,
         'في /accounting/ledger ابحث بالحساب نفسه',
       ]),
-      ['/accounting/expenses المصروفات', expenseRows.map((v) => `${String(v.number)} = ${money(v.amount)}`).join('، ') || '—', 'سند المصروف 40.00'],
+      [
+        '/accounting/expenses (أنواع المصروفات — تعريفات) وسند المصروف',
+        expenseRows.map((v) => `${String(v.number)} = ${money(v.amount)}`).join('، ') || '—',
+        'الشاشة تعريفات لا سندات؛ السند المرحّل نفسه (PV-000002 = 40.00) يُقرأ في /treasury/vouchers?kind=payment وفي /treasury/movements',
+      ],
       ['/accounting/income-statement (أو تقرير profit-loss) صافي الربح', '', 'محسوب من الإيرادات − تكلفة المبيعات − المصروفات + إيرادات أخرى — لا يوجد رقم ثابت هنا عمداً؛ قارن بسطر صافي الربح في التقرير نفسه مقابل هذه القيود'],
     ],
   });
@@ -855,11 +859,12 @@ async function buildExpectations(I: Ids): Promise<void> {
     title: 'بوابة العميل (تطبيق منفصل)',
     url: `${PORTAL_URL}/auth/login`,
     rows: [
-      ['رمز الشركة + البريد', `${TENANT_CODE} + ${CREDS.portalCustomer.email}`, 'بعد الدخول: /portal/invoices'],
+      ['رمز الشركة + البريد', `${TENANT_CODE} + ${CREDS.portalCustomer.email}`, 'أول دخول لحساب أُنشئ بـ portal-access يُلزم بتغيير كلمة المرور (/auth/change-password) ثم يفتح /portal/invoices'],
+      ['تغيير كلمة المرور أول دخول', 'إلزامي للحسابات المُسلَّمة بكلمة مؤقتة', 'سلوك مقصود: portal-access يضبط must_change_password — القائمة كانت تغفل توثيقه'],
       ['فواتير البوابة', `فاتورة ${String(s2row?.number ?? '—')} بمبلغ ${money(s2row?.total)} ومرتجع −${money(retRow?.total)}`, 'لعميل التحقق الآجل فقط'],
-      ['/portal/statement الرصيد', money(custCrBal?.balance ?? 0), ''],
-      ['/portal/payments الدفعة', '100.00 — دفعة واحدة', ''],
-      ['حسابات البوابة المُنشأة', String(portalAccounts.length), 'عميل + مورد (2)'],
+      ['/portal/statement الرصيد', money(custCrBal?.balance ?? 0), 'يشمل دفعات الفواتير (invoice_payments) ضمن الحركات'],
+      ['/portal/payments الدفعة', '100.00 — دفعة واحدة (+ سندات القبض/الصرف المرتبطة بالطرف)', ''],
+      ['حسابات البوابة المُنشأة', String(portalAccounts.length), 'عميل + مورد (2) — تُرى في /settings/users قائمة المستخدمين، لا في نموذج الدعوات (الدعوات لموظفي المنشأة)'],
       ['بوابة المورد: الدخول', `${CREDS.portalSupplier.email}`, 'أيضاً من /purchases/supplier-portal داخل staff (يظهر مستخدماً واحداً نشطاً)'],
     ],
   });
@@ -872,6 +877,11 @@ async function buildExpectations(I: Ids): Promise<void> {
       ['الدخول', `${CREDS.rep.email} / ${CREDS.rep.password}`, `رمز الشركة ${TENANT_CODE}`],
       ['الشاشات تفتح بلا جدار ترخيص', 'موزّع، تحصيل، عهدة، إنتاج، تقارير… كلها تفتح', 'الحمولات (العهدة) فارغة عمداً: هذه البذرة لا تولّد حركات مخابز'],
       ['مندوب التحقق يظهر في /reps', 'مندوب التحقق — مستودع سيارة VAN-1', 'أيضاً /sales/salesmen في staff'],
+      [
+        '/reps بحساب مندوب مُحصّر',
+        'محجوبة (القائمة تُخفيها والمسار يرد 403 VAN_SALES_COMPANY_SCOPE_REQUIRED)',
+        'مقصود ومختبَر: بطاقات المناديب سطحُ منشأة يتطلّب إذن إدارة الخط (مثل van_sales.load.manage) — المالك/مدير الخط يفتحها؛ المندوب يقرأ خطَّه في /van-sales/me وشاشة التوزيع الخاصة به',
+      ],
     ],
   });
 }

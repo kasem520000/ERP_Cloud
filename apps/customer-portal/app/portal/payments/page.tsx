@@ -60,7 +60,11 @@ function Payments() {
               { key: 'number', header: 'الرقم', cell: (row) => row.number ?? '—' },
               { key: 'date', header: 'التاريخ', cell: (row) => dateText(row.day) },
               { key: 'kind', header: 'النوع', cell: (row) => KIND_AR[row.kind] ?? row.kind },
-              { key: 'method', header: 'طريقة الدفع', cell: (row) => METHOD_AR[row.method] ?? row.method },
+              {
+                key: 'method',
+                header: 'طريقة الدفع',
+                cell: (row) => (row.method ? METHOD_AR[row.method] ?? row.method : '—'),
+              },
               {
                 key: 'amount',
                 header: 'المبلغ',

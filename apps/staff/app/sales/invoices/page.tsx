@@ -67,9 +67,14 @@ const STATUS_CHIPS: StatusChip[] = [
   { key: 'draft', label: 'مسودة', test: (row) => row.status === 'draft' },
   { key: 'paid', label: 'مسددة', test: (row) => row.paymentStatus === 'paid' },
   {
+    key: 'partial',
+    label: 'سداد جزئي',
+    test: (row) => row.paymentStatus === 'partial' && row.status === 'posted',
+  },
+  {
     key: 'unpaid',
     label: 'غير مسددة',
-    test: (row) => row.paymentStatus !== 'paid' && row.status === 'posted',
+    test: (row) => row.paymentStatus === 'unpaid' && row.status === 'posted',
   },
 ];
 
@@ -417,8 +422,14 @@ function InvoicesInner() {
                       {row.status === 'posted' ? 'مرحّلة' : 'مسودة'}
                     </Badge>
                     {row.status === 'posted' ? (
+                      // ACC-203 (R33): الفاتورة الجزئية كانت تُوسم «غير مسدّدة» بينما
+                      // تفاصيلها تقول «مسددة جزئياً» — الوسم يقرأ payment_status كما هو.
                       <Badge tone={row.paymentStatus === 'paid' ? 'blue' : 'amber'}>
-                        {row.paymentStatus === 'paid' ? 'مسدّدة' : 'غير مسدّدة'}
+                        {row.paymentStatus === 'paid'
+                          ? 'مسدّدة'
+                          : row.paymentStatus === 'partial'
+                            ? 'مسددة جزئياً'
+                            : 'غير مسدّدة'}
                       </Badge>
                     ) : null}
                   </span>

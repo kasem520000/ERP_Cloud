@@ -29,8 +29,6 @@ function money(value: string) {
 }
 
 export default function JournalRegisterPage() {
-  const today = new Date().toISOString().slice(0, 10);
-  const monthStart = `${today.slice(0, 7)}-01`;
   const search = useSearchParams();
   /**
    * كشف الحساب يفتح قيداً بعينه من عموده «تفاصيل» (`?entry=<id>`). وفي R10 صار للقيد
@@ -39,10 +37,19 @@ export default function JournalRegisterPage() {
    */
   const linked = search.get('entry') ?? '';
   const router = useRouter();
-  const [from, setFrom] = useState(monthStart);
-  const [to, setTo] = useState(today);
-  const [status, setStatus] = useState('');
-  const [applied, setApplied] = useState({ from: monthStart, to: today, status: '' });
+  /**
+   * ACC-202 (R33): النطاق الافتراضي شهر اليوم كان يُخفي القيد الافتتاحي (JE-000001 في
+   * 1/1) فتفتح «القيود اليومية» بـ12 من13 ويبقى الاختلاف خفيًّا. الافتراضي الآن كل
+   * القيود المرحّلة، والرابط يحمل من/to/status إن وُجدت فيُفتح النطاق المطلوب.
+   */
+  const [from, setFrom] = useState(search.get('from') ?? '');
+  const [to, setTo] = useState(search.get('to') ?? '');
+  const [status, setStatus] = useState(search.get('status') ?? '');
+  const [applied, setApplied] = useState({
+    from: search.get('from') ?? '',
+    to: search.get('to') ?? '',
+    status: search.get('status') ?? '',
+  });
 
   /**
    * `?entry=<id>` وصل من كشف الحساب («تفاصيل») قبل R10. والآن للقيد **شاشةٌ** تُفتح
@@ -78,10 +85,10 @@ export default function JournalRegisterPage() {
   return (
     <Screen
       title="القيود اليومية"
-      subtitle="سجل كل القيود المرحّلة خلال الفترة المحددة."
+      subtitle="سجل كل القيود المرحّلة — اترك الفترة فارغة لعرضها كاملة (بما فيها القيد الافتتاحي)."
       crumbs={['المحاسبة', 'تقارير محاسبية']}
       kpis={[
-        { label: 'عدد القيود', value: rows.length, hint: 'داخل الفترة المحددة' },
+        { label: 'عدد القيود', value: rows.length, hint: 'داخل النطاق المعروض' },
         { label: 'إجمالي المدين', value: money(String(totalDebit)) },
         { label: 'إجمالي الدائن', value: money(String(totalCredit)) },
         {

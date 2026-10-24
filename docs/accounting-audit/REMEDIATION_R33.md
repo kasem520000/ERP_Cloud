@@ -169,3 +169,26 @@ R33_RUN=NN ... node docs/accounting-audit/scripts/round33-report-sweep.cjs  # ك
 cd apps/api && npx vitest run                                           # 0 فشل و0 معلّق متوقَّع (2042 ✓) — ~25 دقيقة
 cd apps/api && npx vitest run test/van-sales-stock-acceptance.spec.ts test/van-sales-stock-settlement.spec.ts test/van-sales.spec.ts test/van-sales-returns-in-reports.spec.ts test/payment-gateways.spec.ts
 ```
+
+## 9. المرحلة الثانية — تصحيح تقرير التحقق البصري للمستخدم (13 فرقاً؛ ACC-198…ACC-211)
+
+المصدر: `ERP-Verify-Final-Report.pdf` (14 صفحة، أولويات §7). البذرة: `pnpm verify-seed -- --reset` → **8/8 PASS** + قائمة مُعاد توليدها (293 سطراً). الترتيب كما نفّذ: جوهريّان (1–2) ← متوسطان (3–4) ← مسارات القائمة (5) ← وسط/منخفض (6–9) ← توثيقي (10–13) + دَين بيئة (ACC-209).
+
+| الفرق | البطاقة | الإصلاح | الدليل |
+|---|---|---|---|
+| 1 كشف239.20 | ACC-198 | CTE موحّد + فرع invoice_payments/purchase + عامل مورد + rowKey movement_id + `me()` payable | probe: **139.2000/275.0000**؛ `portal.spec` 14/14 (50 ←122.50) |
+| 2 دفعات فارغة | ACC-199 | payments = vouchers ∪ invoice_payments + نصوص محايدة | probe: عميل `[SI-000002 100]`، مورد `[PV-000001 300]` |
+| 3 من/to من الرابط | ACC-201 | دمج `useSearchParams` في `initialFilters` أول تحميل | بناء ✓ |
+| 4 افتتاحي مقصي | ACC-202 | النطاق الافتراضي كل القيود + `?from&to&status` | بناء ✓ |
+| 5 مسارات القائمة | ACC-200 | `/inventory/movements` + `/reports/inventory-valuation` في verify-seed | القائمة المولَّدة |
+| 6 وسم جزئي | ACC-203 | قراءة partial صريحة + شريحة «سداد جزئي» | بناء ✓ |
+| 7 رصيد العملاء | ACC-204 | عمود من تقرير `customer-balances` | بناء ✓ |
+| 8 مستودع المندوب | ACC-205 | عمود من `listWarehouses` | بناء ✓ |
+| 9 مصروفات/سندات | ACC-206 | تلميح برابطَي السندات + صف القائمة | القائمة |
+| 10 /reps مندوب | ACC-211 | **توثيق سياسة مقصودة** (403 مثبَت في `van-sales-rep-scope.spec.ts:217`) | صف قسم المخابز |
+| 11 تغيير كلمة المرور | ACC-210 | **توثيق** سلوك portal-access الإلزامي (لم يُعطَّل) | صفوف القسم16 |
+| 12 رمز المنشأة/الشركة | ACC-207 | واجهات الدخول ← «رمز الشركة»؛ إنشاء المنشآت يبقى كما هو | بناء ✓ |
+| 13 الدعوات/البوابة | ACC-208 | ملاحظة في `/settings/users` + صف القائمة | القائمة |
+| + بيئة | ACC-209 | إعادة `eslint.ignoreDuringBuilds` لبناء staff (دَين lint مفتوح للإصلاح لاحقاً) | بناء4/4 ✓ |
+
+**تشغيل إعادة التحقق:** `pnpm verify-seed -- --reset` (8/8) ← `bash /tmp/probe-portal.sh` (الدليل: `evidence/verify-seed/probe-portal-acc198-211.txt`) ← `cd apps/api && npx vitest run test/portal.spec.ts` (14/14) ← بناءات `@erp/api`/`staff`/`customer-portal`/`bakery`.
