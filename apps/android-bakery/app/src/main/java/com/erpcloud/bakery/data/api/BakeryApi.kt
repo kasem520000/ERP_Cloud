@@ -208,6 +208,10 @@ interface BakeryApi {
     @GET("organization/catalog/units")
     suspend fun catalogUnits(): Response<JsonElement>
 
+    /** مجموعاتُ الضريبة — إذن `catalog.taxgroup.view` (نسبُ ضريبة القيمة المضافة للأصناف). */
+    @GET("organization/catalog/tax-groups")
+    suspend fun catalogTaxGroups(): Response<JsonElement>
+
     /** إنشاء وحدة — إذن `catalog.unit.manage`. */
     @POST("organization/catalog/units")
     suspend fun createUnit(@Body body: JsonObject): Response<JsonElement>
@@ -303,11 +307,11 @@ interface BakeryApi {
     suspend fun posCheckout(@Body body: JsonObject): Response<ApiEnvelope<PosCheckoutReceiptDto>>
 
     /**
-     * فتحُ ورديةِ الكاشير لفرعٍ — `POST /treasury/shift-closes/open`
+     * فتحُ ورديةِ الكاشير لفرعٍ — `POST /shift-closes/open`
      * (إذنُ `treasury.shift.close`). يُعرضُ الزرُّ في حوار الدفع عند
      * POS_SHIFT_REQUIRED فلا يعلقُ الكاشيرُ بلا مخرج.
      */
-    @POST("treasury/shift-closes/open")
+    @POST("shift-closes/open")
     suspend fun openShift(@Body body: JsonObject): Response<JsonElement>
 
     // ------------------------------------------------------ الموارد البشريّة

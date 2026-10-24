@@ -101,10 +101,12 @@ fun ProductionScreen(vm: AppViewModel, onBack: () -> Unit) {
         },
     ) { padding ->
         if (showForm) {
-            BatchForm(
-                vm = vm,
-                onDone = { showForm = false },
-            )
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                BatchForm(
+                    vm = vm,
+                    onDone = { showForm = false },
+                )
+            }
             return@Scaffold
         }
         if (state.loadingDashboard && dash == null) {

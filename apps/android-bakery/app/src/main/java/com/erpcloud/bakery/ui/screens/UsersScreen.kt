@@ -84,12 +84,10 @@ fun UsersScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
-        if (!state.can("tenant.membership.manage")) {
-            MissingPermissionHint("إضافة مستخدم", "tenant.membership.manage", Modifier.padding(padding))
-        }
         if (showInvite) {
-            InviteUserForm(vm, onDone = { showInvite = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                InviteUserForm(vm, onDone = { showInvite = false })
+            }
             return@Scaffold
         }
         if (state.staff.loadingKey == "users") {
@@ -97,15 +95,23 @@ fun UsersScreen(vm: AppViewModel, onBack: () -> Unit) {
             return@Scaffold
         }
         val memberships = state.staff.memberships
-        if (memberships.isEmpty()) {
-            EmptyState(state.staff.error ?: "لا مستخدمينَ بعد.", Modifier.padding(padding))
-            return@Scaffold
-        }
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            if (!state.can("tenant.membership.manage")) {
+                MissingPermissionHint(
+                    "إضافة مستخدم",
+                    "tenant.membership.manage",
+                    Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                )
+            }
+            if (memberships.isEmpty()) {
+                EmptyState(state.staff.error ?: "لا مستخدمينَ بعد.")
+                return@Column
+            }
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
             items(memberships, key = { it.id }) { membership ->
                 val (statusText, tone) = Labels.membershipStatus(membership.status)
                 SectionCard(
@@ -157,6 +163,7 @@ fun UsersScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                     }
                 }
+            }
             }
         }
     }

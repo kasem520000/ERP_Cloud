@@ -102,33 +102,40 @@ fun DistributionScreen(vm: AppViewModel, onBack: () -> Unit) {
         },
     ) { padding ->
         if (showForm) {
-            LoadOrderForm(vm = vm, onDone = { showForm = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                LoadOrderForm(vm = vm, onDone = { showForm = false })
+            }
             return@Scaffold
-        }
-        // B12: لا يُخفى زرُّ الإنشاءِ بصمتًا عند غياب الإذن — اللافتةُ تُسمّي الصلاحيةَ بالعربية.
-        if (!state.can("van_sales.load.manage")) {
-            MissingPermissionHint("إنشاء أمر تحميل", "van_sales.load.manage", Modifier.padding(padding))
         }
         if (state.loadingDashboard && dash == null) {
             CenterLoading("جارٍ التحميل…", Modifier.padding(padding))
             return@Scaffold
         }
         val orders = dash?.loadOrders.orEmpty()
-        if (orders.isEmpty()) {
-            EmptyState("لا أوامرَ تحميلٍ بعد.", Modifier.padding(padding))
-            return@Scaffold
-        }
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            if (!state.can("van_sales.load.manage")) {
+                MissingPermissionHint(
+                    "إنشاء أمر تحميل",
+                    "van_sales.load.manage",
+                    Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                )
+            }
+            if (orders.isEmpty()) {
+                EmptyState("لا أوامرَ تحميلٍ بعد.")
+                return@Column
+            }
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
             items(orders, key = { it.id }) { order ->
                 LoadOrderCard(
                     vm = vm,
                     order = order,
                     scope = scope,
                 )
+            }
             }
         }
     }

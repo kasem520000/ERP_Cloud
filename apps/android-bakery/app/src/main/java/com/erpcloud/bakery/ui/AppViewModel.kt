@@ -55,6 +55,7 @@ import com.erpcloud.bakery.data.api.StockAdjustmentDto
 import com.erpcloud.bakery.data.api.StockLevelDto
 import com.erpcloud.bakery.data.api.StockMovementDto
 import com.erpcloud.bakery.data.api.StockVoucherDto
+import com.erpcloud.bakery.data.api.TaxGroupDto
 import com.erpcloud.bakery.data.api.TreasuryVoucherDto
 import com.erpcloud.bakery.data.api.UnitDto
 import com.erpcloud.bakery.data.offline.SavedCredentials
@@ -153,6 +154,7 @@ data class StaffState(
     // الكتالوج
     val categories: List<CategoryDto> = emptyList(),
     val units: List<UnitDto> = emptyList(),
+    val taxGroups: List<TaxGroupDto> = emptyList(),
     val catalogItems: List<CatalogItemDto> = emptyList(),
     // الفروع والخزائن والمورّدون
     val branches: List<BranchDto> = emptyList(),
@@ -234,8 +236,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             container.sessionStore.state.collect { session ->
                 val becameLoggedIn = session.loggedIn && !lastLoggedIn
+                val becameLoggedOut = !session.loggedIn && lastLoggedIn
                 lastLoggedIn = session.loggedIn
-                _uiState.update { it.copy(session = session, sessionLoaded = true) }
+                if (becameLoggedOut) {
+                    _uiState.update { UiState(session = session, sessionLoaded = true, online = it.online) }
+                } else {
+                    _uiState.update { it.copy(session = session, sessionLoaded = true) }
+                }
                 if (becameLoggedIn) bootstrap()
             }
         }
@@ -361,9 +368,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** الهويّةُ ثمّ اللوحةُ والمناديبُ والبحثُ — كلٌّ على حدة، فشلُ أحدها لا يُسقط البقية. */
     fun bootstrap() {
         viewModelScope.launch {
+            var canVanSales = true
             try {
                 val me = repo.me()
                 _uiState.update { it.copy(me = me) }
+                canVanSales = me.can("van_sales.view")
                 // فصلُ الأدوار: عضويّةُ «مندوب ميدانيّ» (kind=rep) موطنُها تطبيقُ
                 // المناديبِ المستقلُّ (android-rep) — عهدتُه وبيعُه وتحصيلُه وإقفالُه
                 // هناك. هذا التطبيقُ لإدارةِ المخابز (مالك/محاسب/كاشير)؛ ندعو المندوبَ
@@ -372,20 +381,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     _notice.value = Notice.warn(
                         "هذا حسابُ مندوبٍ ميدانيّ — عملُ اليوم (العهدةُ والبيعُ والتحصيلُ والإقفال) في تطبيقِ المناديبِ المستقلّ. تطبيقُ المخابز هذا لإدارةِ المنشأة."
                     )
-                } else if (!me.can("van_sales.view")) {
-                    _notice.value = Notice.warn(
-                        "حسابُك لا يحمل إذنَ van_sales.view — لوحةُ التوزيع لن تفتح لك حتى يمنحَه المحاسب."
-                    )
                 }
             } catch (error: Exception) {
                 _notice.value = Notice.warn(friendly(error))
             }
+            if (canVanSales) {
+                refreshDashboard()
+                refreshSalesmen()
+            } else {
+                refreshHomeSales()
+            }
+            refreshLookups()
+            refreshNotificationBadge()
+            loadCompanyProfile()
         }
-        refreshDashboard()
-        refreshSalesmen()
-        refreshLookups()
-        refreshNotificationBadge()
-        loadCompanyProfile()
     }
 
     // ------------------------------------------------------------ القراءات
@@ -650,28 +659,43 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** قائمةٌ مساعدةٌ اختياريّة — غيابُ إذنها (403) لا يُسقط الشاشةَ الأصليّة. */
+    private suspend fun <T> optionalList(fallback: List<T>, block: suspend () -> List<T>): List<T> =
+        try {
+            block()
+        } catch (_: Exception) {
+            fallback
+        }
+
     fun loadCatalog() = loadStaff("catalog") { s ->
+        val me = _uiState.value.me
         s.copy(
-            categories = repo.catalogCategories(),
-            units = repo.catalogUnits(),
-            catalogItems = repo.catalogItemsFull(),
+            categories = if (me == null || me.can("catalog.category.view")) optionalList(s.categories) { repo.catalogCategories() } else s.categories,
+            units = if (me == null || me.can("catalog.unit.view")) optionalList(s.units) { repo.catalogUnits() } else s.units,
+            taxGroups = if (me == null || me.can("catalog.taxgroup.view")) optionalList(s.taxGroups) { repo.catalogTaxGroups() } else s.taxGroups,
+            catalogItems = if (me == null || me.can("catalog.item.view")) repo.catalogItemsFull() else s.catalogItems,
         )
     }
 
     fun loadPurchases() = loadStaff("purchases") { s ->
         s.copy(
             purchaseInvoices = repo.purchaseInvoices(),
-            suppliers = repo.parties("supplier"),
-            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
+            suppliers = optionalList(s.suppliers) { repo.parties("supplier") },
+            branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
+            cashLocations = if (s.cashLocations.isEmpty()) optionalList(s.cashLocations) { repo.cashLocations() } else s.cashLocations,
+            accounts = if (s.accounts.isEmpty()) optionalList(s.accounts) { repo.accounts() } else s.accounts,
+            taxGroups = if (s.taxGroups.isEmpty()) optionalList(s.taxGroups) { repo.catalogTaxGroups() } else s.taxGroups,
+            catalogItems = if (s.catalogItems.isEmpty()) optionalList(s.catalogItems) { repo.catalogItemsFull() } else s.catalogItems,
         )
     }
 
     /** قراءةُ ركائزِ المنشأة — الفروعُ والخزائنُ في «الطاقم» والمستودعاتُ في جانبِ المخابز. */
     fun loadOrg() {
         loadStaff("org") { s ->
+            val me = _uiState.value.me
             s.copy(
-                branches = repo.branches(),
-                cashLocations = repo.cashLocations(),
+                branches = if (me == null || me.can("organization.branch.view")) optionalList(s.branches) { repo.branches() } else s.branches,
+                cashLocations = if (me == null || me.can("organization.cashlocation.view")) optionalList(s.cashLocations) { repo.cashLocations() } else s.cashLocations,
             )
         }
         viewModelScope.launch {
@@ -685,16 +709,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun loadSalesInvoices() = loadStaff("sales-invoices") { s ->
         s.copy(
             salesInvoices = repo.salesInvoices(),
-            customers = if (s.customers.isEmpty()) repo.parties("customer") else s.customers,
-            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
-            accounts = if (s.accounts.isEmpty()) repo.accounts() else s.accounts,
+            customers = if (s.customers.isEmpty()) optionalList(s.customers) { repo.parties("customer") } else s.customers,
+            branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
+            cashLocations = if (s.cashLocations.isEmpty()) optionalList(s.cashLocations) { repo.cashLocations() } else s.cashLocations,
+            accounts = if (s.accounts.isEmpty()) optionalList(s.accounts) { repo.accounts() } else s.accounts,
+            taxGroups = if (s.taxGroups.isEmpty()) optionalList(s.taxGroups) { repo.catalogTaxGroups() } else s.taxGroups,
+            catalogItems = if (s.catalogItems.isEmpty()) optionalList(s.catalogItems) { repo.catalogItemsFull() } else s.catalogItems,
         )
     }
 
     fun loadVouchers(kind: String? = null) = loadStaff("vouchers") { s ->
         s.copy(
             vouchers = repo.stockVouchers(kind),
-            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
+            branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
         )
     }
 
@@ -709,27 +736,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun loadEmployees() = loadStaff("employees") { s ->
         s.copy(
             employees = repo.employees(),
-            departments = repo.departments(),
-            jobs = repo.jobs(),
-            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
+            departments = optionalList(s.departments) { repo.departments() },
+            jobs = optionalList(s.jobs) { repo.jobs() },
+            branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
         )
     }
 
     fun loadAdjustments() = loadStaff("adjustments") { s ->
         s.copy(
             adjustments = repo.adjustments(),
-            adjustmentTypes = repo.adjustmentTypes(),
-            employees = if (s.employees.isEmpty()) repo.employees() else s.employees,
-            cashLocations = if (s.cashLocations.isEmpty()) repo.cashLocations() else s.cashLocations,
+            adjustmentTypes = optionalList(s.adjustmentTypes) { repo.adjustmentTypes() },
+            employees = if (s.employees.isEmpty()) optionalList(s.employees) { repo.employees() } else s.employees,
+            cashLocations = if (s.cashLocations.isEmpty()) optionalList(s.cashLocations) { repo.cashLocations() } else s.cashLocations,
         )
     }
 
     fun loadPayroll() = loadStaff("payroll") { s ->
         s.copy(
             payrollRuns = repo.payrollRuns(),
-            salaryPayments = repo.salaryPayments(),
-            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
-            cashLocations = if (s.cashLocations.isEmpty()) repo.cashLocations() else s.cashLocations,
+            salaryPayments = optionalList(s.salaryPayments) { repo.salaryPayments() },
+            branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
+            cashLocations = if (s.cashLocations.isEmpty()) optionalList(s.cashLocations) { repo.cashLocations() } else s.cashLocations,
         )
     }
 
@@ -744,14 +771,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun loadUsers() = loadStaff("users") { s ->
         s.copy(
             memberships = repo.memberships(),
-            assignableRoles = repo.assignableRoles(),
+            assignableRoles = optionalList(s.assignableRoles) { repo.assignableRoles() },
         )
     }
 
     fun loadRoles() = loadStaff("roles") { s ->
         s.copy(
             roles = repo.roles(),
-            permissions = if (s.permissions.isEmpty()) repo.permissions() else s.permissions,
+            permissions = if (s.permissions.isEmpty()) optionalList(s.permissions) { repo.permissions() } else s.permissions,
         )
     }
 
@@ -765,6 +792,28 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 _uiState.update { it.copy(staff = it.staff.copy(branches = repo.branches())) }
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    /** الخزائنُ عند الطلب — لصرف المنصرفات والرواتب وترحيل الفواتير نقدًا. */
+    fun ensureCashLocations() {
+        if (_uiState.value.staff.cashLocations.isNotEmpty()) return
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(staff = it.staff.copy(cashLocations = repo.cashLocations())) }
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    /** دليلُ الحسابات عند الطلب — للسندات وتسويات الجرد وترحيل الفواتير. */
+    fun ensureAccounts() {
+        if (_uiState.value.staff.accounts.isNotEmpty()) return
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(staff = it.staff.copy(accounts = repo.accounts())) }
             } catch (_: Exception) {
             }
         }
@@ -841,8 +890,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private fun staffAction(
         label: String,
         action: suspend () -> ActionResult,
-        refreshHome: Boolean = false,
         onDone: (ActionResult) -> Unit = {},
+        refreshHome: Boolean = false,
     ) {
         viewModelScope.launch {
             val result = action()
@@ -875,19 +924,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * إنشاءُ صنفٍ مع «الظهورِ في نقطة البيع» — مخططُ الإنشاءِ عند الخادمِ
      * يُسقطُ showInPos بصمت (zod)، فيُنشأ الصنفُ ثم يُرسَلُ العلمُ بتعديلٍ
-     * لاحقٍ على المعرّفِ نفسِه حتى لا يظهرَ نجاحٌ كاذبٌ صامت.
+     * لاحقٍ على المعرّفِ نفسِه مع فحص نتيجة التعديل فلا يظهرُ نجاحٌ كاذبٌ صامت.
      */
     fun createCatalogItemWithPos(body: JsonObject, showInPos: Boolean, onDone: (ActionResult) -> Unit) {
         viewModelScope.launch {
             val result = try {
                 val id = repo.createCatalogItemReturningId(body)
                 if (showInPos) {
-                    repo.updateCatalogItem(
+                    val patch = repo.updateCatalogItem(
                         id,
                         kotlinx.serialization.json.buildJsonObject { put("showInPos", true) },
                     )
+                    when (patch) {
+                        is ActionResult.Synced -> ActionResult.Synced("تمّ إنشاء الصنف — ويظهر في نقطة البيع.")
+                        is ActionResult.Refused -> ActionResult.Refused(
+                            "أُنشئ الصنف ولكن تعذّر تفعيل ظهوره في نقطة البيع: ${patch.messageAr}"
+                        )
+                        is ActionResult.Offline -> ActionResult.Offline(
+                            "أُنشئ الصنف ولكن لم يصل تفعيلُ ظهوره في نقطة البيع — فعّله من تعديل الصنف."
+                        )
+                    }
+                } else {
+                    ActionResult.Synced("تمّ إنشاء الصنف.")
                 }
-                ActionResult.Synced("تمّ إنشاء الصنف" + if (showInPos) " — ويظهر في نقطة البيع." else ".")
             } catch (error: Exception) {
                 ActionResult.Refused(friendly(error))
             }
@@ -909,14 +968,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun createSalesInvoice(body: JsonObject, onDone: (ActionResult) -> Unit) {
-        staffAction("sales-invoice", { repo.createSalesInvoice(body) }, refreshHome = true) { result ->
-            // المسودّةُ لا تُحتسبُ في مبيعاتِ اليومِ (نقدي/شبكة/آجل) حتى تُرحَّل — نقولها
-            // صريحةً هنا حتى لا يُدهَشَ مستخدمٌ يرى أرقامَ اللوحةِ الرئيسيّةِ ثابتةً بعد الحفظ.
-            if (result is ActionResult.Synced) {
-                _notice.value = Notice.ok("${result.messageAr} — المسودّةُ لا تدخلُ مبيعاتِ اليومِ حتى تُرحَّل.")
-            }
-            onDone(result)
-        }
+        staffAction(
+            label = "sales-invoice",
+            action = { repo.createSalesInvoice(body) },
+            refreshHome = true,
+            onDone = { result ->
+                // المسودّةُ لا تُحتسبُ في مبيعاتِ اليومِ (نقدي/شبكة/آجل) حتى تُرحَّل — نقولها
+                // صريحةً هنا حتى لا يُدهَشَ مستخدمٌ يرى أرقامَ اللوحةِ الرئيسيّةِ ثابتةً بعد الحفظ.
+                if (result is ActionResult.Synced) {
+                    _notice.value = Notice.ok("${result.messageAr} — المسودّةُ لا تدخلُ مبيعاتِ اليومِ حتى تُرحَّل.")
+                }
+                onDone(result)
+            },
+        )
     }
 
     fun postSalesInvoice(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
@@ -1071,8 +1135,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      * ضريبيّ مسجَّلٍ مثلًا) — فلا يُرسمُ مربّعٌ يفشلُ أيُّ ماسح.
      */
     suspend fun receiptQrPayload(receipt: PosCheckoutReceiptDto): String? = try {
-        val detail = repo.salesInvoice(receipt.invoiceId)
-        val issued = detail.qrCode?.takeIf { it.isNotBlank() }
+        val invId = receipt.resolvedId
+        if (invId.isBlank()) return null
+        val detail = repo.salesInvoice(invId)
+        val issued = detail.effectiveQr
         if (issued != null) {
             issued
         } else {
@@ -1183,13 +1249,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun loadTreasury() = loadStaff("treasury") { s ->
         s.copy(
             treasuryVouchers = repo.treasuryVouchers(),
-            cashLocations = if (s.cashLocations.isEmpty()) repo.cashLocations() else s.cashLocations,
-            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
+            cashLocations = if (s.cashLocations.isEmpty()) optionalList(s.cashLocations) { repo.cashLocations() } else s.cashLocations,
+            branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
+            accounts = if (s.accounts.isEmpty()) optionalList(s.accounts) { repo.accounts() } else s.accounts,
         )
     }
 
     fun loadAccounts() = loadStaff("accounts") { s ->
-        s.copy(accounts = repo.accounts())
+        s.copy(accounts = optionalList(s.accounts) { repo.accounts() })
     }
 
     fun createTreasuryVoucher(body: JsonObject, onDone: (ActionResult) -> Unit) {
@@ -1219,7 +1286,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun loadCountAdjustments() = loadStaff("counts") { s ->
         s.copy(
             countAdjustments = repo.stockAdjustments(),
-            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
+            branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
+            accounts = if (s.accounts.isEmpty()) optionalList(s.accounts) { repo.accounts() } else s.accounts,
         )
     }
 

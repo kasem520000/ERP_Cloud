@@ -91,17 +91,17 @@ fun EmployeesScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
-        if (!state.can("hrm.manage")) {
-            MissingPermissionHint("إضافة موظف", "hrm.manage", Modifier.padding(padding))
-        }
         if (showCreate) {
-            EmployeeForm(vm, onDone = { showCreate = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                EmployeeForm(vm, onDone = { showCreate = false })
+            }
             return@Scaffold
         }
         val editing = editTarget?.let { id -> state.staff.employees.firstOrNull { it.id == id } }
         if (editing != null) {
-            EmployeeForm(vm, initial = editing, onDone = { editTarget = null })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                EmployeeForm(vm, initial = editing, onDone = { editTarget = null })
+            }
             return@Scaffold
         }
         PullRefreshBox(
@@ -110,6 +110,13 @@ fun EmployeesScreen(vm: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             Column(Modifier.fillMaxSize()) {
+                if (!state.can("hrm.manage")) {
+                    MissingPermissionHint(
+                        "إضافة موظف",
+                        "hrm.manage",
+                        Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                }
                 SearchField(
                     value = query,
                     onValueChange = { query = it },

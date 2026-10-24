@@ -51,6 +51,7 @@ import com.erpcloud.bakery.ui.components.SectionCard
 fun ChangePasswordScreen(vm: AppViewModel, onBack: () -> Unit) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val email = state.me?.user?.email ?: ""
+    val fullName = state.me?.user?.fullName ?: state.me?.user?.displayName ?: ""
 
     var current by rememberSaveable { mutableStateOf("") }
     var new by rememberSaveable { mutableStateOf("") }
@@ -60,7 +61,7 @@ fun ChangePasswordScreen(vm: AppViewModel, onBack: () -> Unit) {
     var done by remember { mutableStateOf(false) }
 
     // سياسةُ الخادم نفسُها — إرشادٌ حيٌّ لا تحققٌ نهائيّ (الخادمُ يحسم).
-    val checks = remember(new, email) { passwordChecks(new, email) }
+    val checks = remember(new, email, fullName) { passwordChecks(new, email, fullName) }
     val allPass = checks.all { it.ok } && new == confirm && current.isNotBlank()
 
     Scaffold(
@@ -197,18 +198,22 @@ fun ChangePasswordScreen(vm: AppViewModel, onBack: () -> Unit) {
 private data class PasswordCheck(val label: String, val ok: Boolean)
 
 /** سياسةُ password-policy.ts في الخادم — ١٢+ محرفًا، ٣ فئات، لا بريد ولا اسم. */
-private fun passwordChecks(new: String, email: String): List<PasswordCheck> {
+private fun passwordChecks(new: String, email: String, fullName: String): List<PasswordCheck> {
     val classes = listOf(
-        new.any { it.isLowerCase() },
-        new.any { it.isUpperCase() },
-        new.any { it.isDigit() },
-        new.any { !it.isLetterOrDigit() },
+        new.any { it in 'a'..'z' },
+        new.any { it in 'A'..'Z' },
+        new.any { it in '0'..'9' },
+        new.any { it.code in 0x21..0x7E && !it.isLetterOrDigit() },
     ).count { it }
+    val asciiOnly = new.all { it.code in 0x20..0x7E }
     val emailToken = email.substringBefore('@').lowercase().takeIf { it.length >= 4 }
+    val nameTokens = fullName.lowercase().split(Regex("\\s+")).filter { it.length >= 4 }
+    val containsPersonal = (emailToken != null && new.lowercase().contains(emailToken)) ||
+        nameTokens.any { new.lowercase().contains(it) }
     return listOf(
         PasswordCheck("١٢ محرفًا فأكثر", new.length >= 12),
-        PasswordCheck("٣ فئاتٍ من: حروفٌ صغيرة، كبيرة، أرقام، رموز", classes >= 3),
-        PasswordCheck("لا تحتوي بريدك", emailToken == null || !new.lowercase().contains(emailToken)),
+        PasswordCheck("٣ فئاتٍ من: حروفٌ إنجليزيّة صغيرة، كبيرة، أرقام، رموز", classes >= 3 && asciiOnly),
+        PasswordCheck("لا تحتوي بريدك أو اسمك", !containsPersonal),
         PasswordCheck("٢٠٠ محرفًا فأقلّ", new.length <= 200),
     )
 }

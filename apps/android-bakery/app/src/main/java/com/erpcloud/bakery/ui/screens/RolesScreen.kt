@@ -84,12 +84,10 @@ fun RolesScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
-        if (!state.can("tenant.role.manage")) {
-            MissingPermissionHint("إنشاء دور", "tenant.role.manage", Modifier.padding(padding))
-        }
         if (showCreate) {
-            RoleForm(vm, onDone = { showCreate = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                RoleForm(vm, onDone = { showCreate = false })
+            }
             return@Scaffold
         }
         if (state.staff.loadingKey == "roles") {
@@ -97,15 +95,23 @@ fun RolesScreen(vm: AppViewModel, onBack: () -> Unit) {
             return@Scaffold
         }
         val roles = state.staff.roles
-        if (roles.isEmpty()) {
-            EmptyState(state.staff.error ?: "لا أدوارٍ بعد.", Modifier.padding(padding))
-            return@Scaffold
-        }
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            if (!state.can("tenant.role.manage")) {
+                MissingPermissionHint(
+                    "إنشاء دور",
+                    "tenant.role.manage",
+                    Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                )
+            }
+            if (roles.isEmpty()) {
+                EmptyState(state.staff.error ?: "لا أدوارٍ بعد.")
+                return@Column
+            }
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
             items(roles, key = { it.id }) { role ->
                 SectionCard(
                     title = role.name,
@@ -164,6 +170,7 @@ fun RolesScreen(vm: AppViewModel, onBack: () -> Unit) {
                         )
                     }
                 }
+            }
             }
         }
     }

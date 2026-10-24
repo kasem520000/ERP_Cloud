@@ -92,12 +92,10 @@ fun SalesRegistryScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        // لا يُخفى الزرُّ بصمتًا: إن غابَ الإذنُ يُشرَح السببُ بالعربية
-        if (!state.can("sales.salesman.manage")) {
-            MissingPermissionHint("إضافة مندوب أو تعديله", "sales.salesman.manage", Modifier.padding(padding))
-        }
         if (showCreate) {
-            SalesmanRegistryForm(vm, onDone = { showCreate = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                SalesmanRegistryForm(vm, onDone = { showCreate = false })
+            }
             return@Scaffold
         }
         if (state.staff.loadingKey == "sales-registry") {
@@ -105,15 +103,23 @@ fun SalesRegistryScreen(vm: AppViewModel, onBack: () -> Unit) {
             return@Scaffold
         }
         val registry = state.staff.salesRegistry
-        if (registry.isEmpty()) {
-            EmptyState(state.staff.error ?: "لا مناديبَ مبيعاتٍ بعد.", Modifier.padding(padding))
-            return@Scaffold
-        }
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            if (!state.can("sales.salesman.manage")) {
+                MissingPermissionHint(
+                    "إضافة مندوب أو تعديله",
+                    "sales.salesman.manage",
+                    Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                )
+            }
+            if (registry.isEmpty()) {
+                EmptyState(state.staff.error ?: "لا مناديبَ مبيعاتٍ بعد.")
+                return@Column
+            }
+            LazyColumn(
+                Modifier.fillMaxSize(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
             item {
                 SearchField(
                     value = search,
@@ -153,6 +159,7 @@ fun SalesRegistryScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                     }
                 }
+            }
             }
         }
     }

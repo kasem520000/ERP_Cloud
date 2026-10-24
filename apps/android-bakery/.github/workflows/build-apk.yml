@@ -64,7 +64,7 @@ jobs:
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: rep-app-apks
+          name: bakery-app-apks
           retention-days: 14
           path: |
             app/build/outputs/apk/debug/*.apk

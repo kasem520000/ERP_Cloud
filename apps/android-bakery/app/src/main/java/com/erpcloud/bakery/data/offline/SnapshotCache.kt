@@ -11,6 +11,7 @@ import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import java.io.File
 import java.security.MessageDigest
+import java.util.Locale
 
 /**
  * حالةُ الاتصال بالخادم — تُحدَّث من [SnapshotCacheInterceptor] عند كل نداء:
@@ -32,21 +33,26 @@ object ServerConnectivity {
 
 /**
  * مخزنُ اللقطات المحليّ — آخرُ استجابةٍ ناجحةٍ لكلّ مسارِ قراءةٍ (GET)، محفوظةٌ
- * كملفٍّ باسمٍ مشتقٍّ من المسار الكامل. حين تنقطع الشبكةُ يفتحُ التطبيقُ ويعرضُ
- * كلَّ شاشةٍ على آخرِ بياناتٍ رآها المستخدم — والكتاباتُ تُخبَرُ بصدقٍ أنّها
- * «لم تصل» فلا تُدَّعى نجحت.
+ * كملفٍّ معزولٍ برمز المنشأة والمستخدم والمسار الكامل فلا تتسرّبُ بياناتُ منشأةٍ
+ * إلى أخرى عند تبديل الحسابات على الجهاز نفسه، وتُمسحُ عند تسجيل الخروج.
  */
-class SnapshotCache(context: Context) {
+class SnapshotCache(
+    context: Context,
+    private val sessionStore: SessionStore? = null,
+) {
     private val dir = File(context.filesDir, "snapshots").apply { mkdirs() }
 
     private fun fileFor(url: HttpUrl): File {
-        val digest = MessageDigest.getInstance("MD5").digest(url.toString().toByteArray())
-        val name = digest.joinToString("") { "%02x".format(it) }
+        val sess = sessionStore?.cached
+        val scope = "${sess?.tenantCode.orEmpty().lowercase(Locale.US)}|${sess?.userEmail.orEmpty().lowercase(Locale.US)}|$url"
+        val digest = MessageDigest.getInstance("SHA-256").digest(scope.toByteArray(Charsets.UTF_8))
+        val name = digest.joinToString("") { String.format(Locale.US, "%02x", it) }
         return File(dir, name)
     }
 
     fun save(url: HttpUrl, bytes: ByteArray) {
         try {
+            if (!dir.exists()) dir.mkdirs()
             fileFor(url).writeBytes(bytes)
         } catch (_: Exception) {
             // التخزينُ ممتازٌ لا ضروريٌّ — الفشلُ هنا لا يُفسدُ النداءَ نفسه.
@@ -59,16 +65,21 @@ class SnapshotCache(context: Context) {
     } catch (_: Exception) {
         null
     }
+
+    fun clear() {
+        try {
+            dir.listFiles()?.forEach { it.delete() }
+        } catch (_: Exception) {
+        }
+    }
 }
 
 /**
  * مُعترِضُ اللقطات — قلبُ وضع عدم الاتصال:
  *
  * 1. **كلُّ GETٍ ناجحٍ يُحفَظ** (≤ ٨ ميغابايت، JSON) — فتصبحُ آخرُ قراءةٍ لكلّ
- *    شاشةٍ متاحةً دائمًا.
- * 2. **كلُّ فشلٍ بشبكةٍ (IOException) يُخدَم من اللقطة** بردٍّ ناجحٍ مكافئ —
- *    فتفتحُ الشاشاتُ و`/me` ولوحةُ القيادة بلا إنترنت كأنّها متّصلة، مع شريطِ
- *    «السيرفر غير متصل» في الأعلى.
+ *    شاشةٍ متاحةً دائمًا ضمن نطاق المنشأة الحاليّة.
+ * 2. **كلُّ فشلٍ بشبكةٍ (IOException) يُخدَم من اللقطة** بردٍّ ناجحٍ مكافئ.
  * 3. الكتاباتُ (POST/PUT/PATCH/DELETE) لا تُخزَّن ولا تُزيَّف — فشلُها يظهرُ
  *    بصدقٍ «لم يصل الطلب».
  */

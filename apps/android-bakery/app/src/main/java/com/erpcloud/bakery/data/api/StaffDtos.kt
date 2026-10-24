@@ -50,6 +50,7 @@ data class CatalogItemDto(
     val nameEn: String? = null,
     val categoryId: String? = null,
     val baseUnitId: String? = null,
+    val taxGroupId: String? = null,
     val kind: String = "stock",
     val salePrice: String? = null,
     val purchasePrice: String? = null,
@@ -61,6 +62,9 @@ data class CatalogItemDto(
     val active: Boolean? = null,
     val deletedAt: String? = null,
 )
+
+/** مجموعةُ ضريبةٍ — `GET /organization/catalog/tax-groups`. */
+typealias TaxGroupDto = PosTaxGroupDto
 
 /** صفُّ وحدة صنف — `GET /organization/catalog/items/{id}/units`. */
 @Serializable
@@ -111,6 +115,7 @@ data class CashLocationDto(
     val name: String = "",
     val kind: String = "cash",
     val branchId: String? = null,
+    val accountId: String? = null,
     val isActive: Boolean = true,
     val isDefault: Boolean = false,
     val changeInPos: Boolean = false,
@@ -124,6 +129,7 @@ data class SalesInvoiceDto(
     val id: String = "",
     val number: String = "",
     val invoiceDate: String? = null,
+    val dueDate: String? = null,
     val partyId: String? = null,
     val partyName: String? = null,
     val cashCustomerName: String? = null,
@@ -134,6 +140,7 @@ data class SalesInvoiceDto(
     val status: String = "draft",
     val orderType: String? = null,
     val subtotal: String? = null,
+    val discountTotal: String? = null,
     val taxTotal: String? = null,
     val total: String? = null,
     val paidTotal: String? = null,
@@ -149,15 +156,18 @@ data class PurchaseInvoiceDto(
     val id: String = "",
     val number: String = "",
     val invoiceDate: String? = null,
+    val dueDate: String? = null,
     val partyId: String? = null,
     val partyName: String? = null,
     val branchId: String? = null,
     val warehouseId: String? = null,
     val kind: String = "purchase",
     val status: String = "draft",
+    val referenceInvoiceId: String? = null,
     val supplierReferenceNo: String? = null,
     val currency: String? = null,
     val subtotal: String? = null,
+    val discountTotal: String? = null,
     val taxTotal: String? = null,
     val total: String? = null,
     val paidTotal: String? = null,
@@ -178,6 +188,7 @@ data class InvoiceLineDto(
     val discountRate: String? = null,
     val discountAmount: String? = null,
     val taxRate: String? = null,
+    val taxGroupId: String? = null,
     val net: String? = null,
     val tax: String? = null,
     val total: String? = null,
@@ -209,17 +220,20 @@ data class PurchaseInvoiceDetailDto(
     val id: String = "",
     val number: String = "",
     val invoiceDate: String? = null,
+    val dueDate: String? = null,
     val partyId: String? = null,
     val partyName: String? = null,
     val branchId: String? = null,
     val warehouseId: String? = null,
     val kind: String = "purchase",
     val status: String = "draft",
+    val referenceInvoiceId: String? = null,
     val priceIncludesVat: Boolean? = null,
     val supplierReferenceNo: String? = null,
     val supplierReferenceDate: String? = null,
     val currency: String? = null,
     val subtotal: String? = null,
+    val discountTotal: String? = null,
     val taxTotal: String? = null,
     val total: String? = null,
     val paidTotal: String? = null,
@@ -237,6 +251,7 @@ data class SalesInvoiceDetailDto(
     val id: String = "",
     val number: String = "",
     val invoiceDate: String? = null,
+    val dueDate: String? = null,
     val partyId: String? = null,
     val partyName: String? = null,
     val partyTaxNo: String? = null,
@@ -249,6 +264,7 @@ data class SalesInvoiceDetailDto(
     val orderType: String? = null,
     val priceIncludesVat: Boolean? = null,
     val subtotal: String? = null,
+    val discountTotal: String? = null,
     val taxTotal: String? = null,
     val total: String? = null,
     val paidTotal: String? = null,
@@ -257,11 +273,14 @@ data class SalesInvoiceDetailDto(
     val taxInvoiceTypeLabelAr: String? = null,
     /** حمولةُ QR الزكاة كما أصدرتها وحدةُ الفوترةِ الإلكترونيّة (`zatca_qr`) — أو null. */
     val qrCode: String? = null,
+    val zatcaQr: String? = null,
     val notes: String? = null,
     val createdAt: String? = null,
     val lines: List<InvoiceLineDto> = emptyList(),
     val payments: List<InvoicePaymentDto> = emptyList(),
-)
+) {
+    val effectiveQr: String? get() = qrCode?.takeIf { it.isNotBlank() } ?: zatcaQr?.takeIf { it.isNotBlank() }
+}
 
 // ------------------------------------------------------------ سندات المخزون
 
@@ -391,16 +410,20 @@ data class PosDefaultsDto(
 @Serializable
 data class PosCheckoutReceiptDto(
     val invoiceId: String = "",
+    val id: String? = null,
     val number: String = "",
     val subtotal: String? = null,
     val taxTotal: String? = null,
     val total: String? = null,
+    val tendered: String? = null,
     val paidTotal: String? = null,
     val paymentStatus: String? = null,
     val method: String? = null,
     val change: String? = null,
     val shiftId: String? = null,
-)
+) {
+    val resolvedId: String get() = invoiceId.ifBlank { id.orEmpty() }
+}
 
 // ------------------------------------------------------------ الموارد البشريّة
 
@@ -763,6 +786,8 @@ data class PartyBalanceDto(
 data class PartyOpenRowDto(
     val entryId: String = "",
     val accountId: String = "",
+    val sourceType: String? = null,
+    val sourceId: String? = null,
     val date: String? = null,
     val debit: String = "0",
     val credit: String = "0",

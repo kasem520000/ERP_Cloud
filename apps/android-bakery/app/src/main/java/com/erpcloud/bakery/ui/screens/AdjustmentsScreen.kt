@@ -89,12 +89,10 @@ fun AdjustmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
-        if (!state.can("hrm.manage")) {
-            MissingPermissionHint("تسجيل منصرف", "hrm.manage", Modifier.padding(padding))
-        }
         if (showCreate) {
-            AdjustmentForm(vm, onDone = { showCreate = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                AdjustmentForm(vm, onDone = { showCreate = false })
+            }
             return@Scaffold
         }
         PullRefreshBox(
@@ -102,18 +100,26 @@ fun AdjustmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
             onRefresh = { vm.loadAdjustments() },
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
-            if (state.staff.loadingKey == "adjustments") {
-                CenterLoading("جارٍ تحميل المنصرفات…")
-            } else {
-                val adjustments = state.staff.adjustments
-                if (adjustments.isEmpty()) {
-                    EmptyState(state.staff.error ?: "لا منصرفاتٍ بعد.")
+            Column(Modifier.fillMaxSize()) {
+                if (!state.can("hrm.manage")) {
+                    MissingPermissionHint(
+                        "تسجيل منصرف",
+                        "hrm.manage",
+                        Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                }
+                if (state.staff.loadingKey == "adjustments") {
+                    CenterLoading("جارٍ تحميل المنصرفات…")
                 } else {
-                    LazyColumn(
-                        Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
+                    val adjustments = state.staff.adjustments
+                    if (adjustments.isEmpty()) {
+                        EmptyState(state.staff.error ?: "لا منصرفاتٍ بعد.")
+                    } else {
+                        LazyColumn(
+                            Modifier.fillMaxSize(),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
             items(adjustments, key = { it.id }) { adjustment ->
                 val (statusText, tone) = Labels.docStatus(adjustment.status)
                 SectionCard(
@@ -140,6 +146,7 @@ fun AdjustmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
                 } // LazyColumn
                 } // else: non-empty list
             } // else: loaded
+            } // Column
         } // PullRefreshBox
     }
 
@@ -195,6 +202,9 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
     /** درجُ الصرف حسب الطريقة — نقديٌّ من صندوق، وتحويلٌ من بنك (كما في حوار الدفع). */
     val methodDrawers = state.staff.cashLocations.filter { loc ->
         loc.isActive && (if (paymentMethod == "cash") loc.kind != "bank" else loc.kind == "bank")
+    }
+    LaunchedEffect(subFromSalary) {
+        if (!subFromSalary) vm.ensureCashLocations()
     }
     LaunchedEffect(paymentMethod, state.staff.cashLocations.size) {
         if (methodDrawers.none { it.id == cashLocationId }) {

@@ -268,7 +268,7 @@ private fun testPrintBitmap(widthDots: Int, mac: String): Bitmap {
             .setLineSpacing(0f, 1.15f)
             .build()
 
-    val stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+    val stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", java.util.Locale.US))
     val blocks = listOf(
         line("اختبار الطباعة — المخبز", paint(titleSize, bold = true)),
         line(if (mac.isBlank()) "بدون طابعةٍ مختارة — طباعةُ النظام" else "الطابعة: $mac", paint(bodySize, false)),

@@ -58,7 +58,7 @@ object Labels {
     /** نوعُ المستند. */
     fun documentKind(kind: String): Pair<String, ChipTone> = when (kind) {
         "sale" -> "فاتورة بيع" to ChipTone.INFO
-        "sale_return" -> "مردود مبيعات" to ChipTone.WARN
+        "return", "sale_return" -> "مردود مبيعات" to ChipTone.WARN
         "credit_note" -> "إشعار دائن" to ChipTone.INFO
         "debit_note" -> "إشعار مدين" to ChipTone.WARN
         "quotation" -> "عرض سعر" to ChipTone.NEUTRAL
@@ -360,6 +360,7 @@ object Labels {
             "inventory.bins.manage" to "إدارة المواقع والرفوف",
             "inventory.delivery.manage" to "أوامر التسليم",
             "inventory.negative.override" to "السماح برصيد سالب",
+            "inventory.production.complete" to "إتمام أوامر الإنتاج المخزنية",
             "inventory.production.manage" to "أوامر الإنتاج المخزنية",
             "inventory.request.approve" to "اعتماد طلبات الصرف",
             "inventory.request.manage" to "طلبات الصرف",
@@ -370,6 +371,7 @@ object Labels {
             "manufacturing.produce" to "تسجيل إنتاج التصنيع",
             "manufacturing.view" to "عرض التصنيع",
             "marina.invoice" to "فواتير المراسي",
+            "marina.manage" to "إدارة المراسي",
             "marina.view" to "عرض المراسي",
             "migration.run.execute" to "تنفيذ الترحيل",
             "migration.run.import" to "استيراد البيانات القديمة",
@@ -413,6 +415,7 @@ object Labels {
             "pos.view" to "عرض نقطة البيع",
             "projects.bill.post" to "ترحيل مستحقات المشاريع",
             "projects.contractor.pay" to "صرف مستحقات المتعاقدين",
+            "projects.manage" to "إدارة المشاريع",
             "projects.stage.accredit" to "اعتماد مراحل المشاريع",
             "projects.tasks.manage" to "إدارة مهامّ المشاريع",
             "projects.tasks.view" to "عرض مهامّ المشاريع",

@@ -118,7 +118,13 @@ fun CollectionScreen(vm: AppViewModel, onBack: () -> Unit) {
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                 )
                 val documents = dash?.documents.orEmpty()
-                val creditDocs = documents.filter { it.paymentMethod == "credit" }
+                val creditDocs = documents.filter {
+                    it.paymentMethod == "credit" &&
+                        it.voidedAt == null &&
+                        it.documentKind != "return" &&
+                        it.documentKind != "sale_return" &&
+                        (outstandingAmount(it, documents)?.signum() ?: 0) > 0
+                }
                 val shown = if (tab == 0) creditDocs else documents
                 val query = search.trim()
                 val visible = if (query.isBlank()) shown else shown.filter { doc ->
@@ -131,7 +137,7 @@ fun CollectionScreen(vm: AppViewModel, onBack: () -> Unit) {
                 if (visible.isEmpty()) {
                     EmptyState(
                         if (query.isNotBlank()) "لا مستنداتٍ تطابقُ «$query»."
-                        else if (tab == 0) "لا فواتيرَ آجلةً في نافذة اللوحة."
+                        else if (tab == 0) "لا فواتيرَ آجلةً قائمةً في نافذة اللوحة."
                         else "لا مستنداتٍ في نافذة اللوحة."
                     )
                     return@Column
@@ -141,7 +147,7 @@ fun CollectionScreen(vm: AppViewModel, onBack: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(visible, key = { it.id }) { doc ->
-                        DocumentCard(vm = vm, doc = doc)
+                        DocumentCard(vm = vm, doc = doc, allDocuments = documents)
                     }
                 }
             }
@@ -151,21 +157,24 @@ fun CollectionScreen(vm: AppViewModel, onBack: () -> Unit) {
 
 /** مستندٌ واحد — عرضُه، وتحصيلٌ إن كان آجلًا وبقيت فيه ذمّة، وطباعةُ فاتورته. */
 @Composable
-private fun DocumentCard(vm: AppViewModel, doc: DocumentDto) {
+private fun DocumentCard(vm: AppViewModel, doc: DocumentDto, allDocuments: List<DocumentDto>) {
     val state by vm.uiState.collectAsState()
     var showCollect by remember { mutableStateOf(false) }
     var printing by remember { mutableStateOf(false) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
 
+    val isReturn = doc.documentKind == "return" || doc.documentKind == "sale_return"
+    val isVoided = doc.voidedAt != null
     val (kindText, kindTone) = Labels.documentKind(doc.documentKind)
-    val outstanding = outstandingAmount(doc)
+    val outstanding = if (isReturn || isVoided) null else outstandingAmount(doc, allDocuments)
     SectionCard(
         title = "${doc.number.ifBlank { "مستند" }} — ${doc.customerName.ifBlank { "عميل" }}",
         subtitle = "${doc.itemName.ifBlank { "صنف" }} · ${Labels.dateOrDash(doc.docDate)} · ${doc.salesmanName}",
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             StatusChip(kindText, kindTone)
+            if (isVoided) StatusChip("ملغى", ChipTone.DANGER)
             StatusChip(Labels.paymentMethod(doc.paymentMethod), ChipTone.NEUTRAL)
             StatusChip(Labels.invoiceMode(doc.invoiceMode), ChipTone.INFO)
         }
@@ -176,18 +185,17 @@ private fun DocumentCard(vm: AppViewModel, doc: DocumentDto) {
         KeyValue("الإجماليّ", Dec.money(doc.total) + " ر.س")
         KeyValue("المدفوع", Dec.money(doc.paidAmount) + " ر.س")
         if (outstanding != null && outstanding.signum() > 0) {
-            KeyValue("المتبقّي على الفاتورة", Dec.money(outstanding.toPlainString()) + " ر.س")
+            KeyValue("المتبقّي على الفاتورة (بعد المرتجعات)", Dec.money(outstanding.toPlainString()) + " ر.س")
         }
         if (doc.invoiceNumber != null) KeyValue("رقمُ الفاتورة الرسميّة", doc.invoiceNumber)
         if (doc.bonusAnomaly) StatusChip("حادثةُ بونص: ${doc.anomalyReason}", ChipTone.DANGER)
 
-        if (doc.paymentMethod == "credit" && outstanding != null && outstanding.signum() > 0 &&
-            state.can("van_sales.collection.create")
-        ) {
+        val canCollectOnDoc = !isReturn && !isVoided && doc.paymentMethod == "credit" &&
+            outstanding != null && outstanding.signum() > 0
+        if (canCollectOnDoc && state.can("van_sales.collection.create")) {
             Spacer(Modifier.height(8.dp))
             OutlinedButton(onClick = { showCollect = true }) { Text("تحصيلٌ على الفاتورة") }
-        } else if (doc.paymentMethod == "credit" && outstanding != null && outstanding.signum() > 0) {
-            // B12: زرُّ التحصيلِ يُخفيه غيابُ الإذن — اللافتةُ تُسمّي الصلاحيةَ بدلَ الصمت.
+        } else if (canCollectOnDoc) {
             MissingPermissionHint("تحصيلٌ على الفاتورة", "van_sales.collection.create")
         }
 
@@ -263,10 +271,23 @@ private fun DocumentCard(vm: AppViewModel, doc: DocumentDto) {
     }
 }
 
-/** المتبقّي على الفاتورة = الإجماليّ − المدفوع (من رقمين رسميّين، لا تقدير). */
-private fun outstandingAmount(doc: DocumentDto): java.math.BigDecimal? {
+/**
+ * المتبقّي على فاتورة بيع آجلة = الإجماليّ − المدفوع − المرتجعات المعتمدة المرتبطة بها
+ * (`referenceDocumentId == doc.id` وغير ملغاة) — يطابقُ منطق الخادم حرفيًّا.
+ */
+private fun outstandingAmount(doc: DocumentDto, allDocs: List<DocumentDto>): java.math.BigDecimal? {
     val total = Dec.parse(doc.total) ?: return null
-    return total.subtract(Dec.orZero(doc.paidAmount))
+    val linkedReturns = allDocs
+        .filter {
+            it.referenceDocumentId == doc.id &&
+                it.voidedAt == null &&
+                (it.documentKind == "return" || it.documentKind == "sale_return")
+        }
+        .fold(java.math.BigDecimal.ZERO) { acc, ret -> acc.add(Dec.orZero(ret.total)) }
+    return total
+        .subtract(Dec.orZero(doc.paidAmount))
+        .subtract(linkedReturns)
+        .max(java.math.BigDecimal.ZERO)
 }
 
 /** حوارُ التحصيل — نيّةٌ واحدةٌ مفتاحٌ واحد (مفتاحُ عدم التكرار في الجسم). */
@@ -277,7 +298,10 @@ private fun CollectDialog(
     outstandingText: String,
     onDismiss: () -> Unit,
 ) {
-    var amount by rememberSaveable(doc.id) { mutableStateOf(outstandingText) }
+    val maxOutstanding = Dec.parse(outstandingText)
+    var amount by rememberSaveable(doc.id) {
+        mutableStateOf(maxOutstanding?.stripTrailingZeros()?.toPlainString() ?: outstandingText)
+    }
     var notes by rememberSaveable(doc.id) { mutableStateOf("") }
     var intentKey by rememberSaveable(doc.id) { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -291,6 +315,8 @@ private fun CollectDialog(
                     val value = Dec.parse(amount)
                     error = when {
                         value == null || value.signum() <= 0 -> "أدخل مبلغًا موجبًا."
+                        maxOutstanding != null && value > maxOutstanding ->
+                            "مبلغُ التحصيل يتجاوزُ المتبقّي على الفاتورة (${Dec.money(outstandingText)} ر.س)."
                         else -> null
                     }
                     if (error != null) return@TextButton

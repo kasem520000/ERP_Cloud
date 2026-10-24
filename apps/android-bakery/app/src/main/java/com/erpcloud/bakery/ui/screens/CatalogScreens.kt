@@ -54,6 +54,7 @@ import com.erpcloud.bakery.ui.components.SearchField
 import com.erpcloud.bakery.ui.components.SectionCard
 import com.erpcloud.bakery.ui.components.StatusChip
 import com.erpcloud.bakery.util.Dec
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -91,16 +92,17 @@ fun ItemsScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        if (!state.can("catalog.item.manage")) {
-            MissingPermissionHint("إضافة صنف", "catalog.item.manage", Modifier.padding(padding))
-        }
         if (showCreate) {
-            ItemForm(vm, onDone = { showCreate = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                ItemForm(vm, onDone = { showCreate = false })
+            }
             return@Scaffold
         }
         val editing = editTarget?.let { id -> state.staff.catalogItems.firstOrNull { it.id == id } }
         if (editing != null) {
-            ItemForm(vm, initial = editing, onDone = { editTarget = null })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                ItemForm(vm, initial = editing, onDone = { editTarget = null })
+            }
             return@Scaffold
         }
         PullRefreshBox(
@@ -109,6 +111,13 @@ fun ItemsScreen(vm: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             Column(Modifier.fillMaxSize()) {
+                if (!state.can("catalog.item.manage")) {
+                    MissingPermissionHint(
+                        "إضافة صنف",
+                        "catalog.item.manage",
+                        Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                }
                 SearchField(
                     value = query,
                     onValueChange = { query = it },
@@ -200,16 +209,17 @@ fun CategoriesScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        if (!state.can("catalog.category.manage")) {
-            MissingPermissionHint("إضافة مجموعة", "catalog.category.manage", Modifier.padding(padding))
-        }
         if (showCreate) {
-            CategoryForm(vm, onDone = { showCreate = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                CategoryForm(vm, onDone = { showCreate = false })
+            }
             return@Scaffold
         }
         val editing = editTarget?.let { id -> state.staff.categories.firstOrNull { it.id == id } }
         if (editing != null) {
-            CategoryForm(vm, initial = editing, onDone = { editTarget = null })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                CategoryForm(vm, initial = editing, onDone = { editTarget = null })
+            }
             return@Scaffold
         }
         PullRefreshBox(
@@ -218,6 +228,13 @@ fun CategoriesScreen(vm: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             Column(Modifier.fillMaxSize()) {
+                if (!state.can("catalog.category.manage")) {
+                    MissingPermissionHint(
+                        "إضافة مجموعة",
+                        "catalog.category.manage",
+                        Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                }
                 SearchField(
                     value = query,
                     onValueChange = { query = it },
@@ -289,16 +306,17 @@ fun UnitsScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        if (!state.can("catalog.unit.manage")) {
-            MissingPermissionHint("إضافة وحدة", "catalog.unit.manage", Modifier.padding(padding))
-        }
         if (showCreate) {
-            UnitForm(vm, onDone = { showCreate = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                UnitForm(vm, onDone = { showCreate = false })
+            }
             return@Scaffold
         }
         val editing = editTarget?.let { id -> state.staff.units.firstOrNull { it.id == id } }
         if (editing != null) {
-            UnitForm(vm, initial = editing, onDone = { editTarget = null })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                UnitForm(vm, initial = editing, onDone = { editTarget = null })
+            }
             return@Scaffold
         }
         PullRefreshBox(
@@ -307,6 +325,13 @@ fun UnitsScreen(vm: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             Column(Modifier.fillMaxSize()) {
+                if (!state.can("catalog.unit.manage")) {
+                    MissingPermissionHint(
+                        "إضافة وحدة",
+                        "catalog.unit.manage",
+                        Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                }
                 SearchField(
                     value = query,
                     onValueChange = { query = it },
@@ -372,13 +397,40 @@ private fun ItemForm(
     var unitLabel by remember {
         mutableStateOf(initial?.baseUnitId?.let { id -> state.staff.units.firstOrNull { it.id == id }?.nameAr } ?: "")
     }
+    var taxGroupId by remember {
+        mutableStateOf(
+            initial?.taxGroupId
+                ?: if (initial == null) state.staff.taxGroups.firstOrNull { it.isDefault }?.id ?: "" else ""
+        )
+    }
+    var taxGroupLabel by remember {
+        mutableStateOf(
+            (initial?.taxGroupId ?: if (initial == null) state.staff.taxGroups.firstOrNull { it.isDefault }?.id else null)
+                ?.let { id -> state.staff.taxGroups.firstOrNull { it.id == id }?.let { "${it.nameAr} (${Dec.fmt(it.rate, 2, 0)}%)" } }
+                ?: ""
+        )
+    }
     var kind by remember { mutableStateOf(initial?.kind?.takeIf { it.isNotBlank() } ?: "stock") }
     var showInPos by remember { mutableStateOf(initial?.showInPos ?: true) }
     var trackLot by remember { mutableStateOf(initial?.trackLot ?: false) }
     var pickCategory by remember { mutableStateOf(false) }
     var pickUnit by remember { mutableStateOf(false) }
+    var pickTaxGroup by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var sending by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.staff.taxGroups) {
+        if (initial == null && taxGroupId.isBlank()) {
+            state.staff.taxGroups.firstOrNull { it.isDefault }?.let {
+                taxGroupId = it.id
+                taxGroupLabel = "${it.nameAr} (${Dec.fmt(it.rate, 2, 0)}%)"
+            }
+        } else if (taxGroupId.isNotBlank() && taxGroupLabel.isBlank()) {
+            state.staff.taxGroups.firstOrNull { it.id == taxGroupId }?.let {
+                taxGroupLabel = "${it.nameAr} (${Dec.fmt(it.rate, 2, 0)}%)"
+            }
+        }
+    }
 
     LazyColumn(
         Modifier.fillMaxSize().padding(14.dp),
@@ -409,10 +461,24 @@ private fun ItemForm(
                     value = unitLabel,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("الوحدةُ الأساسيّة *") },
+                    enabled = initial == null,
+                    label = { Text(if (initial == null) "الوحدةُ الأساسيّة *" else "الوحدةُ الأساسيّة (تُحدَّد عند الإنشاء)") },
                     placeholder = { Text("اختر الوحدة") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickUnit = true }) { Text("اختر") } },
+                    trailingIcon = {
+                        if (initial == null) {
+                            IconButton(onClick = { pickUnit = true }) { Text("اختر") }
+                        }
+                    },
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = taxGroupLabel.ifBlank { "بدون مجموعة ضريبيّة" },
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("المجموعةُ الضريبيّة") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { IconButton(onClick = { pickTaxGroup = true }) { Text("اختر") } },
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -505,6 +571,8 @@ private fun ItemForm(
                                 put("categoryId", categoryId)
                                 put("baseUnitId", baseUnitId)
                                 put("kind", kind)
+                                if (taxGroupId.isNotBlank()) put("taxGroupId", taxGroupId)
+                                else if (initial?.taxGroupId != null) put("taxGroupId", JsonNull)
                                 if (salePrice.isNotBlank()) put("salePrice", Dec.wire(salePrice))
                                 if (purchasePrice.isNotBlank()) put("purchasePrice", Dec.wire(purchasePrice))
                                 if (minQty.isNotBlank()) put("minQty", Dec.wire(minQty))
@@ -553,7 +621,7 @@ private fun ItemForm(
             title = "اختر المجموعة",
             items = state.staff.categories.map { PickerItem(it.id, it.nameAr, trailing = it.code) },
             onDismiss = { pickCategory = false },
-            onSelect = { categoryId = it.id; categoryLabel = it.title },
+            onSelect = { categoryId = it.id; categoryLabel = it.title; pickCategory = false },
         )
     }
     if (pickUnit) {
@@ -561,7 +629,31 @@ private fun ItemForm(
             title = "اختر الوحدة",
             items = state.staff.units.map { PickerItem(it.id, it.nameAr, trailing = it.code) },
             onDismiss = { pickUnit = false },
-            onSelect = { baseUnitId = it.id; unitLabel = it.title },
+            onSelect = { baseUnitId = it.id; unitLabel = it.title; pickUnit = false },
+        )
+    }
+    if (pickTaxGroup) {
+        val taxOptions = buildList {
+            add(PickerItem("", "بدون مجموعة ضريبيّة"))
+            state.staff.taxGroups.forEach { tg ->
+                add(
+                    PickerItem(
+                        tg.id,
+                        "${tg.nameAr} (${Dec.fmt(tg.rate, 2, 0)}%)",
+                        trailing = if (tg.isDefault) "افتراضيّة" else tg.code,
+                    )
+                )
+            }
+        }
+        PickerDialog(
+            title = "المجموعةُ الضريبيّة",
+            items = taxOptions,
+            onDismiss = { pickTaxGroup = false },
+            onSelect = {
+                taxGroupId = it.id
+                taxGroupLabel = if (it.id.isBlank()) "" else it.title
+                pickTaxGroup = false
+            },
         )
     }
 }
@@ -594,7 +686,7 @@ private fun CategoryForm(
         OutlinedTextField(value = nameAr, onValueChange = { nameAr = it }, label = { Text("الاسمُ بالعربيّة *") }, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
-            value = parentLabel,
+            value = parentLabel.ifBlank { "مجموعةٌ رئيسيّة (بلا أب)" },
             onValueChange = {},
             readOnly = true,
             label = { Text("المجموعةُ الأب (اختياريّ)") },
@@ -625,6 +717,7 @@ private fun CategoryForm(
                         put("code", code.trim())
                         put("nameAr", nameAr.trim())
                         if (parentId.isNotBlank()) put("parentId", parentId)
+                        else if (initial?.parentId != null) put("parentId", JsonNull)
                     }
                     if (initial == null) {
                         vm.createCategory(body) { result ->
@@ -653,11 +746,38 @@ private fun CategoryForm(
     }
 
     if (pickParent) {
+        // استبعادُ المجموعةِ نفسِها وأبنائها لمنعِ حلقةِ آباءٍ (CATEGORY_CYCLE).
+        val forbiddenIds = remember(initial?.id, state.staff.categories) {
+            if (initial == null) emptySet()
+            else {
+                val blocked = mutableSetOf(initial.id)
+                var added = true
+                while (added) {
+                    added = false
+                    for (cat in state.staff.categories) {
+                        if (cat.parentId != null && cat.parentId in blocked && blocked.add(cat.id)) {
+                            added = true
+                        }
+                    }
+                }
+                blocked
+            }
+        }
+        val parentOptions = buildList {
+            add(PickerItem("", "مجموعةٌ رئيسيّة (بلا أب)"))
+            state.staff.categories
+                .filter { it.id !in forbiddenIds }
+                .forEach { add(PickerItem(it.id, it.nameAr, trailing = it.code)) }
+        }
         PickerDialog(
             title = "المجموعةُ الأب",
-            items = state.staff.categories.map { PickerItem(it.id, it.nameAr, trailing = it.code) },
+            items = parentOptions,
             onDismiss = { pickParent = false },
-            onSelect = { parentId = it.id; parentLabel = it.title },
+            onSelect = {
+                parentId = it.id
+                parentLabel = if (it.id.isBlank()) "" else it.title
+                pickParent = false
+            },
         )
     }
 }

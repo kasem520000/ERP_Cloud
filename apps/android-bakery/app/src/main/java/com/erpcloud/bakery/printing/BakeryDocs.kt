@@ -76,7 +76,10 @@ private class DocCanvas(widthPx: Int) {
 
     fun kvRowHeight(row: KvRow, bodyPaint: TextPaint, boldPaint: TextPaint): Int {
         val tp = if (row.bold) boldPaint else bodyPaint
-        return maxOf(tp.fontSpacing, tp.textSize * 1.25f).toInt()
+        val right = Layout.Alignment.ALIGN_NORMAL
+        val labelH = layout(row.label, tp, (innerWidth * 0.62f).toInt(), right).height
+        val valueH = layout(row.value, tp, (innerWidth * 0.36f).toInt(), right).height
+        return maxOf(labelH, valueH, tp.fontSpacing.toInt()) + 4
     }
 
     /** يبني الصورة من المسار — قياسًا ثمّ رسمًا بالترتيب نفسه. */
@@ -391,12 +394,13 @@ fun posReceipt(
         ops += Op.Kv(KvRow(label, value, bold, boxed))
     }
 
-    kv("الإجماليُّ قبل الضريبة", Dec.money(subtotal.toPlainString()) + " ر.س")
+    val effectiveSubtotal = receipt.subtotal?.takeIf { it.isNotBlank() } ?: subtotal.toPlainString()
+    kv("الإجماليُّ قبل الضريبة", Dec.money(effectiveSubtotal) + " ر.س")
     receipt.taxTotal?.let { kv("الضريبة", Dec.money(it) + " ر.س") }
     receipt.total?.let { kv("الصافي", Dec.money(it) + " ر.س", bold = true, boxed = true) }
     receipt.paidTotal?.let { kv("المدفوع", Dec.money(it) + " ر.س") }
     receipt.change?.takeIf { it.isNotBlank() && Dec.isPositive(it) }?.let { kv("الباقي للعميل", Dec.money(it) + " ر.س") }
-    receipt.paymentStatus?.let { kv("حالةُ السداد", it) }
+    receipt.paymentStatus?.let { kv("حالةُ السداد", com.erpcloud.bakery.ui.screens.Labels.docStatus(it).first) }
     ops += Op.Dash
 
     // 🧾 مربّعُ QR الزكاة — حمولةُ الخادمِ أو المرحلةُ الأولى (لا يُرسمُ بلا حمولة).
@@ -524,6 +528,18 @@ fun saleInvoice(view: PrintViewDto, widthPx: Int = 576): Bitmap {
             kv("المتبقّي", Dec.money(outstanding.toPlainString()) + " ر.س", bold = true)
         }
         if (view.notes.isNotBlank()) kv("ملاحظات", view.notes)
+
+        val qrPayload = view.effectiveQr
+        if (!qrPayload.isNullOrBlank()) {
+            val qrSize = (doc.innerWidth * 0.40f).toInt().coerceIn(136, 300)
+            runCatching { ZatcaQr.bitmap(qrPayload, qrSize) }.getOrNull()?.let { square ->
+                ops += Op.Qr(square)
+                ops += Op.Section(
+                    doc.layout("امسحْ للتحقّق — فاتورة إلكترونيّة (ZATCA)", smallPaint, doc.innerWidth, center),
+                )
+            }
+        }
+
         if (copy.requiresCustomerSignature) {
             val labels = copy.signatureBlock
             ops += Op.Signatures(
@@ -593,10 +609,12 @@ fun reportDocument(report: ReportResultDto, widthPx: Int = 900): Bitmap {
     if (visible.isEmpty() || report.rows.isEmpty()) {
         ops += Op.Kv(KvRow("النتيجة", "لا صفوفَ في النتيجة.", boxed = true))
     } else {
+        val colWeight = 1f / visible.size.toFloat()
+        val colWidthPx = ((doc.innerWidth * colWeight).toInt() - 4).coerceAtLeast(24)
         // رأسُ الأعمدة — من اليمين بترتيبِ الخادم
         ops += Op.Columns(
             visible.map { column ->
-                Op.Cell(1f, doc.layout(column.labelAr, smallBold, (doc.innerWidth / visible.size) - 4))
+                Op.Cell(colWeight, doc.layout(column.labelAr, smallBold, colWidthPx))
             },
             header = true,
         )
@@ -607,10 +625,13 @@ fun reportDocument(report: ReportResultDto, widthPx: Int = 900): Bitmap {
                 visible.map { column ->
                     val raw = row[column.key] ?: row[column.key.replaceFirstChar { it.uppercase() }] ?: ""
                     val text = when (column.type) {
-                        "money", "qty", "percent", "int" -> com.erpcloud.bakery.util.Dec.money(raw)
+                        "money" -> com.erpcloud.bakery.util.Dec.money(raw)
+                        "qty" -> com.erpcloud.bakery.util.Dec.kg(raw)
+                        "percent" -> com.erpcloud.bakery.util.Dec.fmt(raw, 2, 0) + "%"
+                        "int" -> com.erpcloud.bakery.util.Dec.intText(raw)
                         else -> raw
                     }
-                    Op.Cell(1f, doc.layout(text, smallPaint, (doc.innerWidth / visible.size) - 4))
+                    Op.Cell(colWeight, doc.layout(text, smallPaint, colWidthPx))
                 },
             )
         }
@@ -624,8 +645,14 @@ fun reportDocument(report: ReportResultDto, widthPx: Int = 900): Bitmap {
     if (totals.isNotEmpty() || grand.isNotEmpty()) {
         ops += Op.Dash
         totals.forEach { (key, value) ->
-            val labelAr = report.columns.firstOrNull { it.key == key }?.labelAr ?: key
-            ops += Op.Kv(KvRow(labelAr, com.erpcloud.bakery.util.Dec.money(value), bold = true))
+            val col = report.columns.firstOrNull { it.key == key }
+            val labelAr = col?.labelAr ?: key
+            val formatted = when (col?.type) {
+                "int" -> com.erpcloud.bakery.util.Dec.intText(value)
+                "qty" -> com.erpcloud.bakery.util.Dec.kg(value)
+                else -> com.erpcloud.bakery.util.Dec.money(value)
+            }
+            ops += Op.Kv(KvRow(labelAr, formatted, bold = true))
         }
         grand.forEach { card -> ops += Op.Kv(KvRow(card.labelAr, com.erpcloud.bakery.util.Dec.money(card.amount), bold = true, boxed = true)) }
     }

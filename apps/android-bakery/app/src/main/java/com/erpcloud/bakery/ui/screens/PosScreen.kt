@@ -210,7 +210,9 @@ fun PosScreen(vm: AppViewModel, onBack: () -> Unit) {
                                             modifier = Modifier.widthIn(min = 22.dp),
                                         )
                                         PosCircleButton("+") { line.inc() }
-                                        PosCircleButton("✎") { editPriceFor = line }
+                                        if (state.can("pos.priceoverride") || !Dec.isPositive(line.item.salePrice)) {
+                                            PosCircleButton("✎") { editPriceFor = line }
+                                        }
                                         PosCircleButton("✕") { cart.removeAt(index) }
                                     }
                                 }
@@ -477,12 +479,14 @@ private class PosCartLine(val item: PosItemDto) {
     var qty by mutableStateOf("1")
     var price by mutableStateOf(item.salePrice ?: "")
     fun inc() {
-        val next = (Dec.orZero(qty).add(BigDecimal.ONE)).toPlainString()
+        val next = Dec.orZero(qty).add(BigDecimal.ONE).stripTrailingZeros().toPlainString()
         qty = next
     }
     fun dec() {
         val current = Dec.orZero(qty)
-        if (current.signum() > 1) qty = current.subtract(BigDecimal.ONE).toPlainString()
+        if (current > BigDecimal.ONE) {
+            qty = current.subtract(BigDecimal.ONE).stripTrailingZeros().toPlainString()
+        }
     }
 }
 
@@ -490,33 +494,25 @@ private class PosCartLine(val item: PosItemDto) {
 private data class PosTotals(val net: BigDecimal, val tax: BigDecimal, val total: BigDecimal)
 
 /**
- * تقديرُ الإجمالياتِ في الجهاز — نفسُ منطقِ `calculateInvoiceTotals` في الخادم
- * (invoice-math): شاملُ الضريبةِ ⇒ تُستخرَجُ من الأسعار (base×rate÷(100+rate))،
- * وإلا تُضافُ فوقَها (base×rate÷100). النسبةُ من مجموعةِ ضريبةِ الصنفِ في
- * `pos/offline-data`، والخادمُ يبقى الحكمَ النهائيّ عند الترحيل.
+ * تقديرُ الإجمالياتِ في الجهاز — يطابقُ `calculateInvoiceTotals` في `@erp/contracts`
+ * بالهللة (`Dec.previewInvoiceTotals`).
  */
 private fun cartTotalsWithTax(
     cart: List<PosCartLine>,
     taxes: List<com.erpcloud.bakery.data.api.PosTaxGroupDto>,
     priceIncludesVat: Boolean,
 ): PosTotals {
-    var net = BigDecimal.ZERO
-    var tax = BigDecimal.ZERO
-    val hundred = BigDecimal(100)
-    cart.forEach { line ->
-        val base = Dec.orZero(line.qty).multiply(Dec.orZero(line.price))
-        val ratePct = Dec.orZero(
-            taxes.firstOrNull { it.id == line.item.taxGroupId }?.rate,
-        )
-        val lineTax = if (priceIncludesVat) {
-            base.multiply(ratePct).divide(hundred.add(ratePct), 2, RoundingMode.HALF_UP)
-        } else {
-            base.multiply(ratePct).divide(hundred, 2, RoundingMode.HALF_UP)
-        }
-        tax = tax.add(lineTax)
-        net = net.add(if (priceIncludesVat) base.subtract(lineTax) else base)
-    }
-    return PosTotals(net = net, tax = tax, total = net.add(tax))
+    val preview = Dec.previewInvoiceTotals(
+        lines = cart.map { line ->
+            Dec.InvoiceLinePreviewInput(
+                quantity = line.qty,
+                unitPrice = line.price,
+                taxRate = taxes.firstOrNull { it.id == line.item.taxGroupId }?.rate ?: "0",
+            )
+        },
+        priceIncludesVat = priceIncludesVat,
+    )
+    return PosTotals(net = preview.subtotal, tax = preview.tax, total = preview.total)
 }
 
 /**
@@ -537,9 +533,7 @@ private fun printReceiptAction(
             val context = vm.androidContext()
             val mac = state.session.printerMac
             if (mac.isBlank()) {
-                // 🖨️ بلا طابعةٍ مسجّلة: إيصالُ الكاشيرِ الاحترافيُّ من الخادمِ (ورقٌ صغيرٌ
-                // 80mm بقالبِ الويبِ الرسميِّ وQR الزكاة) عبرَ طباعةِ أندرويد — أو «حفظ PDF».
-                val html = vm.salesInvoicePrintHtml(receipt.invoiceId, paper = "small")
+                val html = vm.salesInvoicePrintHtml(receipt.resolvedId, paper = "small")
                 com.erpcloud.bakery.printing.HtmlPrint.printViaSystem(
                     context, html, "إيصال ${receipt.number}",
                 )
@@ -674,15 +668,16 @@ private fun cartSubtotal(cart: List<PosCartLine>): BigDecimal {
 
 /** لقطةُ إجمالياتِ السلّة للطباعة — تُحسب من الجسم المُرسَل نفسه لا من واجهةٍ أخرى. */
 private fun cartTotalsSnapshot(body: kotlinx.serialization.json.JsonObject): BigDecimal {
-    var total = BigDecimal.ZERO
     val lines = body["lines"] as? kotlinx.serialization.json.JsonArray ?: return BigDecimal.ZERO
-    lines.forEach { element ->
-        val obj = element as? kotlinx.serialization.json.JsonObject ?: return@forEach
-        val qty = Dec.orZero((obj["quantity"] as? kotlinx.serialization.json.JsonPrimitive)?.content)
-        val price = Dec.orZero((obj["unitPrice"] as? kotlinx.serialization.json.JsonPrimitive)?.content)
-        total = total.add(qty.multiply(price))
+    val includesVat = (body["priceIncludesVat"] as? kotlinx.serialization.json.JsonPrimitive)?.content == "true"
+    val inputs = lines.mapNotNull { element ->
+        val obj = element as? kotlinx.serialization.json.JsonObject ?: return@mapNotNull null
+        val qty = (obj["quantity"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: return@mapNotNull null
+        val price = (obj["unitPrice"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: return@mapNotNull null
+        val taxRate = (obj["taxRate"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: "0"
+        Dec.InvoiceLinePreviewInput(quantity = qty, unitPrice = price, taxRate = taxRate)
     }
-    return total
+    return Dec.previewInvoiceTotals(inputs, priceIncludesVat = includesVat).subtotal
 }
 
 /**

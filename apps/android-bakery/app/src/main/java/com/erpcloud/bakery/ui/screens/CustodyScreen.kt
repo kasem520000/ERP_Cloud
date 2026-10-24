@@ -358,10 +358,17 @@ private fun ApproveDialog(
     var notes by rememberSaveable(order.id) { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
 
-    val variance = Dec.parse(order.countVarianceQty)
-    val isSurplus = variance != null && variance.signum() < 0
-    val actualRemaining = Dec.parse(actualRemainingQty)
-    val needsRemainingAction = actualRemaining != null && actualRemaining.signum() > 0
+    val expectedRem = Dec.orZero(order.expectedRemainingQty)
+    val otherCustody = Dec.orZero(order.otherCustodyQty)
+    val liveActualRemaining = when {
+        vehicleCountQty.isNotBlank() ->
+            (Dec.parse(vehicleCountQty) ?: java.math.BigDecimal.ZERO).subtract(otherCustody).max(java.math.BigDecimal.ZERO)
+        actualRemainingQty.isNotBlank() -> Dec.parse(actualRemainingQty)
+        else -> Dec.parse(order.actualRemainingQty)
+    }
+    val liveVariance = liveActualRemaining?.let { expectedRem.subtract(it) } ?: Dec.parse(order.countVarianceQty)
+    val isSurplus = liveVariance != null && liveVariance.signum() < 0
+    val needsRemainingAction = liveActualRemaining != null && liveActualRemaining.signum() > 0
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -374,7 +381,7 @@ private fun ApproveDialog(
                         needsRemainingAction && remainingAction.isBlank() ->
                             "حدّد مصيرَ المتبقّي: إعادةٌ للمستودع الرئيسيّ أو بقاءٌ في السيارة."
                         isSurplus && !surplusAcknowledged ->
-                            "جردُك يُظهر فائضًا (${Dec.kg(order.countVarianceQty)} كجم) — الإقرارُ الصريحُ إلزاميٌّ حمايةً من خطأ الإدخال."
+                            "جردُك يُظهر فائضًا (${Dec.kg(liveVariance?.abs()?.toPlainString())} كجم) — الإقرارُ الصريحُ إلزاميٌّ حمايةً من خطأ الإدخال."
                         else -> null
                     }
                     if (error != null) return@TextButton
@@ -402,17 +409,31 @@ private fun ApproveDialog(
         text = {
             Column {
                 KeyValue("المتوقّعُ البقاء", Dec.kg(order.expectedRemainingQty) + " كجم")
-                KeyValue("المُعلنُ بالجرد", Dec.kg(order.actualRemainingQty) + " كجم")
-                KeyValue("فرقُ الاعتماد", Dec.kg(order.countVarianceQty) + " كجم")
+                KeyValue("المُعلنُ بالجرد", Dec.kg(liveActualRemaining?.toPlainString() ?: order.actualRemainingQty) + " كجم")
+                KeyValue(
+                    "فرقُ الاعتماد",
+                    Dec.kg(liveVariance?.toPlainString() ?: order.countVarianceQty) + " كجم" +
+                        when {
+                            liveVariance == null || liveVariance.signum() == 0 -> " (مطابق)"
+                            liveVariance.signum() < 0 -> " (فائض)"
+                            else -> " (عجز)"
+                        },
+                )
                 KeyValue("قيمةُ فرق الجرد بالتكلفة", Dec.money(order.countVarianceCostValue) + " ر.س")
                 Spacer(Modifier.height(10.dp))
-                NumField("تصحيحُ الجرد الفعليّ (كجم) — اختياريّ", actualRemainingQty) { actualRemainingQty = it }
+                NumField("تصحيحُ الجرد الفعليّ (كجم) — اختياريّ", actualRemainingQty) {
+                    actualRemainingQty = it
+                    if (it.isNotBlank()) vehicleCountQty = ""
+                }
                 Text(
                     "أو عددُ المركبة كلّها (يُشتقّ نصيبُ الأمر):",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                NumField("", vehicleCountQty) { vehicleCountQty = it }
+                NumField("", vehicleCountQty) {
+                    vehicleCountQty = it
+                    if (it.isNotBlank()) actualRemainingQty = ""
+                }
                 if (needsRemainingAction) {
                     Text("مصيرُ المتبقّي الفعليّ:", fontWeight = FontWeight.SemiBold)
                     FilterChip(
@@ -433,7 +454,7 @@ private fun ApproveDialog(
                     settleStockAdjustment,
                 ) { settleStockAdjustment = it }
                 if (isSurplus) {
-                    SwitchRow("أُقرّ بأنّ الجردَ فائضٌ عن العهدة (${Dec.kg(order.countVarianceQty)} كجم) وصحيح", surplusAcknowledged) { surplusAcknowledged = it }
+                    SwitchRow("أُقرّ بأنّ الجردَ فائضٌ عن العهدة (${Dec.kg(liveVariance?.abs()?.toPlainString())} كجم) وصحيح", surplusAcknowledged) { surplusAcknowledged = it }
                 }
                 OutlinedTextField(
                     value = notes,

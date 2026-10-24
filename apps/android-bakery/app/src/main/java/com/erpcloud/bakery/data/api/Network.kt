@@ -51,14 +51,17 @@ class HostSelectionInterceptor(private val sessionStore: SessionStore) : Interce
     companion object {
         /** (scheme, host, port) — null إن كان النصُّ بروتوكولًا غير http/https. */
         fun parseServer(url: String): Triple<String, String, Int>? {
-            val text = url.trim()
+            val text = url.trim().trimEnd('/')
             if (text.isEmpty()) return null
-            val withScheme = if (text.startsWith("http://") || text.startsWith("https://")) text
-            else "http://$text"
+            val withScheme = if (
+                text.startsWith("http://", ignoreCase = true) ||
+                text.startsWith("https://", ignoreCase = true)
+            ) text else "http://$text"
             return try {
                 val parsed = java.net.URI(withScheme)
-                val host = parsed.host ?: return null
-                val scheme = parsed.scheme ?: "http"
+                val host = parsed.host?.takeIf { it.isNotBlank() } ?: return null
+                val scheme = (parsed.scheme ?: "http").lowercase(java.util.Locale.US)
+                if (scheme != "http" && scheme != "https") return null
                 val port = if (parsed.port > 0) parsed.port else if (scheme == "https") 443 else 80
                 Triple(scheme, host, port)
             } catch (_: Exception) {
@@ -68,12 +71,16 @@ class HostSelectionInterceptor(private val sessionStore: SessionStore) : Interce
     }
 }
 
-/** إلحاقُ رمز الحمل — لا يُلحق بمساري الدخول والتجديد. */
+/** إلحاقُ رمز الحمل — لا يُلحق بمسارات الدخول والتجديد واستعادة كلمة المرور. */
 class AuthInterceptor(private val sessionStore: SessionStore) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         val path = request.url.encodedPath
-        if (path.endsWith("/auth/login") || path.endsWith("/auth/refresh")) {
+        if (
+            path.endsWith("/auth/login") ||
+            path.endsWith("/auth/refresh") ||
+            path.endsWith("/auth/forgot-password")
+        ) {
             return chain.proceed(request)
         }
         val token = sessionStore.cached.accessToken
@@ -96,7 +103,11 @@ class AuthAuthenticator(
 
     override fun authenticate(route: okhttp3.Route?, response: Response): Request? {
         val path = response.request.url.encodedPath
-        if (path.endsWith("/auth/login") || path.endsWith("/auth/refresh")) return null
+        if (
+            path.endsWith("/auth/login") ||
+            path.endsWith("/auth/refresh") ||
+            path.endsWith("/auth/forgot-password")
+        ) return null
         // لا تُكرِّر: إن سبق أن أُعيد المحاولة على الطلب نفسه فتوقّف.
         if (response.request.header("X-Retry-After-Refresh") != null) return null
 
@@ -177,11 +188,9 @@ class NetworkFactory(
             .build()
 
         val authed = bare.newBuilder()
-            // أوّلًا وبلا استثناء: لقطاتُ عدم الاتصال تغلُفُ كلَّ ما بعدها
-            // (إعادة التوجيه، الحمل، حتى تجديد الرمز) — فأيُّ فشلٍ شبكيٍّ
-            // يُخدَم من آخرِ قراءةٍ ناجحة.
-            .addInterceptor(com.erpcloud.bakery.data.offline.SnapshotCacheInterceptor(snapshotCache))
             .addInterceptor(HostSelectionInterceptor(sessionStore))
+            // لقطاتُ عدم الاتصال تغلُفُ الحملَ وتجديدَ الرمز والشبكةَ بعد تحديدِ الخادم الفعليّ.
+            .addInterceptor(com.erpcloud.bakery.data.offline.SnapshotCacheInterceptor(snapshotCache))
             .addInterceptor(AuthInterceptor(sessionStore))
             .authenticator(AuthAuthenticator(sessionStore, events, bare))
             .build()

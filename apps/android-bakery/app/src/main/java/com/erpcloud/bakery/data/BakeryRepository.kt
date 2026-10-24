@@ -51,10 +51,12 @@ import com.erpcloud.bakery.data.api.StockAdjustmentDto
 import com.erpcloud.bakery.data.api.StockLevelDto
 import com.erpcloud.bakery.data.api.StockMovementDto
 import com.erpcloud.bakery.data.api.StockVoucherDto
+import com.erpcloud.bakery.data.api.TaxGroupDto
 import com.erpcloud.bakery.data.api.TreasuryVoucherDto
 import com.erpcloud.bakery.data.api.UnitDto
 import com.erpcloud.bakery.data.offline.Idempotency
 import com.erpcloud.bakery.data.offline.SessionStore
+import com.erpcloud.bakery.data.offline.SnapshotCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonElement
@@ -91,6 +93,7 @@ sealed class ActionResult {
 class BakeryRepository(
     private val api: BakeryApi,
     private val sessionStore: SessionStore,
+    private val snapshotCache: SnapshotCache? = null,
 ) {
 
     // ------------------------------------------------------------ نداءات عامّة
@@ -115,6 +118,7 @@ class BakeryRepository(
             } catch (_: Exception) {
                 // الجلسةُ المحليّة تُحذف في كلّ حال.
             }
+            snapshotCache?.clear()
             sessionStore.clearSession()
         }
     }
@@ -385,15 +389,15 @@ class BakeryRepository(
             if (!response.isSuccessful) throw response.toApiException()
             val element = response.body() ?: return@withContext emptyList()
             val payload = when (element) {
-                is JsonObject -> element["data"] ?: element["items"] ?: element
+                is JsonObject -> element["data"] ?: element["items"] ?: element["rows"] ?: element
                 else -> element
             }
-            if (payload is JsonNull || payload.toString() == "null") {
+            if (payload is JsonNull || (payload is JsonObject && payload.isEmpty())) {
                 emptyList()
             } else {
-                AppJson.decodeFromString(
+                AppJson.decodeFromJsonElement(
                     kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<T>()),
-                    payload.toString(),
+                    payload,
                 )
             }
         }
@@ -403,6 +407,8 @@ class BakeryRepository(
     suspend fun catalogCategories(): List<CategoryDto> = rawList { api.catalogCategories() }
 
     suspend fun catalogUnits(): List<UnitDto> = rawList { api.catalogUnits() }
+
+    suspend fun catalogTaxGroups(): List<TaxGroupDto> = rawList { api.catalogTaxGroups() }
 
     suspend fun createCategory(body: JsonObject): ActionResult =
         submitDirect("إنشاء المجموعة") { api.createCategory(body) }

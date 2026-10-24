@@ -96,12 +96,10 @@ fun CountAdjustmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
-        if (!state.can("inventory.adjust")) {
-            MissingPermissionHint("إنشاء تسوية جرد", "inventory.adjust", Modifier.padding(padding))
-        }
         if (showCreate) {
-            CountForm(vm, onDone = { showCreate = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                CountForm(vm, onDone = { showCreate = false })
+            }
             return@Scaffold
         }
         val loading = state.staff.loadingKey == "counts"
@@ -109,7 +107,6 @@ fun CountAdjustmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
             CenterLoading("جارٍ تحميل التسويات…", Modifier.padding(padding))
             return@Scaffold
         }
-        // بحثٌ محليّ: رقمُ التسوية أو السبب أو المستودع أو صنفٌ في السطور
         val q = query.trim()
         val counts = state.staff.countAdjustments.filter { count ->
             q.isBlank() ||
@@ -126,6 +123,13 @@ fun CountAdjustmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             Column(Modifier.fillMaxSize()) {
+                if (!state.can("inventory.adjust")) {
+                    MissingPermissionHint(
+                        "إنشاء تسوية جرد",
+                        "inventory.adjust",
+                        Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                }
                 SearchField(
                     value = query,
                     onValueChange = { query = it },
@@ -157,10 +161,14 @@ fun CountAdjustmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 count.lines.forEach { line ->
                                     val itemLabel = state.items.firstOrNull { it.id == line.itemId }?.label ?: line.itemId
                                     val variance = Dec.orZero(line.varianceQty)
+                                    val diffLabel = when {
+                                        variance.signum() == 0 -> "مطابق"
+                                        variance.signum() > 0 -> "فائض ${Dec.kg(variance.abs().toPlainString())}"
+                                        else -> "عجز ${Dec.kg(variance.abs().toPlainString())}"
+                                    }
                                     KeyValue(
                                         itemLabel,
-                                        "عدد ${Dec.kg(line.countedQty)} · دفتر ${Dec.kg(line.expectedQty)}" +
-                                            " · ${if (variance.signum() >= 0) "فائض" else "عجز"} ${Dec.kg(variance.abs().toPlainString())}",
+                                        "عدد ${Dec.kg(line.countedQty)} · دفتر ${Dec.kg(line.expectedQty)} · $diffLabel",
                                     )
                                 }
                                 if (count.status == "draft" && state.can("inventory.adjust")) {

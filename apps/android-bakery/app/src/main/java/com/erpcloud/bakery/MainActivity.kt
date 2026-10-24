@@ -619,7 +619,7 @@ private fun drawerGroups(can: (String) -> Boolean): List<Pair<String, List<Drawe
                 DrawerEntry(Routes.SALESMEN, "المناديب وعهدُ الطريق", "van_sales.view", Icons.Filled.Badge),
                 DrawerEntry(Routes.CUSTODY, "العهدة والإقفال", "van_sales.view", Icons.Filled.Handshake),
                 DrawerEntry(Routes.COLLECTION, "التحصيل", "van_sales.view", Icons.Filled.Payments),
-                DrawerEntry(Routes.POLICY, "سياسةُ العجز", "distribution.policy.manage", Icons.Filled.Policy),
+                DrawerEntry(Routes.POLICY, "سياسةُ العجز", "van_sales.view", Icons.Filled.Policy),
                 DrawerEntry(Routes.REPORTS, "تقاريرُ التوزيع", "van_sales.view", Icons.Filled.Assessment),
             ),
         ),

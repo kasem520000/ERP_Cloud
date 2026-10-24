@@ -54,6 +54,7 @@ import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.ConfirmReasonDialog
+import com.erpcloud.bakery.ui.components.DatePickerField
 import com.erpcloud.bakery.ui.components.DocumentDetailDialog
 import com.erpcloud.bakery.ui.components.DocumentLines
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -126,15 +127,12 @@ fun SalesInvoicesScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
-        if (!state.can("sales.invoice.create")) {
-            MissingPermissionHint("إنشاء فاتورة مبيعات", "sales.invoice.create", Modifier.padding(padding))
-        }
         if (showCreate) {
-            SalesInvoiceForm(vm, onDone = { showCreate = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                SalesInvoiceForm(vm, onDone = { showCreate = false })
+            }
             return@Scaffold
         }
-        // تعديلُ المسودّة (المرحلة 2): تُحمَّل تفاصيلُها أولًا ثمّ يُفتح النموذجُ مُعبَّئًا.
         if (editTarget != null) {
             val editId = editTarget ?: ""
             val editDetail = state.staff.salesInvoiceDetail?.takeIf { it.id == editId }
@@ -152,21 +150,24 @@ fun SalesInvoicesScreen(vm: AppViewModel, onBack: () -> Unit) {
                     CenterLoading("جارٍ تحميل الفاتورة للتعديل…", Modifier.padding(padding))
                 }
             } else {
-                SalesInvoiceForm(
-                    vm = vm,
-                    edit = editDetail,
-                    onDone = { editTarget = null; vm.clearDocumentDetail() },
-                )
+                androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                    SalesInvoiceForm(
+                        vm = vm,
+                        edit = editDetail,
+                        onDone = { editTarget = null; vm.clearDocumentDetail() },
+                    )
+                }
             }
             return@Scaffold
         }
-        // مردودٌ من فاتورةٍ مرحّلة (إصلاح B14): تُحمَّل سطورُ المصدر أولًا ثمّ يُعبَّأ النموذجُ منها.
         if (returnTarget != null) {
-            ReturnForm(
-                vm = vm,
-                sourceId = returnTarget ?: "",
-                onDone = { returnTarget = null; vm.clearDocumentDetail(); vm.loadSalesInvoices() },
-            )
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                ReturnForm(
+                    vm = vm,
+                    sourceId = returnTarget ?: "",
+                    onDone = { returnTarget = null; vm.clearDocumentDetail(); vm.loadSalesInvoices() },
+                )
+            }
             return@Scaffold
         }
         val invoices = state.staff.salesInvoices
@@ -174,17 +175,23 @@ fun SalesInvoicesScreen(vm: AppViewModel, onBack: () -> Unit) {
             CenterLoading("جارٍ تحميل فواتير المبيعات…", Modifier.padding(padding))
             return@Scaffold
         }
-        if (invoices.isEmpty()) {
-            EmptyState(state.staff.error ?: "لا فواتيرَ بعد.", Modifier.padding(padding))
-            return@Scaffold
-        }
-        // السحبُ للتحديث + بحثٌ نصّيٌّ (رقم/عميل بالسجلّ أو نقديّ) — تصفيةٌ محليّة.
         PullRefreshBox(
             refreshing = state.staff.loadingKey == "sales-invoices",
             onRefresh = { vm.loadSalesInvoices() },
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             Column(Modifier.fillMaxSize()) {
+                if (!state.can("sales.invoice.create")) {
+                    MissingPermissionHint(
+                        "إنشاء فاتورة مبيعات",
+                        "sales.invoice.create",
+                        Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                }
+                if (invoices.isEmpty()) {
+                    EmptyState(state.staff.error ?: "لا فواتيرَ بعد.")
+                    return@Column
+                }
                 SearchField(
                     value = query,
                     onValueChange = { query = it },
@@ -308,6 +315,7 @@ fun SalesInvoicesScreen(vm: AppViewModel, onBack: () -> Unit) {
                 detail.partyTaxNo?.let { KeyValue("الرقمُ الضريبيّ للعميل", it) }
                 detail.taxInvoiceTypeLabelAr?.let { KeyValue("نوعُ الفاتورة الضريبيّة", it) }
                 KeyValue("تاريخ الفاتورة", Labels.dateOrDash(detail.invoiceDate))
+                detail.dueDate?.takeIf { it.isNotBlank() }?.let { KeyValue("تاريخُ الاستحقاق", it) }
                 detail.subtotal?.let { KeyValue("الإجماليُّ قبل الضريبة", Dec.money(it) + " ر.س") }
                 detail.taxTotal?.let { KeyValue("الضريبة", Dec.money(it) + " ر.س") }
                 detail.total?.let { KeyValue("الإجماليّ", Dec.money(it) + " ر.س") }
@@ -361,10 +369,11 @@ fun SalesInvoicesScreen(vm: AppViewModel, onBack: () -> Unit) {
         PostInvoiceDialog(
             vm = vm,
             onDismiss = { postTarget = null },
-            onPost = { settlement, accountId ->
+            onPost = { settlement, accountId, cashLocationId ->
                 vm.postSalesInvoice(id, buildJsonObject {
                     put("settlement", settlement)
-                    if (accountId != null) put("settlementAccountId", accountId)
+                    if (!accountId.isNullOrBlank()) put("settlementAccountId", accountId)
+                    if (!cashLocationId.isNullOrBlank()) put("settlementCashLocationId", cashLocationId)
                 }) { result ->
                     if (result is ActionResult.Synced) vm.loadSalesInvoices()
                 }
@@ -453,16 +462,15 @@ private fun PaidValueRow(label: String, paid: String, total: String?) {
 private fun PostInvoiceDialog(
     vm: AppViewModel,
     onDismiss: () -> Unit,
-    onPost: (settlement: String, accountId: String?) -> Unit,
+    onPost: (settlement: String, accountId: String?, cashLocationId: String?) -> Unit,
 ) {
     val state by vm.uiState.collectAsState()
-    // الطريقةُ التي يُنتظرُ لها اختيارُ حساب: "cash" | "card" | "bank" (آجلٌ بلا حساب).
+    // الطريقةُ التي يُنتظرُ لها اختيارُ صندوق/بنك أو حساب: "cash" | "card" | "bank" (آجلٌ بلا حساب).
     var pickAccountFor by remember { mutableStateOf<String?>(null) }
 
-    // حساباتُ التسوية تُحمَّل عند فتحِ الحوار (شاشةُ الفواتير لا تجلبها معها —
-    // وإلا ظهرَ منتقيُ الحسابِ فارغًا فتعذّرَ ترحيلُ تسويةٍ فوريّة).
     LaunchedEffect(Unit) {
-        if (state.staff.accounts.isEmpty()) vm.loadAccounts()
+        vm.ensureCashLocations()
+        vm.ensureAccounts()
     }
 
     AlertDialog(
@@ -474,24 +482,24 @@ private fun PostInvoiceDialog(
                 Spacer(Modifier.height(10.dp))
                 ActionButton(
                     label = "آجل — على ذمّة العميل",
-                    onClick = { onPost("credit", null) },
+                    onClick = { onPost("credit", null, null) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
                 ActionButton(
-                    label = "نقديّ — على حساب الصندوق",
+                    label = "نقديّ — على الصندوق",
                     onClick = { pickAccountFor = "cash" },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
                 ActionButton(
-                    label = "شبكة (بطاقة) — على حساب البنك",
+                    label = "شبكة (بطاقة) — على البنك",
                     onClick = { pickAccountFor = "card" },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
                 ActionButton(
-                    label = "تحويل بنكي — على حساب البنك",
+                    label = "تحويل بنكي — على البنك",
                     onClick = { pickAccountFor = "bank" },
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -501,33 +509,66 @@ private fun PostInvoiceDialog(
         dismissButton = { TextButton(onClick = onDismiss) { Text("إلغاء") } },
     )
     pickAccountFor?.let { method ->
+        val activeLocations = state.staff.cashLocations.filter { it.isActive }
+        val matchingLocations = activeLocations.filter {
+            if (method == "cash") it.kind == "cash" else it.kind == "bank"
+        }.ifEmpty { activeLocations }
+        val postableAccounts = state.staff.accounts.filter {
+            it.postable && (it.type == null || it.type == "asset")
+        }.ifEmpty { state.staff.accounts.filter { it.postable } }
+        val pickerItems = buildList {
+            matchingLocations.forEach { loc ->
+                add(
+                    PickerItem(
+                        id = "loc:${loc.id}",
+                        title = loc.name,
+                        subtitle = if (loc.kind == "bank") "بنك" else "صندوق نقديّ",
+                        trailing = if (loc.isDefault) "افتراضيّ" else null,
+                    )
+                )
+            }
+            postableAccounts.forEach { acc ->
+                add(
+                    PickerItem(
+                        id = "acc:${acc.id}",
+                        title = "${acc.code} — ${acc.label}",
+                        subtitle = "حسابٌ محاسبيّ فرعيّ",
+                    )
+                )
+            }
+        }
         PickerDialog(
-            title = if (method == "cash") "حسابُ الصندوق" else "حسابُ البنك",
-            items = state.staff.accounts
-                .filter { it.isPostable != false }
-                .map { PickerItem(it.id, "${it.code} — ${it.nameAr ?: it.nameEn ?: ""}") },
+            title = if (method == "cash") "اختر الصندوق أو الحساب" else "اختر البنك أو الحساب",
+            items = pickerItems,
             onDismiss = { pickAccountFor = null },
             onSelect = { picked ->
                 pickAccountFor = null
-                onPost(method, picked.id)
+                if (picked.id.startsWith("loc:")) {
+                    val locId = picked.id.removePrefix("loc:")
+                    val loc = state.staff.cashLocations.firstOrNull { it.id == locId }
+                    onPost(method, loc?.accountId, locId)
+                } else {
+                    val accId = picked.id.removePrefix("acc:")
+                    onPost(method, accId, null)
+                }
             },
         )
     }
 }
 
-/** سطرٌ في نموذجِ فاتورة/مردود. */
+/** سطرٌ في نموذجِ فاتورة المبيعات. */
 private data class SaleLine(
     val itemId: String = "",
     val itemLabel: String = "",
     val qty: String = "",
     val price: String = "",
+    val taxRate: String = "15",
+    val taxGroupId: String? = null,
 )
 
 /**
  * نموذجُ إنشاء/تعديلِ فاتورة مبيعات (مسودّة) — عميلٌ من السجلّ أو عميلٌ نقديٌّ بالاسم،
- * والسطورُ صنفٌ وكميّةٌ وسعر. الجسمُ مطابقٌ لِما قبِلَه الخادمُ حرفيًّا
- * (orderType: counter + lines[{itemId, quantity, unitPrice}]).
- * وفي التعديل (المرحلة 2) تُعبَّأ الحقولُ من تفاصيل المسودّة ثمّ PATCH.
+ * والسطورُ صنفٌ وكميّةٌ وسعرٌ ونسبةُ ضريبةٍ تُستنتَج تلقائيًّا من مجموعةِ ضريبة الصنف.
  */
 @Composable
 private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesInvoiceDetailDto? = null) {
@@ -543,22 +584,33 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
     var partyId by remember { mutableStateOf(edit?.partyId ?: "") }
     var partyLabel by remember { mutableStateOf(edit?.partyName ?: "") }
     var cashName by remember { mutableStateOf(edit?.cashCustomerName ?: "") }
+    var dueDate by remember { mutableStateOf(edit?.dueDate ?: "") }
     var pickBranch by remember { mutableStateOf(false) }
     var pickWarehouse by remember { mutableStateOf(false) }
     var pickParty by remember { mutableStateOf(false) }
     var pickLineAt by remember { mutableStateOf(-1) }
     var error by remember { mutableStateOf<String?>(null) }
     var sending by remember { mutableStateOf(false) }
-    // نمطُ السعر: شاملُ الضريبةِ أم قبلَها — كما في محرّر فواتير الويب
-    // (وفي التعديل يُقرأ من المسودّة المحفوظة نفسها).
     var priceIncludesVat by remember { mutableStateOf(edit?.priceIncludesVat ?: false) }
+
+    fun resolveItemTaxAndPrice(itemId: String): Triple<String, String?, String?> {
+        val catItem = state.staff.catalogItems.firstOrNull { it.id == itemId }
+        val optItem = state.items.firstOrNull { it.id == itemId }
+        val tgId = catItem?.taxGroupId ?: optItem?.taxGroupId
+        val tg = tgId?.let { id -> state.staff.taxGroups.firstOrNull { it.id == id } }
+        val rate = tg?.rate?.let { Dec.fmt(it, maxScale = 2, minScale = 0) }?.ifBlank { "15" } ?: "15"
+        return Triple(rate, tgId, catItem?.salePrice)
+    }
+
     val lines = remember {
         val initial = edit?.lines?.map { line ->
             SaleLine(
                 itemId = line.itemId,
-                itemLabel = state.items.firstOrNull { it.id == line.itemId }?.label ?: "",
+                itemLabel = state.items.firstOrNull { it.id == line.itemId }?.label ?: line.description ?: "",
                 qty = line.quantity,
                 price = line.unitPrice ?: "",
+                taxRate = line.taxRate?.let { Dec.fmt(it, maxScale = 2, minScale = 0) }?.ifBlank { "15" } ?: "15",
+                taxGroupId = line.taxGroupId,
             )
         }.orEmpty()
         mutableStateListOf<SaleLine>().apply {
@@ -583,12 +635,13 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
             state.warehouses.firstOrNull { it.id == warehouseId }?.let { warehouseLabel = it.label }
         }
     }
-    // اسمُ العميل المسجَّل يُستكمَل عند وصول قائمة العملاء (لو فُتح التعديل قبلها).
     LaunchedEffect(state.staff.customers) {
         if (partyId.isNotBlank() && partyLabel.isBlank()) {
             state.staff.customers.firstOrNull { it.id == partyId }?.let { partyLabel = it.displayName }
         }
     }
+
+    val selectedCustomer = state.staff.customers.firstOrNull { it.id == partyId }
 
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -629,8 +682,19 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                     label = { Text("العميل (من السجلّ)") },
                     placeholder = { Text("عميلٌ نقديٌّ إن تُرك فارغًا") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickParty = true }) { Text("اختر") } },
+                    trailingIcon = {
+                        Row {
+                            if (partyId.isNotBlank()) {
+                                IconButton(onClick = { partyId = ""; partyLabel = "" }) { Text("✕") }
+                            }
+                            IconButton(onClick = { pickParty = true }) { Text("اختر") }
+                        }
+                    },
                 )
+                if (selectedCustomer?.creditHold == true) {
+                    Spacer(Modifier.height(4.dp))
+                    StatusChip("تنبيه: العميلُ موقوفٌ ائتمانيًّا — لن يُسمح بالترحيل الآجل", ChipTone.WARN)
+                }
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = cashName,
@@ -638,6 +702,12 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                     label = { Text("اسمُ العميل النقديّ (بلا سجلٍّ)") },
                     placeholder = { Text("عميل عام") },
                     modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                DatePickerField(
+                    label = "تاريخُ الاستحقاق (اختياريّ — يُحسَب من مهلة العميل إن تُرك)",
+                    value = dueDate,
+                    onValueChange = { dueDate = it },
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(
@@ -662,7 +732,7 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
             }
         }
         item {
-            SectionCard(title = "سطورُ الفاتورة", subtitle = "الصنفُ والكميّةُ وسعرُ الوحدة — كميّةٌ موجبةٌ فقط") {
+            SectionCard(title = "سطورُ الفاتورة", subtitle = "الصنفُ والكميّةُ وسعرُ الوحدة ونسبةُ الضريبة") {
                 lines.forEachIndexed { index, line ->
                     Column(Modifier.padding(vertical = 4.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -687,9 +757,16 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                             OutlinedTextField(
                                 value = line.price,
                                 onValueChange = { if (Dec.isValidInput(it)) lines[index] = line.copy(price = it) },
-                                label = { Text("سعرُ الوحدة (ر.س) *") },
+                                label = { Text("سعرُ الوحدة *") },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f),
+                            )
+                            OutlinedTextField(
+                                value = line.taxRate,
+                                onValueChange = { if (Dec.isValidInput(it)) lines[index] = line.copy(taxRate = it) },
+                                label = { Text("الضريبة %") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(0.75f),
                             )
                         }
                     }
@@ -698,9 +775,19 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                 Spacer(Modifier.height(6.dp))
                 val valid = lines.filter { it.itemId.isNotBlank() && Dec.isPositive(it.qty) && Dec.isPositive(it.price) }
                 if (valid.isNotEmpty()) {
-                    var total = java.math.BigDecimal.ZERO
-                    valid.forEach { line -> total = total.add(Dec.orZero(line.qty).multiply(Dec.orZero(line.price))) }
-                    KeyValue("إجماليُّ السطور (قبل الضريبة)", Dec.money(total.toPlainString()) + " ر.س")
+                    val preview = Dec.previewInvoiceTotals(
+                        lines = valid.map {
+                            Dec.InvoiceLinePreviewInput(
+                                quantity = it.qty,
+                                unitPrice = it.price,
+                                taxRate = it.taxRate.ifBlank { "0" },
+                            )
+                        },
+                        priceIncludesVat = priceIncludesVat,
+                    )
+                    KeyValue("الصافي قبل الضريبة", Dec.money(preview.subtotal.toPlainString()) + " ر.س")
+                    KeyValue("ضريبةُ القيمة المضافة", Dec.money(preview.tax.toPlainString()) + " ر.س")
+                    KeyValueColored("الإجماليُّ النهائيّ", Dec.money(preview.total.toPlainString()) + " ر.س", BakeryColors.Primary)
                 }
                 if (error != null) {
                     Spacer(Modifier.height(8.dp))
@@ -723,6 +810,7 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                                 validLines.isEmpty() -> "أضف سطرًا واحدًا على الأقلّ (صنفٌ وكميّةٌ وسعر)."
                                 validLines.any { !Dec.isPositive(it.qty) } -> "كميّةُ كلّ سطرٍ يجب أن تكون رقمًا موجبًا."
                                 validLines.any { !Dec.isPositive(it.price) } -> "سعرُ الوحدة لكلّ سطرٍ يجب أن يكون موجبًا."
+                                validLines.any { !Dec.isNonNegative(it.taxRate.ifBlank { "0" }) } -> "نسبةُ الضريبة يجب أن تكون صفرًا أو موجبة."
                                 lines.any { it.itemId.isNotBlank() && (Dec.parse(it.qty) == null || Dec.parse(it.price) == null) } ->
                                     "أكمل الكميّةَ والسعرَ لكلّ صنفٍ مُختار."
                                 else -> null
@@ -734,6 +822,7 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                                 put("warehouseId", warehouseId)
                                 put("orderType", "counter")
                                 put("priceIncludesVat", priceIncludesVat)
+                                if (dueDate.isNotBlank()) put("dueDate", dueDate.trim())
                                 if (partyId.isNotBlank()) put("partyId", partyId)
                                 else put("cashCustomerName", cashName.trim().ifBlank { "عميل عام" })
                                 put(
@@ -745,9 +834,8 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                                                     put("itemId", line.itemId)
                                                     put("quantity", Dec.wire(line.qty))
                                                     put("unitPrice", Dec.wire(line.price))
-                                                    // كما في محرّر الويب: نسبةٌ افتراضيّةٌ ١٥٪
-                                                    // حتى لا تُرحَّلَ فاتورةٌ بضريبةِ صفر.
-                                                    put("taxRate", "15")
+                                                    put("taxRate", Dec.wire(line.taxRate.ifBlank { "0" }))
+                                                    line.taxGroupId?.takeIf { it.isNotBlank() }?.let { put("taxGroupId", it) }
                                                 },
                                             )
                                         }
@@ -801,7 +889,13 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
     if (pickParty) {
         PickerDialog(
             title = "اختر العميل",
-            items = state.staff.customers.map { PickerItem(it.id, it.displayName) },
+            items = state.staff.customers.map {
+                PickerItem(
+                    id = it.id,
+                    title = it.displayName,
+                    trailing = if (it.creditHold) "موقوف ائتمانيًّا" else null,
+                )
+            },
             onDismiss = { pickParty = false },
             onSelect = { partyId = it.id; partyLabel = it.title },
         )
@@ -813,27 +907,37 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
             items = state.items.map { PickerItem(it.id, it.label) },
             onDismiss = { pickLineAt = -1 },
             onSelect = { item ->
-                lines[at] = lines[at].copy(itemId = item.id, itemLabel = item.title)
+                val (rate, tgId, defaultPrice) = resolveItemTaxAndPrice(item.id)
+                val current = lines[at]
+                lines[at] = current.copy(
+                    itemId = item.id,
+                    itemLabel = item.title,
+                    taxRate = rate,
+                    taxGroupId = tgId,
+                    price = current.price.ifBlank { defaultPrice?.let { Dec.fmt(it, maxScale = 2, minScale = 0) }.orEmpty() },
+                )
                 pickLineAt = -1
             },
         )
     }
 }
 
-/** سطرُ مردودٍ — من سطر الفاتورة المصدر: الصنفُ والسعرُ ثابتان والكميّةُ المرجعةُ قابلةٌ للتعديل. */
+/** سطرُ مردودٍ — يحفظ نسبة الضريبة والخصم من سطر الفاتورة المصدر حرفيًّا. */
 private data class ReturnLine(
     val itemId: String = "",
     val itemLabel: String = "",
     val sourceQty: String = "0",
     val qty: String = "0",
     val price: String = "",
+    val taxRate: String = "0",
+    val taxGroupId: String? = null,
+    val discountRate: String = "0",
 )
 
 /**
- * نموذجُ **مردود المبيعات** من فاتورةٍ مرحّلة (إصلاح B14): تُحمَّل سطورُ المصدر
- * فتُعرضَ كما بيعت — الصنفُ وسعرُ الوحدة للقراءة فقط، والكميّةُ المرجعةُ من صفرٍ
- * إلى المباعة فعلًا، ولا يُرسَل إلا ما كانت كميّتُه أكبر من صفر. المصدرُ إلزامًا
- * مرحّل، والخادمُ يفحصُ الكميّاتِ ويقولُها بالعربيّةِ إن خالفت.
+ * نموذجُ **مردود المبيعات** من فاتورةٍ مرحّلة: يحافظُ على `priceIncludesVat`
+ * ونسبةِ ضريبةِ كلّ سطرٍ (`taxRate`) من الفاتورة الأصليّة فلا تُضاعَفُ الضريبةُ
+ * على الفواتير الشاملة ولا تُفرَضُ ١٥٪ على الأصناف المعفاة/الصفريّة.
  */
 @Composable
 private fun ReturnForm(vm: AppViewModel, sourceId: String, onDone: () -> Unit) {
@@ -860,6 +964,7 @@ private fun ReturnForm(vm: AppViewModel, sourceId: String, onDone: () -> Unit) {
         return
     }
 
+    val includesVat = detail.priceIncludesVat ?: false
     val lines = remember(detail) {
         val initial = detail.lines.map { line ->
             ReturnLine(
@@ -867,7 +972,10 @@ private fun ReturnForm(vm: AppViewModel, sourceId: String, onDone: () -> Unit) {
                 itemLabel = state.items.firstOrNull { it.id == line.itemId }?.label ?: line.description ?: line.itemId,
                 sourceQty = line.quantity,
                 qty = "0",
-                price = line.unitPrice ?: "",
+                price = line.unitPrice ?: "0",
+                taxRate = line.taxRate ?: "0",
+                taxGroupId = line.taxGroupId,
+                discountRate = line.discountRate ?: "0",
             )
         }
         mutableStateListOf<ReturnLine>().apply { addAll(initial) }
@@ -885,10 +993,11 @@ private fun ReturnForm(vm: AppViewModel, sourceId: String, onDone: () -> Unit) {
             ) {
                 KeyValue("العميل", detail.partyName ?: detail.cashCustomerName ?: "—")
                 KeyValue("تاريخ الفاتورة", Labels.dateOrDash(detail.invoiceDate))
+                KeyValue("نمطُ الأسعار", if (includesVat) "شاملةُ الضريبة" else "قبل الضريبة")
                 detail.total?.let { KeyValue("إجمالي الفاتورة", Dec.money(it) + " ر.س") }
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "حدّد الكميّةَ المرجعةَ من كلّ سطر — الصنفُ والسعرُ من الفاتورةِ المصدرِ ولا يُعدَّلان.",
+                    "حدّد الكميّةَ المرجعةَ من كلّ سطر — الصنفُ والسعرُ ونسبةُ الضريبة من الفاتورةِ المصدرِ ولا يُعدَّلان.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -923,7 +1032,10 @@ private fun ReturnForm(vm: AppViewModel, sourceId: String, onDone: () -> Unit) {
                                 modifier = Modifier.weight(1f),
                             )
                         }
-                        KeyValue("المباع فعلًا", "${Dec.fmt(line.sourceQty)} × ${Dec.money(line.price)}")
+                        KeyValue(
+                            "المباع فعلًا",
+                            "${Dec.fmt(line.sourceQty)} × ${Dec.money(line.price)} (ضريبة ${Dec.fmt(line.taxRate)}%)",
+                        )
                     }
                 }
                 if (lines.isEmpty()) {
@@ -931,11 +1043,20 @@ private fun ReturnForm(vm: AppViewModel, sourceId: String, onDone: () -> Unit) {
                 }
                 val returned = lines.filter { Dec.isPositive(it.qty) }
                 if (returned.isNotEmpty()) {
-                    var total = java.math.BigDecimal.ZERO
-                    returned.forEach { line ->
-                        total = total.add(Dec.orZero(line.qty).multiply(Dec.orZero(line.price)))
-                    }
-                    KeyValue("إجماليُّ المرجع (قبل الضريبة)", Dec.money(total.toPlainString()) + " ر.س")
+                    val preview = Dec.previewInvoiceTotals(
+                        lines = returned.map {
+                            Dec.InvoiceLinePreviewInput(
+                                quantity = it.qty,
+                                unitPrice = it.price,
+                                discountRate = it.discountRate,
+                                taxRate = it.taxRate,
+                            )
+                        },
+                        priceIncludesVat = includesVat,
+                    )
+                    KeyValue("صافي المرتجع (قبل الضريبة)", Dec.money(preview.subtotal.toPlainString()) + " ر.س")
+                    KeyValue("الضريبةُ المستردّة", Dec.money(preview.tax.toPlainString()) + " ر.س")
+                    KeyValueColored("إجماليُّ المرتجع", Dec.money(preview.total.toPlainString()) + " ر.س", BakeryColors.Warn)
                 }
                 if (error != null) {
                     Spacer(Modifier.height(8.dp))
@@ -960,6 +1081,7 @@ private fun ReturnForm(vm: AppViewModel, sourceId: String, onDone: () -> Unit) {
                             val body = buildJsonObject {
                                 put("branchId", detail.branchId ?: state.staff.branches.firstOrNull()?.id ?: "")
                                 detail.warehouseId?.let { put("warehouseId", it) }
+                                put("priceIncludesVat", includesVat)
                                 val sourceParty = detail.partyId
                                 if (!sourceParty.isNullOrBlank()) put("partyId", sourceParty)
                                 else put("cashCustomerName", detail.cashCustomerName ?: "عميل عام")
@@ -972,9 +1094,11 @@ private fun ReturnForm(vm: AppViewModel, sourceId: String, onDone: () -> Unit) {
                                                     put("itemId", line.itemId)
                                                     put("quantity", Dec.wire(line.qty))
                                                     put("unitPrice", Dec.wire(line.price))
-                                                    // كما في محرّر الويب: نسبةٌ افتراضيّةٌ ١٥٪
-                                                    // حتى لا تُرحَّلَ فاتورةٌ بضريبةِ صفر.
-                                                    put("taxRate", "15")
+                                                    put("taxRate", Dec.wire(line.taxRate))
+                                                    if (Dec.isPositive(line.discountRate)) {
+                                                        put("discountRate", Dec.wire(line.discountRate))
+                                                    }
+                                                    line.taxGroupId?.takeIf { it.isNotBlank() }?.let { put("taxGroupId", it) }
                                                 },
                                             )
                                         }
@@ -983,7 +1107,10 @@ private fun ReturnForm(vm: AppViewModel, sourceId: String, onDone: () -> Unit) {
                             }
                             vm.returnSalesInvoice(sourceId, body) { result ->
                                 sending = false
-                                if (result is ActionResult.Synced) onDone()
+                                if (result is ActionResult.Synced) {
+                                    vm.loadSalesInvoices()
+                                    onDone()
+                                }
                             }
                         },
                         enabled = !sending,

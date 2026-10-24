@@ -227,7 +227,7 @@ fun LoginScreen(vm: AppViewModel) {
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "تطبيقُ مناديب التوزيع — البيعُ والتحصيلُ والعهدة",
+                        "الإدارةُ والعمليّاتُ والمحاسبةُ ونقطةُ البيع",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.92f),
                         textAlign = TextAlign.Center,

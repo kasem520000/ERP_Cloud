@@ -176,6 +176,7 @@ data class ItemOptionDto(
     val name: String? = null,
     val nameEn: String? = null,
     val trackLot: Boolean? = null,
+    val taxGroupId: String? = null,
 ) {
     val label: String
         get() = listOfNotNull(nameAr, name, nameEn, sku).firstOrNull { it.isNotBlank() }
@@ -212,6 +213,8 @@ data class PartyDto(
     val taxNo: String? = null,
     val phone: String? = null,
     val creditLimit: String? = null,
+    val paymentTermsDays: Int? = null,
+    val creditHold: Boolean = false,
     val address: kotlinx.serialization.json.JsonObject? = null,
 ) {
     val displayName: String get() = if (code.isNotBlank()) "$name ($code)" else name

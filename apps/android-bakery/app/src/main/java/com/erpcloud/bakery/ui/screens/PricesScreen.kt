@@ -80,7 +80,9 @@ fun PricesScreen(vm: AppViewModel, onBack: () -> Unit) {
         },
     ) { padding ->
         if (showForm) {
-            PriceForm(vm = vm, onDone = { showForm = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                PriceForm(vm = vm, onDone = { showForm = false })
+            }
             return@Scaffold
         }
         if (state.loadingDashboard && dash == null) {

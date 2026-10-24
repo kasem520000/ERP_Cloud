@@ -98,12 +98,10 @@ fun VouchersScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
-        if (!state.can("inventory.adjust")) {
-            MissingPermissionHint("إنشاء سند مخزني", "inventory.adjust", Modifier.padding(padding))
-        }
         if (showCreate) {
-            VoucherForm(vm, onDone = { showCreate = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                VoucherForm(vm, onDone = { showCreate = false })
+            }
             return@Scaffold
         }
         val loading = state.staff.loadingKey == "vouchers"
@@ -111,7 +109,6 @@ fun VouchersScreen(vm: AppViewModel, onBack: () -> Unit) {
             CenterLoading("جارٍ تحميل السندات…", Modifier.padding(padding))
             return@Scaffold
         }
-        // بحثٌ محليّ: رقمُ السند أو السبب أو المستودع أو صنفٌ في السطور
         val q = query.trim()
         val vouchers = state.staff.vouchers.filter { voucher ->
             q.isBlank() ||
@@ -130,6 +127,13 @@ fun VouchersScreen(vm: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             Column(Modifier.fillMaxSize()) {
+                if (!state.can("inventory.adjust")) {
+                    MissingPermissionHint(
+                        "إنشاء سند مخزني",
+                        "inventory.adjust",
+                        Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                }
                 SearchField(
                     value = query,
                     onValueChange = { query = it },

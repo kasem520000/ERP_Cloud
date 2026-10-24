@@ -104,12 +104,10 @@ fun PartiesScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
-        if (!state.can("parties.manage")) {
-            MissingPermissionHint("إضافة طرف", "parties.manage", Modifier.padding(padding))
-        }
         if (showCreate) {
-            PartyForm(vm, kind = currentKind, onDone = { showCreate = false })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                PartyForm(vm, kind = currentKind, onDone = { showCreate = false })
+            }
             return@Scaffold
         }
         val editing = editTarget?.let { id -> state.staff.parties.firstOrNull { it.id == id } }
@@ -117,6 +115,13 @@ fun PartiesScreen(vm: AppViewModel, onBack: () -> Unit) {
             PartyEditDialog(vm, party = editing, currentKind = currentKind, onDismiss = { editTarget = null })
         }
         Column(Modifier.fillMaxSize().padding(padding)) {
+            if (!state.can("parties.manage")) {
+                MissingPermissionHint(
+                    "إضافة طرف",
+                    "parties.manage",
+                    Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                )
+            }
             SecondaryTabRow(selectedTabIndex = kind) {
                 Tab(selected = kind == 0, onClick = { if (kind != 0) { kind = 0; query = "" } }, text = { Text("العملاء") })
                 Tab(selected = kind == 1, onClick = { if (kind != 1) { kind = 1; query = "" } }, text = { Text("الموردون") })
@@ -156,8 +161,15 @@ fun PartiesScreen(vm: AppViewModel, onBack: () -> Unit) {
                                         title = party.displayName,
                                         subtitle = listOfNotNull(party.phone, party.taxNo?.let { "ض: $it" }).joinToString(" · ").ifBlank { null },
                                     ) {
+                                        if (party.creditHold) {
+                                            StatusChip("إيقافٌ ائتمانيّ (موقوف عن البيع الآجل)", ChipTone.DANGER)
+                                            Spacer(Modifier.height(6.dp))
+                                        }
                                         if ((Dec.parse(party.creditLimit)?.signum() ?: 0) > 0) {
                                             KeyValue("حدُّ الائتمان", Dec.money(party.creditLimit) + " ر.س")
+                                        }
+                                        party.paymentTermsDays?.takeIf { it > 0 }?.let { days ->
+                                            KeyValue("مهلةُ السداد", "$days يومًا")
                                         }
                                         Spacer(Modifier.height(8.dp))
                                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -206,20 +218,28 @@ private fun BalanceDialog(vm: AppViewModel, partyId: String, onDismiss: () -> Un
                     if (balance == null) {
                         Text(state.staff.error ?: "تعذّر جلبُ الرصيد.")
                     } else {
-                        val receivable = Dec.orZero(balance.receivable)
-                        StatusChip(
-                            if (receivable.signum() > 0) "له (مدين): ${Dec.money(balance.receivable)} ر.س" else "لا رصيدَ قائمًا",
-                            if (receivable.signum() > 0) ChipTone.WARN else ChipTone.OK,
-                        )
+                        val net = Dec.orZero(balance.receivable).subtract(Dec.orZero(balance.payable))
+                        val (chipText, chipTone) = when {
+                            net.signum() > 0 -> "عليه (مدين): ${Dec.money(net.toPlainString())} ر.س" to ChipTone.WARN
+                            net.signum() < 0 -> "له (دائن): ${Dec.money(net.abs().toPlainString())} ر.س" to ChipTone.INFO
+                            else -> "لا رصيدَ قائمًا (متزن)" to ChipTone.OK
+                        }
+                        StatusChip(chipText, chipTone)
                         Spacer(Modifier.height(8.dp))
                         if (balance.open.isEmpty()) {
                             Text("لا قيودَ مفتوحة.", style = MaterialTheme.typography.bodySmall)
                         } else {
                             balance.open.take(12).forEach { row ->
-                                KeyValue(
-                                    Labels.dateOrDash(row.date),
-                                    "مدين ${Dec.money(row.debit)} · مخصَّص ${Dec.money(row.allocated)}",
-                                )
+                                val debitVal = Dec.orZero(row.debit)
+                                val creditVal = Dec.orZero(row.credit)
+                                val sideText = when {
+                                    debitVal.signum() > 0 && creditVal.signum() > 0 ->
+                                        "مدين ${Dec.money(row.debit)} · دائن ${Dec.money(row.credit)}"
+                                    creditVal.signum() > 0 -> "دائن ${Dec.money(row.credit)}"
+                                    else -> "مدين ${Dec.money(row.debit)}"
+                                }
+                                val allocPart = if (Dec.isPositive(row.allocated)) " · مخصَّص ${Dec.money(row.allocated)}" else ""
+                                KeyValue(Labels.dateOrDash(row.date), sideText + allocPart)
                             }
                             if (balance.open.size > 12) {
                                 Text("… (+${balance.open.size - 12} قيدًا)", style = MaterialTheme.typography.bodySmall)
@@ -242,6 +262,8 @@ private fun PartyForm(vm: AppViewModel, kind: String, onDone: () -> Unit) {
     var taxNo by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var creditLimit by remember { mutableStateOf("") }
+    var paymentTermsDays by remember { mutableStateOf("") }
+    var creditHold by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var sending by remember { mutableStateOf(false) }
 
@@ -263,6 +285,28 @@ private fun PartyForm(vm: AppViewModel, kind: String, onDone: () -> Unit) {
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = paymentTermsDays,
+            onValueChange = { raw ->
+                val norm = Dec.normalizeDigits(raw)
+                if (norm.all { it.isDigit() } && norm.length <= 3) paymentTermsDays = norm
+            },
+            label = { Text("مهلةُ السداد بالأيّام (اختياريّ)") },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (kind == "customer") {
+            Spacer(Modifier.height(8.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Text("إيقافُ البيع الآجل (حظر ائتمانيّ)", style = MaterialTheme.typography.bodyMedium)
+                androidx.compose.material3.Switch(checked = creditHold, onCheckedChange = { creditHold = it })
+            }
+        }
         if (error != null) {
             Spacer(Modifier.height(8.dp))
             StatusChip(error ?: "", ChipTone.DANGER)
@@ -272,7 +316,14 @@ private fun PartyForm(vm: AppViewModel, kind: String, onDone: () -> Unit) {
             ActionButton(
                 label = if (sending) "جارٍ الحفظ…" else "حفظُ الطرف",
                 onClick = {
-                    error = if (name.isBlank()) "الاسمُ إلزاميّ." else null
+                    val daysInt = paymentTermsDays.trim().takeIf { it.isNotEmpty() }?.toIntOrNull()
+                    error = when {
+                        name.isBlank() -> "الاسمُ إلزاميّ."
+                        (Dec.parse(creditLimit)?.signum() ?: 0) < 0 -> "حدُّ الائتمان موجبٌ فقط."
+                        paymentTermsDays.isNotBlank() && (daysInt == null || daysInt < 0 || daysInt > 365) ->
+                            "مهلةُ السداد بين ٠ و٣٦٥ يومًا."
+                        else -> null
+                    }
                     if (error != null) return@ActionButton
                     sending = true
                     val body = buildJsonObject {
@@ -281,6 +332,8 @@ private fun PartyForm(vm: AppViewModel, kind: String, onDone: () -> Unit) {
                         if (phone.isNotBlank()) put("phone", phone.trim())
                         if (taxNo.isNotBlank()) put("taxNo", taxNo.trim())
                         if (creditLimit.isNotBlank()) put("creditLimit", Dec.wire(creditLimit))
+                        if (daysInt != null) put("paymentTermsDays", daysInt)
+                        if (creditHold) put("creditHold", true)
                     }
                     vm.createParty(body) { result ->
                         sending = false
@@ -300,9 +353,7 @@ private fun PartyForm(vm: AppViewModel, kind: String, onDone: () -> Unit) {
 }
 
 
-/** تعديلُ طرف (عميل/مورّد) — `PUT /parties/{id}` (Partial) بإذن `parties.manage`:
- * الحقولُ نفسُها التي في نموذجِ الإنشاء — الاسمُ والهاتفُ والرقمُ الضريبيُّ
- * وحدُّ الائتمان؛ يُعادُ تحميلُ القائمةِ بعد الحفظ. */
+/** تعديلُ طرف (عميل/مورّد) — `PUT /parties/{id}` بإذن `parties.manage` شاملاً مهلة السداد والحظر الائتماني (R34-D1). */
 @Composable
 private fun PartyEditDialog(
     vm: AppViewModel,
@@ -314,6 +365,8 @@ private fun PartyEditDialog(
     var phone by remember { mutableStateOf(party.phone ?: "") }
     var taxNo by remember { mutableStateOf(party.taxNo ?: "") }
     var creditLimit by remember { mutableStateOf(party.creditLimit ?: "") }
+    var paymentTermsDays by remember { mutableStateOf(party.paymentTermsDays?.toString() ?: "") }
+    var creditHold by remember { mutableStateOf(party.creditHold) }
     var error by remember { mutableStateOf<String?>(null) }
     var sending by remember { mutableStateOf(false) }
 
@@ -337,6 +390,28 @@ private fun PartyEditDialog(
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = paymentTermsDays,
+                    onValueChange = { raw ->
+                        val norm = Dec.normalizeDigits(raw)
+                        if (norm.all { it.isDigit() } && norm.length <= 3) paymentTermsDays = norm
+                    },
+                    label = { Text("مهلةُ السداد بالأيّام") },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (party.kind != "supplier") {
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
+                        Text("إيقافُ البيع الآجل (حظر ائتمانيّ)", style = MaterialTheme.typography.bodyMedium)
+                        androidx.compose.material3.Switch(checked = creditHold, onCheckedChange = { creditHold = it })
+                    }
+                }
                 if (error != null) {
                     Spacer(Modifier.height(8.dp))
                     StatusChip(error ?: "", ChipTone.DANGER)
@@ -346,19 +421,24 @@ private fun PartyEditDialog(
         confirmButton = {
             androidx.compose.material3.TextButton(
                 onClick = {
+                    val daysInt = paymentTermsDays.trim().takeIf { it.isNotEmpty() }?.toIntOrNull()
                     error = when {
                         name.isBlank() -> "الاسمُ إلزاميّ."
                         (Dec.parse(creditLimit)?.signum() ?: 0) < 0 -> "حدُّ الائتمان موجبٌ فقط."
+                        paymentTermsDays.isNotBlank() && (daysInt == null || daysInt < 0 || daysInt > 365) ->
+                            "مهلةُ السداد بين ٠ و٣٦٥ يومًا."
                         else -> null
                     }
                     if (error != null) return@TextButton
                     sending = true
                     val body = buildJsonObject {
-                        put("kind", currentKind)
+                        put("kind", party.kind.ifBlank { currentKind })
                         put("name", name.trim())
                         if (phone.isNotBlank()) put("phone", phone.trim())
                         if (taxNo.isNotBlank()) put("taxNo", taxNo.trim())
                         if (creditLimit.isNotBlank()) put("creditLimit", Dec.wire(creditLimit))
+                        if (daysInt != null) put("paymentTermsDays", daysInt)
+                        put("creditHold", creditHold)
                     }
                     vm.updateParty(party.id, body) { result ->
                         sending = false

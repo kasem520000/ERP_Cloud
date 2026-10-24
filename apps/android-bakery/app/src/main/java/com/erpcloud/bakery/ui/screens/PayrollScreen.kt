@@ -96,11 +96,14 @@ fun PayrollScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
-        if (!state.can("hrm.manage")) {
-            MissingPermissionHint("إنشاء مسير رواتب", "hrm.manage", Modifier.padding(padding))
-        }
         Column(Modifier.fillMaxSize().padding(padding)) {
+            if (!state.can("hrm.manage")) {
+                MissingPermissionHint(
+                    "إنشاء مسير رواتب",
+                    "hrm.manage",
+                    Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                )
+            }
             SecondaryTabRow(selectedTabIndex = tab) {
                 Tab(selected = tab == 0, onClick = { tab = 0; showCreate = false }, text = { Text("المسيّرات") })
                 Tab(selected = tab == 1, onClick = { tab = 1; showCreate = false }, text = { Text("أذونُ الصرف") })
@@ -205,7 +208,9 @@ fun PayrollScreen(vm: AppViewModel, onBack: () -> Unit) {
 /** إنشاءُ مسيّرة — `POST /payroll/runs` بـ yearMonth (YYYY-MM). */
 @Composable
 private fun CreateRunForm(vm: AppViewModel, onDone: () -> Unit) {
-    val defaultMonth = java.time.LocalDate.now().let { "%04d-%02d".format(it.year, it.monthValue) }
+    val defaultMonth = java.time.LocalDate.now().let {
+        java.lang.String.format(java.util.Locale.US, "%04d-%02d", it.year, it.monthValue)
+    }
     var yearMonth by remember { mutableStateOf(defaultMonth) }
     var error by remember { mutableStateOf<String?>(null) }
     var sending by remember { mutableStateOf(false) }
@@ -215,7 +220,12 @@ private fun CreateRunForm(vm: AppViewModel, onDone: () -> Unit) {
         subtitle = "شهرٌ بصيغة YYYY-MM — تُنشأ مسودّةً ثمّ تُرحَّل وتُدفع",
         modifier = Modifier.padding(14.dp),
     ) {
-        OutlinedTextField(value = yearMonth, onValueChange = { yearMonth = it }, label = { Text("الشهر (YYYY-MM) *") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            value = yearMonth,
+            onValueChange = { yearMonth = Dec.normalizeDigits(it) },
+            label = { Text("الشهر (YYYY-MM) *") },
+            modifier = Modifier.fillMaxWidth(),
+        )
         if (error != null) {
             Spacer(Modifier.height(8.dp))
             StatusChip(error ?: "", ChipTone.DANGER)
@@ -225,12 +235,13 @@ private fun CreateRunForm(vm: AppViewModel, onDone: () -> Unit) {
             ActionButton(
                 label = if (sending) "جارٍ الإنشاء…" else "إنشاءُ المسيّرة",
                 onClick = {
-                    error = if (!Regex("""^\d{4}-(0[1-9]|1[0-2])$""").matches(yearMonth.trim())) {
+                    val ym = Dec.normalizeDigits(yearMonth).trim()
+                    error = if (!Regex("""^\d{4}-(0[1-9]|1[0-2])$""").matches(ym)) {
                         "الشهرُ بصيغة YYYY-MM (مثل 2026-10)."
                     } else null
                     if (error != null) return@ActionButton
                     sending = true
-                    val body = buildJsonObject { put("yearMonth", yearMonth.trim()) }
+                    val body = buildJsonObject { put("yearMonth", ym) }
                     vm.createPayrollRun(body) { result ->
                         sending = false
                         if (result is ActionResult.Synced) {
@@ -261,6 +272,8 @@ private fun PayRunDialog(vm: AppViewModel, runId: String, onDone: () -> Unit) {
     var pickBranch by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var sending by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) { vm.ensureCashLocations() }
 
     LaunchedEffect(state.staff.cashLocations, state.staff.branches) {
         if (cashLocationId.isBlank()) {

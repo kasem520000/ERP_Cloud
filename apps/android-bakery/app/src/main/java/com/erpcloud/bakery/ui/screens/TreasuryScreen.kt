@@ -141,12 +141,10 @@ fun TreasuryScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
-        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
-        if (!state.can("treasury.voucher.create")) {
-            MissingPermissionHint("إنشاء سند قبض/صرف", "treasury.voucher.create", Modifier.padding(padding))
-        }
         if (showCreate || editTarget != null) {
-            VoucherForm(vm, initial = editTarget, onDone = { showCreate = false; editTarget = null })
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                VoucherForm(vm, initial = editTarget, onDone = { showCreate = false; editTarget = null })
+            }
             return@Scaffold
         }
         val loading = state.staff.loadingKey == "treasury"
@@ -154,7 +152,6 @@ fun TreasuryScreen(vm: AppViewModel, onBack: () -> Unit) {
             CenterLoading("جارٍ تحميل السندات…", Modifier.padding(padding))
             return@Scaffold
         }
-        // بحثٌ محليّ: رقمُ السند أو البيان أو المستلم أو اسمُ الطرف
         val q = query.trim()
         val vouchers = state.staff.treasuryVouchers.filter { voucher ->
             q.isBlank() ||
@@ -169,6 +166,13 @@ fun TreasuryScreen(vm: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             Column(Modifier.fillMaxSize()) {
+                if (!state.can("treasury.voucher.create")) {
+                    MissingPermissionHint(
+                        "إنشاء سند قبض/صرف",
+                        "treasury.voucher.create",
+                        Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                }
                 SearchField(
                     value = query,
                     onValueChange = { query = it },
@@ -373,7 +377,12 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
     var cashLabel by remember { mutableStateOf("") }
     var method by remember { mutableStateOf(initial?.method ?: "cash") }
     var methodLabel by remember { mutableStateOf(Labels.voucherMethod(initial?.method ?: "cash")) }
+    var chequeNo by remember { mutableStateOf(initial?.chequeNo ?: "") }
+    var chequeDate by remember { mutableStateOf(initial?.chequeDate ?: "") }
     var amount by remember { mutableStateOf(initial?.amount?.takeIf { it.isNotBlank() } ?: "") }
+    var vatAmount by remember {
+        mutableStateOf(initial?.vatAmount?.takeIf { Dec.isPositive(it) }?.let { Dec.fmt(it, 2, 0) } ?: "")
+    }
     var date by remember { mutableStateOf(initial?.date?.takeIf { it.isNotBlank() } ?: todayIso()) }
     var description by remember { mutableStateOf(initial?.description ?: "") }
     var partyId by remember { mutableStateOf(initial?.partyId ?: "") }
@@ -402,22 +411,20 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
             state.staff.cashLocations.firstOrNull { it.id == cashLocationId }?.let { cashLabel = it.name }
         }
     }
-    // الأطرافُ تُحمَّل عند اختيار تصنيفٍ يحتاجها (عميل/مورّد)، والحساباتُ للمصروف
-    // أو لمسودّةٍ مفردةٍ إلى حسابٍ مقابل.
-    LaunchedEffect(subtype, counterAccountId) {
+    // يُعاد تحميل الأطراف عند كلّ تبديلٍ بين عميل ومورّد حتى لا تظهر قائمة العملاء مكان المورّدين.
+    LaunchedEffect(subtype) {
         if (subtype == "customer" || subtype == "supplier") {
-            if (state.staff.parties.isEmpty()) vm.loadParties(if (subtype == "customer") "customer" else "supplier")
-        } else if ((subtype == "expense" || counterAccountId.isNotBlank()) && state.staff.accounts.isEmpty()) {
-            vm.loadAccounts()
+            vm.loadParties(subtype)
+        } else {
+            vm.ensureAccounts()
         }
     }
-    // قيمٌ أوّليّةٌ من المسودّة: تُحلُّ أسماؤها متى وردت القوائمُ من الخادم
     LaunchedEffect(state.staff.parties, state.staff.accounts) {
         if (partyId.isNotBlank() && partyLabel.isBlank()) {
             state.staff.parties.firstOrNull { it.id == partyId }?.let { partyLabel = it.displayName }
         }
         if (counterAccountId.isNotBlank() && accountLabel.isBlank()) {
-            state.staff.accounts.firstOrNull { it.id == counterAccountId }?.let { accountLabel = it.label }
+            state.staff.accounts.firstOrNull { it.id == counterAccountId }?.let { accountLabel = "${it.code} — ${it.label}" }
         }
     }
 
@@ -484,14 +491,40 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { IconButton(onClick = { pickMethod = true }) { Text("اختر") } },
                 )
+                if (method == "cheque") {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = chequeNo,
+                        onValueChange = { chequeNo = it },
+                        label = { Text("رقمُ الشيك *") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    DatePickerField(label = "تاريخُ استحقاق الشيك", value = chequeDate, onValueChange = { chequeDate = it })
+                }
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = amount,
                     onValueChange = { if (Dec.isValidInput(it)) amount = it },
-                    label = { Text("المبلغ (ر.س) *") },
+                    label = { Text("المبلغ الإجماليّ (ر.س) *") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                 )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = vatAmount,
+                    onValueChange = { if (Dec.isValidInput(it)) vatAmount = it },
+                    label = { Text("ضريبةُ القيمة المضافة ضمن المبلغ (ر.س — اختياريّ)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (Dec.isPositive(amount) && Dec.isPositive(vatAmount)) {
+                    val netPreview = Dec.orZero(amount).subtract(Dec.orZero(vatAmount))
+                    if (netPreview.signum() > 0) {
+                        Spacer(Modifier.height(4.dp))
+                        KeyValue("الصافي قبل الضريبة", Dec.money(netPreview.toPlainString()) + " ر.س")
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 DatePickerField(label = "التاريخ", value = date, onValueChange = { date = it })
                 if (subtype == "customer" || subtype == "supplier") {
@@ -500,18 +533,26 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                         value = partyLabel,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("الطرف (يحسمُ الحسابَ المقابل تلقائيًّا)") },
+                        label = { Text(if (subtype == "supplier") "المورّد *" else "العميل *") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = { IconButton(onClick = { pickParty = true }) { Text("اختر") } },
                     )
                 }
-                if (subtype == "expense" || counterAccountId.isNotBlank()) {
+                if (subtype != "customer" && subtype != "supplier" || counterAccountId.isNotBlank()) {
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = accountLabel,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("حسابُ المصروف (اختياريّ — من دليل الحسابات)") },
+                        label = {
+                            Text(
+                                when (subtype) {
+                                    "account" -> "الحسابُ المقابل *"
+                                    "expense" -> "حسابُ المصروف (من دليل الحسابات)"
+                                    else -> "الحسابُ المقابل (من دليل الحسابات)"
+                                }
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = { IconButton(onClick = { pickAccount = true }) { Text("اختر") } },
                     )
@@ -531,10 +572,18 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                             else -> "حفظُ السند"
                         },
                         onClick = {
+                            val amtBd = Dec.parse(amount)
+                            val vatBd = if (vatAmount.isBlank()) java.math.BigDecimal.ZERO else Dec.parse(vatAmount)
                             error = when {
                                 branchId.isBlank() -> "اختر الفرع."
                                 cashLocationId.isBlank() -> "اختر الخزينة."
-                                !Dec.isPositive(amount) -> "المبلغُ رقمٌ موجبٌ (نصٌّ دقيق)."
+                                amtBd == null || amtBd.signum() <= 0 -> "المبلغُ رقمٌ موجبٌ (نصٌّ دقيق)."
+                                vatBd == null || vatBd.signum() < 0 -> "ضريبةُ القيمة المضافة لا تكون سالبة."
+                                vatBd.signum() > 0 && vatBd >= amtBd -> "ضريبةُ السند يجب أن تكون أقلَّ من إجماليّ مبلغ السند."
+                                method == "cheque" && chequeNo.isBlank() -> "أدخل رقمَ الشيك."
+                                (subtype == "customer" || subtype == "supplier") && partyId.isBlank() ->
+                                    if (subtype == "supplier") "اختر المورّد." else "اختر العميل."
+                                subtype == "account" && counterAccountId.isBlank() -> "اختر الحسابَ المقابل للسند."
                                 description.isBlank() -> "البيانُ إلزاميٌّ — سندٌ بلا بيانٍ لا يقولُ للمُراجع شيئًا."
                                 else -> null
                             }
@@ -548,6 +597,15 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                                 put("cashLocationId", cashLocationId)
                                 put("method", method)
                                 put("amount", Dec.wire(amount))
+                                if (vatAmount.isNotBlank()) {
+                                    put("vatAmount", Dec.wire(vatAmount))
+                                } else if (initial?.vatAmount != null) {
+                                    put("vatAmount", "0")
+                                }
+                                if (method == "cheque") {
+                                    put("chequeNo", chequeNo.trim())
+                                    if (chequeDate.isNotBlank()) put("chequeDate", chequeDate.trim())
+                                }
                                 if (partyId.isNotBlank()) put("partyId", partyId)
                                 if (counterAccountId.isNotBlank()) put("counterAccountId", counterAccountId)
                                 put("description", description.trim())
@@ -593,6 +651,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
             if (kind == "receipt") add(PickerItem("customer", "عميل")) else add(PickerItem("supplier", "مورّد"))
             add(PickerItem("salary", "راتب"))
             add(PickerItem("account", "حساب"))
+            add(PickerItem("vat", "ضريبة"))
             add(PickerItem("other", "أخرى"))
         }
         PickerDialog(
@@ -621,7 +680,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
     if (pickCash) {
         PickerDialog(
             title = "اختر الخزينة",
-            items = state.staff.cashLocations.map { PickerItem(it.id, it.name, trailing = if (it.isDefault) "افتراضيّة" else null) },
+            items = state.staff.cashLocations.filter { it.isActive }.map { PickerItem(it.id, it.name, trailing = if (it.isDefault) "افتراضيّة" else null) },
             onDismiss = { pickCash = false },
             onSelect = { cashLocationId = it.id; cashLabel = it.title; pickCash = false },
         )
@@ -633,6 +692,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                 PickerItem("cash", "نقدي"),
                 PickerItem("bank_transfer", "تحويل بنكي"),
                 PickerItem("card", "شبكة"),
+                PickerItem("cheque", "شيك"),
             ),
             onDismiss = { pickMethod = false },
             onSelect = {
@@ -643,17 +703,26 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
         )
     }
     if (pickParty) {
+        val matchingParties = state.staff.parties.filter {
+            it.kind == subtype || it.kind == "both"
+        }.ifEmpty { state.staff.parties }
         PickerDialog(
             title = if (subtype == "supplier") "اختر المورّد" else "اختر العميل",
-            items = state.staff.parties.map { PickerItem(it.id, it.displayName, trailing = it.phone) },
+            items = matchingParties.map { PickerItem(it.id, it.displayName, trailing = it.phone) },
             onDismiss = { pickParty = false },
             onSelect = { partyId = it.id; partyLabel = it.title; pickParty = false },
         )
     }
     if (pickAccount) {
+        val postableAccounts = state.staff.accounts.filter { it.postable }
+        val sortedAccounts = if (subtype == "expense") {
+            postableAccounts.sortedByDescending { it.type == "expense" || it.accountType == "expense" }
+        } else {
+            postableAccounts
+        }
         PickerDialog(
-            title = "حسابُ المصروف",
-            items = state.staff.accounts.filter { it.postable }.map { PickerItem(it.id, it.label, trailing = it.code) },
+            title = if (subtype == "expense") "حسابُ المصروف" else "الحسابُ المقابل",
+            items = sortedAccounts.map { PickerItem(it.id, "${it.code} — ${it.label}", trailing = it.type) },
             onDismiss = { pickAccount = false },
             onSelect = { counterAccountId = it.id; accountLabel = it.title; pickAccount = false },
         )
