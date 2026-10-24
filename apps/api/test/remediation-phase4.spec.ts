@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+
 import {
   ALL_ORGANIZATION_PERMISSIONS,
   ALL_PLATFORM_PERMISSIONS,
@@ -339,7 +340,10 @@ describe('Remediation Phase 4 — Bank Feeds, Reconciliation, Shift Takings, Pro
     });
     const runId = data(runRes.body).id as string;
 
-    // 1. Attempt post with unbalanced journal lines -> 422 PAYROLL_JOURNAL_UNBALANCED
+    // MF-42 / AC1 (D10): أي سطور قيد من العميل مرفوضة الآن بـ422 `PAYROLL_JOURNAL_LINES_FORBIDDEN`
+    // — حارسا `PAYROLL_JOURNAL_UNBALANCED`/`AMOUNT_MISMATCH` وفرعا العميل حُذفا كوداً ميتاً
+    // (القيد يُبنى خادمياً دائماً: مصروف ورقي + سطور ذمة موظف فردية).
+    // 1. Unbalanced client lines -> 422 PAYROLL_JOURNAL_LINES_FORBIDDEN
     const unbalRes = await api(ctx.server, 'post', `/api/v1/hrm/payroll/runs/${runId}/post`, {
       token: actor.token,
       body: {
@@ -351,9 +355,9 @@ describe('Remediation Phase 4 — Bank Feeds, Reconciliation, Shift Takings, Pro
       },
     });
     expect(unbalRes.status).toBe(422);
-    expect(unbalRes.body).toMatchObject({ code: 'PAYROLL_JOURNAL_UNBALANCED' });
+    expect(unbalRes.body).toMatchObject({ code: 'PAYROLL_JOURNAL_LINES_FORBIDDEN' });
 
-    // 2. Attempt post with balanced lines but mismatching net payable -> 422 PAYROLL_JOURNAL_AMOUNT_MISMATCH
+    // 2. Balanced but mismatching client lines -> the same AC1 rejection (no client journal at all)
     const mismatchRes = await api(ctx.server, 'post', `/api/v1/hrm/payroll/runs/${runId}/post`, {
       token: actor.token,
       body: {
@@ -365,7 +369,7 @@ describe('Remediation Phase 4 — Bank Feeds, Reconciliation, Shift Takings, Pro
       },
     });
     expect(mismatchRes.status).toBe(422);
-    expect(mismatchRes.body).toMatchObject({ code: 'PAYROLL_JOURNAL_AMOUNT_MISMATCH' });
+    expect(mismatchRes.body).toMatchObject({ code: 'PAYROLL_JOURNAL_LINES_FORBIDDEN' });
 
     // 3. Post with auto-journal generation -> succeeds
     const postRes = await api(ctx.server, 'post', `/api/v1/hrm/payroll/runs/${runId}/post`, {

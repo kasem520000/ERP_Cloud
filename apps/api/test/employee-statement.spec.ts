@@ -41,7 +41,6 @@ describe('كشف حساب موظف — frmEmpAccountGet', () => {
   let cashLocationId = '';
   let employeeId = '';
   let employeeAccountId = '';
-  let expenseAccountId = '';
   let employeeNo = '';
 
   const data = (body: Record<string, unknown>): Record<string, unknown> => (body.data ?? body) as Record<string, unknown>;
@@ -122,7 +121,8 @@ describe('كشف حساب موظف — frmEmpAccountGet', () => {
 
     const expenseAccount = await post('/accounts', { code: '3122001', nameAr: 'راتب أساسي', type: 'expense' });
     expect(expenseAccount.status).toBe(201);
-    expenseAccountId = data(expenseAccount.body).id as string;
+    // MF-42/AC1: المعرّف لا يُمرَّر بعد الآن (القيد خادمي يلتقط `3122%` بالرمز) — الإنشاء ضروري لوجود الحساب.
+    expect(data(expenseAccount.body).id, 'the accrual expense account exists').toBeTruthy();
 
     employeeNo = 'ST-1';
     const employee = await post('/hrm/employees', {
@@ -237,21 +237,17 @@ describe('كشف حساب موظف — frmEmpAccountGet', () => {
     expect(run.status).toBe(201);
     const periods = rows((await get('/fiscal-periods')).body);
     const period = periods.find((row) => row.status === 'open' && String(row.startDate ?? '').startsWith(month));
-    // الراتب المستحق = صافي المسيّر نفسه كما خُزِّن في معاينته (حارس `PAYROLL_JOURNAL_AMOUNT_MISMATCH`
-    // يرفض سطوراً صريحة بمبلغ مختلف) — لا رقمٌ مكتوب في الاختبار.
+    // MF-42 / AC1 (D10): الترحيل يبني القيد خادمياً (لا سطور من العميل — `journalLines` مرفوضة
+    // بـ422 `PAYROLL_JOURNAL_LINES_FORBIDDEN`)؛ المبلغ يُقرأ من المعاينة المخزَّنة على المسيّر.
     const storedRun = data((await get(`/hrm/payroll/runs/${data(run.body).id}`)).body) as {
       summary?: { preview?: { netPayable?: string } };
     };
     const accrual = String(storedRun.summary?.preview?.netPayable ?? '');
     expect(Number(accrual), 'the run carries its net payable').toBeGreaterThan(0);
-    // الراتب المستحق: مدين «راتب أساسي»، دائن حساب الموظف — الجانب الآخر من الحساب.
+    // الراتب المستحق: مدين المصروف ورقياً، دائن حساب الموظف — الجانب الآخر من الحساب.
     const posted = await post(`/hrm/payroll/runs/${data(run.body).id}/post`, {
       branchId,
       fiscalPeriodId: period?.id,
-      journalLines: [
-        { accountId: expenseAccountId, debit: accrual, credit: '0' },
-        { accountId: employeeAccountId, debit: '0', credit: accrual },
-      ],
     });
     expect([200, 201], JSON.stringify(posted.body)).toContain(posted.status);
 

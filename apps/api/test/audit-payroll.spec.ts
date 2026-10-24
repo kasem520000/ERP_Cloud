@@ -109,30 +109,15 @@ describe('AUD-10 — ترحيل وصرف مسيّر الرواتب: معاملة
   };
 
   /**
-   * سطور القيد الصريحة يجب أن تساوي صافي المسيّر نفسه (حارس `PAYROLL_JOURNAL_AMOUNT_MISMATCH`):
-   * المبلغ يُقرأ من معاينة المسيّر المخزَّنة عليه (basic 5000 + housing 1000 + transport 500 = 6500)
-   * لا من رقمٍ مكتوب في الاختبار.
+   * MF-42 / AC1 (D10): الترحيل يُولِّد القيد خادمياً فقط — الطلب لا يحمل سطوراً ولا
+   * `journalEntryId` (أي محاولة لهما تُرفض 422 `PAYROLL_JOURNAL_LINES_FORBIDDEN` — راجع
+   * الاختبار أدناه «رفض سطور القيد من العميل»). المبلغ يُقرأ من معاينة المسيّر المخزَّنة.
    */
-  const runNetPayable = async (runId: string) => {
-    const run = data((await get(`/hrm/payroll/runs/${runId}`)).body) as {
-      summary?: { preview?: { netPayable?: string } };
-    };
-    const net = run.summary?.preview?.netPayable;
-    expect(net, 'the run must carry its stored preview net payable').toBeTruthy();
-    return String(net);
-  };
-
-  const postRunRequest = async (runId: string) => {
-    const net = await runNetPayable(runId);
-    return post(`/hrm/payroll/runs/${runId}/post`, {
+  const postRunRequest = async (runId: string) =>
+    post(`/hrm/payroll/runs/${runId}/post`, {
       branchId,
       fiscalPeriodId: await openPeriodId(),
-      journalLines: [
-        { accountId: payrollAccountId, debit: net, credit: '0' },
-        { accountId: employeeAccountId, debit: '0', credit: net },
-      ],
     });
-  };
 
   beforeAll(async () => {
     ctx = await createTestApp('audit-payroll');
@@ -190,6 +175,31 @@ describe('AUD-10 — ترحيل وصرف مسيّر الرواتب: معاملة
   afterAll(async () => {
     await clearFailpoint().catch(() => undefined);
     await ctx.close();
+  });
+
+  it('MF-42/AC1: سطور قيد من العميل مرفوضة 422 ثم الترحيل الخادمي يعمل', async () => {
+    const runId = await createRun();
+    const yearMonth = String(data((await get(`/hrm/payroll/runs/${runId}`)).body).yearMonth);
+    const description = `Payroll ${yearMonth}`;
+    const net = '6500';
+
+    const rejected = await post(`/hrm/payroll/runs/${runId}/post`, {
+      branchId,
+      fiscalPeriodId: await openPeriodId(),
+      journalLines: [
+        { accountId: payrollAccountId, debit: net, credit: '0' },
+        { accountId: employeeAccountId, debit: '0', credit: net },
+      ],
+    });
+    expect(rejected.status).toBe(422);
+    expect((rejected.body as { code?: string }).code).toBe('PAYROLL_JOURNAL_LINES_FORBIDDEN');
+    expect(await journalCount(description), 'no journal is written for a rejected client payload').toBe(0);
+    expect(data((await get(`/hrm/payroll/runs/${runId}`)).body).status, 'the run stays draft').toBe('draft');
+
+    const posted = await postRunRequest(runId);
+    expect([200, 201], JSON.stringify(posted.body)).toContain(posted.status);
+    expect(data(posted.body).status).toBe('posted');
+    expect(await journalCount(description), 'the server-built journal is written once').toBe(1);
   });
 
   it('فشل تحديث المسيّر أثناء الترحيل يُلغي القيد معه — لا قيد يتيم', async () => {

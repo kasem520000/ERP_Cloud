@@ -3881,6 +3881,46 @@ const definitions: ReportDefinition[] = [
   },
 
   // ------------------------------------------------------------------ hrm
+  /**
+   * MF-42 / AC3 (D10) — «تقرير نهاية الخدمة = رصيد حساب المخصص»: الصفوف من سطور
+   * `eosb_accruals` المنشورة فقط، والمجموع (grandTotal) = Σ Δ = رصيد الحساب في دفتر
+   * العام بالبناء (القيد يُبنى من الصفوف نفسها — يُتحقق في r44 + probe-d11).
+   */
+  {
+    key: 'end-of-service-liability',
+    titleAr: 'مخصص نهاية الخدمة',
+    group: 'hrm',
+    params: [PERIOD[1]!],
+    columns: [
+      text('employee_no', 'رقم الموظف'),
+      text('employee', 'الموظف'),
+      date('hire_date', 'تاريخ التعيين'),
+      qty('service_years', 'سنوات الخدمة'),
+      money('basis_amount', 'الأساس الشهري'),
+      money('cumulative', 'التراكمي المستحق'),
+      money('balance', 'الرصيد المستحق'),
+    ],
+    totals: ['balance'],
+    grandTotal: [{ key: 'balance', labelAr: 'إجمالي مخصص نهاية الخدمة' }],
+    emptyAr: 'لا مخصصات مرحّلة بعد',
+    build: (tenantId, f) => sql`
+      SELECT e.employee_no AS employee_no,
+             e.name AS employee,
+             e.hire_date AS hire_date,
+             max(a.service_years)::text AS service_years,
+             max(a.basis_amount)::text AS basis_amount,
+             max(a.cumulative_entitlement)::text AS cumulative,
+             sum(a.delta)::text AS balance
+      FROM eosb_accruals a
+      JOIN employees e ON e.id = a.employee_id
+      WHERE a.tenant_id = ${tenantId}
+        AND a.status = 'posted'
+        AND e.deleted_at IS NULL
+        ${f.to ? sql`AND a.period <= ${f.to.slice(0, 7)}` : sql``}
+      GROUP BY e.id, e.employee_no, e.name, e.hire_date
+      HAVING sum(a.delta) <> 0
+      ORDER BY e.employee_no`,
+  },
   {
     key: 'payroll-payments',
     titleAr: 'دفع الرواتب',

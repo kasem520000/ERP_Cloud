@@ -69,6 +69,13 @@ export class HrmController {
   @Post('payroll/runs') @RequiresPermission('hrm.manage') createRun(@Body() body: RunInput) { return this.hrm.createRun(getTenantContext().tenantId, body); }
   @Get('payroll/runs/:id') @RequiresPermission('hrm.view') readRun(@Param('id') id: string) { return this.hrm.readRun(getTenantContext().tenantId, id); }
   @Post('payroll/runs/:id/post') @RequiresPermission('hrm.payroll.post') postRun(@Param('id') id: string, @Body() body: PostRunInput) { return this.hrm.postRun(getTenantContext().tenantId, id, body); }
+  // MF-42 / D10 — دورة مخصص نهاية الخدمة (§6.8 سياسة المخصصات — بلا صلاحيات جديدة).
+  @Get('payroll/eosb-policy') @RequiresPermission('hrm.view') eosbPolicy() { return this.hrm.getEosbPolicy(getTenantContext().tenantId); }
+  @Patch('payroll/eosb-policy') @RequiresPermission('hrm.manage') updateEosbPolicy(@Body() body: { monthsPerYearFirst?: string; monthsPerYearAfter?: string; enabled?: boolean; expenseAccountId?: string | null; liabilityAccountId?: string | null }) { return this.hrm.upsertEosbPolicy(getTenantContext().tenantId, body); }
+  @Post('payroll/eosb/preview') @RequiresPermission('hrm.view') eosbPreview(@Body() body: { yearMonth: string }) { return this.hrm.eosbPreview(getTenantContext().tenantId, body.yearMonth); }
+  @Post('payroll/eosb/post') @RequiresPermission('hrm.payroll.post') eosbPost(@Body() body: { yearMonth: string; expenseAccountId?: string; liabilityAccountId?: string; fiscalPeriodId?: string }) { return this.hrm.eosbPost(getTenantContext().tenantId, body); }
+  @Post('payroll/eosb/reverse') @RequiresPermission('hrm.payroll.post') eosbReverse(@Body() body: { yearMonth: string; reason: string }) { return this.hrm.eosbReverse(getTenantContext().tenantId, body.yearMonth, body.reason); }
+  @Get('payroll/eosb/accruals') @RequiresPermission('hrm.view') eosbAccruals(@Query('yearMonth') yearMonth?: string) { return this.hrm.listEosbAccruals(getTenantContext().tenantId, yearMonth); }
   @Post('payroll/runs/:id/pay') @RequiresPermission('hrm.payroll.post') payRun(@Param('id') id: string, @Body() body: PayRunInput) { return this.hrm.payRun(getTenantContext().tenantId, id, body); }
   /** 📄 كشف حساب موظف — `frmEmpAccountGet` «كشف حساب موظف»: the employee's own account, entry by entry. */
   @Get('employee-statement')

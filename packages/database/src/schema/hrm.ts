@@ -211,3 +211,60 @@ export type PayrollRun = typeof payrollRuns.$inferSelect;
 export type EmployeeBranch = typeof employeeBranches.$inferSelect;
 export type PayrollWpsFile = typeof payrollWpsFiles.$inferSelect;
 export type PayrollGosiFile = typeof payrollGosiFiles.$inferSelect;
+
+/**
+ * MF-42 / دفقة D10 — سياسة مخصص نهاية الخدمة: صفّ واحد لكل مستأجر (المعدّلان قابلان
+ * للتهيئة — القرار مالك §6.8، والمحكا لا تحفر رقماً: الافتراض 0.5 ثم 1 شهر/سنة).
+ */
+export const eosbPolicies = pgTable(
+  'eosb_policies',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    monthsPerYearFirst: numeric('months_per_year_first', { precision: 9, scale: 4, mode: 'string' as const }).notNull().default('0.5'),
+    monthsPerYearAfter: numeric('months_per_year_after', { precision: 9, scale: 4, mode: 'string' as const }).notNull().default('1'),
+    enabled: boolean('enabled').notNull().default(true),
+    expenseAccountId: uuid('expense_account_id').references(() => accounts.id),
+    liabilityAccountId: uuid('liability_account_id').references(() => accounts.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({ tenantKey: uniqueIndex('eosb_policies_tenant_key').on(table.tenantId) }),
+);
+
+/**
+ * سطور المخصص المرحّلة (الوثيقة المالية لكل موظف): القيد يحمل المجموع والسطور تحمل
+ * التفصيل ⇐ «تقرير نهاية الخدمة = رصيد حساب المخصص» تتحقق بالبناء (AC3).
+ * فرید `(tenant, period, employee)` ⇐ لا ترحيل مزدوج للفترة (يُحذف المعاد عند إعادة الترحيل بعد العكس).
+ */
+export const eosbAccruals = pgTable(
+  'eosb_accruals',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    period: text('period').notNull(),
+    employeeId: uuid('employee_id')
+      .notNull()
+      .references(() => employees.id, { onDelete: 'cascade' }),
+    serviceYears: numeric('service_years', { precision: 9, scale: 4, mode: 'string' as const }).notNull(),
+    basisAmount: numeric('basis_amount', cashValue).notNull(),
+    cumulativeEntitlement: numeric('cumulative_entitlement', cashValue).notNull(),
+    priorAccrued: numeric('prior_accrued', cashValue).notNull(),
+    delta: numeric('delta', cashValue).notNull(),
+    journalEntryId: uuid('journal_entry_id').references(() => journalEntries.id),
+    status: text('status').notNull().default('posted'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    periodEmployeeKey: uniqueIndex('eosb_accruals_tenant_period_employee_key').on(table.tenantId, table.period, table.employeeId),
+    scopeIdx: index('eosb_accruals_scope_idx').on(table.tenantId, table.period, table.status),
+    employeeIdx: index('eosb_accruals_employee_idx').on(table.tenantId, table.employeeId),
+  }),
+);
+
+export type EosbPolicy = typeof eosbPolicies.$inferSelect;
+export type EosbAccrual = typeof eosbAccruals.$inferSelect;

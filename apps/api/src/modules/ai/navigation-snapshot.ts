@@ -3399,6 +3399,28 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     "source": "navigation"
   },
   {
+    "id": "nav:eosb-provision",
+    "title": "مخصص نهاية الخدمة",
+    "href": "/hrm/payroll/eosb",
+    "keywords": [
+      "مخصص",
+      "نهاية",
+      "الخدمة",
+      "End",
+      "of",
+      "service",
+      "provision",
+      "hrm",
+      "payroll",
+      "eosb"
+    ],
+    "steps": [
+      "افتح «مخصص نهاية الخدمة» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
     "id": "nav:hrm-compliance",
     "title": "تنبيهات الإقامة والتأمين",
     "href": "/hrm/compliance",

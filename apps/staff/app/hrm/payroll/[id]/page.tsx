@@ -7,7 +7,6 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../../components/data-view';
 import { ErrorBox, Loading, Screen } from '../../../../components/screen';
-import { accountLabel, listAccounts, postableOf, type Account } from '../../../../lib/accounts';
 import { ApiError, apiData, apiErrorText, apiList, apiPost } from '../../../../lib/api';
 import {
   branchOptions,
@@ -52,11 +51,8 @@ export default function PayrollRunPage() {
   const runQuery = useQuery<Run>(() => apiData<Run>(`/hrm/payroll/runs/${runId}`), [runId]);
   const employees = useQuery<Employee[]>(() => apiList<Employee>('/hrm/employees'), []);
   const branches = useQuery<Branch[]>(() => listBranches(), []);
-  const accounts = useQuery<Account[]>(() => listAccounts(), []);
   const cashLocations = useQuery<CashLocation[]>(() => listCashLocations(), []);
 
-  const [expenseAccountId, setExpenseAccountId] = useState('');
-  const [payableAccountId, setPayableAccountId] = useState('');
   const [branchId, setBranchId] = useState('');
   const [cashLocationId, setCashLocationId] = useState('');
   const [busy, setBusy] = useState(false);
@@ -75,7 +71,6 @@ export default function PayrollRunPage() {
   const netTotal = doc.lines.reduce((sum, line) => sum + Number(line.net), 0);
   const branchRows = branches.data ?? [];
   const effectiveBranch = branchId || defaultOf(branchRows)?.id || '';
-  const postable = (accounts.data ?? []).filter((account) => postableOf(account));
 
   async function run(action: () => Promise<unknown>, okText: string) {
     setBusy(true);
@@ -94,17 +89,11 @@ export default function PayrollRunPage() {
   async function post() {
     const period = doc.periodId ? { id: doc.periodId } : await periodForDate(today());
     if (!period) throw new ApiError(422, 'PERIOD_NOT_FOUND', 'لا توجد فترة محاسبية مفتوحة.');
+    // MF-42 / AC1 (D10): لا سطور قيد من العميل — القيد يُبنى خادمياً (مصروف ورقي +
+    // سطور ذمة موظف فردية لكل موظف).
     await apiPost(`/hrm/payroll/runs/${doc.id}/post`, {
       branchId: effectiveBranch,
       fiscalPeriodId: period.id,
-      journalLines: [
-        { accountId: expenseAccountId, debit: netTotal.toFixed(4), description: `رواتب ${doc.yearMonth}` },
-        {
-          accountId: payableAccountId,
-          credit: netTotal.toFixed(4),
-          description: `رواتب مستحقة ${doc.yearMonth}`,
-        },
-      ],
     });
   }
 
@@ -144,41 +133,11 @@ export default function PayrollRunPage() {
                   ))}
                 </select>
               </label>
-              <label className="field">
-                <span>حساب مصروف الرواتب *</span>
-                <select
-                  className="input"
-                  value={expenseAccountId}
-                  onChange={(event) => setExpenseAccountId(event.target.value)}
-                >
-                  <option value="">— اختر —</option>
-                  {postable.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {accountLabel(account)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>حساب الرواتب المستحقة *</span>
-                <select
-                  className="input"
-                  value={payableAccountId}
-                  onChange={(event) => setPayableAccountId(event.target.value)}
-                >
-                  <option value="">— اختر —</option>
-                  {postable.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {accountLabel(account)}
-                    </option>
-                  ))}
-                </select>
-              </label>
             </div>
             <button
               className="btn primary"
               type="button"
-              disabled={busy || !expenseAccountId || !payableAccountId}
+              disabled={busy}
               onClick={() => run(post, 'تم ترحيل المسيّر بقيد الاستحقاق.')}
             >
               {busy ? 'جارٍ الترحيل…' : 'ترحيل الاستحقاق'}

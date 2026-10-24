@@ -1452,6 +1452,11 @@ const hrm: ModuleNode = {
         screen('payroll-run', 'إستحقاق وصرف الرواتب', 'Payroll run and payment', '/hrm/payroll', 'ready', {
           endpoint: '/hrm/payroll/runs',
         }),
+        // MF-42 / دفقة D10 — دورة مخصص نهاية الخدمة (§6.8 سياسة المخصصات).
+        screen('eosb-provision', 'مخصص نهاية الخدمة', 'End-of-service provision', '/hrm/payroll/eosb', 'ready', {
+          permission: 'hrm.view',
+          endpoint: 'POST /hrm/payroll/eosb/preview',
+        }),
         screen(
           'hrm-compliance',
           'تنبيهات الإقامة والتأمين',

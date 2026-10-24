@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { alias } from 'drizzle-orm/pg-core';
-import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, like, lt, lte, ne, or, sql } from 'drizzle-orm';
 import { DomainError, newId } from '@erp/contracts';
 import {
   accounts,
@@ -30,6 +30,9 @@ import {
   type DrizzleTx,
   type Employee,
   fiscalPeriods,
+  eosbAccruals,
+  eosbPolicies,
+  journalEntries,
 } from '@erp/database';
 
 import { FROM_TO_LABELS_AR, parseDayParam, validateDayFilters } from '../../common/date-param.js';
@@ -39,6 +42,7 @@ import { AccountingService, defaultNormalBalance, type AccountType, type Journal
 import { TreasuryService } from '../treasury/treasury.service.js';
 import { FileAttachmentRegistry } from '../platform-services/files/file-attachments.js';
 
+import { cumulativeEntitlement, DEFAULT_EOSB_RATES, entitlementMonths, periodDelta, serviceYearsAt, type EosbRates } from './eosb-math.js';
 import { calculatePayrollLine, monthEnd } from './payroll-calculator.js';
 import { todayInTimezone } from './payroll-compliance.js';
 
@@ -179,6 +183,11 @@ export type AdjustmentInput = {
 };
 export type AdjustmentQuery = { employeeId?: string; typeCode?: string; status?: string; from?: string; to?: string };
 export type RunInput = { yearMonth: string; periodId?: string; currency?: string; unpaidDaysByEmployee?: Record<string, number> };
+/**
+ * MF-42 / AC1 (D10): `journalEntryId`/`journalLines` مقبولة سابقاً من العميل — الآن مرفوضة
+ * بـ422 `PAYROLL_JOURNAL_LINES_FORBIDDEN` (القيد الخادمي هو المسار الوحيد). الحقلان بقياً
+ * في النوع ليصل الخطأ ودعاً لمن يمرّرهما، لا ليُستعملا.
+ */
 export type PostRunInput = { journalEntryId?: string; branchId?: string; fiscalPeriodId?: string; journalLines?: JournalLineInput[] };
 export type PayRunInput = { branchId: string; cashLocationId: string; method?: 'cash' | 'cheque' | 'bank_transfer' | 'card'; fiscalPeriodId?: string };
 
@@ -1798,6 +1807,11 @@ export class HrmService implements OnModuleInit {
 
   async postRun(tenantId: string, id: string, input: PostRunInput = {}) {
     await this.ensureEnabled(tenantId);
+    // MF-42 / AC1 (D10): لا سطر قيد من العميل — القيد يُولَّد خادمياً دائماً (مصروف ورقي +
+    // سطور ذمة موظف فرديّة ACC-170). أي journalLines/journalEntryId مرفق ⇒ رفض صريح.
+    if ((input.journalLines?.length ?? 0) > 0 || input.journalEntryId) {
+      throw new DomainError('PAYROLL_JOURNAL_LINES_FORBIDDEN', 'قيد المسيّر يُولَّد خادمياً فقط — لا تُمرَّر سطور قيد من العميل', 422);
+    }
     await withTenantTx(this.database.db, tenantId, async (tx) => {
       const [run] = await tx
         .select()
@@ -1830,36 +1844,7 @@ export class HrmService implements OnModuleInit {
        */
       const accrualDate = await this.clampToPeriodInTx(tx, tenantId, periodId, businessToday);
 
-      if (input.journalLines?.length) {
-        // فحص توازن القيد
-        const totalDebit = input.journalLines.reduce((sum, l) => sum.plus(l.debit ?? '0'), new Decimal(0));
-        const totalCredit = input.journalLines.reduce((sum, l) => sum.plus(l.credit ?? '0'), new Decimal(0));
-        if (!totalDebit.eq(totalCredit)) {
-          throw new DomainError('PAYROLL_JOURNAL_UNBALANCED', 'Journal lines must be balanced', 422);
-        }
-        if (netPayable.gt(0) && totalCredit.minus(netPayable).abs().gt('0.01')) {
-          throw new DomainError('PAYROLL_JOURNAL_AMOUNT_MISMATCH', 'Journal lines total must match net payable', 422);
-        }
-
-        const [defaultBranch] = await tx
-          .select({ id: branches.id })
-          .from(branches)
-          .where(and(eq(branches.tenantId, tenantId), isNull(branches.deletedAt)))
-          .limit(1);
-
-        const journal = await this.accounting.postJournalInTx(tx, tenantId, {
-          branchId: input.branchId ?? defaultBranch?.id ?? '',
-          fiscalPeriodId: periodId,
-          date: accrualDate,
-          description: `Payroll ${run.yearMonth}`,
-          lines: input.journalLines,
-          sourceType: 'payroll_run',
-          sourceId: id,
-          idempotencyKey: `payroll-journal:${id}`,
-        });
-        if (!journal) throw new DomainError('INTERNAL', 'Payroll journal was not created', 500);
-        journalEntryId = journal.id;
-      } else if (netPayable.gt(0)) {
+      if (netPayable.gt(0)) {
         // بناء القيد التلقائي من حسابات الرواتب
         const [defaultBranch] = await tx
           .select({ id: branches.id })
@@ -2219,6 +2204,325 @@ export class HrmService implements OnModuleInit {
             lt(salaryAdjustments.startsOn, next),
           ),
         ));
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // MF-42 / D10 — دورة مخصص نهاية الخدمة (§6.8: قرار مالك «سياسة المخصصات») ─
+  // ──────────────────────────────────────────────────────────────────────────
+
+  async getEosbPolicy(tenantId: string) {
+    await this.ensureEnabled(tenantId);
+    const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx.select().from(eosbPolicies).where(eq(eosbPolicies.tenantId, tenantId)).limit(1),
+    );
+    const row = rows[0];
+    return {
+      // أربع خانات دائماً ⇐ نفس لقطة numeric(9,4) سواء جاء الصف من DB أو من الافتراض.
+      monthsPerYearFirst: new Decimal(row?.monthsPerYearFirst ?? DEFAULT_EOSB_RATES.monthsPerYearFirst).toFixed(4),
+      monthsPerYearAfter: new Decimal(row?.monthsPerYearAfter ?? DEFAULT_EOSB_RATES.monthsPerYearAfter).toFixed(4),
+      enabled: row?.enabled ?? true,
+      expenseAccountId: row?.expenseAccountId ?? null,
+      liabilityAccountId: row?.liabilityAccountId ?? null,
+    };
+  }
+
+  async upsertEosbPolicy(
+    tenantId: string,
+    input: { monthsPerYearFirst?: string; monthsPerYearAfter?: string; enabled?: boolean; expenseAccountId?: string | null; liabilityAccountId?: string | null },
+  ) {
+    await this.ensureEnabled(tenantId);
+    const rates: EosbRates = {
+      monthsPerYearFirst: input.monthsPerYearFirst ?? (await this.getEosbPolicy(tenantId)).monthsPerYearFirst,
+      monthsPerYearAfter: input.monthsPerYearAfter ?? (await this.getEosbPolicy(tenantId)).monthsPerYearAfter,
+    };
+    for (const [rateName, rateRaw] of Object.entries({ monthsPerYearFirst: input.monthsPerYearFirst, monthsPerYearAfter: input.monthsPerYearAfter })) {
+      if (rateRaw === undefined) continue;
+      const parsedRate = new Decimal(rateRaw);
+      if (!parsedRate.isFinite() || parsedRate.lte(0)) throw new DomainError('EOSB_RATE_INVALID', `${rateName} يجب أن يكون أكبر من صفر`, 422);
+    }
+    const accountIds = [input.expenseAccountId, input.liabilityAccountId].filter((id): id is string => Boolean(id));
+    if (accountIds.length) {
+      const found = await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx.select({ id: accounts.id }).from(accounts).where(and(eq(accounts.tenantId, tenantId), inArray(accounts.id, accountIds))),
+      );
+      if (found.length !== new Set(accountIds).size) throw new DomainError('EOSB_ACCOUNT_INVALID', 'حساب السياسة غير موجود في الدليل', 422);
+    }
+    const [row] = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .insert(eosbPolicies)
+        .values({
+          id: newId(),
+          tenantId,
+          monthsPerYearFirst: rates.monthsPerYearFirst,
+          monthsPerYearAfter: rates.monthsPerYearAfter,
+          enabled: input.enabled ?? true,
+          expenseAccountId: input.expenseAccountId ?? null,
+          liabilityAccountId: input.liabilityAccountId ?? null,
+        })
+        .onConflictDoUpdate({ target: eosbPolicies.tenantId, set: {
+          monthsPerYearFirst: rates.monthsPerYearFirst,
+          monthsPerYearAfter: rates.monthsPerYearAfter,
+          ...(input.enabled === undefined ? {} : { enabled: input.enabled }),
+          ...(input.expenseAccountId === undefined ? {} : { expenseAccountId: input.expenseAccountId }),
+          ...(input.liabilityAccountId === undefined ? {} : { liabilityAccountId: input.liabilityAccountId }),
+          updatedAt: new Date(),
+        } })
+        .returning(),
+    );
+    return row;
+  }
+
+  /**
+   * سطور Δ لفترة — بدون كتابة (معاينة) أو معها (ترحيل). الاستبعاد: بلا راتب أساسي ·
+   * بلا خدمة حتى آخر الفترة · Δ ≈ صفر. الموظف غير النشط لا يراكم (رصيده القائم يبقى
+   * إلى حين صرف يُسجَّل مستقبلاً — تصرّف مُعلن في §5.10).
+   */
+  private async computeEosbRows(
+    tx: DrizzleTx,
+    tenantId: string,
+    yearMonth: string,
+    rates: EosbRates,
+  ) {
+    const periodEnd = monthEnd(yearMonth);
+    const staff = await tx
+      .select({ id: employees.id, employeeNo: employees.employeeNo, name: employees.name, hireDate: employees.hireDate, salaryComponents: employees.salaryComponents })
+      .from(employees)
+      .where(and(eq(employees.tenantId, tenantId), eq(employees.status, 'active'), isNull(employees.deletedAt)));
+    const priorRows = await tx
+      .select({ employeeId: eosbAccruals.employeeId, prior: sql<string>`COALESCE(SUM(${eosbAccruals.delta}), 0)` })
+      .from(eosbAccruals)
+      .where(and(eq(eosbAccruals.tenantId, tenantId), eq(eosbAccruals.status, 'posted'), lt(eosbAccruals.period, yearMonth)))
+      .groupBy(eosbAccruals.employeeId);
+    const priorByEmployee = new Map(priorRows.map((row) => [row.employeeId, new Decimal(row.prior ?? '0')]));
+
+    const rows: Array<{
+      employeeId: string; employeeNo: string; name: string; hireDate: string | null;
+      serviceYears: string; basis: string; months: string; cumulative: string; priorAccrued: string; delta: string;
+    }> = [];
+    for (const employee of staff) {
+      const components = employee.salaryComponents ?? {};
+      const basis = Object.values(components).reduce((sum, valueText) => sum.plus(new Decimal(valueText || '0')), new Decimal(0));
+      if (basis.lte(0)) continue;
+      const years = serviceYearsAt(employee.hireDate, periodEnd);
+      if (new Decimal(years).lte(0)) continue;
+      const months = entitlementMonths(years, rates);
+      const cumulative = cumulativeEntitlement(basis.toFixed(4), months);
+      const prior = priorByEmployee.get(employee.id) ?? new Decimal(0);
+      const delta = periodDelta(cumulative, prior.toFixed(4));
+      if (new Decimal(delta).abs().lt('0.0001')) continue;
+      rows.push({
+        employeeId: employee.id,
+        employeeNo: employee.employeeNo,
+        name: employee.name,
+        hireDate: employee.hireDate,
+        serviceYears: years,
+        basis: basis.toFixed(4),
+        months,
+        cumulative,
+        priorAccrued: prior.toFixed(4),
+        delta,
+      });
+    }
+    return { periodEnd, rows };
+  }
+
+  private async eosbRatesInTx(tx: DrizzleTx, tenantId: string) {
+    const [policy] = await tx.select().from(eosbPolicies).where(eq(eosbPolicies.tenantId, tenantId)).limit(1);
+    return {
+      policy,
+      rates: {
+        monthsPerYearFirst: policy?.monthsPerYearFirst ?? DEFAULT_EOSB_RATES.monthsPerYearFirst,
+        monthsPerYearAfter: policy?.monthsPerYearAfter ?? DEFAULT_EOSB_RATES.monthsPerYearAfter,
+      } satisfies EosbRates,
+    };
+  }
+
+  async eosbPreview(tenantId: string, yearMonth: string) {
+    await this.ensureEnabled(tenantId);
+    this.assertYearMonth(yearMonth);
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const { rates } = await this.eosbRatesInTx(tx, tenantId);
+      const { periodEnd, rows } = await this.computeEosbRows(tx, tenantId, yearMonth, rates);
+      const existing = await tx
+        .select({ status: eosbAccruals.status })
+        .from(eosbAccruals)
+        .where(and(eq(eosbAccruals.tenantId, tenantId), eq(eosbAccruals.period, yearMonth)))
+        .limit(1);
+      const totalDelta = rows.reduce((sum, row) => sum.plus(new Decimal(row.delta)), new Decimal(0)).toFixed(4);
+      const totalCumulative = rows.reduce((sum, row) => sum.plus(new Decimal(row.cumulative)), new Decimal(0)).toFixed(4);
+      return {
+        yearMonth,
+        periodEnd,
+        status: existing[0]?.status === 'posted' ? 'posted' : existing[0]?.status === 'reversed' ? 'reversed' : 'none',
+        rows,
+        totalDelta,
+        totalCumulative,
+      };
+    });
+  }
+
+  async eosbPost(
+    tenantId: string,
+    input: { yearMonth: string; expenseAccountId?: string; liabilityAccountId?: string; fiscalPeriodId?: string },
+  ) {
+    await this.ensureEnabled(tenantId);
+    this.assertYearMonth(input.yearMonth);
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const { policy, rates } = await this.eosbRatesInTx(tx, tenantId);
+      if (policy && !policy.enabled) throw new DomainError('EOSB_POLICY_DISABLED', 'سياسة مخصص نهاية الخدمة موقوفة', 409);
+
+      const posted = await tx
+        .select({ id: eosbAccruals.id })
+        .from(eosbAccruals)
+        .where(and(eq(eosbAccruals.tenantId, tenantId), eq(eosbAccruals.period, input.yearMonth), eq(eosbAccruals.status, 'posted')))
+        .limit(1);
+      if (posted.length) throw new DomainError('EOSB_PERIOD_ALREADY_POSTED', 'مخصص هذه الفترة مُرحَّل مسبقاً — اعكسه أولاً لإعادة الترحيل', 409);
+
+      const expenseAccountId = input.expenseAccountId ?? policy?.expenseAccountId ?? undefined;
+      const liabilityAccountId = input.liabilityAccountId ?? policy?.liabilityAccountId ?? undefined;
+      if (!expenseAccountId || !liabilityAccountId) {
+        throw new DomainError('EOSB_ACCOUNT_REQUIRED', 'حدّد حساب مصروف ومخصص نهاية الخدمة (في الطلب أو السياسة)', 422);
+      }
+      const accountIds = [expenseAccountId, liabilityAccountId];
+      const accountsFound = await tx
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(and(eq(accounts.tenantId, tenantId), inArray(accounts.id, accountIds)));
+      if (accountsFound.length !== 2) throw new DomainError('EOSB_ACCOUNT_INVALID', 'حساب المصروف أو المخصص غير موجود', 422);
+
+      const { periodEnd, rows } = await this.computeEosbRows(tx, tenantId, input.yearMonth, rates);
+      if (rows.length === 0) throw new DomainError('EOSB_NOTHING_TO_ACCRUE', 'لا استحقاق جديد لهذه الفترة (لا موظفين أو Δ صافٍ صفري)', 422);
+
+      // فرید الفترات: أي سطور سابقة (معكوسة) تُحذف قبل الإدراج الجديد.
+      await tx
+        .delete(eosbAccruals)
+        .where(and(eq(eosbAccruals.tenantId, tenantId), eq(eosbAccruals.period, input.yearMonth)));
+
+      const positive = rows.reduce((sum, row) => (new Decimal(row.delta).gt(0) ? sum.plus(row.delta) : sum), new Decimal(0));
+      const negative = rows.reduce((sum, row) => (new Decimal(row.delta).lt(0) ? sum.plus(new Decimal(row.delta).abs()) : sum), new Decimal(0));
+      const lines: JournalLineInput[] = [];
+      if (positive.gt(0)) {
+        lines.push({ accountId: expenseAccountId, debit: positive.toFixed(4), description: `مخصص نهاية الخدمة شهر ${input.yearMonth}` });
+        lines.push({ accountId: liabilityAccountId, credit: positive.toFixed(4), description: `مخصص نهاية الخدمة مستحق شهر ${input.yearMonth}` });
+      }
+      if (negative.gt(0)) {
+        lines.push({ accountId: liabilityAccountId, debit: negative.toFixed(4), description: `تراجع مخصص نهاية الخدمة شهر ${input.yearMonth}` });
+        lines.push({ accountId: expenseAccountId, credit: negative.toFixed(4), description: `تراجع أساس مخصص نهاية الخدمة شهر ${input.yearMonth}` });
+      }
+      if (lines.length < 2) throw new DomainError('EOSB_NOTHING_TO_ACCRUE', 'لا مبلغ لترحيله', 422);
+
+      const periodId = input.fiscalPeriodId ?? (await this.accounting.openPeriodForDateInTx(tx, tenantId, periodEnd));
+      await this.accounting.assertModuleUnlocked(tx, tenantId, periodId, 'payroll');
+      const [defaultBranch] = await tx
+        .select({ id: branches.id })
+        .from(branches)
+        .where(and(eq(branches.tenantId, tenantId), isNull(branches.deletedAt)))
+        .limit(1);
+
+      // تاريخ القيد = آخر يوم الفترة (الاستحقاق يخصّ الشهر نفسه — نمط ACC-179).
+      // العكس يُبقي القيد الأصلي (تقليعة 0125) ⇐ إعادة الترحيل تحتاج مفتاحاً جديداً
+      // بعدد ما سبق لهذه الفترة (لا تسرّب ازدواج — والفريد على السطور يحمي التزامن).
+      const baseKey = `eosb:${tenantId}:${input.yearMonth}`;
+      const [{ count: priorEntries } = { count: 0 }] = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(journalEntries)
+        .where(and(eq(journalEntries.tenantId, tenantId), like(journalEntries.idempotencyKey, `${baseKey}%`)))
+        .limit(1);
+      const journal = await this.accounting.postJournalInTx(tx, tenantId, {
+        branchId: defaultBranch?.id ?? '',
+        fiscalPeriodId: periodId,
+        date: periodEnd,
+        description: `EOSB accrual ${input.yearMonth}`,
+        lines,
+        sourceType: 'eosb_accrual',
+        idempotencyKey: priorEntries > 0 ? `${baseKey}#${priorEntries + 1}` : baseKey,
+      });
+      if (!journal) throw new DomainError('INTERNAL', 'EOSB journal was not created', 500);
+
+      await tx.insert(eosbAccruals).values(
+        rows.map((row) => ({
+          id: newId(),
+          tenantId,
+          period: input.yearMonth,
+          employeeId: row.employeeId,
+          serviceYears: row.serviceYears,
+          basisAmount: row.basis,
+          cumulativeEntitlement: row.cumulative,
+          priorAccrued: row.priorAccrued,
+          delta: row.delta,
+          journalEntryId: journal.id,
+          status: 'posted',
+        })),
+      );
+      const totalDelta = rows.reduce((sum, row) => sum.plus(new Decimal(row.delta)), new Decimal(0)).toFixed(4);
+      return { yearMonth: input.yearMonth, journalEntryId: journal.id, totalDelta, rows };
+    });
+  }
+
+  async eosbReverse(tenantId: string, yearMonth: string, reason: string) {
+    await this.ensureEnabled(tenantId);
+    this.assertYearMonth(yearMonth);
+    if (!reason?.trim()) throw new DomainError('EOSB_REVERSAL_REASON_REQUIRED', 'سبب عكس المخصص إلزامي', 422);
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const rows = await tx
+        .select()
+        .from(eosbAccruals)
+        .where(and(eq(eosbAccruals.tenantId, tenantId), eq(eosbAccruals.period, yearMonth), eq(eosbAccruals.status, 'posted')));
+      if (rows.length === 0) throw new DomainError('EOSB_PERIOD_NOT_POSTED', 'لا مخصص مُرحَّل لهذه الفترة ليعكس', 409);
+      const entryId = rows[0]?.journalEntryId;
+      if (entryId) {
+        await this.accounting.reverseJournalInTx(tx, tenantId, entryId, {
+          reason: `عكس مخصص نهاية الخدمة ${yearMonth}: ${reason}`,
+          sourceType: 'eosb_accrual',
+          date: monthEnd(yearMonth),
+          ifAlreadyReversed: 'reuse',
+        });
+      }
+      await tx
+        .update(eosbAccruals)
+        .set({ status: 'reversed' })
+        .where(and(eq(eosbAccruals.tenantId, tenantId), eq(eosbAccruals.period, yearMonth)));
+      const totalDelta = rows.reduce((sum, row) => sum.plus(new Decimal(row.delta)), new Decimal(0)).toFixed(4);
+      return { yearMonth, reversed: rows.length, totalDelta };
+    });
+  }
+
+  async listEosbAccruals(tenantId: string, yearMonth?: string) {
+    await this.ensureEnabled(tenantId);
+    return withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .select({
+          id: eosbAccruals.id,
+          period: eosbAccruals.period,
+          employeeId: eosbAccruals.employeeId,
+          employeeNo: employees.employeeNo,
+          employeeName: employees.name,
+          serviceYears: eosbAccruals.serviceYears,
+          basisAmount: eosbAccruals.basisAmount,
+          cumulativeEntitlement: eosbAccruals.cumulativeEntitlement,
+          priorAccrued: eosbAccruals.priorAccrued,
+          delta: eosbAccruals.delta,
+          status: eosbAccruals.status,
+          journalEntryId: eosbAccruals.journalEntryId,
+          createdAt: eosbAccruals.createdAt,
+        })
+        .from(eosbAccruals)
+        .innerJoin(employees, eq(eosbAccruals.employeeId, employees.id))
+        .where(
+          and(
+            eq(eosbAccruals.tenantId, tenantId),
+            yearMonth ? eq(eosbAccruals.period, yearMonth) : undefined,
+          ),
+        )
+        .orderBy(desc(eosbAccruals.period), employees.employeeNo)
+        .limit(500),
+    );
+  }
+
+  private assertYearMonth(yearMonth: string) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(yearMonth ?? '')) {
+      throw new DomainError('VALIDATION_FAILED', 'yearMonth must be YYYY-MM', 422, { field: 'yearMonth' });
+    }
   }
 }
 
