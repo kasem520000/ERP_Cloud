@@ -1,8 +1,0 @@
-{
-  "id": "R32-A13-payment-methods",
-  "at": "2026-10-23T06:58:53.937Z",
-  "method": "GET",
-  "path": "/payment-methods",
-  "status": 200,
-  "response": []
-}

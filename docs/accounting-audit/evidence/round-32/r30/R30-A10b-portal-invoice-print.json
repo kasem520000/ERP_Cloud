@@ -1,7 +1,0 @@
-{
-  "status": 200,
-  "type": "application/json; charset=utf-8",
-  "length": 34077,
-  "htmlLength": 33739,
-  "note": "print endpoint returns JSON {html}; the html field is rendered in the same headless browser for the screenshot"
-}

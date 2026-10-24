@@ -1,1 +1,0 @@
-view interaction failed: locator.waitFor: Timeout 60000ms exceeded.
