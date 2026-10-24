@@ -303,6 +303,11 @@
 - `node docs/accounting-audit/scripts/probe-d6-cash-flow.mjs` → **8/8** (`evidence/verify-seed/probe-d6-cash-flow.txt`) حيّاً: الكتالوج · أعمدة الثلاثة · هوية حقيقية229990 (=−10−20000+250000 = آخر−أول) · ملخص الستة · «غير مصنّف»0 · CSV بالرؤوس · شاشة200.
 - رجوع كامل بعد التنفيذ: **257 ملفاً / 2082 اختباراً PASS**؛ typecheck+بناء+restart ✓. لا لقطات (كتالوج ديناميكي) — لم تُدَّعَ صور.
 
+### 23. الاستعادة الموثوقة والمجدولة (MF-35) — تحقّق آلي (R40)
+- `pnpm --dir apps/api exec vitest run r40-restore` → **4/4**: (1) AC: نسخة كاملة إلى مستأجر فارغ ⇐ عدّ الجداول + ميزان المراجعة مطابقان 100% (بما فيها الاستعادة الثانية المتخطّية)؛ (2) dry_run بتحقق حقيقي دون كتابة؛ (3) معالج `backup.daily` مسجَّل + نسخة ملاحظة `scheduled-daily` + احتفاظ 14 يوماً؛ (4) `maintenanceJobsFor` بمعرّف يومي مُجمَّع + تحرّك اليوم التالي.
+- `node docs/accounting-audit/scripts/probe-d7-restore-verify.mjs` → **8/8** (`evidence/verify-seed/probe-d7-restore-verify.txt`) حيّاً: نسخة 286/39جدولاً بلا `usage_counters` · dry 39/39 + TB 252066.2/252066.2 · حارس رمز 422 · apply صفر إضافة (ملف ممتلئ) · التحقق محفوظ في السجل · شاشة `/settings/restore` 200.
+- رجوع كامل بعد التنفيذ: **258 ملفاً / 2086 اختباراً PASS**؛ typecheck api+staff + بناء + restart ✓ (سجل: `backup.daily handler registered`). لا لقطات (لا متصفح) — لم تُدَّعَ صور.
+
 ## قالب الإبلاغ عن فرق
 
 ```
