@@ -1,0 +1,224 @@
+{
+  "id": "R33-AG08-sales-by-item",
+  "at": "2026-10-23T23:53:12.723Z",
+  "method": "GET",
+  "path": "/reports/sales-by-item?from=2000-01-01&to=2100-01-01",
+  "status": 200,
+  "response": {
+    "key": "sales-by-item",
+    "titleAr": "مبيعات الأصناف تجميعي",
+    "group": "sales",
+    "hintAr": null,
+    "chart": null,
+    "params": {
+      "from": "2000-01-01",
+      "to": "2100-01-01"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "sku",
+        "labelAr": "الرمز",
+        "type": "text"
+      },
+      {
+        "key": "item",
+        "labelAr": "الصنف",
+        "type": "text"
+      },
+      {
+        "key": "quantity",
+        "labelAr": "الكمية",
+        "type": "qty"
+      },
+      {
+        "key": "net",
+        "labelAr": "الصافي",
+        "type": "money"
+      },
+      {
+        "key": "tax",
+        "labelAr": "الضريبة",
+        "type": "money"
+      },
+      {
+        "key": "total",
+        "labelAr": "الإجمالي",
+        "type": "money"
+      },
+      {
+        "key": "cost_total",
+        "labelAr": "التكلفة",
+        "type": "money"
+      },
+      {
+        "key": "profit",
+        "labelAr": "الربح",
+        "type": "money"
+      }
+    ],
+    "rows": [
+      {
+        "sku": "—",
+        "item": "—",
+        "quantity": "5.0000",
+        "net": "143.0000",
+        "tax": "0.0000",
+        "total": "143.0000",
+        "cost_total": "0.0000",
+        "profit": "143.0000"
+      },
+      {
+        "sku": "BR-R33",
+        "item": "خبز R33",
+        "quantity": "15.0000",
+        "net": "97.2000",
+        "tax": "14.5500",
+        "total": "111.7500",
+        "cost_total": "15.4840",
+        "profit": "81.7160"
+      },
+      {
+        "sku": "P8-R33-46",
+        "item": "P8 46",
+        "quantity": "5.0000",
+        "net": "62.0600",
+        "tax": "9.4500",
+        "total": "72.5100",
+        "cost_total": "39.6500",
+        "profit": "22.4100"
+      },
+      {
+        "sku": "P8-R33-47",
+        "item": "P8 47",
+        "quantity": "5.0000",
+        "net": "62.0600",
+        "tax": "9.4500",
+        "total": "72.5100",
+        "cost_total": "39.6500",
+        "profit": "22.4100"
+      },
+      {
+        "sku": "P8-R33-48",
+        "item": "P8 48",
+        "quantity": "5.0000",
+        "net": "62.0600",
+        "tax": "9.4500",
+        "total": "72.5100",
+        "cost_total": "39.6500",
+        "profit": "22.4100"
+      },
+      {
+        "sku": "P8-R33-45",
+        "item": "P8 45",
+        "quantity": "5.0000",
+        "net": "62.0600",
+        "tax": "9.4500",
+        "total": "72.5100",
+        "cost_total": "39.6500",
+        "profit": "22.4100"
+      },
+      {
+        "sku": "P7-R33-43",
+        "item": "P7-R33 43",
+        "quantity": "3.0000",
+        "net": "54.0000",
+        "tax": "8.1000",
+        "total": "62.1000",
+        "cost_total": "36.7500",
+        "profit": "17.2500"
+      },
+      {
+        "sku": "P10-R33-52",
+        "item": "P10 52",
+        "quantity": "2.0000",
+        "net": "40.0000",
+        "tax": "6.0000",
+        "total": "46.0000",
+        "cost_total": "20.0000",
+        "profit": "20.0000"
+      },
+      {
+        "sku": "P10-R33-53",
+        "item": "P10 53",
+        "quantity": "2.0000",
+        "net": "40.0000",
+        "tax": "6.0000",
+        "total": "46.0000",
+        "cost_total": "20.0000",
+        "profit": "20.0000"
+      },
+      {
+        "sku": "P10-R33-54",
+        "item": "P10 54",
+        "quantity": "2.0000",
+        "net": "40.0000",
+        "tax": "6.0000",
+        "total": "46.0000",
+        "cost_total": "20.0000",
+        "profit": "20.0000"
+      },
+      {
+        "sku": "L7-R33-43",
+        "item": "L7-R33 43",
+        "quantity": "1.0000",
+        "net": "20.0000",
+        "tax": "3.0000",
+        "total": "23.0000",
+        "cost_total": "10.0000",
+        "profit": "10.0000"
+      },
+      {
+        "sku": "P9-R33-49",
+        "item": "P9 49",
+        "quantity": "1.0000",
+        "net": "20.0000",
+        "tax": "0.0000",
+        "total": "20.0000",
+        "cost_total": "10.0000",
+        "profit": "10.0000"
+      },
+      {
+        "sku": "P9-R33-50",
+        "item": "P9 50",
+        "quantity": "1.0000",
+        "net": "20.0000",
+        "tax": "0.0000",
+        "total": "20.0000",
+        "cost_total": "10.0000",
+        "profit": "10.0000"
+      },
+      {
+        "sku": "P9-R33-51",
+        "item": "P9 51",
+        "quantity": "1.0000",
+        "net": "20.0000",
+        "tax": "0.0000",
+        "total": "20.0000",
+        "cost_total": "10.0000",
+        "profit": "10.0000"
+      },
+      {
+        "sku": "S7-R33-43",
+        "item": "S7-R33 43",
+        "quantity": "0.0000",
+        "net": "0.0000",
+        "tax": "0.0000",
+        "total": "0.0000",
+        "cost_total": "0.0000",
+        "profit": "0.0000"
+      }
+    ],
+    "totals": {
+      "quantity": "53.00",
+      "net": "742.44",
+      "tax": "81.45",
+      "total": "827.89",
+      "cost_total": "310.8340",
+      "profit": "431.6060"
+    },
+    "grandTotal": [],
+    "rowCount": 15,
+    "generatedAt": "2026-10-23T23:53:13.499Z"
+  }
+}

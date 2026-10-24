@@ -1,0 +1,173 @@
+{
+  "id": "R33-AG10-purchases-by-item",
+  "at": "2026-10-23T23:53:14.302Z",
+  "method": "GET",
+  "path": "/reports/purchases-by-item?from=2000-01-01&to=2100-01-01",
+  "status": 200,
+  "response": {
+    "key": "purchases-by-item",
+    "titleAr": "مشتريات الأصناف تجميعي",
+    "group": "purchases",
+    "hintAr": null,
+    "chart": null,
+    "params": {
+      "from": "2000-01-01",
+      "to": "2100-01-01"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "sku",
+        "labelAr": "الرمز",
+        "type": "text"
+      },
+      {
+        "key": "item",
+        "labelAr": "الصنف",
+        "type": "text"
+      },
+      {
+        "key": "quantity",
+        "labelAr": "الكمية",
+        "type": "qty"
+      },
+      {
+        "key": "net",
+        "labelAr": "الصافي",
+        "type": "money"
+      },
+      {
+        "key": "landed_total",
+        "labelAr": "التكلفة النهائية",
+        "type": "money"
+      },
+      {
+        "key": "avg_cost",
+        "labelAr": "متوسط التكلفة",
+        "type": "money"
+      }
+    ],
+    "rows": [
+      {
+        "sku": "P7-R33-43",
+        "item": "P7-R33 43",
+        "quantity": "15.0000",
+        "net": "206.0000",
+        "landed_total": "206.0000",
+        "avg_cost": "13.7333"
+      },
+      {
+        "sku": "FL-R33",
+        "item": "دقيق R33",
+        "quantity": "100.0000",
+        "net": "200.0000",
+        "landed_total": "200.0000",
+        "avg_cost": "2.0000"
+      },
+      {
+        "sku": "S7-R33-43",
+        "item": "S7-R33 43",
+        "quantity": "2.0000",
+        "net": "200.0000",
+        "landed_total": "200.0000",
+        "avg_cost": "100.0000"
+      },
+      {
+        "sku": "P10-R33-54",
+        "item": "P10 54",
+        "quantity": "17.0000",
+        "net": "168.0300",
+        "landed_total": "168.0300",
+        "avg_cost": "9.8841"
+      },
+      {
+        "sku": "P10-R33-53",
+        "item": "P10 53",
+        "quantity": "15.0000",
+        "net": "150.0300",
+        "landed_total": "150.0300",
+        "avg_cost": "10.0020"
+      },
+      {
+        "sku": "P10-R33-52",
+        "item": "P10 52",
+        "quantity": "15.0000",
+        "net": "150.0300",
+        "landed_total": "150.0300",
+        "avg_cost": "10.0020"
+      },
+      {
+        "sku": "P8-R33-45",
+        "item": "P8 45",
+        "quantity": "14.0000",
+        "net": "113.0900",
+        "landed_total": "113.0900",
+        "avg_cost": "8.0779"
+      },
+      {
+        "sku": "P8-R33-46",
+        "item": "P8 46",
+        "quantity": "14.0000",
+        "net": "113.0900",
+        "landed_total": "113.0900",
+        "avg_cost": "8.0779"
+      },
+      {
+        "sku": "P8-R33-48",
+        "item": "P8 48",
+        "quantity": "14.0000",
+        "net": "113.0900",
+        "landed_total": "113.0900",
+        "avg_cost": "8.0779"
+      },
+      {
+        "sku": "P8-R33-47",
+        "item": "P8 47",
+        "quantity": "13.0000",
+        "net": "103.0900",
+        "landed_total": "103.0900",
+        "avg_cost": "7.9300"
+      },
+      {
+        "sku": "P9-R33-49",
+        "item": "P9 49",
+        "quantity": "5.0000",
+        "net": "50.0000",
+        "landed_total": "50.0000",
+        "avg_cost": "10.0000"
+      },
+      {
+        "sku": "P9-R33-50",
+        "item": "P9 50",
+        "quantity": "5.0000",
+        "net": "50.0000",
+        "landed_total": "50.0000",
+        "avg_cost": "10.0000"
+      },
+      {
+        "sku": "P9-R33-51",
+        "item": "P9 51",
+        "quantity": "5.0000",
+        "net": "50.0000",
+        "landed_total": "50.0000",
+        "avg_cost": "10.0000"
+      },
+      {
+        "sku": "L7-R33-43",
+        "item": "L7-R33 43",
+        "quantity": "3.0000",
+        "net": "30.0000",
+        "landed_total": "30.0000",
+        "avg_cost": "10.0000"
+      }
+    ],
+    "totals": {
+      "quantity": "237.00",
+      "net": "1696.45",
+      "landed_total": "1696.45"
+    },
+    "grandTotal": [],
+    "rowCount": 14,
+    "generatedAt": "2026-10-23T23:53:15.081Z"
+  }
+}
