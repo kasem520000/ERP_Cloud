@@ -3678,27 +3678,13 @@ export class VanSalesService {
       qty: Decimal;
     },
   ): Promise<void> {
-    const membershipRow = first(
-      await tx.execute(sql`
-        SELECT e.membership_id::text
-        FROM salesmen s
-        JOIN employees e ON e.id = s.employee_id
-        WHERE s.id = ${input.salesmanId}::uuid AND s.tenant_id = ${tenantId}::uuid
-          AND e.deleted_at IS NULL AND e.membership_id IS NOT NULL
-        LIMIT 1
-      `),
-    );
-    const membershipId = membershipRow?.membership_id ? str(membershipRow.membership_id) : null;
-    if (!membershipId) return;
-    await this.notifications.createInTx(tx, {
-      tenantId,
-      membershipId,
+    await this.notifyRepInTx(tx, tenantId, {
+      salesmanId: input.salesmanId,
+      loadOrderId: input.loadOrderId,
       type: 'van_sales_supply_pending_receipt',
-      payload: {
-        title: `🚐 توريد جديد بانتظار تأكيدك (${input.number})`,
-        body: `تم صرف ${input.qty.toFixed(2)} كجم إلى عهدتك بموجب المناولة ${input.transferNumber} — أكّد الاستلام أو سجّل الفرق.`,
-        href: '/van-sales/rep',
-      },
+      title: `🚐 توريد جديد بانتظار تأكيدك (${input.number})`,
+      body: `تم صرف ${input.qty.toFixed(2)} كجم إلى عهدتك بموجب المناولة ${input.transferNumber} — أكّد الاستلام أو سجّل الفرق.`,
+      href: '/van-sales/rep',
     });
   }
 
@@ -3878,34 +3864,22 @@ export class VanSalesService {
       `);
 
       /**
-       * إشعار المحاسب — a discrepancy is an exception the accountant must see, not a
-       * number that quietly disagrees with the transfer.
+       * إشعار المحاسب/الإدارة فقط — تأكيد الاستلام أو فرقه يذهب لأصحاب صلاحية الاعتماد/الإدارة
+       * وحدهم، لا إلى المندوب نفسه ولا إلى بقية المناديب.
        */
-      const accountants = rows(
-        await tx.execute(sql`
-          SELECT m.id::text AS membership_id
-          FROM memberships m
-          JOIN membership_roles mr ON mr.membership_id = m.id
-          JOIN role_permissions rp ON rp.role_id = mr.role_id
-          WHERE m.tenant_id = ${tenantId}::uuid AND m.deleted_at IS NULL AND m.status = 'active'
-            AND rp.permission_code IN ('van_sales.closing.approve', 'van_sales.load.manage')
-          LIMIT 10
-        `),
-      );
       const title = discrepancyQty.gt(0)
         ? `⚠️ فرق في استلام التوريد (${str(order.number)})`
         : `✅ تأكيد استلام التوريد (${str(order.number)})`;
       const msgBody = discrepancyQty.gt(0)
         ? `استلم المندوب (${str(order.salesman_name)}) ${receivedQty.toFixed(2)} من ${loadedQty.toFixed(2)} كجم — فرق ${discrepancyQty.toFixed(2)} كجم يحتاج مراجعة.`
         : `استلم المندوب (${str(order.salesman_name)}) ${receivedQty.toFixed(2)} كجم ودخلت عهدة سيارة التوزيع.`;
-      for (const accountant of accountants) {
-        await this.notifications.createInTx(tx, {
-          tenantId,
-          membershipId: str(accountant.membership_id),
-          type: discrepancyQty.gt(0) ? 'van_sales_receipt_discrepancy' : 'van_sales_receipt_confirmed',
-          payload: { title, body: msgBody, href: '/van-sales?tab=loads' },
-        });
-      }
+      await this.notifyAccountantsInTx(tx, tenantId, {
+        type: discrepancyQty.gt(0) ? 'van_sales_receipt_discrepancy' : 'van_sales_receipt_confirmed',
+        title,
+        body: msgBody,
+        href: '/van-sales?tab=loads',
+        loadOrderId,
+      });
     });
 
     return this.dashboard(tenantId);
@@ -4229,32 +4203,112 @@ export class VanSalesService {
           ${`load-cancel-manual:${loadOrderId}`}, ${userId}::uuid
         )
       `);
-      await this.notifyAccountantsInTx(tx, tenantId, {
-        type: 'van_sales_supply_pending_receipt',
-        title: `🗑️ أُلغي أمر تحميل (${str(order.number)})`,
-        body: `${str(order.salesman_name)} — ${reason}. ${transferOutcome}.`,
-        href: '/van-sales?tab=loads',
+      await this.notifyRepInTx(tx, tenantId, {
+        salesmanId: str(order.salesman_id),
+        loadOrderId,
+        type: 'van_sales_load_canceled',
+        title: `🗑️ أُلغي أمر التحميل (${str(order.number)})`,
+        body: `أُلغي أمر التحميل المرسل إلى عهدتك قبل الاستلام — السبب: ${reason}. ${transferOutcome}.`,
+        href: '/van-sales/rep',
       });
     });
 
     return this.dashboard(tenantId);
   }
 
-  /** إشعار أصحاب صلاحية الاعتماد — one query, one rule, reused by every exception path. */
+  /**
+   * إشعارُ المندوب صاحب العهدة وحده — يصل إلى العضوية الفعّالة المربوطة ببطاقة هذا المندوب
+   * تحديداً، فلا يظهر لبقية المناديب ولا في صندوق الإدارة.
+   */
+  private async notifyRepInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    input: {
+      salesmanId: string;
+      type: string;
+      title: string;
+      body: string;
+      href?: string;
+      loadOrderId?: string;
+    },
+  ): Promise<void> {
+    if (!input.salesmanId) return;
+    const membershipRow = first(
+      await tx.execute(sql`
+        SELECT m.id::text AS membership_id
+        FROM salesmen s
+        JOIN employees e ON e.id = s.employee_id
+        JOIN memberships m ON m.id = e.membership_id
+        WHERE s.id = ${input.salesmanId}::uuid
+          AND s.tenant_id = ${tenantId}::uuid
+          AND s.deleted_at IS NULL
+          AND e.deleted_at IS NULL
+          AND m.deleted_at IS NULL
+          AND m.status = 'active'
+        LIMIT 1
+      `),
+    );
+    const membershipId = membershipRow?.membership_id ? str(membershipRow.membership_id) : null;
+    if (!membershipId) return;
+    await this.notifications.createInTx(tx, {
+      tenantId,
+      membershipId,
+      type: input.type,
+      payload: {
+        title: input.title,
+        body: input.body,
+        href: input.href ?? '/van-sales/rep',
+        audience: 'rep',
+        ...(input.loadOrderId ? { loadOrderId: input.loadOrderId } : {}),
+      },
+    });
+  }
+
+  /**
+   * إشعارُ الإدارة/المحاسبين فقط — يذهب حصراً إلى مالك المنشأة (`is_owner = true`) أو حاملي
+   * صلاحيات إدارة واعتماد التوزيع (`van_sales.closing.approve` / `van_sales.load.manage` / `*`)
+   * بلا تكرار (`DISTINCT`) ومع استبعاد حسابات المناديب غير الإداريين.
+   */
   private async notifyAccountantsInTx(
     tx: DrizzleTx,
     tenantId: string,
-    input: { type: string; title: string; body: string; href: string },
+    input: { type: string; title: string; body: string; href: string; loadOrderId?: string },
   ): Promise<void> {
+    const companyPermList = sql.join(
+      ['van_sales.closing.approve', 'van_sales.load.manage', ALL_PERMISSIONS].map(
+        (code) => sql`${code}`,
+      ),
+      sql`, `,
+    );
     const accountants = rows(
       await tx.execute(sql`
         SELECT DISTINCT m.id::text AS membership_id
         FROM memberships m
-        JOIN membership_roles mr ON mr.membership_id = m.id
-        JOIN role_permissions rp ON rp.role_id = mr.role_id
-        WHERE m.tenant_id = ${tenantId}::uuid AND m.deleted_at IS NULL AND m.status = 'active'
-          AND rp.permission_code IN ('van_sales.closing.approve', 'van_sales.load.manage')
-        LIMIT 10
+        WHERE m.tenant_id = ${tenantId}::uuid
+          AND m.deleted_at IS NULL
+          AND m.status = 'active'
+          AND (
+            m.is_owner = true
+            OR EXISTS (
+              SELECT 1
+              FROM membership_roles mr
+              JOIN role_permissions rp ON rp.role_id = mr.role_id
+              WHERE mr.membership_id = m.id
+                AND rp.permission_code IN (${companyPermList})
+            )
+          )
+          AND (
+            m.is_owner = true
+            OR NOT EXISTS (
+              SELECT 1
+              FROM employees e
+              JOIN salesmen s ON s.employee_id = e.id
+              WHERE e.tenant_id = m.tenant_id
+                AND e.membership_id = m.id
+                AND e.deleted_at IS NULL
+                AND s.deleted_at IS NULL
+            )
+          )
       `),
     );
     for (const accountant of accountants) {
@@ -4262,7 +4316,13 @@ export class VanSalesService {
         tenantId,
         membershipId: str(accountant.membership_id),
         type: input.type,
-        payload: { title: input.title, body: input.body, href: input.href },
+        payload: {
+          title: input.title,
+          body: input.body,
+          href: input.href,
+          audience: 'management',
+          ...(input.loadOrderId ? { loadOrderId: input.loadOrderId } : {}),
+        },
       });
     }
   }
@@ -5426,24 +5486,15 @@ export class VanSalesService {
         WHERE id = ${loadOrderId}::uuid AND tenant_id = ${tenantId}::uuid
       `);
 
-      const recipients = rows(
-        await tx.execute(sql`
-          SELECT id::text AS membership_id
-          FROM memberships
-          WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL AND status = 'active'
-          LIMIT 10
-        `),
-      );
       const title = `🚚 طلب اعتماد إغلاق وردية المندوب (${str(loadOrder.salesman_name)}) — ${str(loadOrder.number)}`;
       const msgBody = `المستلم: ${loaded.toFixed(1)} كجم | المباع: ${sold.toFixed(1)} كجم | البونص: ${bonus.toFixed(1)} كجم | المرتجع السليم: ${returnedQty.toFixed(1)} كجم | تالف للفحص: ${damagedQty.toFixed(1)} كجم | المتوقع متبقياً: ${expectedRemaining.toFixed(1)} كجم | الفعلي بالجرد: ${actualRemainingQty.toFixed(1)} كجم | عجز على المندوب: ${shortageQty.toFixed(1)} كجم (${shortageValue.toFixed(2)} ريال). بانتظار اعتماد المحاسب.`;
-      for (const r of recipients) {
-        await this.notifications.createInTx(tx, {
-          tenantId,
-          membershipId: str(r.membership_id),
-          type: 'van_sales_closing_request',
-          payload: { title, body: msgBody, href: '/van-sales?tab=loads' },
-        });
-      }
+      await this.notifyAccountantsInTx(tx, tenantId, {
+        type: 'van_sales_closing_request',
+        title,
+        body: msgBody,
+        href: '/van-sales?tab=loads',
+        loadOrderId,
+      });
     });
 
     return this.dashboard(tenantId);
@@ -6252,17 +6303,6 @@ export class VanSalesService {
         `);
       }
 
-      const recipients = rows(
-        await tx.execute(sql`
-          SELECT id::text AS membership_id
-          FROM memberships
-          WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL AND status = 'active'
-          LIMIT 10
-        `),
-      );
-      const title = requiresStockSettlement
-        ? `⏳ اعتُمدت كميات وردية (${str(loadOrder.salesman_name)}) — العهدة بانتظار تسوية المخزون`
-        : `✅ تم اعتماد إغلاق وردية المندوب (${str(loadOrder.salesman_name)}) وتصفير العهدة`;
       const msgBody = `أمر التحميل ${str(loadOrder.number)}: العهدة ${loaded.toFixed(1)} كجم | المباع ${sold.toFixed(1)} | البونص ${bonus.toFixed(1)} | المرتجع ${returnedQty.toFixed(1)} | التالف ${damagedQty.toFixed(1)} | المتوقع ${expectedRemaining.toFixed(1)} مقابل الفعلي ${actualRemainingQty.toFixed(1)} كجم.${
         damagedQty.gt(0)
           ? damagePostingStatus === 'posted'
@@ -6282,18 +6322,23 @@ export class VanSalesService {
             }. التسوية تتم بمستند جرد رسمي يحتاج تفويضاً صريحاً بترحيله.`
           : ''
       }`;
-      for (const r of recipients) {
-        await this.notifications.createInTx(tx, {
-          tenantId,
-          membershipId: str(r.membership_id),
+      const salesmanId = str(loadOrder.salesman_id);
+      if (!requiresStockSettlement) {
+        await this.notifyRepInTx(tx, tenantId, {
+          salesmanId,
+          loadOrderId,
           type: 'van_sales_closing_approved',
-          payload: { title, body: msgBody, href: '/van-sales?tab=loads' },
+          title: `✅ تم اعتماد إغلاق ورديتك (${str(loadOrder.number)}) وتصفير العهدة`,
+          body: msgBody,
+          href: '/van-sales/rep',
         });
       }
 
       return {
         number: str(loadOrder.number),
+        salesmanId,
         salesmanName: str(loadOrder.salesman_name),
+        msgBody,
         branchId: await this.resolveDefaultBranchIdInTx(
           tx,
           tenantId,
@@ -6327,9 +6372,30 @@ export class VanSalesService {
      * الفشل: كل خطوة فيها محميّة بما يُثبت أنها لم تُنفَّذ من قبل.
      */
     if (phase1.requiresStockSettlement) {
-      await this.runStockSettlement(tenantId, userId, loadOrderId, phase1, {
-        settleStockAdjustment: body.settleStockAdjustment === true,
-      });
+      try {
+        await this.runStockSettlement(tenantId, userId, loadOrderId, phase1, {
+          settleStockAdjustment: body.settleStockAdjustment === true,
+        });
+      } catch (error) {
+        await withTenantTx(this.database.db, tenantId, async (tx) => {
+          await this.notifyRepInTx(tx, tenantId, {
+            salesmanId: phase1.salesmanId,
+            loadOrderId,
+            type: 'van_sales_closing_approved',
+            title: `⏳ اعتُمدت كميات ورديتك (${phase1.number}) — بانتظار استكمال تسوية المخزون`,
+            body: phase1.msgBody,
+            href: '/van-sales/rep',
+          });
+          await this.notifyAccountantsInTx(tx, tenantId, {
+            type: 'van_sales_closing_request',
+            title: `⚠️ وردية (${phase1.salesmanName}) ${phase1.number} بانتظار استكمال التسوية المخزنية`,
+            body: `${phase1.msgBody} — سبب التوقف: ${error instanceof Error ? error.message : String(error)}`,
+            href: '/van-sales?tab=loads',
+            loadOrderId,
+          });
+        });
+        throw error;
+      }
     }
 
     return this.dashboard(tenantId);
@@ -6571,6 +6637,7 @@ export class VanSalesService {
     loadOrderId: string,
     plan: {
       number: string;
+      salesmanId: string;
       salesmanName: string;
       branchId: string | null;
       itemId: string | null;
@@ -6919,26 +6986,40 @@ export class VanSalesService {
         `);
       }
 
-      await this.notifyAccountantsInTx(tx, tenantId, {
+      const settlementBody = closed
+        ? `رصيد السيارة الرسمي صار مطابقاً ل${
+            plan.vehicleCountQty
+              ? `عدد المركبة كلها (${documentCountedQty.toFixed(2)} كجم، نصيبُ هذا الأمر ${plan.countedRemaining.toFixed(2)})`
+              : `لجرد الفعلي (${plan.countedRemaining.toFixed(2)} كجم)`
+          }${
+            plan.needsRemainingMove ? ' وأُعيد المتبقي إلى المستودع الرئيسي' : ''
+          }. مسؤولية العجز المالية ما زالت معلّقة (حالة ${plan.countVariance.gt(0) ? 'بانتظار اعتماد السياسة' : 'لا عجز'}).`
+        : `فرق الجرد ${documentVariance.toFixed(2)} كجم — ${
+            plan.needsCountSettlement && !adjustmentPosted
+              ? 'مستند الجرد الرسمي مسودة، ويلزم تفويض حامل صلاحية الاعتماد بترحيله'
+              : 'يلزم إرجاع المتبقي الفعلي إلى المستودع الرئيسي'
+          }. العهدة لم تُغلق بعد.`;
+
+      await this.notifyRepInTx(tx, tenantId, {
+        salesmanId: plan.salesmanId,
+        loadOrderId,
         type: 'van_sales_closing_approved',
         title: closed
-          ? `✅ سُوِّيت وردية (${plan.salesmanName}) ${plan.number} مخزنياً وأُغلقت العهدة`
-          : `⏳ وردية (${plan.salesmanName}) ${plan.number} بانتظار تسوية المخزون`,
-        body: closed
-          ? `رصيد السيارة الرسمي صار مطابقاً ل${
-              plan.vehicleCountQty
-                ? `عدد المركبة كلها (${documentCountedQty.toFixed(2)} كجم، نصيبُ هذا الأمر ${plan.countedRemaining.toFixed(2)})`
-                : `لجرد الفعلي (${plan.countedRemaining.toFixed(2)} كجم)`
-            }${
-              plan.needsRemainingMove ? ' وأُعيد المتبقي إلى المستودع الرئيسي' : ''
-            }. مسؤولية العجز المالية ما زالت معلّقة (حالة ${plan.countVariance.gt(0) ? 'بانتظار اعتماد السياسة' : 'لا عجز'}).`
-          : `فرق الجرد ${documentVariance.toFixed(2)} كجم — ${
-              plan.needsCountSettlement && !adjustmentPosted
-                ? 'مستند الجرد الرسمي مسودة، ويلزم تفويض حامل صلاحية الاعتماد بترحيله'
-                : 'يلزم إرجاع المتبقي الفعلي إلى المستودع الرئيسي'
-            }. العهدة لم تُغلق بعد.`,
-        href: '/van-sales?tab=loads',
+          ? `✅ سُوِّيت ورديتك (${plan.number}) مخزنياً وأُغلقت العهدة`
+          : `⏳ اعتُمدت كميات ورديتك (${plan.number}) وبانتظار تسوية المخزون`,
+        body: settlementBody,
+        href: '/van-sales/rep',
       });
+
+      if (!closed) {
+        await this.notifyAccountantsInTx(tx, tenantId, {
+          type: 'van_sales_closing_request',
+          title: `⏳ وردية (${plan.salesmanName}) ${plan.number} بانتظار تسوية المخزون`,
+          body: settlementBody,
+          href: '/van-sales?tab=loads',
+          loadOrderId,
+        });
+      }
     });
   }
 
@@ -7028,6 +7109,7 @@ export class VanSalesService {
       `);
       return {
         number: str(loadOrder.number),
+        salesmanId: str(loadOrder.salesman_id),
         salesmanName: str(loadOrder.salesman_name),
         branchId: await this.resolveDefaultBranchIdInTx(
           tx,
@@ -7749,7 +7831,14 @@ export class VanSalesService {
         await tx.execute(sql`
           SELECT n.id::text, n.type, n.payload::text, n.read_at, n.created_at
           FROM notifications n
-          WHERE n.tenant_id = ${tenantId}::uuid AND n.membership_id = ${membershipId}::uuid
+          WHERE n.tenant_id = ${tenantId}::uuid
+            AND n.membership_id = ${membershipId}::uuid
+            AND n.type NOT IN (
+              'van_sales_closing_request',
+              'van_sales_receipt_confirmed',
+              'van_sales_receipt_discrepancy'
+            )
+            AND COALESCE(n.payload->>'audience', '') <> 'management'
           ORDER BY n.created_at DESC
           LIMIT 20
         `),
@@ -7827,7 +7916,13 @@ export class VanSalesService {
                      AND m.salesman_id = ${rep.salesmanId}::uuid) AS collections,
                  (SELECT COUNT(*)::int FROM notifications n
                    WHERE n.tenant_id = ${tenantId}::uuid
-                     AND n.membership_id = ${membershipId}::uuid) AS notifications
+                     AND n.membership_id = ${membershipId}::uuid
+                     AND n.type NOT IN (
+                       'van_sales_closing_request',
+                       'van_sales_receipt_confirmed',
+                       'van_sales_receipt_discrepancy'
+                     )
+                     AND COALESCE(n.payload->>'audience', '') <> 'management') AS notifications
         `),
       );
 

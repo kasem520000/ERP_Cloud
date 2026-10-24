@@ -558,6 +558,12 @@ export function permissionGrants(granted: readonly string[], required: string): 
     return true;
   }
   if (
+    requiredCanonical === 'tenant.notification.view' &&
+    (grantedSet.has('van_sales.view') || grantedSet.has('sales.view'))
+  ) {
+    return true;
+  }
+  if (
     VAN_SALES_CODES_IMPLIED_BY_SALES_INVOICE.includes(requiredCanonical) &&
     !granted.some((c) => c.startsWith('van_sales.') && c !== 'van_sales.view') &&
     grantedSet.has('sales.invoice.create')

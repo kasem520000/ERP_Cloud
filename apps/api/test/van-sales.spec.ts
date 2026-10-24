@@ -12,14 +12,17 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
   let ctx: TestApp;
   let owner: Actor;
   let repActor: Actor;
+  let repBActor: Actor;
   let accountantActor: Actor;
   let tenantBActor: Actor;
   let salesmanId: string;
+  let salesmanBId: string;
   let repEmployeeId: string;
   let partyId: string;
   let branchId: string;
   let mainWarehouseId: string;
   let vanWarehouseId: string;
+  let vanWarehouseBId: string;
   let itemId: string;
   /** 🌾 مكوّن الإنتاج — دفعة الإنتاج تحتاج مصدراً للمواد (BOM أو مكوّنات). */
   let componentItemId: string;
@@ -73,6 +76,19 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
       isOwner: false,
     });
 
+    repBActor = await createActor(ctx, {
+      tenantId: owner.tenantId,
+      tenantCode: 'bakery-a',
+      email: 'rep-b@bakery-a.test',
+      permissions: [
+        'van_sales.view',
+        'van_sales.invoice.create',
+        'van_sales.closing.submit',
+      ],
+      roleNames: ['VanSalesRepB'],
+      isOwner: false,
+    });
+
     accountantActor = await createActor(ctx, {
       tenantId: owner.tenantId,
       tenantCode: 'bakery-a',
@@ -116,11 +132,14 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
     expect(fiscal.status, JSON.stringify(fiscal.body)).toBe(201);
 
     salesmanId = newId();
+    salesmanBId = newId();
     partyId = newId();
     vanWarehouseId = newId();
+    vanWarehouseBId = newId();
     itemId = newId();
     componentItemId = newId();
     repEmployeeId = newId();
+    const repBEmployeeId = newId();
     const baseUnitId = newId();
     const categoryId = newId();
 
@@ -138,7 +157,8 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
       await tx.execute(sql`
         INSERT INTO warehouses (id, tenant_id, branch_id, code, name, is_default, is_active)
         VALUES
-          (${vanWarehouseId}::uuid, ${owner.tenantId}::uuid, ${branchId}::uuid, 'WH-VAN-01', 'مستودع سيارة المندوب 1', false, true)
+          (${vanWarehouseId}::uuid, ${owner.tenantId}::uuid, ${branchId}::uuid, 'WH-VAN-01', 'مستودع سيارة المندوب 1', false, true),
+          (${vanWarehouseBId}::uuid, ${owner.tenantId}::uuid, ${branchId}::uuid, 'WH-VAN-02', 'مستودع سيارة المندوب 2', false, true)
       `);
       await tx.execute(sql`
         INSERT INTO item_categories (id, tenant_id, code, name_ar)
@@ -175,13 +195,19 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
       `);
       await tx.execute(sql`
         INSERT INTO employees (id, tenant_id, employee_no, name, branch_id, membership_id, status)
-        VALUES (${repEmployeeId}::uuid, ${owner.tenantId}::uuid, 'EMP-VAN-1', 'مندوب التوزيع الأول',
-                ${branchId}::uuid, ${repActor.membershipId}::uuid, 'active')
+        VALUES
+          (${repEmployeeId}::uuid, ${owner.tenantId}::uuid, 'EMP-VAN-1', 'مندوب التوزيع الأول',
+           ${branchId}::uuid, ${repActor.membershipId}::uuid, 'active'),
+          (${repBEmployeeId}::uuid, ${owner.tenantId}::uuid, 'EMP-VAN-2', 'مندوب التوزيع الثاني',
+           ${branchId}::uuid, ${repBActor.membershipId}::uuid, 'active')
       `);
       await tx.execute(sql`
         INSERT INTO salesmen (id, tenant_id, name, active, employee_id, warehouse_id, vehicle_plate)
-        VALUES (${salesmanId}::uuid, ${owner.tenantId}::uuid, 'مندوب التوزيع الأول', true,
-                ${repEmployeeId}::uuid, ${vanWarehouseId}::uuid, 'أ ب ج 4521')
+        VALUES
+          (${salesmanId}::uuid, ${owner.tenantId}::uuid, 'مندوب التوزيع الأول', true,
+           ${repEmployeeId}::uuid, ${vanWarehouseId}::uuid, 'أ ب ج 4521'),
+          (${salesmanBId}::uuid, ${owner.tenantId}::uuid, 'مندوب التوزيع الثاني', true,
+           ${repBEmployeeId}::uuid, ${vanWarehouseBId}::uuid, 'د هـ و 8899')
       `);
       await tx.execute(sql`
         INSERT INTO parties (id, tenant_id, code, kind, name, tax_no, credit_limit)
@@ -711,5 +737,85 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
     expect(reconData.mode).toBe('dry_run');
     expect(reconData.counts.totalDocuments).toBe(1);
     expect(reconData.counts.linkedDocuments).toBe(1);
+
+    // 15. Strict Management vs. Rep Notification Isolation:
+    //     - Rep 1 receives ONLY his own supply & closing-approval notifications (never closing requests or receipt confirmations).
+    //     - Rep 2 receives ZERO notifications from Rep 1's workflow, and receives ONLY his own supply + cancel notifications when his order is canceled.
+    //     - Owner & Accountant receive ONLY management notifications (receipt confirmation & closing request), never rep-only supply/cancel notifications.
+    type NotifList = { data: Array<{ id: string; type: string }> };
+
+    const rep1InboxBefore = await api(ctx.server, 'get', '/api/v1/notifications?limit=50', {
+      token: repActor.token,
+    });
+    expect(rep1InboxBefore.status, JSON.stringify(rep1InboxBefore.body)).toBe(200);
+    const rep1Types = (rep1InboxBefore.body as NotifList).data.map((n) => n.type);
+    expect(rep1Types).toContain('van_sales_supply_pending_receipt');
+    expect(rep1Types).toContain('van_sales_closing_approved');
+    expect(rep1Types).not.toContain('van_sales_closing_request');
+    expect(rep1Types).not.toContain('van_sales_receipt_confirmed');
+    expect(rep1Types).not.toContain('van_sales_receipt_discrepancy');
+
+    const rep2InboxBefore = await api(ctx.server, 'get', '/api/v1/notifications?limit=50', {
+      token: repBActor.token,
+    });
+    expect(rep2InboxBefore.status, JSON.stringify(rep2InboxBefore.body)).toBe(200);
+    expect((rep2InboxBefore.body as NotifList).data).toHaveLength(0);
+
+    // Issue and cancel a pending load order for Rep 2 -> ONLY Rep 2 gets supply + cancel notifications
+    const rep2LoadRes = await api(ctx.server, 'post', '/api/v1/van-sales/load-orders', {
+      token: owner.token,
+      body: {
+        salesmanId: salesmanBId,
+        branchId,
+        warehouseId: mainWarehouseId,
+        vanWarehouseId: vanWarehouseBId,
+        itemId,
+        productionBatchNo: batchNo,
+        vehiclePlate: 'د هـ و 8899',
+        loadedQty: '25',
+        idempotencyKey: 'load-order-rep2-cancel-001',
+      },
+    });
+    expect(rep2LoadRes.status, JSON.stringify(rep2LoadRes.body)).toBe(201);
+    const rep2LoadId = (
+      rep2LoadRes.body.data as { loadOrders: Array<{ id: string; salesmanId: string }> }
+    ).loadOrders.find((l) => l.salesmanId === salesmanBId)!.id;
+
+    const cancelRep2Res = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${rep2LoadId}/cancel`,
+      { token: owner.token, body: { reason: 'تعديل خط السير قبل الانطلاق' } },
+    );
+    expect(cancelRep2Res.status, JSON.stringify(cancelRep2Res.body)).toBe(201);
+
+    const rep2InboxAfter = await api(ctx.server, 'get', '/api/v1/notifications?limit=50', {
+      token: repBActor.token,
+    });
+    expect(rep2InboxAfter.status).toBe(200);
+    const rep2Types = (rep2InboxAfter.body as NotifList).data.map((n) => n.type);
+    expect(rep2Types).toContain('van_sales_supply_pending_receipt');
+    expect(rep2Types).toContain('van_sales_load_canceled');
+    expect(rep2Types).not.toContain('van_sales_closing_approved');
+    expect(rep2Types).not.toContain('van_sales_closing_request');
+
+    const rep1InboxAfter = await api(ctx.server, 'get', '/api/v1/notifications?limit=50', {
+      token: repActor.token,
+    });
+    expect((rep1InboxAfter.body as NotifList).data.map((n) => n.type)).not.toContain(
+      'van_sales_load_canceled',
+    );
+
+    for (const mgmt of [owner, accountantActor]) {
+      const mgmtInbox = await api(ctx.server, 'get', '/api/v1/notifications?limit=50', {
+        token: mgmt.token,
+      });
+      expect(mgmtInbox.status, JSON.stringify(mgmtInbox.body)).toBe(200);
+      const mgmtTypes = (mgmtInbox.body as NotifList).data.map((n) => n.type);
+      expect(mgmtTypes).toContain('van_sales_receipt_confirmed');
+      expect(mgmtTypes).toContain('van_sales_closing_request');
+      expect(mgmtTypes).not.toContain('van_sales_supply_pending_receipt');
+      expect(mgmtTypes).not.toContain('van_sales_load_canceled');
+    }
   });
 });
