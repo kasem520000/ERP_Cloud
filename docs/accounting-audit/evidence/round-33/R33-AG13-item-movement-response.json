@@ -1,0 +1,1307 @@
+{
+  "id": "R33-AG13-item-movement",
+  "at": "2026-10-24T00:06:01.122Z",
+  "method": "GET",
+  "path": "/reports/item-movement?from=2000-01-01&to=2100-01-01",
+  "status": 200,
+  "response": {
+    "key": "item-movement",
+    "titleAr": "حركة مادة تفصيلي",
+    "group": "inventory",
+    "hintAr": null,
+    "chart": null,
+    "params": {
+      "from": "2000-01-01",
+      "to": "2100-01-01"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "day",
+        "labelAr": "التاريخ",
+        "type": "date"
+      },
+      {
+        "key": "item",
+        "labelAr": "الصنف",
+        "type": "text"
+      },
+      {
+        "key": "warehouse",
+        "labelAr": "المستودع",
+        "type": "text"
+      },
+      {
+        "key": "doc_type",
+        "labelAr": "المستند",
+        "type": "text"
+      },
+      {
+        "key": "direction",
+        "labelAr": "الاتجاه",
+        "type": "text"
+      },
+      {
+        "key": "qty",
+        "labelAr": "الكمية",
+        "type": "qty"
+      },
+      {
+        "key": "unit_cost",
+        "labelAr": "تكلفة الوحدة",
+        "type": "money"
+      },
+      {
+        "key": "total_cost",
+        "labelAr": "القيمة",
+        "type": "money"
+      }
+    ],
+    "rows": [
+      {
+        "day": "2026-10-23",
+        "item": "P10 54",
+        "warehouse": "مستودع AF 54",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "2.0000",
+        "unit_cost": "9.0000",
+        "total_cost": "20.0055"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 54",
+        "warehouse": "مستودع AF 54",
+        "doc_type": "stock_voucher",
+        "direction": "out",
+        "qty": "9.0000",
+        "unit_cost": "10.0027",
+        "total_cost": "90.0246"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 54",
+        "warehouse": "مستودع AF 54",
+        "doc_type": "stock_transfer_receipt",
+        "direction": "in",
+        "qty": "5.0000",
+        "unit_cost": "10.0027",
+        "total_cost": "50.0136"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 54",
+        "warehouse": "مستودع AF 54",
+        "doc_type": "stock_transfer_receipt",
+        "direction": "in",
+        "qty": "2.0000",
+        "unit_cost": "10.0028",
+        "total_cost": "20.0055"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 54",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "stock_transfer",
+        "direction": "out",
+        "qty": "7.0000",
+        "unit_cost": "10.0027",
+        "total_cost": "70.0191"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 54",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "3.0000",
+        "unit_cost": "10.0100",
+        "total_cost": "30.0300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 54",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "20.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 54",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_return",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 54",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "stock_voucher",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 54",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "2.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "20.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 54",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "10.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "100.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 53",
+        "warehouse": "مستودع AF 53",
+        "doc_type": "stock_transfer_receipt",
+        "direction": "in",
+        "qty": "5.0000",
+        "unit_cost": "10.0027",
+        "total_cost": "50.0136"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 53",
+        "warehouse": "مستودع AF 53",
+        "doc_type": "stock_transfer_receipt",
+        "direction": "in",
+        "qty": "2.0000",
+        "unit_cost": "10.0028",
+        "total_cost": "20.0055"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 53",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "stock_transfer",
+        "direction": "out",
+        "qty": "7.0000",
+        "unit_cost": "10.0027",
+        "total_cost": "70.0191"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 53",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "3.0000",
+        "unit_cost": "10.0100",
+        "total_cost": "30.0300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 53",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "20.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 53",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_return",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 53",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "stock_voucher",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 53",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "2.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "20.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 53",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "10.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "100.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 52",
+        "warehouse": "مستودع AF 52",
+        "doc_type": "stock_transfer_receipt",
+        "direction": "in",
+        "qty": "5.0000",
+        "unit_cost": "10.0027",
+        "total_cost": "50.0135"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 52",
+        "warehouse": "مستودع AF 52",
+        "doc_type": "stock_transfer_receipt",
+        "direction": "in",
+        "qty": "2.0000",
+        "unit_cost": "10.0027",
+        "total_cost": "20.0054"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 52",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "stock_transfer",
+        "direction": "out",
+        "qty": "7.0000",
+        "unit_cost": "10.0027",
+        "total_cost": "70.0191"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 52",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "3.0000",
+        "unit_cost": "10.0100",
+        "total_cost": "30.0300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 52",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "20.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 52",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_return",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 52",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "stock_voucher",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 52",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "2.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "20.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P10 52",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "10.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "100.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P9 51",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P9 51",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "5.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "50.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "1.0199",
+        "total_cost": "1.0199"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "1.0199",
+        "total_cost": "1.0199"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "van_return",
+        "direction": "in",
+        "qty": "3.0000",
+        "unit_cost": "1.0199",
+        "total_cost": "3.0597"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "van_return",
+        "direction": "out",
+        "qty": "3.0000",
+        "unit_cost": "1.0199",
+        "total_cost": "3.0597"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "sales_return",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "1.0199",
+        "total_cost": "1.0199"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "1.0199",
+        "total_cost": "2.0398"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "1.0199",
+        "total_cost": "2.0398"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "stock_transfer_receipt",
+        "direction": "in",
+        "qty": "6.0000",
+        "unit_cost": "1.0199",
+        "total_cost": "6.1194"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "stock_transfer",
+        "direction": "out",
+        "qty": "6.0000",
+        "unit_cost": "1.0199",
+        "total_cost": "6.1191"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "production_order",
+        "direction": "in",
+        "qty": "10.0000",
+        "unit_cost": "1.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "دقيق R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "production_order",
+        "direction": "out",
+        "qty": "5.0000",
+        "unit_cost": "2.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P9 50",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P9 50",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "5.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "50.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "1.0293",
+        "total_cost": "1.0293"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "1.0293",
+        "total_cost": "1.0293"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "van_return",
+        "direction": "in",
+        "qty": "3.0000",
+        "unit_cost": "1.0293",
+        "total_cost": "3.0879"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "van_return",
+        "direction": "out",
+        "qty": "3.0000",
+        "unit_cost": "1.0293",
+        "total_cost": "3.0879"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "sales_return",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "1.0293",
+        "total_cost": "1.0293"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "1.0293",
+        "total_cost": "2.0586"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "1.0293",
+        "total_cost": "2.0586"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "stock_transfer_receipt",
+        "direction": "in",
+        "qty": "6.0000",
+        "unit_cost": "1.0293",
+        "total_cost": "6.1758"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "stock_transfer",
+        "direction": "out",
+        "qty": "6.0000",
+        "unit_cost": "1.0293",
+        "total_cost": "6.1758"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "production_order",
+        "direction": "in",
+        "qty": "10.0000",
+        "unit_cost": "1.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "دقيق R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "production_order",
+        "direction": "out",
+        "qty": "5.0000",
+        "unit_cost": "2.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P9 49",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P9 49",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "5.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "50.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "1.0476",
+        "total_cost": "1.0476"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "1.0476",
+        "total_cost": "1.0476"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "van_return",
+        "direction": "in",
+        "qty": "3.0000",
+        "unit_cost": "1.0476",
+        "total_cost": "3.1428"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "van_return",
+        "direction": "out",
+        "qty": "3.0000",
+        "unit_cost": "1.0476",
+        "total_cost": "3.1428"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "sales_return",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "1.0476",
+        "total_cost": "1.0476"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "1.0476",
+        "total_cost": "2.0952"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "1.0476",
+        "total_cost": "2.0952"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "مستودع سيارة التوزيع",
+        "doc_type": "stock_transfer_receipt",
+        "direction": "in",
+        "qty": "6.0000",
+        "unit_cost": "1.0476",
+        "total_cost": "6.2856"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "stock_transfer",
+        "direction": "out",
+        "qty": "6.0000",
+        "unit_cost": "1.0476",
+        "total_cost": "6.2857"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 48",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_return",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 48",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "15.8600"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 48",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 48",
+        "warehouse": "مستودع Z8 46",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 48",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 48",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 48",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 48",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "3.0000",
+        "unit_cost": "1.0300",
+        "total_cost": "3.0900"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 48",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "10.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "100.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 47",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_return",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 47",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "15.8600"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 47",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 47",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 47",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 47",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 47",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "3.0000",
+        "unit_cost": "1.0300",
+        "total_cost": "3.0900"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 47",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "10.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "100.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 46",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_return",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 46",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "15.8600"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 46",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 46",
+        "warehouse": "مستودع Z8 46",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 46",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 46",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 46",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 46",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "3.0000",
+        "unit_cost": "1.0300",
+        "total_cost": "3.0900"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 46",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "10.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "100.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 45",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_return",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 45",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "15.8600"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 45",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 45",
+        "warehouse": "مستودع Z8 45",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 45",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 45",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 45",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "7.9300",
+        "total_cost": "7.9300"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 45",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "3.0000",
+        "unit_cost": "1.0300",
+        "total_cost": "3.0900"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P8 45",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "10.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "100.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P7-R33 43",
+        "warehouse": "مستودع Y7 43",
+        "doc_type": "stock_transfer_receipt",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "15.7143",
+        "total_cost": "15.7143"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "stock_transfer",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "15.7143",
+        "total_cost": "15.7143"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "2.0000",
+        "unit_cost": "30.0000",
+        "total_cost": "60.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "5.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "50.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "2.0000",
+        "unit_cost": "12.0000",
+        "total_cost": "24.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "stock_voucher",
+        "direction": "out",
+        "qty": "3.0000",
+        "unit_cost": "12.2500",
+        "total_cost": "36.7500"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "S7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_return",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "100.0000",
+        "total_cost": "100.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "S7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "100.0000",
+        "total_cost": "100.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "S7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "2.0000",
+        "unit_cost": "100.0000",
+        "total_cost": "200.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "L7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "L7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "3.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "30.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "2.0000",
+        "unit_cost": "12.2500",
+        "total_cost": "24.5000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "production_order",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "2.0000",
+        "total_cost": "2.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "دقيق R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "production_order",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "2.0000",
+        "total_cost": "2.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "sales_invoice",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "12.2500",
+        "total_cost": "12.2500"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_return",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "13.0000",
+        "total_cost": "13.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "2.0000",
+        "unit_cost": "16.0000",
+        "total_cost": "32.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_return",
+        "direction": "out",
+        "qty": "1.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "10.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "P7-R33 43",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "3.0000",
+        "unit_cost": "10.0000",
+        "total_cost": "30.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "خبز R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "production_order",
+        "direction": "in",
+        "qty": "20.0000",
+        "unit_cost": "1.0000",
+        "total_cost": "20.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "دقيق R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "production_order",
+        "direction": "out",
+        "qty": "10.0000",
+        "unit_cost": "2.0000",
+        "total_cost": "20.0000"
+      },
+      {
+        "day": "2026-10-23",
+        "item": "دقيق R33",
+        "warehouse": "المستودع الرئيسي",
+        "doc_type": "purchase_invoice",
+        "direction": "in",
+        "qty": "100.0000",
+        "unit_cost": "2.0000",
+        "total_cost": "200.0000"
+      }
+    ],
+    "totals": {},
+    "grandTotal": [],
+    "rowCount": 124,
+    "generatedAt": "2026-10-24T00:06:01.916Z"
+  }
+}

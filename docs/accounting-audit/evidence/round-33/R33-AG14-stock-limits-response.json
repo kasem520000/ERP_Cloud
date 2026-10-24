@@ -1,0 +1,53 @@
+{
+  "id": "R33-AG14-stock-limits",
+  "at": "2026-10-24T00:06:04.343Z",
+  "method": "GET",
+  "path": "/reports/stock-limits?from=2000-01-01&to=2100-01-01",
+  "status": 200,
+  "response": {
+    "key": "stock-limits",
+    "titleAr": "الأصناف تحت الحد الأدنى",
+    "group": "inventory",
+    "hintAr": null,
+    "chart": null,
+    "params": {
+      "from": "2000-01-01",
+      "to": "2100-01-01"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "sku",
+        "labelAr": "الرمز",
+        "type": "text"
+      },
+      {
+        "key": "item",
+        "labelAr": "الصنف",
+        "type": "text"
+      },
+      {
+        "key": "on_hand",
+        "labelAr": "الرصيد",
+        "type": "qty"
+      },
+      {
+        "key": "min_qty",
+        "labelAr": "الحد الأدنى",
+        "type": "qty"
+      },
+      {
+        "key": "shortfall",
+        "labelAr": "العجز",
+        "type": "qty"
+      }
+    ],
+    "rows": [],
+    "totals": {
+      "shortfall": "0.00"
+    },
+    "grandTotal": [],
+    "rowCount": 0,
+    "generatedAt": "2026-10-24T00:06:05.129Z"
+  }
+}
