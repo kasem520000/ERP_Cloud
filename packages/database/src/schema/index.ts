@@ -41,3 +41,5 @@ export * from './project-kanban.js';
 export * from './van-sales.js';
 export * from './releases.js';
 
+
+export * from './amortization.js';

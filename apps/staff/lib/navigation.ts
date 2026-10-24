@@ -125,6 +125,10 @@ const accounting: ModuleNode = {
           permission: 'accounting.period.view',
           endpoint: '/fiscal-periods',
         }),
+        screen('amortization-schedules', 'جداول المقدّم والاستحقاق', 'Amortization schedules', '/accounting/amortization-schedules', 'ready', {
+          permission: 'accounting.reports.view',
+          endpoint: '/amortization-schedules',
+        }),
       ],
     },
     {

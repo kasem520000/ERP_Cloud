@@ -183,6 +183,25 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     "source": "navigation"
   },
   {
+    "id": "nav:amortization-schedules",
+    "title": "جداول المقدّم والاستحقاق",
+    "href": "/accounting/amortization-schedules",
+    "keywords": [
+      "جداول",
+      "المقد",
+      "والاستحقاق",
+      "Amortization",
+      "schedules",
+      "accounting",
+      "amortization"
+    ],
+    "steps": [
+      "افتح «جداول المقدّم والاستحقاق» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
     "id": "nav:journals-report",
     "title": "القيود اليومية",
     "href": "/accounting/journal-entries",
