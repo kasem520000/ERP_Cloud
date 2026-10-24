@@ -184,7 +184,7 @@ fun NotificationsScreen(
 
                 when {
                     notif.loading && notif.items.isEmpty() -> CenterLoading("جاري تحميل الإشعارات…")
-                    notif.error != null && notif.items.isEmpty() -> EmptyState(notif.error)
+                    notif.error != null && notif.items.isEmpty() -> EmptyState(notif.error ?: "تعذّر تحميل الإشعارات.")
                     filteredItems.isEmpty() -> EmptyState(
                         if (notif.unreadOnly) "لا توجد إشعارات غير مقروءة في هذا التصنيف."
                         else "لا توجد إشعارات ضمن هذا التصنيف بعد.",
@@ -314,7 +314,7 @@ private fun NotificationCard(
                                     .background(MaterialTheme.colorScheme.primary, CircleShape),
                             )
                         }
-                        item.createdAt?.take(16)?.replace('T', ' ')?.let { stamp ->
+                        item.createdAt.take(16).replace('T', ' ').takeIf { it.isNotBlank() }?.let { stamp ->
                             Text(
                                 stamp,
                                 style = MaterialTheme.typography.bodySmall,
@@ -332,7 +332,7 @@ private fun NotificationCard(
                     )
                 }
 
-                if (!item.body.isNullOrBlank()) {
+                if (item.body.isNotBlank()) {
                     Text(
                         item.body,
                         style = MaterialTheme.typography.bodyMedium,

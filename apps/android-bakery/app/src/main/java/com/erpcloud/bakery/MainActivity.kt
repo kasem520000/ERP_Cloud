@@ -176,7 +176,7 @@ class MainActivity : FragmentActivity() {
     }
 }
 
-private object Routes {
+internal object Routes {
     const val LOGIN = "login"
     const val HOME = "home"
     const val PRODUCTION = "production"

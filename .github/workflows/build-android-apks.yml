@@ -35,10 +35,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: zulu
           java-version: '17'
@@ -62,6 +62,16 @@ jobs:
         run: |
           set -o pipefail
           (./gradlew assembleDebug assembleRelease --stacktrace --no-daemon) 2>&1 | tee bakery-build.log
+
+      - name: Surface compiler errors as annotations on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -f bakery-build.log ]; then
+            grep -E '(^e: |FAILURE:|> Task .* FAILED|\* What went wrong:|Error:)' bakery-build.log | head -n 30 | while IFS= read -r line; do
+              echo "::error title=BakeryBuild::${line}"
+            done
+          fi
 
       - name: Upload Bakery APKs
         uses: actions/upload-artifact@v4
@@ -96,10 +106,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: zulu
           java-version: '17'
@@ -123,6 +133,16 @@ jobs:
         run: |
           set -o pipefail
           (./gradlew assembleDebug assembleRelease --stacktrace --no-daemon) 2>&1 | tee rep-build.log
+
+      - name: Surface compiler errors as annotations on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -f rep-build.log ]; then
+            grep -E '(^e: |FAILURE:|> Task .* FAILED|\* What went wrong:|Error:)' rep-build.log | head -n 30 | while IFS= read -r line; do
+              echo "::error title=RepBuild::${line}"
+            done
+          fi
 
       - name: Upload Rep APKs
         uses: actions/upload-artifact@v4
