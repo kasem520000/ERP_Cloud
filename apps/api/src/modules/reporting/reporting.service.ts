@@ -57,6 +57,9 @@ const filtersSchema = z
   .object({
     from: dayish,
     to: dayish,
+    /** MF-32 (D5a) — نافذة المقارنة: تُظهر عمودي `prev`/`diff` على القوائم المُهيّأة لها. */
+    compareFrom: dayish,
+    compareTo: dayish,
     fromTime: timeish,
     toTime: timeish,
     invType: invTypeish,
@@ -182,8 +185,11 @@ export class ReportingService {
 
     const database = this.database.db;
     const rows = await withTenantTx(database, tenantId, async (tx) => rowsOf(await tx.execute(definition.build(tenantId, filters))));
-    const normalized = rows.map((row) => normalizeRow(row, definition.columns));
-    const columns = applyLayoutColumns(definition.columns, layout?.columns);
+    // MF-32 (D5a): أعمدة المقارنة `prev`/`diff` تظهر فقط عند ورود `compare_from`+`compare_to`.
+    const hasCompare = Boolean(filters.compareFrom && filters.compareTo);
+    const activeColumns = hasCompare ? definition.columns : definition.columns.filter((column) => !column.comparative);
+    const normalized = rows.map((row) => normalizeRow(row, activeColumns));
+    const columns = applyLayoutColumns(activeColumns, layout?.columns);
     return {
       key,
       titleAr: layout?.titleAr || definition.titleAr,

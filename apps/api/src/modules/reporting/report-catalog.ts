@@ -54,7 +54,10 @@ export type ReportColumnType = 'text' | 'money' | 'qty' | 'int' | 'date' | 'perc
  * prints «💰 إجمالي المبيعات:» as `المبيعات − المردودات`, while every row of its grid is
  * positive: the hidden column carries the sign, and `grandTotal` sums it.
  */
-export type ReportColumn = { key: string; labelAr: string; type: ReportColumnType; hidden?: boolean };
+export type ReportColumn = { key: string; labelAr: string; type: ReportColumnType; hidden?: boolean; /**
+ * MF-32 (D5a) — عمود مقارنة: يظهر فقط إذا وُردت `compareFrom`+`compareTo` معاً
+ * (`reporting.run` يصفّي الأعمدة المعلَّمة عند غياب المعلمتين).
+ */ comparative?: boolean };
 
 /**
  * حمولة رمز QR لفاتورة — المرحلة الثانية إن أُصدرت، وإلا حمولةٌ عادية.
@@ -81,6 +84,9 @@ export type ReportGroup = 'sales' | 'purchases' | 'inventory' | 'accounting' | '
 export type ReportFilters = {
   from?: string;
   to?: string;
+  /** MF-32 (D5a) — نافذة المقارنة السابقة (تُظهر عمودي `prev`/`diff` عند اكتمالها مع `compareTo`). */
+  compareFrom?: string;
+  compareTo?: string;
   /** ⏰ الوقت (HH:mm:ss) — `frmRptSalesInPeriod` builds a datetime from a date box + a time box. */
   fromTime?: string;
   toTime?: string;
@@ -3293,21 +3299,54 @@ const definitions: ReportDefinition[] = [
     key: 'income-statement',
     titleAr: 'قائمة الدخل التحليلية',
     group: 'accounting',
-    hintAr: 'الإيرادات موجبة والمصروفات سالبة؛ المجموع هو صافي الربح.',
-    params: [...PERIOD, BRANCH],
-    columns: [text('section', 'البند'), text('code', 'رقم الحساب'), text('account', 'الحساب'), money('amount', 'المبلغ')],
+    hintAr: 'الإيرادات موجبة والمصروفات سالبة؛ المجموع هو صافي الربح. مع `compareFrom/compareTo` تظهر عمودا «السابق» (النافذة السابقة) و«الفرق» (MF-32).',
+    params: [
+      ...PERIOD,
+      { name: 'compareFrom', labelAr: 'مقارنة من', kind: 'date' },
+      { name: 'compareTo', labelAr: 'مقارنة إلى', kind: 'date' },
+      BRANCH,
+    ],
+    columns: [
+      text('section', 'البند'),
+      text('code', 'رقم الحساب'),
+      text('account', 'الحساب'),
+      money('amount', 'المبلغ'),
+      { key: 'prev', labelAr: 'السابق', type: 'money' as const, comparative: true },
+      { key: 'diff', labelAr: 'الفرق', type: 'money' as const, comparative: true },
+    ],
     totals: ['amount'],
-    build: (tenantId, f) => sql`
-      SELECT CASE acc.type WHEN 'revenue' THEN 'الإيرادات' ELSE 'المصروفات' END AS section,
-             acc.code, acc.name_ar AS account,
-             CASE acc.type WHEN 'revenue' THEN sum(jel.credit) - sum(jel.debit)
-                           ELSE -(sum(jel.debit) - sum(jel.credit)) END::text AS amount
-      FROM journal_entry_lines jel
-      JOIN journal_entries je ON je.id = jel.entry_id
-      JOIN accounts acc ON acc.id = jel.account_id
-      WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND acc.type IN ('revenue', 'expense')
-        AND ${onDate(sql`je.date`, f.from, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
-      GROUP BY acc.type, acc.code, acc.name_ar ORDER BY acc.type DESC, acc.code`,
+    build: (tenantId, f) => {
+      // MF-32 (D5a): «السابق» = صافي النافذة [compareFrom..compareTo] لنفس الحساب.
+      const prevExpr =
+        f.compareFrom && f.compareTo
+          ? sql`(SELECT CASE acc.type WHEN 'revenue' THEN coalesce(sum(pj.credit), 0) - coalesce(sum(pj.debit), 0)
+                           ELSE -(coalesce(sum(pj.debit), 0) - coalesce(sum(pj.credit), 0)) END
+                 FROM journal_entry_lines pj
+                 JOIN journal_entries pje ON pje.id = pj.entry_id
+                 WHERE pj.tenant_id = ${tenantId} AND pje.status = 'posted'
+                   AND pj.account_id = acc.id
+                   AND pje.date >= ${f.compareFrom} AND pje.date <= ${f.compareTo}
+                   AND ${eqIf(sql`pje.branch_id`, f.branchId)})::text`
+          : sql`NULL::text`;
+      return sql`
+      SELECT section, code, account, amount, prev,
+             CASE WHEN prev IS NULL THEN NULL::text
+                  ELSE (amount::numeric - prev::numeric)::text END AS diff
+      FROM (
+        SELECT CASE acc.type WHEN 'revenue' THEN 'الإيرادات' ELSE 'المصروفات' END AS section,
+               acc.code, acc.name_ar AS account,
+               CASE acc.type WHEN 'revenue' THEN sum(jel.credit) - sum(jel.debit)
+                             ELSE -(sum(jel.debit) - sum(jel.credit)) END::text AS amount,
+               ${prevExpr} AS prev
+        FROM journal_entry_lines jel
+        JOIN journal_entries je ON je.id = jel.entry_id
+        JOIN accounts acc ON acc.id = jel.account_id
+        WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND acc.type IN ('revenue', 'expense')
+          AND ${onDate(sql`je.date`, f.from, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
+        GROUP BY acc.id, acc.type, acc.code, acc.name_ar
+      ) AS stmt
+      ORDER BY CASE stmt.section WHEN 'الإيرادات' THEN 1 ELSE 2 END, stmt.code`;
+    },
   },
   {
     key: 'balance-sheet',
@@ -3321,17 +3360,54 @@ const definitions: ReportDefinition[] = [
      * 119.8969 = صافي الربح الدفتري). والربح هنا **من القيود** لا من قيمة
      * المخزون التي يضيفها تقرير «أرباح وخسائر» اقتداءً بالديسكتوب.
      */
-    hintAr: 'الأصول في مقابل الخصوم وحقوق الملكية، ويُضاف إليها صافي ربح الفترة أو خسارتها حتى التاريخ المحدد — فالميزانية لا تُقرأ إلّا متوازنة.',
-    params: [{ name: 'to', labelAr: 'حتى تاريخ', kind: 'date' }, BRANCH],
-    columns: [text('section', 'القسم'), text('code', 'رقم الحساب'), text('account', 'الحساب'), money('balance', 'الرصيد')],
+    hintAr: 'الأصول في مقابل الخصوم وحقوق الملكية، ويُضاف إليها صافي ربح الفترة أو خسارتها حتى التاريخ المحدد — فالميزانية لا تُقرأ إلّا متوازنة. مع `compareFrom/compareTo` تظهر عمودا «السابق» و«الفرق» (MF-32).',
+    params: [
+      { name: 'to', labelAr: 'حتى تاريخ', kind: 'date' },
+      { name: 'compareFrom', labelAr: 'مقارنة من', kind: 'date' },
+      { name: 'compareTo', labelAr: 'مقارنة إلى', kind: 'date' },
+      BRANCH,
+    ],
+    columns: [
+      text('section', 'القسم'),
+      text('code', 'رقم الحساب'),
+      text('account', 'الحساب'),
+      money('balance', 'الرصيد'),
+      { key: 'prev', labelAr: 'السابق', type: 'money' as const, comparative: true },
+      { key: 'diff', labelAr: 'الفرق', type: 'money' as const, comparative: true },
+    ],
     totals: [],
-    build: (tenantId, f) => sql`
-      SELECT section, code, account, balance
+    build: (tenantId, f) => {
+      // MF-32 (D5a): «السابق» = رصيد حتى `compare_to` (بنفس رياضيات الحالة آنياً بما فيه الافتتاحي).
+      const prevExpr = f.compareTo
+        ? sql`(SELECT CASE acc.type WHEN 'asset'
+                 THEN coalesce(sum(pj.debit), 0) - coalesce(sum(pj.credit), 0) + coalesce(acc.opening_balance, 0)
+                 ELSE coalesce(sum(pj.credit), 0) - coalesce(sum(pj.debit), 0) + coalesce(acc.opening_balance, 0) END
+               FROM journal_entry_lines pj
+               JOIN journal_entries pje ON pje.id = pj.entry_id
+               WHERE pj.tenant_id = ${tenantId} AND pje.status = 'posted'
+                 AND pj.account_id = acc.id AND pje.date <= ${f.compareTo}
+                 AND ${eqIf(sql`pje.branch_id`, f.branchId)})::text`
+        : sql`NULL::text`;
+      // MF-32: «السابق» لسطر «صافي ربح الفترة» = صافي الدخل حتى تاريخ المقارنة.
+      const netPrevExpr = f.compareTo
+        ? sql`(SELECT coalesce(sum(pj.credit - pj.debit), 0)
+               FROM journal_entry_lines pj
+               JOIN journal_entries pje ON pje.id = pj.entry_id
+               JOIN accounts pac ON pac.id = pj.account_id
+               WHERE pj.tenant_id = ${tenantId} AND pje.status = 'posted'
+                 AND pac.type IN ('revenue', 'expense') AND pje.date <= ${f.compareTo}
+                 AND ${eqIf(sql`pje.branch_id`, f.branchId)})::text`
+        : sql`NULL::text`;
+      return sql`
+      SELECT section, code, account, balance, prev,
+             CASE WHEN prev IS NULL THEN NULL::text
+                  ELSE (balance::numeric - prev::numeric)::text END AS diff
       FROM (
         SELECT CASE acc.type WHEN 'asset' THEN 'الأصول' WHEN 'liability' THEN 'الخصوم' ELSE 'حقوق الملكية' END AS section,
                acc.code, acc.name_ar AS account,
                (CASE acc.type WHEN 'asset' THEN (coalesce(sum(jel.debit), 0) - coalesce(sum(jel.credit), 0)) + coalesce(acc.opening_balance, 0)
                              ELSE (coalesce(sum(jel.credit), 0) - coalesce(sum(jel.debit), 0)) + coalesce(acc.opening_balance, 0) END)::text AS balance,
+               ${prevExpr} AS prev,
                CASE acc.type WHEN 'asset' THEN 1 WHEN 'liability' THEN 2 ELSE 3 END AS ord
         FROM accounts acc
         LEFT JOIN (
@@ -3342,12 +3418,12 @@ const definitions: ReportDefinition[] = [
             AND ${onDate(sql`je.date`, undefined, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
         ) jel ON jel.account_id = acc.id
         WHERE acc.tenant_id = ${tenantId} AND acc.deleted_at IS NULL AND acc.type IN ('asset', 'liability', 'equity')
-        GROUP BY acc.type, acc.code, acc.name_ar, acc.opening_balance
+        GROUP BY acc.id, acc.type, acc.code, acc.name_ar, acc.opening_balance
         HAVING (coalesce(sum(jel.debit), 0) <> 0 OR coalesce(sum(jel.credit), 0) <> 0 OR coalesce(acc.opening_balance, 0) <> 0)
         UNION ALL
         SELECT 'حقوق الملكية', '',
                CASE WHEN result.net >= 0 THEN 'صافي ربح الفترة' ELSE 'صافي خسارة الفترة' END,
-               result.net::text, 4
+               result.net::text, ${netPrevExpr} AS prev_net, 4
         FROM (
           SELECT coalesce(sum(jel.credit - jel.debit), 0) AS net
           FROM journal_entry_lines jel
@@ -3359,7 +3435,7 @@ const definitions: ReportDefinition[] = [
         WHERE result.net <> 0
         UNION ALL
         SELECT 'حقوق الملكية', '', 'أرصدة افتتاحية',
-               result.net_opening::text, 4
+               result.net_opening::text, result.net_opening::text, 4
         FROM (
           SELECT coalesce(sum(CASE WHEN acc.type = 'asset' THEN acc.opening_balance ELSE -acc.opening_balance END), 0) AS net_opening
           FROM accounts acc
@@ -3367,7 +3443,68 @@ const definitions: ReportDefinition[] = [
         ) AS result
         WHERE result.net_opening <> 0
       ) AS sheet
-      ORDER BY sheet.ord, sheet.code`,
+      ORDER BY sheet.ord, sheet.code`;
+    },
+  },
+  {
+    key: 'equity-changes',
+    titleAr: 'قائمة التغيرات في حقوق الملكية',
+    group: 'accounting',
+    hintAr:
+      'لكل مكوّن حقوق ملكية: الافتتاحي (الرصيد المسجَّل + حركات ما قبل الفترة) وتغييرات الفترة ثم الختامي — والختامي = افتتاحي + تغييرات لكل صف. تُضاف نتيجة الفترة غير المحوّلة (بقيت في حسابات الدخل) و2130001 بعد الإقفال السنوي. (MF-32 D5a — الجزء الميكانيكي؛ قائمة التدفقات النقدية دفقة تالية بالطريقة المباشرة بقرار المالك 2026-10-24.)',
+    params: [...PERIOD, BRANCH],
+    columns: [
+      text('section', 'المكوّن'),
+      text('code', 'رقم الحساب'),
+      text('account', 'الحساب'),
+      money('opening', 'الافتتاحي'),
+      money('changes', 'التغييرات'),
+      money('closing', 'الختامي'),
+    ],
+    totals: ['opening', 'changes', 'closing'],
+    build: (tenantId, f) => {
+      const fromBound = f.from ?? '1000-01-01';
+      const toBound = f.to ?? '9999-12-31';
+      return sql`
+        SELECT section, code, account,
+               opening::text AS opening,
+               changes::text AS changes,
+               (opening + changes)::text AS closing
+        FROM (
+          SELECT CASE WHEN acc.code = '2130001' THEN 'أرباح مُحوّلة (2130001)' ELSE 'رأس المال والاحتياطات' END AS section,
+                 acc.code, acc.name_ar AS account,
+                 (coalesce(acc.opening_balance, 0) + coalesce(m.before_amt, 0)) AS opening,
+                 coalesce(m.during_amt, 0) AS changes,
+                 CASE WHEN acc.code = '2130001' THEN 2 ELSE 1 END AS ord
+          FROM accounts acc
+          LEFT JOIN (
+            SELECT jel.account_id,
+                   sum(CASE WHEN je.date < ${fromBound} THEN jel.credit - jel.debit ELSE 0 END) AS before_amt,
+                   sum(CASE WHEN je.date >= ${fromBound} AND je.date <= ${toBound} THEN jel.credit - jel.debit ELSE 0 END) AS during_amt
+            FROM journal_entry_lines jel
+            JOIN journal_entries je ON je.id = jel.entry_id
+            WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND je.date <= ${toBound}
+              AND ${eqIf(sql`je.branch_id`, f.branchId)}
+            GROUP BY jel.account_id
+          ) m ON m.account_id = acc.id
+          WHERE acc.tenant_id = ${tenantId} AND acc.deleted_at IS NULL
+            AND (acc.type = 'equity' OR acc.code = '2130001')
+          UNION ALL
+          SELECT 'نتيجة الفترة (غير محوّلة)', '', 'صافي نتيجة الفترة',
+                 0, r.net, 3
+          FROM (
+            SELECT coalesce(sum(jel.credit - jel.debit), 0) AS net
+            FROM journal_entry_lines jel
+            JOIN journal_entries je ON je.id = jel.entry_id
+            JOIN accounts acc ON acc.id = jel.account_id
+            WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND acc.type IN ('revenue', 'expense')
+              AND ${onDate(sql`je.date`, f.from, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
+          ) r
+          WHERE r.net <> 0
+        ) AS stmt
+        WHERE stmt.opening <> 0 OR stmt.changes <> 0
+        ORDER BY stmt.ord, stmt.code`;
+    },
   },
   {
     key: 'vat-return',
