@@ -14,6 +14,7 @@ import {
   journalEntryLines,
   parties,
   purchaseInvoices,
+  expenseTypes,
   salesInvoices,
   vouchers,
   withTenantTx,
@@ -23,6 +24,7 @@ import {
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { tryGetAuthContext } from '../../request-context/request-context.js';
+import { TreasuryService } from './treasury.service.js';
 
 import {
   bestBankMatch,
@@ -146,7 +148,25 @@ function extractCsv(input: BankStatementImportInput): string {
 
 @Injectable()
 export class BankFeedsService {
-  constructor(@Inject(DATABASE_HANDLE) private readonly database: DatabaseHandle) {}
+  constructor(
+    @Inject(DATABASE_HANDLE) private readonly database: DatabaseHandle,
+    private readonly treasury: TreasuryService,
+  ) {}
+
+  /**
+   * MF-15 (D4) — القفل: كشفٌ «معتمَد» لا يقبل أي كتابة على أسطره ولا حذفاً؛ والقراءة
+   * تبقى مفتوحة. الحارس يسبق بقية الفحوص في كل مسار كتابة (حتى بجسم ناقص هو409).
+   */
+  private assertNotApproved(statement: { id: string; status: string }): void {
+    if (statement.status === 'approved') {
+      throw new DomainError(
+        'BANK_STATEMENT_APPROVED',
+        'الكشف مُعتمد ومُقفل — أعد فتحه (unapprove) قبل أي تعديل على أسطره',
+        409,
+        { statementId: statement.id },
+      );
+    }
+  }
 
   async listBankAccounts(tenantId: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
@@ -249,6 +269,7 @@ export class BankFeedsService {
   async deleteStatement(tenantId: string, id: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const statement = await this.mustStatement(tx, tenantId, id);
+      this.assertNotApproved(statement); // القفل يسبق حتى حارس «لا حذف لمطابَق»
       const [matched] = await tx.select({ id: bankStatementLines.id }).from(bankStatementLines).where(and(eq(bankStatementLines.tenantId, tenantId), eq(bankStatementLines.statementId, id), eq(bankStatementLines.status, 'matched'))).limit(1);
       if (matched) throw new DomainError('BANK_STATEMENT_HAS_MATCHES', 'A reconciled statement cannot be deleted', 409);
       await tx.delete(bankStatements).where(and(eq(bankStatements.tenantId, tenantId), eq(bankStatements.id, id)));
@@ -406,6 +427,10 @@ export class BankFeedsService {
   }
 
   async matchLine(tenantId: string, statementId: string, input: BankLineMatchInput) {
+    // MF-15 (D4): حارس القفل يسبق كل الفحوص الأخرى — حتى بجسمٍ ناقص يعود409 لا422/404.
+    await withTenantTx(this.database.db, tenantId, (tx) =>
+      this.mustStatement(tx, tenantId, statementId).then((statement) => this.assertNotApproved(statement)),
+    );
     if (!input.voucherId && !input.invoiceId) throw new DomainError('BANK_MATCH_TARGET_REQUIRED', 'A voucher or invoice is required', 422);
     if (input.voucherId && input.invoiceId) throw new DomainError('BANK_MATCH_TARGET_AMBIGUOUS', 'Choose either a voucher or an invoice', 422);
 
@@ -529,6 +554,7 @@ export class BankFeedsService {
   async ignoreLine(tenantId: string, statementId: string, lineId: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const line = await this.mustLine(tx, tenantId, statementId, lineId);
+      this.assertNotApproved(await this.mustStatement(tx, tenantId, line.statementId));
       const [updated] = await tx
         .update(bankStatementLines)
         .set({ status: 'ignored', matchReason: 'تجاهل يدوي', updatedAt: new Date(), updatedBy: actorId(), version: line.version + 1 })
@@ -542,6 +568,7 @@ export class BankFeedsService {
   async unmatchLine(tenantId: string, statementId: string, lineId: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const line = await this.mustLine(tx, tenantId, statementId, lineId);
+      this.assertNotApproved(await this.mustStatement(tx, tenantId, line.statementId));
       if (line.status === 'pending') {
         throw new DomainError('LINE_NOT_MATCHED', 'Bank statement line is not matched', 409, {
           field: 'lineId',
@@ -573,6 +600,7 @@ export class BankFeedsService {
   async autoMatch(tenantId: string, statementId: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const statement = await this.mustStatement(tx, tenantId, statementId);
+      this.assertNotApproved(statement);
       const pending = await tx
         .select()
         .from(bankStatementLines)
@@ -929,12 +957,152 @@ export class BankFeedsService {
     if (!row) throw new DomainError('BANK_COST_CENTER_INVALID', 'Cost center does not belong to this tenant', 422, { field: 'costCenterId' });
   }
 
+  /**
+   * MF-15 (D4) — «سند رسوم/عمولة» من سطر غير مطابَق: يُنشأ سند صرفٍ (مصروف فعلي على
+   * حساب نوع المصروف المُختار) من موقع البنك المرتبط بالكشف ويُرحَّل ويُطابَق السطر
+   * به في المعاملة نفسها — لا يبقى سطر رسومٍ بلا أثر في الدفاتر.
+   */
+  async createLineExpense(
+    tenantId: string,
+    statementId: string,
+    input: { lineId: string; expenseTypeId: string; description?: string },
+  ) {
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const statement = await this.mustStatement(tx, tenantId, statementId);
+      this.assertNotApproved(statement);
+      const line = await this.mustLine(tx, tenantId, statementId, input.lineId);
+      if (line.status !== 'pending') {
+        throw new DomainError('BANK_EXPENSE_LINE_NOT_PENDING', 'سند الرسوم يُنشأ من سطر غير مطابَق فقط', 409, {
+          lineId: line.id,
+          status: line.status,
+        });
+      }
+      const lineAmount = money(line.amount);
+      if (!lineAmount.lt(0)) {
+        throw new DomainError('BANK_EXPENSE_LINE_NOT_DEBIT', 'الرسوم/العمولة حركة خروج (سطر مدين) فقط', 422, {
+          lineId: line.id,
+          amount: line.amount,
+        });
+      }
+      const [expenseType] = await tx
+        .select()
+        .from(expenseTypes)
+        .where(and(eq(expenseTypes.tenantId, tenantId), eq(expenseTypes.id, input.expenseTypeId), isNull(expenseTypes.deletedAt)))
+        .limit(1);
+      if (!expenseType) {
+        throw new DomainError('EXPENSE_TYPE_NOT_FOUND', 'نوع المصروف غير موجود', 404, { field: 'expenseTypeId' });
+      }
+      const locIds = await this.bankCashLocationIds(tx, tenantId, statement.bankAccountId);
+      const cashLocationId = locIds[0];
+      if (!cashLocationId) {
+        throw new DomainError(
+          'BANK_EXPENSE_NO_CASH_LOCATION',
+          'لا يوجد موقع نقدي مرتبط بهذا الحساب البنكي — أنشئه أولاً ليُنشئ السند ويُرحَّل من حسابه',
+          422,
+          { bankAccountId: statement.bankAccountId },
+        );
+      }
+      const [location] = await tx
+        .select({ branchId: cashLocations.branchId })
+        .from(cashLocations)
+        .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.id, cashLocationId)))
+        .limit(1);
+      if (!location?.branchId) {
+        throw new DomainError('BRANCH_REQUIRED', 'الموقع النقدي البنكي بلا فرع — عدّل الموقع قبل إنشاء سند الرسوم', 422, { cashLocationId });
+      }
+      const voucher = await this.treasury.createVoucherInTx(tx, tenantId, {
+        branchId: location.branchId,
+        kind: 'payment',
+        subtype: 'expense',
+        date: line.txnDate,
+        cashLocationId,
+        method: 'bank_transfer',
+        amount: lineAmount.abs().toFixed(4),
+        counterAccountId: expenseType.accountId,
+        costCenterId: expenseType.costCenterId ?? undefined,
+        description: input.description?.trim() || `رسوم/عمولة بنكية — ${line.description}`,
+        referenceNo: line.reference ?? undefined,
+      });
+      if (!voucher) throw new DomainError('VOUCHER_CREATE_FAILED', 'تعذّر إنشاء سند الرسوم', 500, { lineId: line.id });
+      await this.treasury.postVoucherInTx(tx, tenantId, voucher.id, {});
+      const [posted] = await tx
+        .select()
+        .from(vouchers)
+        .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, voucher.id)))
+        .limit(1);
+      const [updated] = await tx
+        .update(bankStatementLines)
+        .set({
+          matchedVoucherId: voucher.id,
+          matchedInvoiceId: null,
+          matchedInvoiceType: null,
+          matchConfidence: '1.0000',
+          matchReason: `سند رسوم/عمولة: ${posted?.number ?? voucher.id}`,
+          status: 'matched',
+          matchedAt: new Date(),
+          matchedBy: actorId(),
+          updatedAt: new Date(),
+          updatedBy: actorId(),
+          version: line.version + 1,
+        })
+        .where(and(eq(bankStatementLines.tenantId, tenantId), eq(bankStatementLines.id, line.id), eq(bankStatementLines.version, line.version)))
+        .returning();
+      if (!updated) throw new DomainError('VERSION_CONFLICT', 'Bank statement line was changed by another user', 409);
+      await this.refreshStatementStatus(tx, tenantId, statementId);
+      return { voucher: posted ?? voucher, line: updated };
+    });
+  }
+
+  /** MF-15 (D4) — اعتماد الكشف = قفله على كل الكتابات (القراءة تبقى مفتوحة). */
+  async approveStatement(tenantId: string, id: string) {
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const statement = await this.mustStatement(tx, tenantId, id);
+      this.assertNotApproved(statement);
+      const [updated] = await tx
+        .update(bankStatements)
+        .set({ status: 'approved', updatedAt: new Date(), version: sql`${bankStatements.version} + 1` })
+        .where(and(eq(bankStatements.tenantId, tenantId), eq(bankStatements.id, id)))
+        .returning();
+      if (!updated) throw new DomainError('BANK_STATEMENT_NOT_FOUND', 'Bank statement was not found', 404);
+      return statementDto(updated);
+    });
+  }
+
+  /** MF-15 (D4) — فك الاعتماد: تعود الحالة المحسوبة من الأسطر ويُرفع القفل. */
+  async unapproveStatement(tenantId: string, id: string) {
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const statement = await this.mustStatement(tx, tenantId, id);
+      if (statement.status !== 'approved') {
+        throw new DomainError('BANK_STATEMENT_NOT_APPROVED', 'الكشف ليس معتمداً أصلاً', 409, {
+          statementId: id,
+          status: statement.status,
+        });
+      }
+      await tx
+        .update(bankStatements)
+        .set({ status: 'processed', updatedAt: new Date(), version: sql`${bankStatements.version} + 1` })
+        .where(and(eq(bankStatements.tenantId, tenantId), eq(bankStatements.id, id)));
+      await this.refreshStatementStatus(tx, tenantId, id);
+      const [fresh] = await tx
+        .select()
+        .from(bankStatements)
+        .where(and(eq(bankStatements.tenantId, tenantId), eq(bankStatements.id, id)))
+        .limit(1);
+      return statementDto(fresh ?? { ...statement, status: 'processed' as typeof statement.status });
+    });
+  }
+
   private async refreshStatementStatus(tx: DrizzleTx, tenantId: string, statementId: string): Promise<void> {
     const rows = await tx
       .select({ status: bankStatementLines.status })
       .from(bankStatementLines)
       .where(and(eq(bankStatementLines.tenantId, tenantId), eq(bankStatementLines.statementId, statementId)));
     const status = rows.length > 0 && rows.every((row) => row.status !== 'pending') ? 'reconciled' : 'processed';
-    await tx.update(bankStatements).set({ status, updatedAt: new Date(), version: sql`${bankStatements.version} + 1` }).where(and(eq(bankStatements.tenantId, tenantId), eq(bankStatements.id, statementId)));
+    // دفاع في العمق: الكشف المعتمَد لا ينزّل إلى processed/reconciled — مساروا الكتابة
+    // محجوبون أصلاً بـassertNotApproved، وهذا يمنع أي مسار مستقبلي ناسي من تجاوز القفل.
+    await tx
+      .update(bankStatements)
+      .set({ status, updatedAt: new Date(), version: sql`${bankStatements.version} + 1` })
+      .where(and(eq(bankStatements.tenantId, tenantId), eq(bankStatements.id, statementId), ne(bankStatements.status, 'approved')));
   }
 }

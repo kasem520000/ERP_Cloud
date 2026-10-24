@@ -30,6 +30,7 @@ const STATUS: Record<string, string> = {
   processing: 'قيد المعالجة',
   processed: 'جاهز للمطابقة',
   reconciled: 'تمت التسوية',
+  approved: 'معتمَد (مُقفل)',
   error: 'خطأ',
 };
 
@@ -86,6 +87,36 @@ export default function BankStatementsPage() {
       setOpeningBalance('');
       statements.reload();
       setNotice({ kind: 'ok', text: `تم استيراد ${result.importedLines} حركة بنكية. راجعها قبل المطابقة.` });
+    } catch (error) {
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** MF-15 (D4): الاعتماد يقفل الكشف على كل الكتابات، وفك الاعتماد يعيد المحسوب. */
+  async function runApprove(statement: BankStatement) {
+    if (!window.confirm(`اعتماد وقفل كشف الفترة ${statement.periodFrom} — ${statement.periodTo}؟ بعد الاعتماد تُرفض أي كتابة على أسطره حتى فك الاعتماد.`)) return;
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      await apiPost(`/treasury/bank-statements/${statement.id}/approve`, {});
+      statements.reload();
+      setNotice({ kind: 'ok', text: 'اعتُمد الكشف وقُفل على الكتابات.' });
+    } catch (error) {
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runUnapprove(statement: BankStatement) {
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      await apiPost(`/treasury/bank-statements/${statement.id}/unapprove`, {});
+      statements.reload();
+      setNotice({ kind: 'ok', text: 'فُك قفل الكشف — عاد جاهزاً للتعديل والمطابقة.' });
     } catch (error) {
       setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
@@ -229,7 +260,7 @@ export default function BankStatementsPage() {
                 header: 'الحالة',
                 cell: (row) => (
                   <span
-                    className={`status ${row.status === 'reconciled' ? 'posted' : row.status === 'error' ? 'voided' : 'draft'}`}
+                    className={`status ${row.status === 'reconciled' || row.status === 'approved' ? 'posted' : row.status === 'error' ? 'voided' : 'draft'}`}
                   >
                     {STATUS[row.status] ?? row.status}
                   </span>
@@ -246,7 +277,7 @@ export default function BankStatementsPage() {
                     >
                       مراجعة
                     </Link>
-                    {manage && row.status !== 'reconciled' ? (
+                    {manage && row.status !== 'reconciled' && row.status !== 'approved' ? (
                       <button
                         className="btn sm"
                         disabled={busy}
@@ -254,6 +285,16 @@ export default function BankStatementsPage() {
                         onClick={() => runAutoMatch(row)}
                       >
                         مطابقة تلقائية
+                      </button>
+                    ) : null}
+                    {manage && row.status !== 'approved' ? (
+                      <button className="btn sm" disabled={busy} type="button" onClick={() => runApprove(row)}>
+                        اعتماد وقفل
+                      </button>
+                    ) : null}
+                    {manage && row.status === 'approved' ? (
+                      <button className="btn sm" disabled={busy} type="button" onClick={() => runUnapprove(row)}>
+                        فك الاعتماد
                       </button>
                     ) : null}
                   </div>

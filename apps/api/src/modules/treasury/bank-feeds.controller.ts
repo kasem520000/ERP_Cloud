@@ -100,6 +100,30 @@ export class BankFeedsController {
     return { data: await this.bankFeeds.ignoreLine(getTenantContext().tenantId, id, lineId) };
   }
 
+  /**
+   * MF-15 (D4) — «سند رسوم/عمولة» من سطر غير مطابَق: يُنشأ ويُرحَّل ويُطابَق السطر به
+   * ذرّياً — والنتيجة القديمة كانت رسوماً بلا أي أثر في الدفاتر.
+   */
+  @Post('bank-statements/:id/lines/:lineId/expense')
+  @RequiresPermission('treasury.bank.manage')
+  async lineExpense(@Param('id') id: string, @Param('lineId') lineId: string, @Body() body: { expenseTypeId: string; description?: string }) {
+    return { data: await this.bankFeeds.createLineExpense(getTenantContext().tenantId, id, { lineId, expenseTypeId: body?.expenseTypeId, description: body?.description }) };
+  }
+
+  /** MF-15 (D4) — اعتماد الكشف = قفله على كل الكتابات (unapprove يرفع القفل). */
+  @Post('bank-statements/:id/approve')
+  @RequiresPermission('treasury.bank.manage')
+  async approveStatement(@Param('id') id: string, @Body() body?: { note?: string }) {
+    void body;
+    return { data: await this.bankFeeds.approveStatement(getTenantContext().tenantId, id) };
+  }
+
+  @Post('bank-statements/:id/unapprove')
+  @RequiresPermission('treasury.bank.manage')
+  async unapproveStatement(@Param('id') id: string) {
+    return { data: await this.bankFeeds.unapproveStatement(getTenantContext().tenantId, id) };
+  }
+
   @Delete('bank-statements/:id/lines/:lineId/match')
   @RequiresPermission('treasury.bank.manage')
   async unmatch(@Param('id') id: string, @Param('lineId') lineId: string) {

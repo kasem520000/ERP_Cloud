@@ -9,7 +9,7 @@ import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { DocField, DocHead, FilterBar, StatTile, StatTiles } from '../../../components/ui';
 import { apiData, apiDelete, apiErrorText, apiList, apiPost } from '../../../lib/api';
-import { listCashLocations, today, type CashLocation } from '../../../lib/lookups';
+import { today } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
@@ -70,30 +70,12 @@ export default function BankReconciliationPage() {
 
   const accounts = useQuery<BankAccount[]>(() => apiList<BankAccount>('/treasury/bank-accounts'), []);
   /**
-   * UI-020 (R33) — سطر مدين في الكشف لا يقابله مستند (رسوم بنكية، عمولة) لا يُكتفى بتجاهله: زر
-   * «سند مصروف» يفتح شاشة السندات مملوءةً (المبلغ، التاريخ، البيان، تحويل بنكي من موقع النقد
-   * المرتبط بحساب هذا البنك) ليُثبَت المصروف في الأستاذ ثم يُطابَق السطر به. موقع النقد يُستدل
-   * من حساب الأستاذ للبنك (`bank_accounts.account_id` = `cash_locations.account_id`).
+   * UI-020 (R33) كان يفتح شاشة السندات مملوءةً ثم يطابق اليدوي؛ **MF-15 (D4)** جعلت
+   * «سند رسوم» زراً ذرّياً: `POST …/lines/:lineId/expense` يُنشئ سند الصرف بحساب نوع
+   * المصروف المُختار ويُرحَّله ويُطابَق السطر به في معاملة واحدة — روابط السندات
+   * والموقع النقدي لم تعد تحتاجها هذه الشاشة.
    */
-  const cashLocations = useQuery<CashLocation[]>(() => listCashLocations(), []);
-  const selectedBank = (accounts.data ?? []).find((row) => row.id === bankAccountId);
-  const bankCashLocation = selectedBank?.accountId
-    ? (cashLocations.data ?? []).find((loc) => loc.accountId === selectedBank.accountId)
-    : undefined;
-  const expenseVoucherHref = (row: BankLine) => {
-    const query = new URLSearchParams({
-      kind: 'payment',
-      open: '1',
-      subtype: 'expense',
-      amount: Math.abs(Number(row.amount)).toFixed(2),
-      date: row.txnDate,
-      description: row.description || 'رسوم بنكية',
-      method: 'bank_transfer',
-      reference: row.reference ?? '',
-    });
-    if (bankCashLocation?.id) query.set('cashLocationId', bankCashLocation.id);
-    return `/treasury/vouchers?${query.toString()}`;
-  };
+  const expenseTypes = useQuery<Array<{ id: string; nameAr: string }>>(() => apiList('/expense-types'), []);
   const statementQuery = useMemo(
     () =>
       bankAccountId
@@ -341,13 +323,30 @@ export default function BankReconciliationPage() {
                             تجاهل
                           </button>
                           {Number(row.amount) < 0 && (
-                            <Link
+                            <button
                               className="btn sm"
-                              href={expenseVoucherHref(row)}
-                              title="رسوم/عمولة بنكية بلا مستند: أنشئ سند مصروف بهذا المبلغ ثم طابق السطر به بدل تجاهله"
+                              type="button"
+                              title="MF-15: سند رسوم/عمولة يُنشأ ويُرحَّل ويُطابق السطر به ذرّياً بحساب نوع المصروف"
+                              onClick={() => {
+                                const types = expenseTypes.data ?? [];
+                                const chosen = types[0];
+                                if (!chosen) {
+                                  setNotice({ kind: 'danger', text: 'لا يوجد نوع مصروف — أنشئه من الخزينة (أنواع المصروفات) بحساب الرسوم أولاً.' });
+                                  return;
+                                }
+                                if (!window.confirm(`إنشاء سند رسوم «${chosen.nameAr}» بمبلغ ${Math.abs(Number(row.amount)).toFixed(2)} وإطابقه بالسطر الآن؟`)) return;
+                                void run(
+                                  () =>
+                                    apiPost(
+                                      `/treasury/bank-statements/${effectiveStatementId}/lines/${row.id}/expense`,
+                                      { expenseTypeId: chosen.id, description: row.description || undefined },
+                                    ),
+                                  'أُنشئ سند الرسوم ورُحِّل وطابق السطر به.',
+                                );
+                              }}
                             >
-                              سند مصروف
-                            </Link>
+                              سند رسوم
+                            </button>
                           )}
                         </div>
                       ) : null,
