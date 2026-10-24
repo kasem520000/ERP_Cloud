@@ -977,18 +977,43 @@
 
 **البقيّة المعلَنة:** خيار «مقدّم لعدد أشهر» داخل شاشة المصروف نفسها (الإنشاء من شاشة الجداول الجديدة يغطّي المسار التشغيلي) · مصدر الفاتورة بلا فحص حيّ · MF-23 (دفعات العملاء المقدمة) خارج هذه الدفقة.
 
+### 5.8 تنفيذ D8 — MF-21: سجل الأصول الثابتة والإهلاك (2026-10-24، جلسة R42)
+
+**الاعتماد:** ضمن سلسلة `six_order=p0first` الجارية: MF-22 سُلِّمت في D7 ⇐ بدأت D8 من MF-21 مباشرة.
+
+**التحقق الحيّ (r42 + probe-d9 على verify2026 — لا رسائل نجاح تُعدّ دليلاً):**
+- أصل 12,000/60 ⇐ قسط **200.0000** شهرياً (رياضيات وحدات صرفة)؛ بعد 12 شهراً (فبراير 2026…يناير 2027): مجمع **2,400** ومصروف **2,400**؛ الميزانية الفعلية `GET /reports/balance-sheet` تُظهر صفّي 1180001=**12,000** و 1180002=**−2,400** ⇐ **صافي 9,600**.
+- معاينة بلا قيد (المصروف = 0 قبل الترحيل) · تشغيل ثانٍ لنفس الشهر → **409 DEPRECIATION_PERIOD_RUN_EXISTS** · إعادة ترحيل → **409 DEPRECIATION_RUN_ALREADY_POSTED** · إنشاء تشغيل في فترة مغلقة → **409 FISCAL_PERIOD_CLOSED عند المدخل نفسه** (لا حتى المعاينة) ثم إعادة الفتح يعمل.
+- طرق مختلطة في تشغيل واحد (ثابت 100 · متناقص 240 · وحدات 300 بـ500/10,000 · قسط خاص 200) · بلا مدخلات وحدات → **422 DEPRECIATION_UNITS_REQUIRED** بلا نصف تشغيل.
+- استبعاد جزئي: نصف كلفة FA-P (2,000) بـ2,500 ⇐ مجمع مرفوع **100** وربح **600** · البيع الكامل بـ10,000 ⇐ ربح **400** (r42) — وبيع 10,000 بعد شهر واحد ⇐ خسارة **1,800** (probe-d9) — كلها عبر **سند قبض حقيقي** (طرف الخزينة 10,000 يُقرأ من قيود السند المرحَّل).
+- رسملة من فاتورة شراء: قراءة `total` من الفاتورة + قيد انقلال (مدين الأصل / دائن حساب الفاتورة) ⇐ حساب الفاتورة **يُصفَّر** (لا ازدواج) + فهرس جزئي `(tenant, source_type, source_id)` يمنع رسملة الفاتورة مرتين (409).
+- مطابقة السجل مع الحسابات قبل البيع وبعده (r42: 26,000 / 740 / 3,240 حيّة) · ميزان كليّ probe-d9: **337,266.2000 = 337,266.2000**.
+- شاشتا `/accounting/fixed-assets` و`/accounting/asset-categories` → **200** ومدخلاهما في تنقّل المحاسبة.
+
+**آليات التنفيذ والقرارات:**
+- ترحيل `0148_fixed_assets.sql` (+down): خمسة جداول (فئات/أصول/تشغيلات إهلاك/سطور/استبعادات) · فهرس فريد `(tenant, period)` على التشغيلات ⇐ «لا تشغيل مزدوج» مفروض في القاعدة · فهرس جزئي للرسملة · رصيد **148/148**.
+- الترحيل عبر `postJournal` بمفتاح idempotency `depreciation:<مستأجر>:<yyyy-mm>` ⇐ يرث `FISCAL_PERIOD_CLOSED` والقيد المتوازن · فحوصات الإنشاء بالترتيب **إقفال ← وجود ← أهلية ← وحدات** (وجود التشغيل قبل الأهلية أظهره probe-d9: فترة منشورة تُردّ RUN_EXISTS حتى لو فارغت أصولها المؤهلة).
+- **الرسملة اليدوية**: قيد الانقلال اختياري (`reclassifyFromAccountId`) بمفتاح حتمي (حسب المصدر أو رمز الأصل) ⇐ إعادة المحاولة لا تُنشئ قيداً ثانياً · أصل بلا حساب في الدفتر يظهر **بلا نشاط** في تقرير الميزانية — شاشة الانقلال هي مسار رأس المال الحقيقي.
+- **البيع/الاستبعاد في TreasuryModule** (لا دورة وحدات): سند قبض حقيقي **دائن حساب تسوية** لا الربح، ثم قيد التحرّك: مدين تسوية + مجمع [+ خسارة] — دائن أصل [+ ربح] ⇐ الخزينة والأستاذ متوازنان هندسياً (الطرفان = التكلفة في كل الحالات) · نزف التكلفة الجزئي (`cost−`) ومجمع نسبي.
+- الأهلية: **شهر التشغيل يسبق الشهر المُحتسب صارماً** (تشغيل يناير ⇐ أول إهلاك فبراير) · تاريخ قيد الإهلاك = آخر يوم الشهر · الأصل المستبعد لا يُهكّ بعد (r42: أصل مباع لا يضيف قسطاً في الأشهر التالية).
+- **بلا عيوب منتج جديدة من r42**: كل أخطاء دورة RED كانت في الاختبار نفسه (نوع حساب `income`→`revenue` · حقل `name` لا `nameAr` للأطراف · توقّع كسر بداعي استمرار أصل مُبعَّد · تكرار الشهر الأول في اللوب) — وملاحظة مستجدة: `POST /accounts` بنوع خاطئ يعيد **500** لا 422 (سلوك قائم سابق — سُجّل **ACC-221** بلا إصلاح خارج نطاق MF-21).
+
+**النتائج:** `r42-fixed-assets.spec.ts` **4/4** (وحدة الرياضيات · AC الشامل · طرق+فصل+استبعاد+مطابقة · رسملة فاتورة) · رجوع كامل **260/260 ملفاً · 2093/2093 اختباراً** (بعد التجديد الرسمي للقطة AI 277→279) · `probe-d9-fixed-assets.mjs` **11/11** (`evidence/verify-seed/probe-d9-fixed-assets.txt`) · `probe-d8-amortization.mjs` **9/9** بعد تضييق A05 (تأكيد إعادة الفتح) وA06 (نوافذ مخصصة للجدول) · بناء database+api+staff **0** · ترحيل **148/148**.
+
+**البقيّة المعلَنة:** **لا لقطات PNG (لا متصفح في البيئة — تنزيل كروم محجوب: cdn.playwright.dev و objects.githubusercontent) — لم تُدَّعَ صور** (كما D5a/D5b/D6/D7) · مسار «من قيد» (`sourceType:'journal'`) بلا فحص حيّ · البيع/التخفيض من الواجهة (API موثّق ومفحوص — الشاشة تعرض السجل والتشغيلات لا نموذج البيع) · حد الرسملة ومراكز الإهلاك والصيانة والتطويم والتصفيه والمراجعة السنوية (§6.1) خارج الدفقة · marketplace: خارج النطاق (§6.2).
+
 ## 8. سجل الاكتشاف (لإعادة التحقق)
 
 | التحقق | الأمر/المصدر | النتيجة |
 |---|---|---|
-| الجداول | `select table_name from information_schema.tables where table_schema='public'` | 292 جدولاً؛ لا `fixed_assets|budgets|purchase_orders|goods_receipts|recurring_*|amortization_*|vat_filings|sales_orders` |
+| الجداول | `select table_name from information_schema.tables where table_schema='public'` | 292 جدولاً؛ لا `fixed_assets|budgets|...` — **استُدعيت: 0147 أضافت `amortization_*` وD8/0148 أضافت `asset_categories|fixed_assets|asset_depreciation_runs|asset_depreciation_lines|asset_disposals` (2026-10-24)** |
 | مفاتيح التقارير | `grep -c "^\s*key: '" report-catalog.ts` | 103؛ لا `cash-flow|fixed-asset|depreciation|budget|withholding|subledger` |
 | الصلاحيات | `select count(*) from permissions` | 218 |
 | كيانات الاعتماد | `packages/contracts/src/approval.ts` | `sales_invoice, purchase_invoice, voucher, expense, leave` |
 | مسارات المحاسبة | `grep "@Get\|@Post\|@Patch\|@Delete" accounting.controller.ts` | accounts, fiscal-years (GET/POST), fiscal-periods (activate/close/reopen/modules lock/unlock), statements (TB/IS/GL/cost-center), cost-centers, journal-entries (GET/POST/reverse) |
 | الخزينة/البنوك | `treasury.controller.ts`, `bank-feeds.controller.ts` | vouchers (post/void/cheque), cash-transfers, expense-types, shift-closes, cash-locations (movements/balance/recalc), bank-accounts, bank-statements (import/match/auto-match/ignore/unmatch), bank-reconciliation(-rules) |
-| كلمات مفتاحية = 0 ملف | `grep -rli` في `apps/api/src/modules` | `fixed.asset|depreciat`, `budget`, `cash.flow`, `purchase.order`, `goods.receipt|grn`, `intercompany|consolidat`, `puppeteer|pdfkit|pdf-lib|chromium` |
-| شاشات staff | `find apps/staff/app -name page.tsx` | ≈190 شاشة؛ لا شاشة عملات/أسعار صرف، لا أصول، لا موازنات، لا إقفال سنوي، لا قيود دورية |
+| كلمات مفتاحية = 0 ملف | `grep -rli` في `apps/api/src/modules` | `fixed.asset|depreciat` (**استُدعي D8** — `depreciation-math.ts` + وحدة fixed-assets كاملاً), `budget`, `cash.flow` (**استُدعي D5b**), `purchase.order`, `goods.receipt|grn`, `intercompany|consolidat`, `puppeteer|pdfkit|pdf-lib|chromium` |
+| شاشات staff | `find apps/staff/app -name page.tsx` | ≈190 شاشة؛ لا شاشة عملات/أسعار صرف، لا أصول (**استُدعيت D8** — `/accounting/fixed-assets` + `/accounting/asset-categories`)، لا موازنات، لا إقفال سنوي، لا قيود دورية |
 | سجل التدقيق الفعلي | `select entity, action, count(*) from audit_log group by 1,2` (بيئة R30) | أحداث HTTP (`sales update.<uuid>`, `auth.login`…) بلا `before` |
 | أعمدة مفتاحية | `information_schema.columns` | `sales_invoices` بلا `due_date` **(استُدعيت — R34/0144 أضافت `due_date` للفاتورتين + `payment_terms_days`/`credit_hold` للأطراف وعبّأت رجعياً)**؛ `parties.credit_limit` موجود؛ `stock_adjustment_lines(expected_qty,counted_qty,variance_*)`؛ `fx_rates(from_code,to_code,rate,effective_from)`؛ `files(entity,entity_id)`؛ `dunning_attempts.subscription_id` |
 | إعادة تحقق خطة §5 | 2026-10-24 (R34) — grep «حالة R33/الحالة» لكل مرجع + قراءة كود + فحص أعمدة حيّ | 31 مرجعاً:24+ FIXED-VERIFIED،1 قرار مالك (ACC-141)،1 جزئي (ACC-149→MF-47)، **ACC-105 وحده كان OPEN فأُغلق D1** — الجدول في §5.0 |
@@ -1000,3 +1025,4 @@
 | تنفيذ D5b | تقرير `cash-flow-statement` (مباشرة) في report-catalog + `r39-cash-flow-direct.spec.ts` + `probe-d6-cash-flow.mjs` حيّ | r39 **2/2**؛ رجوع كامل **257/2082 PASS**؛ probe **8/8** (هوية حية229990)؛ بلا عيوب جديدة — التفاصيل §5.5 |
 | تنفيذ D6 | MF-35: `verification` في ملخص الاستعادة + إعادة خريطة معرّفات حتمية عابرة للمستأجر + تجزئة قياسية + `backup.daily` (جدولة+احتفاظ14يوماً) + كتلة تحقق الواجهة + `r40-restore-verification.spec.ts` + `probe-d7-restore-verify.mjs` حيّ | r40 **4/4**؛ رجوع كامل **258/2086 PASS**؛ probe **8/8**؛ ACC-218/219/220 كُشفت وأُصلحت في الدفقة — التفاصيل §5.6 |
 | تنفيذ D7 | ترحيل `0147` + `amortization.service/controller` + شاشة `/accounting/amortization-schedules` + تجديد لقطة تنقّل المساعد + `r41-amortization.spec.ts` + `probe-d8-amortization.mjs` حيّ | r41 **3/3**؛ رجوع كامل: جولة **258/259 ملفاً** والفشل الوحيد (لقطة AI لم تعرف الشاشة الجديدة) حُلّ بـ`build-ai-navigation-snapshot.mjs` ثم ai-help **3/3** ⇐ **259/259 · 2089/2089 PASS**؛ probe **9/9**؛ بلا عيوب جديدة — التفاصيل §5.7 |
+| تنفيذ D8 | ترحيل `0148` + `fixed-assets.service/controller` + `asset-disposal` (treasury) + شاشتا السجل والفئات + تجديد لقطة التنقّل + `r42-fixed-assets.spec.ts` + `probe-d9-fixed-assets.mjs` حيّ | r42 **4/4**؛ رجوع كامل **260/260 · 2093/2093 PASS**؛ probe-d9 **11/11** (+ probe-d8 **9/9** بعد تضييق A05/A06)؛ **ACC-221** (نوع حساب غير صالح → 500) مُسجَّل بلا إصلاح خارج النطاق — التفاصيل §5.8 |
