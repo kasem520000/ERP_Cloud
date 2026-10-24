@@ -1,0 +1,10 @@
+DROP INDEX IF EXISTS asset_disposals_scope_idx;
+DROP TABLE IF EXISTS asset_disposals;
+DROP INDEX IF EXISTS asset_depreciation_lines_asset_idx;
+DROP TABLE IF EXISTS asset_depreciation_lines;
+DROP INDEX IF EXISTS asset_depreciation_runs_scope_idx;
+DROP TABLE IF EXISTS asset_depreciation_runs;
+DROP INDEX IF EXISTS fixed_assets_scope_idx;
+DROP INDEX IF EXISTS fixed_assets_tenant_source_key;
+DROP TABLE IF EXISTS fixed_assets;
+DROP TABLE IF EXISTS asset_categories;

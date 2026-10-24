@@ -102,6 +102,10 @@ const accounting: ModuleNode = {
           permission: 'parties.view',
           endpoint: '/payment-methods',
         }),
+        screen('asset-categories', 'فئات الأصول الثابتة', 'Asset categories', '/accounting/asset-categories', 'ready', {
+          permission: 'accounting.reports.view',
+          endpoint: '/asset-categories',
+        }),
       ],
     },
     {
@@ -128,6 +132,10 @@ const accounting: ModuleNode = {
         screen('amortization-schedules', 'جداول المقدّم والاستحقاق', 'Amortization schedules', '/accounting/amortization-schedules', 'ready', {
           permission: 'accounting.reports.view',
           endpoint: '/amortization-schedules',
+        }),
+        screen('fixed-assets', 'سجل الأصول الثابتة', 'Fixed asset register', '/accounting/fixed-assets', 'ready', {
+          permission: 'accounting.reports.view',
+          endpoint: '/fixed-assets',
         }),
       ],
     },

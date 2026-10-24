@@ -78,6 +78,16 @@ const main = async () => {
         [tenantId, accountId, from, to],
       ))[0]?.b ?? 0,
     );
+  // نافذة محصورة في قيود جدول بعينه — إعادة تشغيل الـprobe لا تضاعف النافذة.
+  const sourceWindow = async (accountId, sourceId, from, to) =>
+    Number(
+      (await sql(
+        `SELECT COALESCE(SUM(jl.debit - jl.credit), 0) AS b
+         FROM journal_entry_lines jl JOIN journal_entries je ON je.id = jl.entry_id
+         WHERE jl.tenant_id = $1 AND jl.account_id = $2 AND je.source_id = $3 AND je.date >= $4 AND je.date <= $5`,
+        [tenantId, accountId, sourceId, from, to],
+      ))[0]?.b ?? 0,
+    );
 
   // حسابا التسوية: يُنشأان إن لم يوجدان (ويعاد استخدامهما في التشغيلات التالية).
   const findOrMakeAccount = async (code, nameAr, type) => {
@@ -148,23 +158,34 @@ const main = async () => {
     `تكرار → ${dup.status} ${dup.body?.code ?? ''}، مقدّم ما زال=${afterDup.toFixed(4)}`,
   );
 
-  // A05 — فترة مغلقة: إقفال أكتوبر ثم التوليد →409 ثم إعادة الفتح.
+  // A05 — فترة مغلقة: إقفال أكتوبر ثم التوليد →409 ثم إعادة الفتح **مُتحقَّق منها**
+  // (D8 فحص: النسخة السابقة كانت تُعيد الفتح دون تأكيد الحالة — صار الرجوع مُقروءاً).
   const periods = (await call('GET', '/fiscal-periods')).data ?? [];
   const october = periods.find((p) => String(p.startDate ?? '').startsWith('2026-10'));
-  let octWasClosed = october?.status === 'closed';
-  if (october && !octWasClosed) {
+  const wasOpen = Boolean(october) && october.status !== 'closed';
+  let octClosed = false;
+  let reopenStatus = null;
+  if (wasOpen) {
     const closed = await call('POST', `/fiscal-periods/${october.id}/close`, {});
-    octWasClosed = closed.status < 300;
+    octClosed = closed.status < 300;
+  } else if (october) {
+    octClosed = true; // كانت مغلقة سلفاً — الحالة كما كانت لا تُغيَّر
   }
   const expenseSnapshot = await balance(expenseId);
   const inClosed = await call('POST', `/amortization-schedules/${scheduleId}/generate`, { period: '2026-10' });
   const closedStable = Math.abs((await balance(expenseId)) - expenseSnapshot) < 0.0001;
-  if (october && october.status !== 'closed') await call('POST', `/fiscal-periods/${october.id}/reopen`, { reason: 'probe-d8 cleanup' });
+  if (wasOpen) {
+    const reopened = await call('POST', `/fiscal-periods/${october.id}/reopen`, { reason: 'probe-d8 cleanup' });
+    reopenStatus = reopened.status;
+  }
+  const reopenOk = wasOpen ? reopenStatus !== null && reopenStatus < 300 : true;
+  const finalOct = ((await call('GET', '/fiscal-periods')).data ?? []).find((p) => String(p.startDate ?? '').startsWith('2026-10'));
+  const finalOpen = wasOpen ? finalOct?.status === 'open' : true;
   check(
     'A05',
-    Boolean(october) && octWasClosed && inClosed.status === 409 &&
-      JSON.stringify(inClosed.body).includes('FISCAL_PERIOD_CLOSED') && closedStable,
-    `إقفال أكتوبر=${octWasClosed}، توليد في مغلق → ${inClosed.status} ${inClosed.body?.code ?? ''}، المصروف ثابت=${closedStable}، أُعيد الفتح`,
+    Boolean(october) && octClosed && inClosed.status === 409 &&
+      JSON.stringify(inClosed.body).includes('FISCAL_PERIOD_CLOSED') && closedStable && reopenOk && finalOpen,
+    `إقفال=${octClosed}، توليد في مغلق → ${inClosed.status} ${inClosed.body?.code ?? ''}، المصروف ثابت=${closedStable}، إعادة الفتح=${reopenStatus ?? '— (كانت مغلقة)'} والحالة النهائية=${finalOct?.status ?? '—'}`,
   );
 
   // A06 — استحقاق3,000×3: يوليو قيد + أول أغسطس عكس + صفر كلّي + تكرار409.
@@ -174,8 +195,8 @@ const main = async () => {
   });
   const accrualId2 = String(accrualSchedule.data?.id ?? '');
   const accrualGen = accrualId2 ? await call('POST', `/amortization-schedules/${accrualId2}/generate`, { period: '2026-07' }) : { status: 0, body: {} };
-  const julyWindow = await windowBalance(accrualId, '2026-07-01', '2026-07-31');
-  const augWindow = await windowBalance(accrualId, '2026-08-01', '2026-08-31');
+  const julyWindow = await sourceWindow(accrualId, accrualId2, '2026-07-01', '2026-07-31');
+  const augWindow = await sourceWindow(accrualId, accrualId2, '2026-08-01', '2026-08-31');
   const accrualGlobal = await balance(accrualId);
   const accrualDup = accrualId2 ? await call('POST', `/amortization-schedules/${accrualId2}/generate`, { period: '2026-07' }) : { status: 0, body: {} };
   check(

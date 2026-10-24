@@ -124,6 +124,25 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     "source": "navigation"
   },
   {
+    "id": "nav:asset-categories",
+    "title": "فئات الأصول الثابتة",
+    "href": "/accounting/asset-categories",
+    "keywords": [
+      "فئات",
+      "الأصول",
+      "الثابتة",
+      "Asset",
+      "categories",
+      "accounting",
+      "asset"
+    ],
+    "steps": [
+      "افتح «فئات الأصول الثابتة» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
     "id": "nav:opening-entry",
     "title": "قيد إفتتاحي",
     "href": "/accounting/journal-entries/new?kind=opening",
@@ -197,6 +216,27 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     ],
     "steps": [
       "افتح «جداول المقدّم والاستحقاق» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:fixed-assets",
+    "title": "سجل الأصول الثابتة",
+    "href": "/accounting/fixed-assets",
+    "keywords": [
+      "سجل",
+      "الأصول",
+      "الثابتة",
+      "Fixed",
+      "asset",
+      "register",
+      "accounting",
+      "fixed",
+      "assets"
+    ],
+    "steps": [
+      "افتح «سجل الأصول الثابتة» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"

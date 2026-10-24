@@ -43,3 +43,5 @@ export * from './releases.js';
 
 
 export * from './amortization.js';
+
+export * from './fixed-assets.js';

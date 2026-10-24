@@ -8,11 +8,13 @@ import { ApprovalModule } from '../approvals/approvals.module.js';
 import { TreasuryController } from './treasury.controller.js';
 import { TreasuryService } from './treasury.service.js';
 import { TreasuryApprovalHandler } from './treasury-approval.handler.js';
+import { AssetDisposalController } from './asset-disposal.controller.js';
+import { AssetDisposalService } from './asset-disposal.service.js';
 
 @Module({
   imports: [AccountingModule, OrganizationModule, DeveloperModule, ApprovalModule],
-  controllers: [TreasuryController],
-  providers: [TreasuryService, TreasuryApprovalHandler],
-  exports: [TreasuryService],
+  controllers: [TreasuryController, AssetDisposalController],
+  providers: [TreasuryService, TreasuryApprovalHandler, AssetDisposalService],
+  exports: [TreasuryService, AssetDisposalService],
 })
 export class TreasuryModule {}
