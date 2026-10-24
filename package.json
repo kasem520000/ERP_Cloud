@@ -26,6 +26,7 @@
     "db:migrate": "pnpm --dir packages/database run migrate",
     "db:migrate:down": "pnpm --dir packages/database run migrate:down",
     "db:seed": "pnpm --dir apps/api run seed",
+    "verify-seed": "pnpm --dir apps/api exec tsx scripts/verify-seed.ts",
     "db:roles": "pnpm --dir packages/database run roles",
     "db:demo-audit": "pnpm --dir packages/database run demo-audit",
     "db:demo-repair": "pnpm --dir packages/database run demo-repair",
