@@ -308,6 +308,23 @@
 - `node docs/accounting-audit/scripts/probe-d7-restore-verify.mjs` → **8/8** (`evidence/verify-seed/probe-d7-restore-verify.txt`) حيّاً: نسخة 286/39جدولاً بلا `usage_counters` · dry 39/39 + TB 252066.2/252066.2 · حارس رمز 422 · apply صفر إضافة (ملف ممتلئ) · التحقق محفوظ في السجل · شاشة `/settings/restore` 200.
 - رجوع كامل بعد التنفيذ: **258 ملفاً / 2086 اختباراً PASS**؛ typecheck api+staff + بناء + restart ✓ (سجل: `backup.daily handler registered`). لا لقطات (لا متصفح) — لم تُدَّعَ صور.
 
+### 24. المصروفات المقدّمة والمستحقة وجداول الإطفاء (MF-22) — تحقّق آلي (R41)
+
+اختبار: `corepack pnpm --dir apps/api exec vitest run r41-amortization` (3/3) · حيّ: `node docs/accounting-audit/scripts/probe-d8-amortization.mjs` (9/9).
+
+```text
+أرقام AC (حيّ على verify2026):
+الشاشة (المسار): /accounting/amortization-schedules → 200
+القيمة المتوقعة: مقدّم بعد3 أقساط من12,000 = 9,000 · مصروف = 3,000 · قسط = 1,000
+القيمة الفعلية: مقدّم=9000.0000 · مصروف=3000.0000 · balance=9000.0000 · count=3
+الفرق: 0
+
+تكرار قسط: 409 AMORTIZATION_INSTALLMENT_EXISTS · الحركة: 0
+توليد في فترة مغلقة: 409 FISCAL_PERIOD_CLOSED · الحركة: 0
+استحقاق يوليو: دائن مستحق1,000 · عكس 2026-08-01: مدين1,000 · الكلّي: 0.0000
+ميزان كليّ: مدين=269066.2000 دائن=269066.2000
+```
+
 ## قالب الإبلاغ عن فرق
 
 ```
