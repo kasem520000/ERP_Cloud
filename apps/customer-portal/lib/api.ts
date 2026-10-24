@@ -109,8 +109,8 @@ export type PortalInvoice = {
 };
 
 export type PortalInvoiceLine = { line_no: number; name: string; unit: string | null; quantity: string; unit_price: string; discount_amount: string; net: string; tax: string; total: string };
-export type PortalPayment = { id: string; number: string | null; day: string; kind: string; method: string; amount: string; status: string; notes: string | null };
-export type StatementLine = { day: string; doc_type: string; number: string; description: string; debit: string; credit: string; running: string; document_id: string };
+export type PortalPayment = { id: string; number: string | null; day: string; kind: string; method: string | null; amount: string; status: string; reference_no?: string | null; cheque_no?: string | null; notes?: string | null };
+export type StatementLine = { movement_id?: string | null; day: string; doc_type: string; number: string; description: string; debit: string; credit: string; running: string; document_id: string };
 
 export const fetchProfile = () => portalFetch<PortalProfile>('/portal/me');
 export const fetchInvoices = (range: { from?: string; to?: string } = {}) => {

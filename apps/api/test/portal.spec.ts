@@ -129,6 +129,7 @@ describe('customer portal', () => {
         'sales.view',
         'sales.invoice.create',
         'sales.invoice.post',
+        'sales.invoice.pay',
         'accounting.period.close',
         'reporting.view',
       ],
@@ -269,6 +270,28 @@ describe('customer portal', () => {
     expect(payload.lines.length).toBeGreaterThan(0);
     // 172.50 receivable from the one invoice — the other customer's 402.50 must not appear.
     expect(Number(payload.closing)).toBeCloseTo(172.5, 2);
+
+    // ACC-198 (R33): دفعة الفاتورة حركةٌ في الكشف قبل أن تكون سندًا في شاشة الدفعات — كانت
+    // غائبة فقرأ الإغلاق أعلى من المستحق بمقدار ما دفع العميل. بعد دفعة50 يُغلق الكشف على
+    // 122.50، ويحمل صف الدفعة movement_id فريدًا (كان rowKey القديم يُسقط دفعتين على فاتورة).
+    const cash = await api(ctx.server, 'post', '/api/v1/cash-locations', {
+      token: staff.token,
+      body: { branchId, kind: 'safe', name: 'الصندوق' },
+    });
+    expect([200, 201], `cash location for the collection: ${cash.status} ${JSON.stringify(cash.body)}`).toContain(cash.status);
+    const paid = await api(ctx.server, 'post', `/api/v1/sales/invoices/${buyerInvoiceId}/payments`, {
+      token: staff.token,
+      body: { method: 'cash', amount: '50.00', cashLocationId: body(cash).id, idempotencyKey: `portal-acc198-${Date.now()}` },
+    });
+    expect([200, 201], `invoice payment: ${paid.status} ${JSON.stringify(paid.body)}`).toContain(paid.status);
+
+    const after = await api(ctx.server, 'get', '/api/v1/portal/statement', { token: portalToken });
+    const paidPayload = body(after) as unknown as { lines: Array<Record<string, string>>; closing: string };
+    expect(Number(paidPayload.closing)).toBeCloseTo(122.5, 2); // 172.50 − 50
+    const paymentLine = paidPayload.lines.find((line) => line.doc_type === 'invoice_payment');
+    expect(paymentLine, 'invoice payment line appears on the statement').toBeTruthy();
+    expect(paymentLine!.movement_id).toBeTruthy();
+    expect(Number(paymentLine!.credit)).toBeCloseTo(50, 2);
   });
 
   it('lists the receipts recorded against the account', async () => {
@@ -289,6 +312,10 @@ describe('customer portal', () => {
     const rows = (payments.body.data ?? payments.body) as Array<Record<string, string>>;
     expect(Array.isArray(rows)).toBe(true);
     expect(rows.every((row) => row.status === 'posted')).toBe(true);
+    // ACC-199 (R33): دفعة الفاتورة نفسها يجب أن تُقرأ هنا — كانت الشاشة تقرأ vouchers فقط
+    // فتبدو فارغة رغم أن الدفعة مسجّلة وظاهرة في الكشف.
+    expect(rows.some((row) => row.kind === 'invoice_payment'), 'invoice payment listed').toBe(true);
+    expect(Number(rows.find((row) => row.kind === 'invoice_payment')!.amount)).toBeCloseTo(50, 2);
   });
 
   it('suspends and revokes access', async () => {

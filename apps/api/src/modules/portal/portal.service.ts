@@ -221,16 +221,22 @@ export class PortalService {
       await tx.update(portalAccounts).set({ lastSeenAt: new Date() }).where(eq(portalAccounts.id, account.id));
       const [party] = await tx.select().from(parties).where(and(eq(parties.tenantId, tenantId), eq(parties.id, account.partyId)));
       const company = rowsOf(await tx.execute(sql`SELECT name_ar, name_en, tax_no, phones, email FROM company_profiles WHERE tenant_id = ${tenantId}`))[0];
+      // ACC-198b: لوحة المورد تقيس ذمته لا ذمة العميل — كان تُقرأ فقط حسابات المدين
+      // فتعرض 0 مع أن عليه275.00؛ الآن: عميل = مدين−دائن على ذمة المدين، مورد = دائن−مدين
+      // على ذمة الدائن (275.00 = إغلاق كشفه بالضبط).
+      const supplier = party?.kind === 'supplier';
       const openBalance = rowsOf(
         await tx.execute(sql`
-          SELECT coalesce(sum(jel.debit - jel.credit), 0)::text AS balance
+          SELECT coalesce(sum(${supplier ? sql`jel.credit - jel.debit` : sql`jel.debit - jel.credit`}), 0)::text AS balance
             FROM journal_entry_lines jel
             JOIN journal_entries je ON je.id = jel.entry_id
             JOIN accounts a ON a.id = jel.account_id
            WHERE jel.tenant_id = ${tenantId}
              AND jel.party_id = ${account.partyId}
              AND je.status = 'posted'
-             AND (a.type = 'receivable' OR a.subtype = 'receivable' OR a.code LIKE '1201%' OR a.code LIKE '1231%')
+             AND (${supplier
+               ? sql`(a.type = 'payable' OR a.subtype = 'payable' OR a.code LIKE '2201%' OR a.code LIKE '2211%')`
+               : sql`(a.type = 'receivable' OR a.subtype = 'receivable' OR a.code LIKE '1201%' OR a.code LIKE '1231%')`})
         `),
       )[0];
       return {
@@ -357,6 +363,10 @@ export class PortalService {
   async statement(tenantId: string, userId: string, filters: { from?: string; to?: string } = {}) {
     const account = await this.accountFor(tenantId, userId);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
+      // اتجاه الرصيد التراكمي: العميل مدين−دائن (ما عليه)، والمورد مدين−دائن معكوس
+      // (ما لنا عليه) — فتُغلق كشفاه بموجبٍ يقابله: 139.20 و275.00 في بذرة التحقق.
+      const [party] = await tx.select({ kind: parties.kind }).from(parties).where(and(eq(parties.tenantId, tenantId), eq(parties.id, account.partyId)));
+      const sign = party?.kind === 'supplier' ? -1 : 1;
       const lines = rowsOf(
         await tx.execute(sql`
           WITH movements AS (
@@ -367,10 +377,41 @@ export class PortalService {
                    CASE WHEN si.kind IN ('return', 'sale_return') THEN 0 ELSE si.total END AS debit,
                    CASE WHEN si.kind IN ('return', 'sale_return') THEN si.total ELSE 0 END AS credit,
                    si.id AS document_id,
+                   si.id AS movement_id,
                    coalesce(si.posted_at, si.created_at) AS created_at,
                    1 AS type_order
               FROM sales_invoices si
              WHERE si.tenant_id = ${tenantId} AND si.party_id = ${account.partyId} AND si.status = 'posted'
+            UNION ALL
+            -- ACC-198 (R33): كشف حساب المورد يعرض فواتيره هو — المردود يعكس الطرف (مدين) لا الدائن.
+            SELECT coalesce(pi.posted_at, pi.created_at)::date AS day,
+                   CASE WHEN pi.kind = 'purchase_return' THEN 'return' ELSE 'invoice' END AS doc_type,
+                   coalesce(pi.number, '—') AS number,
+                   CASE WHEN pi.kind = 'purchase_return' THEN 'مردود مشتريات' ELSE 'فاتورة مشتريات' END AS description,
+                   CASE WHEN pi.kind = 'purchase_return' THEN pi.total ELSE 0 END AS debit,
+                   CASE WHEN pi.kind = 'purchase_return' THEN 0 ELSE pi.total END AS credit,
+                   pi.id AS document_id,
+                   pi.id AS movement_id,
+                   coalesce(pi.posted_at, pi.created_at) AS created_at,
+                   1 AS type_order
+              FROM purchase_invoices pi
+             WHERE pi.tenant_id = ${tenantId} AND pi.party_id = ${account.partyId} AND pi.status = 'posted'
+            UNION ALL
+            -- ACC-198 (R33): دفعة الفاتورة سندٌ من حركات الحساب — كانت غائبة فيظهر الرصيد أعلى
+            -- من المستحق بمقدار ما دفعه العميل (239.20 بدل 139.20 في بذرة التحقق).
+            SELECT date(ip.created_at)::date AS day,
+                   'invoice_payment' AS doc_type,
+                   coalesce(si.number, '—') AS number,
+                   'دفعة فاتورة مبيعات' AS description,
+                   0 AS debit,
+                   ip.amount AS credit,
+                   ip.invoice_id AS document_id,
+                   ip.id AS movement_id,
+                   ip.created_at AS created_at,
+                   2 AS type_order
+              FROM invoice_payments ip
+              JOIN sales_invoices si ON si.id = ip.invoice_id AND si.tenant_id = ip.tenant_id
+             WHERE ip.tenant_id = ${tenantId} AND si.party_id = ${account.partyId} AND si.status = 'posted'
             UNION ALL
             SELECT v.date AS day,
                    CASE v.kind WHEN 'receipt' THEN 'receipt' ELSE 'payment' END AS doc_type,
@@ -379,13 +420,14 @@ export class PortalService {
                    CASE WHEN v.kind = 'receipt' THEN 0 ELSE v.amount END AS debit,
                    CASE WHEN v.kind = 'receipt' THEN v.amount ELSE 0 END AS credit,
                    v.id AS document_id,
+                   v.id AS movement_id,
                    coalesce(v.posted_at, v.created_at, v.date::timestamp) AS created_at,
-                   2 AS type_order
+                   3 AS type_order
               FROM vouchers v
              WHERE v.tenant_id = ${tenantId} AND v.party_id = ${account.partyId} AND v.status = 'posted'
           )
-          SELECT day::text AS day, doc_type, number, description, debit::text, credit::text, document_id,
-                 sum(debit - credit) OVER (ORDER BY day, type_order, created_at, number ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)::text AS running
+          SELECT movement_id, day::text AS day, doc_type, number, description, debit::text, credit::text, document_id,
+                 sum(${sign} * (debit - credit)) OVER (ORDER BY day, type_order, created_at, number ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)::text AS running
             FROM movements
            WHERE (${filters.from ?? null}::date IS NULL OR day >= ${filters.from ?? null}::date)
              AND (${filters.to ?? null}::date IS NULL OR day <= ${filters.to ?? null}::date)
@@ -403,10 +445,21 @@ export class PortalService {
     return withTenantTx(this.database.db, tenantId, async (tx) =>
       rowsOf(
         await tx.execute(sql`
-          SELECT v.id, v.number, v.date::text AS day, v.kind, v.method, v.amount::text, v.status, v.reference_no, v.cheque_no
-            FROM vouchers v
-           WHERE v.tenant_id = ${tenantId} AND v.party_id = ${account.partyId} AND v.status = 'posted'
-           ORDER BY v.date DESC, v.number DESC
+          SELECT * FROM (
+            SELECT v.id, v.number, v.date::text AS day, v.kind, v.method, v.amount::text AS amount, v.status, v.reference_no, v.cheque_no
+              FROM vouchers v
+             WHERE v.tenant_id = ${tenantId} AND v.party_id = ${account.partyId} AND v.status = 'posted'
+            UNION ALL
+            -- ACC-199 (R33): دفعة الفاتورة (invoice_payments) ليست سند قبض — كانت تغيب فتبدو
+            -- شاشة المدفوعات فارغة رغم أن الدفعة مسجلة ومرحّلة وظاهرة في الكشف والأستاذ.
+            SELECT ip.id, coalesce(si.number, '—') AS number, to_char(ip.created_at, 'YYYY-MM-DD') AS day,
+                   'invoice_payment' AS kind, ip.method, ip.amount::text AS amount, 'posted' AS status,
+                   ip.reference AS reference_no, null::text AS cheque_no
+              FROM invoice_payments ip
+              JOIN sales_invoices si ON si.id = ip.invoice_id AND si.tenant_id = ip.tenant_id
+             WHERE ip.tenant_id = ${tenantId} AND si.party_id = ${account.partyId} AND si.status = 'posted'
+          ) movements
+           ORDER BY day DESC, number DESC
            LIMIT 500
         `),
       ),
