@@ -2,6 +2,7 @@
 
 import { FilterBand, KpiStrip, Panel } from '@erp/ui';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { use, useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
@@ -71,6 +72,7 @@ import { useQuery } from '../../../lib/use-query';
 
 export default function ReportRunnerPage({ params }: { params: Promise<{ key: string }> }) {
   const reportKey = use(params).key;
+  const searchParams = useSearchParams();
   const catalog = useQuery<ReportEntry[]>(() => fetchReportCatalog(), []);
   const entry = (catalog.data ?? []).find((row) => row.key === reportKey);
 
@@ -84,10 +86,16 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
   useEffect(() => {
     if (!entry) return;
     const initial = initialFilters(entry.params);
+    // ACC-201 (R33): روابط التقارير تحمل من/to في الرابط فتُفتح الفترة المطلوبة لا شهر
+    // اليوم — كانت معاملات الرابط تُهمل أول تحميل فيُفتح ميزان أكتوبر بدل السنة كاملة.
+    for (const param of entry.params) {
+      const fromUrl = searchParams.get(param.name);
+      if (fromUrl !== null && fromUrl !== '') initial[param.name] = fromUrl;
+    }
     setFilters(initial);
     setApplied(initial);
     setReady(true);
-  }, [entry]);
+  }, [entry, searchParams]);
 
   const appliedKey = JSON.stringify(applied);
   const report = useQuery<ReportResult | null>(

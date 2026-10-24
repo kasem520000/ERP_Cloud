@@ -291,7 +291,7 @@ export default function CompanyProfilePage() {
         <dl className="kv">
           <dt>اسم المنشأة</dt>
           <dd>{me?.membership.tenantName}</dd>
-          <dt>رمز المنشأة</dt>
+          <dt>رمز الشركة</dt>
           <dd dir="ltr">{me?.membership.tenantCode}</dd>
           <dt>دورك</dt>
           <dd>{me?.membership.isOwner ? 'مالك' : 'مستخدم'}</dd>

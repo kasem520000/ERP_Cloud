@@ -672,3 +672,13 @@
 | staff `/purchases/supplier-portal` (مالك؛ دعوة/RFQ/قراءة) | E01، E02-supplier-invite، E03-rfq، E08 (+ `-staff-api.json`) | 201 ✓؛ الرفع المكرَّر يُعرض مرتين (ACC-161)؛ لا إيقاف لمستخدم المورّد (ACC-162) |
 | `/supplier-portal` (مورّد فعلياً) | E04-supplier-login، E05-supplier-board، E06-rfq-respond، E07-supplier-upload، E09-supplier-guards، E09b (API) | ردّ 190 ✓، رفع 115 بلا قيد ✓، 404/409/422 ✓، تكرار المرجع 201 (**ACC-161**)، توكن المورّد 401 على مسارات الموظفين ✓ |
 | staff `/reports/party-statement`، `/reports/customer-balances`، `/accounting/trial-balance`، `/treasury/vouchers`، `/sales/invoices`، `/accounting/journal-entries` (قراءة) | F01، F05b، F02/F11، F03، F04، F05 (+ `R30-F-STAFF-API.json`) | أرصدة العملاء/كشف العميل 36.79 دائن (ACC-004)؛ الميزان متزن ✓ |
+
+## الشاشات المتأثرة في R34 — دفقة D1 من خطة MISSING_FEATURES (تواريخ الاستحقاق والحظر الائتماني؛ تحقّق آلي لا بصري)
+| الشاشة | ما تغيّر | الدليل والحالة |
+|---|---|---|
+| staff `/sales/customers` | حقلان جديدان «مدة السداد (أيام)» و«حظر ائتماني» + عمود «المدة/الحظر» + إرسالهما في الإنشاء/التعديل (التعشير يعيد `null`) | `r34-due-dates-credit-hold.spec.ts`4/4 (API) + بناء staff؛ **فحص بصري (صورة قبل/بعد) مؤجَّل لجولة فحص تالية — لم تُدَّعَ صور** |
+| staff `/purchases/suppliers` | حقل «مدة السداد (أيام)» في النموذج + الإرسال | كما أعلاه |
+| staff `/sales/invoices/new` | حقل «تاريخ الاستحقاق» (اختياري، يُرسل `dueDate`؛ الفارغ يُشتق في الخادم) | كما أعلاه |
+| staff `/sales/invoices` | عمود «الاستحقاق» القابل للفرز بعد «التاريخ» | كما أعلاه |
+| API `POST/PUT /parties`، `POST /sales/invoices`، `POST /purchase-invoices` | حقول جديدة: `paymentTermsDays`، `creditHold`، `dueDate`؛ رفض `PARTY_CREDIT_HOLD`422؛ الأعمار تقرأ `due_date` | اختبارات r34 + رجوع83 + المجموعة الكاملة |
+

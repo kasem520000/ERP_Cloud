@@ -157,12 +157,12 @@ export default function SupplierPortalPage() {
             </div>
           </header>
 
-          <Panel title="الدخول" hint="برمز المنشأة والبريد وكلمة المرور التي منحك إياها المشتري.">
+          <Panel title="الدخول" hint="برمز الشركة والبريد وكلمة المرور التي منحك إياها المشتري.">
             {error ? <p className="alert danger">{error}</p> : null}
             <form onSubmit={login}>
               <div className="form-grid">
                 <label className="field">
-                  <span>رمز المنشأة</span>
+                  <span>رمز الشركة</span>
                   <input
                     className="input"
                     value={tenantCode}

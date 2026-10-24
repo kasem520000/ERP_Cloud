@@ -65,6 +65,9 @@ export type Party = {
   taxNo?: string | null;
   tax_no?: string | null;
   creditLimit?: string | null;
+  /** ACC-105 / MF-08 — مدة السداد بالمدد المباشرة والحظر الائتماني. */
+  paymentTermsDays?: number | null;
+  creditHold?: boolean;
   /** العنوان الوطني as stored in `parties.address` (see `lib/national-address`). */
   address?: Record<string, string> | null;
 };

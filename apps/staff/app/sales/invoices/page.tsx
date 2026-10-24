@@ -30,6 +30,8 @@ type Invoice = {
   paymentStatus: string;
   postedAt: string | null;
   createdAt: string;
+  /** ACC-105 / MF-08 — تاريخ الاستحقاق (تاريخ الوثيقة + مدة السداد). */
+  dueDate: string | null;
 };
 
 /** Relative Arabic time: "منذ ساعتين". */
@@ -67,9 +69,14 @@ const STATUS_CHIPS: StatusChip[] = [
   { key: 'draft', label: 'مسودة', test: (row) => row.status === 'draft' },
   { key: 'paid', label: 'مسددة', test: (row) => row.paymentStatus === 'paid' },
   {
+    key: 'partial',
+    label: 'سداد جزئي',
+    test: (row) => row.paymentStatus === 'partial' && row.status === 'posted',
+  },
+  {
     key: 'unpaid',
     label: 'غير مسددة',
-    test: (row) => row.paymentStatus !== 'paid' && row.status === 'posted',
+    test: (row) => row.paymentStatus === 'unpaid' && row.status === 'posted',
   },
 ];
 
@@ -392,6 +399,19 @@ function InvoicesInner() {
                 ),
               },
               {
+                key: 'due',
+                header: 'الاستحقاق',
+                sortable: true,
+                cell: (row) =>
+                  row.dueDate ? (
+                    <span className="text-xs text-muted">
+                      <span className="font-semibold text-ink-2">{shortDate(row.dueDate)}</span>
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted">—</span>
+                  ),
+              },
+              {
                 key: 'total',
                 header: 'الإجمالي',
                 numeric: true,
@@ -417,8 +437,14 @@ function InvoicesInner() {
                       {row.status === 'posted' ? 'مرحّلة' : 'مسودة'}
                     </Badge>
                     {row.status === 'posted' ? (
+                      // ACC-203 (R33): الفاتورة الجزئية كانت تُوسم «غير مسدّدة» بينما
+                      // تفاصيلها تقول «مسددة جزئياً» — الوسم يقرأ payment_status كما هو.
                       <Badge tone={row.paymentStatus === 'paid' ? 'blue' : 'amber'}>
-                        {row.paymentStatus === 'paid' ? 'مسدّدة' : 'غير مسدّدة'}
+                        {row.paymentStatus === 'paid'
+                          ? 'مسدّدة'
+                          : row.paymentStatus === 'partial'
+                            ? 'مسددة جزئياً'
+                            : 'غير مسدّدة'}
                       </Badge>
                     ) : null}
                   </span>

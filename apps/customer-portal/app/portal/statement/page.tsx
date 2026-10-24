@@ -15,6 +15,7 @@ const DOC_AR: Record<string, string> = {
   return: 'مردود',
   receipt: 'سند قبض',
   payment: 'سند صرف',
+  invoice_payment: 'دفعة فاتورة',
 };
 
 /** Builds a CSV of exactly what is on screen — no server round-trip, no extra permissions. */
@@ -150,7 +151,7 @@ function Statement() {
               },
             ]}
             rows={lines}
-            rowKey={(line) => `${line.document_id}-${line.doc_type}`}
+            rowKey={(line) => line.movement_id ?? `${line.document_id}-${line.doc_type}`}
             footer={[
               <strong key="label">رصيد آخر المدة</strong>,
               <span key="blank-1" />,

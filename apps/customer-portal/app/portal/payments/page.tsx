@@ -16,43 +16,43 @@ const METHOD_AR: Record<string, string> = {
   bank_transfer: 'تحويل بنكي',
   card: 'شبكة/بطاقة',
 };
-const KIND_AR: Record<string, string> = { receipt: 'سند قبض', payment: 'سند صرف' };
+const KIND_AR: Record<string, string> = { receipt: 'سند قبض', payment: 'سند صرف', invoice_payment: 'دفعة فاتورة' };
 
 function Payments() {
   const payments = useAsync(() => fetchPayments(), []);
   const rows = payments.data ?? [];
-  const receiptsTotal = rows
-    .filter((row) => row.kind === 'receipt')
-    .reduce((sum, row) => sum.plus(row.amount || '0'), new Decimal(0));
 
   return (
     <>
-      <PageHead title="المدفوعات" description="السندات المرحّلة المسجلة على حسابك لدى المورد." />
+      <PageHead
+        title="الدفعات والسندات"
+        description="سندات القبض والصرف ودفعات الفواتير المسجّلة على حسابك."
+      />
 
       <KpiStrip
         items={[
           {
-            label: 'إجمالي المقبوض منك',
-            value: moneyText(receiptsTotal.toFixed(2)),
-            hint: `${rows.length} سند`,
+            label: 'إجمالي الحركات',
+            value: moneyText(rows.reduce((sum, row) => sum.plus(row.amount || '0'), new Decimal(0)).toFixed(2)),
+            hint: `${rows.length} حركة`,
           },
           {
-            label: 'آخر سند',
+            label: 'آخر حركة',
             value: rows[0] ? moneyText(rows[0].amount) : '—',
-            hint: rows[0] ? dateText(rows[0].day) : 'لا توجد سندات',
+            hint: rows[0] ? dateText(rows[0].day) : 'لا توجد حركات',
           },
         ]}
       />
 
-      <Panel title="سندات القبض" flush>
+      <Panel title="الدفعات والسندات" flush>
         {payments.status === 'loading' ? (
-          <p className="panel-state">جارٍ تحميل السندات…</p>
+          <p className="panel-state">جارٍ تحميل الدفعات…</p>
         ) : payments.status === 'error' ? (
           <p className="panel-state" role="alert">
             {payments.error}
           </p>
         ) : rows.length === 0 ? (
-          <Empty bare title="لم تُسجَّل سندات بعد" detail="يظهر هنا كل سند قبض مرحّل على حسابك لدى المورد." />
+          <Empty bare title="لم تُسجَّل دفعات بعد" detail="تظهر هنا سندات القبض والصرف ودفعات الفواتير المسجّلة على حسابك." />
         ) : (
           <PortalTable
             bare
@@ -60,7 +60,11 @@ function Payments() {
               { key: 'number', header: 'الرقم', cell: (row) => row.number ?? '—' },
               { key: 'date', header: 'التاريخ', cell: (row) => dateText(row.day) },
               { key: 'kind', header: 'النوع', cell: (row) => KIND_AR[row.kind] ?? row.kind },
-              { key: 'method', header: 'طريقة الدفع', cell: (row) => METHOD_AR[row.method] ?? row.method },
+              {
+                key: 'method',
+                header: 'طريقة الدفع',
+                cell: (row) => (row.method ? METHOD_AR[row.method] ?? row.method : '—'),
+              },
               {
                 key: 'amount',
                 header: 'المبلغ',

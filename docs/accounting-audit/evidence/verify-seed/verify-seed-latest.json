@@ -1,0 +1,71 @@
+{
+  "at": "2026-10-24T05:43:42.226Z",
+  "tenantCode": "verify2026",
+  "tenantId": "01a16c6f-3abc-772e-809f-0de1707020dd",
+  "ids": {
+    "flId": "01a16c6f-4650-7252-a7ba-45b2c0a8c83c",
+    "brkId": "01a16c6f-4997-75e6-8656-b70ba3b2a56b",
+    "suppId": "01a16c6f-4cd3-73fe-bc41-0594f939a55d",
+    "custCrId": "01a16c6f-4fff-7388-bab8-b6bd112296dd",
+    "custCshId": "01a16c6f-532b-7347-a6b9-befe3cff8ad9",
+    "piId": "01a16c6f-5653-75a2-aa8b-6482263bcad5",
+    "s1Id": "01a16c6f-5d2e-7013-9660-6a6be5aa57e5",
+    "s2Id": "01a16c6f-6438-729f-8cd3-07f2b4153ae7",
+    "retId": "01a16c6f-6b06-711a-bed6-6f7bce2caa99",
+    "expVoucher": "01a16c6f-7861-744d-8707-a7db08a4bef1",
+    "rvVoucher": "01a16c6f-7ea0-773d-99c8-8c0e89c2abc7",
+    "cashTransfer": "01a16c6f-84e5-77e8-87e1-0c292bbf6e2d",
+    "stockTransfer": "01a16c6f-8d77-70fa-a141-f3d694682477"
+  },
+  "checks": [
+    {
+      "name": "ميزان العام: Σمدين = Σدائن",
+      "ok": true,
+      "expected": "مدين = دائن > 0",
+      "actual": "252066.20 / 252066.20"
+    },
+    {
+      "name": "الصندوق: cash_location_balances = GL 1211001",
+      "ok": true,
+      "expected": "49890.00",
+      "actual": "49890.00"
+    },
+    {
+      "name": "البنك: cash_location_balances = GL 1221001",
+      "ok": true,
+      "expected": "180100.00",
+      "actual": "180100.00"
+    },
+    {
+      "name": "ذمم العملاء: GL 12310001 = مجموع أرصدة العملاء",
+      "ok": true,
+      "expected": "139.20",
+      "actual": "139.20"
+    },
+    {
+      "name": "ذمم الموردين: GL 22111001 = مجموع أرصدة الموردين",
+      "ok": true,
+      "expected": "275.00",
+      "actual": "275.00"
+    },
+    {
+      "name": "المخزون: مجموع قيمة الأرصدة = GL 1270001",
+      "ok": true,
+      "expected": "350.00",
+      "actual": "350.00"
+    },
+    {
+      "name": "فاتورة س2 الآجلة: مدفوع 100 من 285.20 (جزئي)",
+      "ok": true,
+      "expected": "paid_total=100.00، حالة=partial",
+      "actual": "paid_total=100.00، حالة=partial"
+    },
+    {
+      "name": "تفريع الفواتير: subtotal + tax = total لكل فاتورة مرحّلة",
+      "ok": true,
+      "expected": "لا فواتير مخالفة",
+      "actual": "✓"
+    }
+  ],
+  "notes": []
+}

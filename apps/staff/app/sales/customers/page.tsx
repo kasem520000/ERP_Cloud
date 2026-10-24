@@ -18,6 +18,7 @@ import {
   addressToForm,
   formToAddress,
 } from '../../../lib/national-address';
+import { runReport } from '../../../lib/reports';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
@@ -27,6 +28,22 @@ export default function CustomersPage() {
   const { can } = useSession();
   const parties = useQuery<Party[]>(() => listParties('customer'), []);
   const methods = useQuery<PaymentMethod[]>(() => apiList<PaymentMethod>('/payment-methods'), []);
+  // ACC-204 (R33): عمود الرصيد يقرأ من تقرير «أرصدة حساب العملاء» نفسه — نفس أرقام
+  // /reports/customer-balances تماماً، بلا استعلام لكل صف. من لا حركة له لا يرد من
+  // التقرير فيُعرض 0.00 (أو «—» إن مُنع التقرير لعدم reporting.view).
+  const balances = useQuery(() => runReport('customer-balances', {}), []);
+  const balanceCell = (row: Party) => {
+    if (balances.status === 'loading') return '…';
+    if (balances.status === 'error') return '—';
+    const hit = (balances.data?.rows ?? []).find((entry) => entry.party === row.name);
+    if (!hit) return money('0');
+    return (
+      <span className="inline-flex items-baseline gap-1.5">
+        <strong>{money(hit.balance)}</strong>
+        <span className="muted small">{hit.status}</span>
+      </span>
+    );
+  };
   const methodLabel = (id: string | null | undefined) => {
     const method = (methods.data ?? []).find((row) => row.id === id);
     return method ? `${method.nameAr}${method.dueDays > 0 ? ` (${method.dueDays} يوم)` : ''}` : '—';
@@ -51,6 +68,17 @@ export default function CustomersPage() {
           { name: 'phone', label: 'الجوال', ltr: true },
           { name: 'taxNo', label: 'الرقم الضريبي', ltr: true },
           { name: 'creditLimit', label: 'سقف الائتمان', type: 'number' },
+          {
+            name: 'paymentTermsDays',
+            label: 'مدة السداد (أيام)',
+            type: 'number',
+            hint: 'تُشتق منها تواريخ استحقاق الفواتير وأعمار الديون — تسبق أيام طريقة الدفع.',
+          },
+          {
+            name: 'creditHold',
+            label: 'حظر ائتماني (يمنع البيع الآجل)',
+            type: 'checkbox',
+          },
           {
             name: 'paymentMethodId',
             label: 'طريقة الدفع',
@@ -77,6 +105,8 @@ export default function CustomersPage() {
             phone: String(values.phone).trim() || undefined,
             taxNo: String(values.taxNo).trim() || undefined,
             creditLimit: String(values.creditLimit).trim() || undefined,
+            paymentTermsDays: String(values.paymentTermsDays ?? '').trim() ? Number(values.paymentTermsDays) : undefined,
+            creditHold: Boolean(values.creditHold),
             paymentMethodId: values.paymentMethodId ? String(values.paymentMethodId) : undefined,
             address: formToAddress(values),
           })
@@ -90,6 +120,8 @@ export default function CustomersPage() {
                   phone: row.phone ?? '',
                   taxNo: row.taxNo ?? row.tax_no ?? '',
                   creditLimit: row.creditLimit ?? '',
+                  paymentTermsDays: row.paymentTermsDays != null ? String(row.paymentTermsDays) : '',
+                  creditHold: Boolean(row.creditHold),
                   paymentMethodId: row.paymentMethodId ?? '',
                   ...addressToForm(row.address),
                 }),
@@ -101,6 +133,8 @@ export default function CustomersPage() {
                     phone: String(values.phone).trim() || undefined,
                     taxNo: String(values.taxNo).trim() || undefined,
                     creditLimit: String(values.creditLimit).trim() || undefined,
+                    paymentTermsDays: String(values.paymentTermsDays ?? '').trim() ? Number(values.paymentTermsDays) : null,
+                    creditHold: Boolean(values.creditHold),
                     paymentMethodId: values.paymentMethodId ? String(values.paymentMethodId) : undefined,
                     address: formToAddress(values),
                   }),
@@ -124,6 +158,17 @@ export default function CustomersPage() {
             cell: (row) => row.taxNo ?? row.tax_no ?? '—',
           },
           { key: 'credit', header: 'سقف الائتمان', align: 'num', cell: (row) => money(row.creditLimit) },
+          {
+            key: 'terms',
+            header: 'المدة/الحظر',
+            cell: (row) => (
+              <span className="text-xs">
+                {row.paymentTermsDays != null && row.paymentTermsDays > 0 ? `${row.paymentTermsDays} يوم` : '—'}
+                {row.creditHold ? <strong className="block text-rose-600">حظر ائتماني</strong> : null}
+              </span>
+            ),
+          },
+          { key: 'balance', header: 'الرصيد', align: 'num', cell: (row) => balanceCell(row) },
           { key: 'method', header: 'طريقة الدفع', cell: (row) => methodLabel(row.paymentMethodId) },
           {
             key: 'statement',

@@ -1,0 +1,15 @@
+PASS L01 — login owner → 200
+PASS P01 — POST /parties paymentTermsDays=45 → 201 (45)
+PASS R01 — scope branch=01a16c6f-3c87-7005-b53b-b8d8c127e088 wh=01a16c6f-3c88-779d-b8e3-782b434ca8df safe=01a16c6f-3c8b-7404-8527-e518570c7caa item=01a16c6f-4650-7252-a7ba-45b2c0a8c83c
+PASS D01 — create sales invoice → 201; dueDate=2026-12-08 (expected 2026-12-08)
+PASS D02 — post → 201 status=posted
+PASS A01 — ar-aging@+40 → bucket_0_30=46.00 bucket_31_60=0.00 (>=46/0 = due-based)
+PASS H01 — PUT creditHold=true → 200
+PASS H02 — credit post while held → 422 PARTY_CREDIT_HOLD
+PASS H03 — full cash sale while held → 201 status=posted
+PASS H04 — after lifting the hold → 201
+PASS P02 — purchase invoice status=201 dueDate=2026-11-23 (expected 2026-11-23)
+PASS B01 — seed NET30 invoice SI-000002 dueDate=2026-11-23
+PASS B02 — seed cash invoice SI-000001 dueDate=NULL (بلا مدة = NULL والعمار من القيد)
+
+ALL PASS (13 checks)
