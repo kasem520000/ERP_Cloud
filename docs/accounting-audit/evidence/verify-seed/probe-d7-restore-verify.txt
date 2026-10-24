@@ -1,0 +1,13 @@
+probe-d7 — 2026-10-24T15:20:13.107Z
+API=http://127.0.0.1:3000/api/v1
+
+PASS L01 — login → 200
+PASS B01 — POST backups → 201، id=01a16e7f، rows=286
+PASS B02 — download → 200، تجزئة=f778ebc222b8…، جداول=39، usage_counters مستبعد=true، قيود=39
+PASS F01 — dry_run → 201، passed=true، جداول=39/39، TB=252066.2000/252066.2000، أُضيف=0 تُخطي=286
+PASS F02 — apply برمز خاطئ → 422 (422=RESTORE_CONFIRMATION_REQUIRED)
+PASS F03 — apply → 201، passed=true، أُضيف=0 تُخطي=286 (ملف ممتلئ ⇐ صفر إضافة)
+PASS F04 — GET restores → 200، آخر تشغيل mode=apply، verification محفوظ=true passed=true
+PASS S01 — GET staff /settings/restore → 200
+
+TOTAL 8 · FAIL 0

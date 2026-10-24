@@ -91,6 +91,9 @@ export const jobTypes = {
   ECOMMERCE_STOCK: 'ecommerce.stock',
   // Future enhancement 08 — daily assistant suggestions. Same frozen maintenance queue.
   AI_SUGGEST: 'ai.suggest',
+  // MF-35 (دفقة D6) — نسخة يومية مجدولة لكل مستأجر مع احتفاظ 14 يوماً. طابور
+  // «الصيانة» المجمَّد نفسه: النسخة لاحقةٌ زماناً لا تسليم رسالة عاجلة.
+  BACKUP_DAILY: 'backup.daily',
 } as const;
 
 export type JobType = (typeof jobTypes)[keyof typeof jobTypes];

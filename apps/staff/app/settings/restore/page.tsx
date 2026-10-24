@@ -21,6 +21,22 @@ type RestoreRun = {
     tables?: Record<string, { rows: number; inserted: number; skipped: number; error?: string }>;
     unresolved?: string[];
     existingRows?: Record<string, number>;
+    /** MF-35 — تقرير التحقق بعد الاستعادة: عدّ الجداول وميزان المراجعة قبل/بعد. */
+    verification?: {
+      passed: boolean;
+      tablesChecked: number;
+      tablesMatched: number;
+      mismatches: Array<{ table: string; snapshotRows: number; actualAfter: number }>;
+      trialBalance: {
+        debitBefore: string;
+        creditBefore: string;
+        debitAfter: string;
+        creditAfter: string;
+        balancedBefore: boolean;
+        balancedAfter: boolean;
+        deltaBalanced: boolean;
+      };
+    };
   };
   createdAt: string;
 };
@@ -56,12 +72,18 @@ export default function RestorePage() {
         confirmTenantCode: mode === 'apply' ? confirmCode.trim() : undefined,
       });
       setResult(restored);
+      const verification = restored.summary?.verification;
+      const verifyText = verification
+        ? verification.passed
+          ? ` التحقق: ${verification.tablesMatched}/${verification.tablesChecked} جدولاً وميزان مراجعة متوازن.`
+          : ` فشل التحقق (${verification.tablesMatched}/${verification.tablesChecked} جدولاً) — راجع النتائج أدناه.`
+        : '';
       setNotice(
         mode === 'dry_run'
-          ? { kind: 'info', text: 'فحص تجريبي فقط — لم تُكتب أي بيانات.' }
+          ? { kind: 'info', text: `فحص تجريبي فقط — لم تُكتب أي بيانات.${verifyText}` }
           : {
               kind: 'ok',
-              text: `تمت الإضافة: ${restored.insertedRows} سجلاً، وتُخطي ${restored.skippedRows} سجلاً موجوداً مسبقاً.`,
+              text: `تمت الإضافة: ${restored.insertedRows} سجلاً، وتُخطي ${restored.skippedRows} سجلاً موجوداً مسبقاً.${verifyText}`,
             },
       );
       runs.reload();
@@ -127,6 +149,33 @@ export default function RestorePage() {
           </button>
         </div>
         <Notice notice={notice} />
+        {result?.summary?.verification && (
+          <div
+            className={`alert ${result.summary.verification.passed ? 'ok' : 'danger'}`}
+            data-testid="restore-verification"
+          >
+            <strong>نتيجة التحقق: </strong>
+            {result.summary.verification.passed
+              ? `مطابقة كاملة — ${result.summary.verification.tablesMatched}/${result.summary.verification.tablesChecked} جدولاً.`
+              : `غير مطابقة — ${result.summary.verification.tablesMatched}/${result.summary.verification.tablesChecked} جدولاً فقط.`}{' '}
+            ميزان المراجعة: قبل {Number(result.summary.verification.trialBalance.debitBefore).toLocaleString('en-US')} /{' '}
+            {Number(result.summary.verification.trialBalance.creditBefore).toLocaleString('en-US')} — بعد{' '}
+            {Number(result.summary.verification.trialBalance.debitAfter).toLocaleString('en-US')} /{' '}
+            {Number(result.summary.verification.trialBalance.creditAfter).toLocaleString('en-US')}
+            {result.summary.verification.trialBalance.balancedAfter ? ' (متوازن)' : ' (غير متوازن!)'}.
+            {result.summary.verification.mismatches.length > 0 && (
+              <>
+                {' '}
+                جداول ناقصة:{' '}
+                {result.summary.verification.mismatches
+                  .map((m) => `${m.table} (${m.actualAfter}/${m.snapshotRows})`)
+                  .join('، ')}
+                .
+              </>
+            )}
+            {(result.summary.unresolved?.length ?? 0) > 0 && <> جداول عالقة: {result.summary.unresolved?.join('، ')}.</>}
+          </div>
+        )}
       </Panel>
 
       {tables.length > 0 && (
@@ -192,6 +241,16 @@ export default function RestorePage() {
                   header: 'تُخطي',
                   align: 'num',
                   cell: (row: RestoreRun) => String(row.skippedRows),
+                },
+                {
+                  key: 'verify',
+                  header: 'التحقق',
+                  cell: (row: RestoreRun) =>
+                    row.summary?.verification
+                      ? row.summary.verification.passed
+                        ? '✓ مطابق'
+                        : '✗ فاشل'
+                      : '—',
                 },
               ]}
               rows={rows}

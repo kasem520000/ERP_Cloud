@@ -21,12 +21,31 @@ import { QUEUE_PORT, QueueService, type QueuePort } from './queue.service.js';
  * consumers are simply not created — so `pnpm dev` on a laptop behaves like production
  * minus the last hop.
  */
+/**
+ * قائمة مهام الصيانة لكل مستأجر — MF-35: نسخة يومية مجدولة تُضمّ إلى ما كان (لا شيء
+ * يُستبدل). المعرّفات مُجمَّعة بالساعة/اليوم فالإعادة بريئة، وحركة اليوم التالي معرّفٌ
+ * جديد ⇐ تنفيذٌ يومي فعلاً لا ازدواج.
+ */
+export function maintenanceJobsFor(
+  tenantId: string,
+  now: Date = new Date(),
+): Array<{ queue: 'maintenance'; type: string; tenantId: string; jobId: string; payload: Record<string, unknown> }> {
+  const hour = now.toISOString().slice(0, 13);
+  const day = now.toISOString().slice(0, 10);
+  return [
+    { queue: 'maintenance', type: jobTypes.FILES_ORPHAN_GC, tenantId, payload: { scheduled: true }, jobId: `files-orphan-gc-${tenantId}-${hour}` },
+    { queue: 'maintenance', type: jobTypes.AI_SUGGEST, tenantId, payload: { scheduled: true }, jobId: `ai-suggest-${tenantId}-${day}` },
+    { queue: 'maintenance', type: jobTypes.BACKUP_DAILY, tenantId, payload: { scheduled: true }, jobId: `backup-daily-${tenantId}-${day}` },
+  ];
+}
+
 @Injectable()
 export class WorkerRunner {
   private readonly logger = new Logger(WorkerRunner.name);
   private readonly workers: Worker[] = [];
   private outboxTimer: ReturnType<typeof setInterval> | undefined;
   private healthTimer: ReturnType<typeof setInterval> | undefined;
+  private scheduleTimer: ReturnType<typeof setInterval> | undefined;
   private running = false;
 
   constructor(
@@ -51,6 +70,14 @@ export class WorkerRunner {
     if (this.queue.isEnabled() && this.queue instanceof QueueService) {
       await this.startConsumers(this.queue);
       await this.scheduleMaintenance();
+      // MF-35 — عاملٌ يبقى أسبوعاً لا ينسى النسخة اليومية: إعادة الجدولة كل 24 ساعة
+      // (المعرّفات المُجمَّعة تمنع التكرار داخل اليوم).
+      this.scheduleTimer = setInterval(() => {
+        void this.scheduleMaintenance().catch((error: unknown) => {
+          this.logger.error({ err: error instanceof Error ? error.message : String(error) }, 'schedule maintenance failed');
+        });
+      }, 24 * 60 * 60 * 1000);
+      this.scheduleTimer.unref?.();
     } else {
       this.logger.warn('REDIS_URL is not configured; running outbox-only (no queue consumers)');
     }
@@ -101,27 +128,21 @@ export class WorkerRunner {
     this.logger.log({ queues: [...QUEUE_NAMES] }, 'queue consumers started');
   }
 
-  /** Recurring maintenance: orphan-file collection and idempotency-key expiry. */
+  /**
+   * Recurring maintenance: orphan-file collection, assistant suggestions and the MF-35
+   * daily tenant backup — one idempotent list per tenant so the schedule is testable
+   * without Redis. Called at start and then re-fired every 24h (BullMQ dedupes on the
+   * day-bucketed `jobId`, so a redelivered hour is free and a new day is a new run).
+   */
   private async scheduleMaintenance(): Promise<void> {
     const tenantIds = await withTx(this.database.db, async (tx) =>
       (await tx.select({ id: tenants.id }).from(tenants)).map((row) => row.id),
     );
 
     for (const tenantId of tenantIds) {
-      await this.queue.publish({
-        queue: 'maintenance',
-        type: jobTypes.FILES_ORPHAN_GC,
-        tenantId,
-        payload: { scheduled: true },
-        jobId: `files-orphan-gc-${tenantId}-${new Date().toISOString().slice(0, 13)}`,
-      });
-      await this.queue.publish({
-        queue: 'maintenance',
-        type: jobTypes.AI_SUGGEST,
-        tenantId,
-        payload: { scheduled: true },
-        jobId: `ai-suggest-${tenantId}-${new Date().toISOString().slice(0, 10)}`,
-      });
+      for (const job of maintenanceJobsFor(tenantId)) {
+        await this.queue.publish(job);
+      }
     }
     await this.queue.publish({
       queue: 'maintenance',
