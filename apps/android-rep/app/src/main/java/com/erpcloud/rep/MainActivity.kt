@@ -3,10 +3,8 @@ package com.erpcloud.rep
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -14,7 +12,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
@@ -33,9 +30,12 @@ import com.erpcloud.rep.ui.screens.NotificationsScreen
 import com.erpcloud.rep.ui.screens.PrintersScreen
 import com.erpcloud.rep.ui.screens.PrintScreen
 import com.erpcloud.rep.ui.screens.QueueScreen
+import com.erpcloud.rep.ui.screens.REP_EDITION_LABEL
 import com.erpcloud.rep.ui.screens.ReceiptScreen
 import com.erpcloud.rep.ui.screens.ReturnScreen
 import com.erpcloud.rep.ui.screens.SaleScreen
+import com.erpcloud.rep.ui.screens.SplashScreen
+import com.erpcloud.rep.ui.screens.SupportScreen
 import com.erpcloud.rep.ui.screens.WorkspaceScreen
 import com.erpcloud.rep.ui.theme.RepTheme
 
@@ -50,7 +50,6 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         setContent {
             RepTheme {
-                // الواجهةُ عربيّةٌ RTL دائمًا — النصوصُ والأرقامُ المعروضةُ للمندوب عربيّة.
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
@@ -81,6 +80,7 @@ private object Routes {
     const val CLOSING = "closing"
     const val NOTIFICATIONS = "notifications"
     const val CHANGE_PASSWORD = "change-password"
+    const val SUPPORT = "support"
     const val RECEIPT = "receipt/{loadOrderId}"
     const val PRINT = "print/{documentId}"
 
@@ -94,7 +94,14 @@ fun AppRoot(vm: AppViewModel) {
     val notice by vm.notice.collectAsState()
     val navController = rememberNavController()
 
-    // الدخولُ والخروجُ يقودان التوجيه: بلا جلسةٍ → شاشةُ الدخول، وبجلسةٍ → المساحة.
+    if (!state.sessionLoaded || !state.splashDone) {
+        SplashScreen(
+            systemName = state.session.brandName,
+            taglineAr = state.session.brandTagline,
+        )
+        return
+    }
+
     LaunchedEffect(state.session.loggedIn) {
         val current = navController.currentBackStackEntry?.destination?.route
         if (state.session.loggedIn && current == Routes.LOGIN) {
@@ -106,13 +113,6 @@ fun AppRoot(vm: AppViewModel) {
                 popUpTo(0) { inclusive = true }
             }
         }
-    }
-
-    if (!state.sessionLoaded) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -133,11 +133,22 @@ fun AppRoot(vm: AppViewModel) {
                     onPrinters = { navController.navigate(Routes.PRINTERS) },
                     onNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                     onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
+                    onSupport = { navController.navigate(Routes.SUPPORT) },
                     onReceipt = { id -> navController.navigate(Routes.receipt(id)) },
                     onPrint = { docId -> navController.navigate(Routes.print(docId)) },
                 )
             }
-            composable(Routes.SALE) { SaleScreen(vm, onDone = { navController.popBackStack() }) }
+            composable(Routes.SALE) {
+                SaleScreen(
+                    vm = vm,
+                    onDone = { navController.popBackStack() },
+                    onPrintSale = { docId ->
+                        navController.navigate(Routes.print(docId)) {
+                            popUpTo(Routes.SALE) { inclusive = true }
+                        }
+                    },
+                )
+            }
             composable(Routes.RETURN) { ReturnScreen(vm, onDone = { navController.popBackStack() }) }
             composable(Routes.COLLECTION) { CollectionScreen(vm, onDone = { navController.popBackStack() }) }
             composable(Routes.CLOSING) { ClosingScreen(vm, onDone = { navController.popBackStack() }) }
@@ -156,6 +167,9 @@ fun AppRoot(vm: AppViewModel) {
             }
             composable(Routes.CHANGE_PASSWORD) {
                 ChangePasswordScreen(vm, onBack = { navController.popBackStack() })
+            }
+            composable(Routes.SUPPORT) {
+                SupportScreen(vm, onBack = { navController.popBackStack() })
             }
         }
     }

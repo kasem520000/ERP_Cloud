@@ -1,5 +1,8 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -115,16 +118,39 @@ fun TreasuryScreen(vm: AppViewModel, onBack: () -> Unit) {
         }
     }
 
+    val inSubView = showCreate || editTarget != null
+    BackHandler(enabled = inSubView) {
+        showCreate = false
+        editTarget = null
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                // شريطٌ فاتحٌ يمتزجُ بخلفيّةِ الشاشة (كما في الموك-أب) وعنوانٌ عريضٌ جدًّا.
-                title = { Text("الخزينة والمصروفات", fontWeight = FontWeight.ExtraBold) },
+                title = {
+                    Text(
+                        when {
+                            showCreate -> "سند خزينة جديد"
+                            editTarget != null -> "تعديل سند الخزينة"
+                            else -> "الخزينة والمصروفات"
+                        },
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                 ),
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(
+                        onClick = {
+                            if (inSubView) {
+                                showCreate = false
+                                editTarget = null
+                            } else {
+                                onBack()
+                            }
+                        },
+                    ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
                 },
             )
         },
@@ -461,6 +487,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                     value = subtypeLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickSubtype = true },
                     label = { Text("التصنيف *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickSubtype = true }) },
@@ -470,6 +497,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                     value = branchLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickBranch = true },
                     label = { Text("الفرع *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
@@ -479,6 +507,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                     value = cashLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickCash = true },
                     label = { Text("الخزينة *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickCash = true }) },
@@ -488,6 +517,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                     value = methodLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickMethod = true },
                     label = { Text("طريقةُ الدفع") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickMethod = true }) },
@@ -534,6 +564,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                         value = partyLabel,
                         onValueChange = {},
                         readOnly = true,
+                        interactionSource = rememberPickerInteractionSource { pickParty = true },
                         label = { Text(if (subtype == "supplier") "المورّد *" else "العميل *") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = { PickerTrigger(onClick = { pickParty = true }) },
@@ -545,6 +576,7 @@ private fun VoucherForm(vm: AppViewModel, initial: TreasuryVoucherDto? = null, o
                         value = accountLabel,
                         onValueChange = {},
                         readOnly = true,
+                        interactionSource = rememberPickerInteractionSource { pickAccount = true },
                         label = {
                             Text(
                                 when (subtype) {

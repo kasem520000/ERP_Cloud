@@ -1,5 +1,7 @@
 package com.erpcloud.bakery.ui.screens
 
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -86,6 +88,7 @@ fun EmployeeAccountScreen(vm: AppViewModel, onBack: () -> Unit) {
                         value = employeeLabel,
                         onValueChange = {},
                         readOnly = true,
+                        interactionSource = rememberPickerInteractionSource { pickEmployee = true },
                         label = { Text("الموظف *") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = { PickerTrigger(onClick = { pickEmployee = true }) },

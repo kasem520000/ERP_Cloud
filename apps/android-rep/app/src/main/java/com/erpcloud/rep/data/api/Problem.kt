@@ -42,7 +42,7 @@ class ApiException(
 
 /** الطلبُ لم يصل إلى الخادم (انقطاع شبكة/مهلة) — ليس رفضًا. */
 class NetworkException(cause: Throwable) : Exception(cause) {
-    val userMessage: String get() = "لم يصل الطلب إلى الخادم — تحقّق من الشبكة وعنوان الخادم"
+    val userMessage: String get() = "تعذّر الاتصال بالخدمة السحابية — تحقّق من اتصال الإنترنت وحاول مرّةً أخرى"
 }
 
 /**

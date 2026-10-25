@@ -1,5 +1,7 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +41,7 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.PickerTrigger
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -63,18 +67,22 @@ fun PricesScreen(vm: AppViewModel, onBack: () -> Unit) {
     val dash = state.dashboard
     var showForm by remember { mutableStateOf(false) }
 
+    BackHandler(enabled = showForm) { showForm = false }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("أسعارُ العملاء") },
+                title = { Text(if (showForm) "تسعير عميل" else "أسعارُ العملاء") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(onClick = { if (showForm) showForm = false else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
+                    }
                 },
             )
         },
         floatingActionButton = {
-            if (state.can("van_sales.pricing.manage")) {
-                FloatingActionButton(onClick = { showForm = !showForm }) {
+            if (!showForm && state.can("van_sales.pricing.manage")) {
+                FloatingActionButton(onClick = { showForm = true }) {
                     Icon(Icons.Default.Add, contentDescription = "سعر جديد")
                 }
             }
@@ -158,6 +166,8 @@ private fun PriceForm(vm: AppViewModel, onDone: () -> Unit) {
     var pickItem by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf<String?>(null) }
 
+    LaunchedEffect(Unit) { vm.ensureLookups() }
+
     LazyColumn(
         Modifier.fillMaxSize().padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -171,6 +181,7 @@ private fun PriceForm(vm: AppViewModel, onDone: () -> Unit) {
                     value = partyLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickParty = true },
                     label = { Text("العميل *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickParty = true }) },
@@ -180,6 +191,7 @@ private fun PriceForm(vm: AppViewModel, onDone: () -> Unit) {
                     value = itemLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickItem = true },
                     label = { Text("الصنف (اتركه فارغًا = جميع أصناف المخبز)") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickItem = true }) },
@@ -317,9 +329,13 @@ private fun PriceForm(vm: AppViewModel, onDone: () -> Unit) {
     }
 
     if (pickParty) {
+        val customers = state.parties.ifEmpty { state.staff.customers }
         PickerDialog(
             title = "اختر العميل",
-            items = state.parties.map { PickerItem(it.id, it.displayName, trailing = it.taxNo) },
+            items = customers.map { PickerItem(it.id, it.displayName, subtitle = it.phone, trailing = it.taxNo) },
+            loading = state.loadingLookups,
+            onRefresh = { vm.ensureLookups(force = true) },
+            alwaysShowSearch = true,
             onDismiss = { pickParty = false },
             onSelect = { item ->
                 partyId = item.id
@@ -330,7 +346,12 @@ private fun PriceForm(vm: AppViewModel, onDone: () -> Unit) {
     if (pickItem) {
         PickerDialog(
             title = "اختر الصنف (أو ألغِ = كلّ الأصناف)",
-            items = state.items.map { PickerItem(it.id, it.label) },
+            items = state.effectiveItems.map { PickerItem(it.id, it.label, subtitle = it.subtitle) },
+            loading = state.loadingLookups,
+            errorMessage = state.lookupsError,
+            onRefresh = { vm.ensureLookups(force = true) },
+            onQueryChange = { vm.searchItemsRemotely(it) },
+            alwaysShowSearch = true,
             onDismiss = { pickItem = false },
             onSelect = { item ->
                 itemId = item.id

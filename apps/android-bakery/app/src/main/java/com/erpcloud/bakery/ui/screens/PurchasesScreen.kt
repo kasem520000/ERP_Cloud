@@ -1,5 +1,7 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,6 +54,7 @@ import com.erpcloud.bakery.data.api.PurchaseInvoiceDetailDto
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.PickerTrigger
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
@@ -88,6 +91,7 @@ fun PurchasesScreen(vm: AppViewModel, onBack: () -> Unit) {
     val state by vm.uiState.collectAsState()
     var showCreate by remember { mutableStateOf(false) }
     var showSupplier by remember { mutableStateOf(false) }
+    var supplierOpenedFromCreate by remember { mutableStateOf(false) }
     var postTarget by remember { mutableStateOf<String?>(null) }
     var detailTarget by remember { mutableStateOf<String?>(null) }
     var editTarget by remember { mutableStateOf<String?>(null) }
@@ -96,22 +100,51 @@ fun PurchasesScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     LaunchedEffect(Unit) { vm.loadPurchases() }
 
+    val inSubView = showCreate || showSupplier || editTarget != null
+    val handleSubBack = {
+        when {
+            showSupplier -> {
+                showSupplier = false
+                if (supplierOpenedFromCreate) {
+                    supplierOpenedFromCreate = false
+                    showCreate = true
+                }
+            }
+            showCreate -> showCreate = false
+            editTarget != null -> {
+                editTarget = null
+                vm.clearDocumentDetail()
+            }
+        }
+    }
+    BackHandler(enabled = inSubView) { handleSubBack() }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                // شريطٌ فاتحٌ يمتزجُ بخلفيّةِ الشاشة (كما في الموك-أب) وعنوانٌ عريضٌ جدًّا.
-                title = { Text("المشتريات", fontWeight = FontWeight.ExtraBold) },
+                title = {
+                    Text(
+                        when {
+                            showSupplier -> "إضافة مورّد جديد"
+                            showCreate -> "إنشاء فاتورة مشتريات"
+                            editTarget != null -> "تعديل فاتورة مشتريات"
+                            else -> "المشتريات"
+                        },
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                 ),
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(onClick = { if (inSubView) handleSubBack() else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
+                    }
                 },
             )
         },
         floatingActionButton = {
-            if (!showCreate && editTarget == null && state.can("purchase.invoice.create")) {
-                // FAB كهرمانيٌّ أساسيٌّ بأيقونةٍ بيضاء، أسفلُ اليسار في RTL.
+            if (!showCreate && !showSupplier && editTarget == null && state.can("purchase.invoice.create")) {
                 FloatingActionButton(
                     onClick = { showCreate = true },
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -128,14 +161,28 @@ fun PurchasesScreen(vm: AppViewModel, onBack: () -> Unit) {
                 PurchaseInvoiceForm(
                     vm = vm,
                     onDone = { showCreate = false },
-                    onAddSupplier = { showCreate = false; showSupplier = true },
+                    onAddSupplier = {
+                        supplierOpenedFromCreate = true
+                        showCreate = false
+                        showSupplier = true
+                    },
                 )
             }
             return@Scaffold
         }
         if (showSupplier) {
             androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
-                SupplierForm(vm, onDone = { showSupplier = false; vm.loadPurchases() })
+                SupplierForm(
+                    vm,
+                    onDone = {
+                        showSupplier = false
+                        vm.loadPurchases()
+                        if (supplierOpenedFromCreate) {
+                            supplierOpenedFromCreate = false
+                            showCreate = true
+                        }
+                    },
+                )
             }
             return@Scaffold
         }
@@ -325,7 +372,7 @@ fun PurchasesScreen(vm: AppViewModel, onBack: () -> Unit) {
                         EmptyState("لا سطورَ في الفاتورة.")
                     } else {
                         DocumentLines(detail.lines) { itemId ->
-                            state.items.firstOrNull { it.id == itemId }?.label ?: "—"
+                            state.effectiveItems.firstOrNull { it.id == itemId }?.label ?: "—"
                         }
                     }
                 }
@@ -567,6 +614,11 @@ private fun PurchaseInvoiceForm(
     edit: PurchaseInvoiceDetailDto? = null,
 ) {
     val state by vm.uiState.collectAsState()
+    val availableItems = state.effectiveItems
+    val availableWarehouses = state.effectiveWarehouses
+
+    LaunchedEffect(Unit) { vm.ensureLookups() }
+
     var branchId by remember { mutableStateOf(edit?.branchId ?: "") }
     var branchLabel by remember {
         mutableStateOf(edit?.branchId?.let { bid -> state.staff.branches.firstOrNull { it.id == bid }?.nameAr } ?: "")
@@ -575,7 +627,7 @@ private fun PurchaseInvoiceForm(
     var partyLabel by remember { mutableStateOf(edit?.partyName ?: "") }
     var warehouseId by remember { mutableStateOf(edit?.warehouseId ?: "") }
     var warehouseLabel by remember {
-        mutableStateOf(edit?.warehouseId?.let { wid -> state.warehouses.firstOrNull { it.id == wid }?.label } ?: "")
+        mutableStateOf(edit?.warehouseId?.let { wid -> availableWarehouses.firstOrNull { it.id == wid }?.label } ?: "")
     }
     var supplierRef by remember { mutableStateOf(edit?.supplierReferenceNo ?: "") }
     var dueDate by remember { mutableStateOf(edit?.dueDate ?: "") }
@@ -599,11 +651,12 @@ private fun PurchaseInvoiceForm(
 
     fun resolveItemTaxAndCost(itemId: String): Triple<String, String?, String?> {
         val catItem = state.staff.catalogItems.firstOrNull { it.id == itemId }
-        val optItem = state.items.firstOrNull { it.id == itemId }
-        val tgId = catItem?.taxGroupId ?: optItem?.taxGroupId
+        val optItem = availableItems.firstOrNull { it.id == itemId }
+        val tgId = catItem?.taxGroupId ?: optItem?.effectiveTaxGroupId
         val tg = tgId?.let { id -> state.staff.taxGroups.firstOrNull { it.id == id } }
         val rate = tg?.rate?.let { Dec.fmt(it, maxScale = 2, minScale = 0) }?.ifBlank { "15" } ?: "15"
-        return Triple(rate, tgId, catItem?.purchasePrice)
+        val cost = catItem?.purchasePrice ?: optItem?.effectivePurchasePrice
+        return Triple(rate, tgId, cost)
     }
 
     data class PurchaseLine(
@@ -618,7 +671,7 @@ private fun PurchaseInvoiceForm(
         val initial = edit?.lines?.map { line ->
             PurchaseLine(
                 itemId = line.itemId,
-                itemLabel = state.items.firstOrNull { it.id == line.itemId }?.label ?: line.description ?: "",
+                itemLabel = availableItems.firstOrNull { it.id == line.itemId }?.label ?: line.description ?: "",
                 qty = line.quantity,
                 price = line.unitPrice ?: "",
                 taxRate = line.taxRate?.let { Dec.fmt(it, maxScale = 2, minScale = 0) }?.ifBlank { "15" } ?: "15",
@@ -650,7 +703,7 @@ private fun PurchaseInvoiceForm(
         }
         refDetail.warehouseId?.let { wid ->
             warehouseId = wid
-            warehouseLabel = state.warehouses.firstOrNull { it.id == wid }?.label.orEmpty()
+            warehouseLabel = availableWarehouses.firstOrNull { it.id == wid }?.label.orEmpty()
         }
         priceIncludesVat = refDetail.priceIncludesVat ?: false
         if (refDetail.lines.isNotEmpty()) {
@@ -659,7 +712,7 @@ private fun PurchaseInvoiceForm(
                 refDetail.lines.map { line ->
                     PurchaseLine(
                         itemId = line.itemId,
-                        itemLabel = state.items.firstOrNull { it.id == line.itemId }?.label ?: line.description ?: line.itemId,
+                        itemLabel = availableItems.firstOrNull { it.id == line.itemId }?.label ?: line.description ?: line.itemId,
                         qty = line.quantity,
                         price = line.unitPrice ?: "",
                         taxRate = line.taxRate?.let { Dec.fmt(it, maxScale = 2, minScale = 0) }?.ifBlank { "0" } ?: "0",
@@ -678,12 +731,19 @@ private fun PurchaseInvoiceForm(
             state.staff.branches.firstOrNull { it.id == branchId }?.let { branchLabel = it.nameAr }
         }
     }
-    LaunchedEffect(state.warehouses, state.staff.suppliers) {
+    LaunchedEffect(availableWarehouses, state.staff.suppliers, availableItems) {
         if (warehouseId.isNotBlank() && warehouseLabel.isBlank()) {
-            state.warehouses.firstOrNull { it.id == warehouseId }?.let { warehouseLabel = it.label }
+            availableWarehouses.firstOrNull { it.id == warehouseId }?.let { warehouseLabel = it.label }
         }
         if (partyId.isNotBlank() && partyLabel.isBlank()) {
             state.staff.suppliers.firstOrNull { it.id == partyId }?.let { partyLabel = it.displayName }
+        }
+        lines.forEachIndexed { idx, line ->
+            if (line.itemId.isNotBlank() && line.itemLabel.isBlank()) {
+                availableItems.firstOrNull { it.id == line.itemId }?.let { opt ->
+                    lines[idx] = line.copy(itemLabel = opt.label)
+                }
+            }
         }
     }
 
@@ -718,6 +778,7 @@ private fun PurchaseInvoiceForm(
                         value = referenceInvoiceLabel,
                         onValueChange = {},
                         readOnly = true,
+                        interactionSource = rememberPickerInteractionSource { pickReferenceInvoice = true },
                         label = { Text("فاتورةُ الشراء المرحَّلة المرتجع عليها *") },
                         placeholder = { Text("اختر فاتورةَ الشراء الأصليّة") },
                         modifier = Modifier.fillMaxWidth(),
@@ -729,6 +790,7 @@ private fun PurchaseInvoiceForm(
                     value = branchLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickBranch = true },
                     label = { Text("الفرع *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
@@ -738,6 +800,7 @@ private fun PurchaseInvoiceForm(
                     value = partyLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickParty = true },
                     label = { Text("المورّد *") },
                     placeholder = { Text("اختر المورّد") },
                     modifier = Modifier.fillMaxWidth(),
@@ -755,6 +818,7 @@ private fun PurchaseInvoiceForm(
                     value = warehouseLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickWarehouse = true },
                     label = { Text("مستودعُ الاستلام") },
                     placeholder = { Text("افتراضيُّ الفرع") },
                     modifier = Modifier.fillMaxWidth(),
@@ -799,7 +863,9 @@ private fun PurchaseInvoiceForm(
                                 value = line.itemLabel,
                                 onValueChange = {},
                                 readOnly = true,
+                                interactionSource = rememberPickerInteractionSource { pickLineAt = index },
                                 label = { Text("الصنف ${index + 1} *") },
+                                placeholder = { Text("اضغط لاختيار الصنف…") },
                                 modifier = Modifier.weight(1.4f),
                                 trailingIcon = { PickerTrigger(onClick = { pickLineAt = index }) },
                             )
@@ -962,6 +1028,8 @@ private fun PurchaseInvoiceForm(
         PickerDialog(
             title = "اختر الفرع",
             items = state.staff.branches.map { PickerItem(it.id, it.nameAr, trailing = if (it.isDefault) "افتراضيّ" else null) },
+            loading = state.staff.loadingKey == "purchases",
+            onRefresh = { vm.loadPurchases() },
             onDismiss = { pickBranch = false },
             onSelect = { branchId = it.id; branchLabel = it.title },
         )
@@ -969,7 +1037,10 @@ private fun PurchaseInvoiceForm(
     if (pickParty) {
         PickerDialog(
             title = "اختر المورّد",
-            items = state.staff.suppliers.map { PickerItem(it.id, it.displayName) },
+            items = state.staff.suppliers.map { PickerItem(it.id, it.displayName, trailing = it.phone) },
+            loading = state.staff.loadingKey == "purchases",
+            onRefresh = { vm.loadPurchases() },
+            alwaysShowSearch = true,
             onDismiss = { pickParty = false },
             onSelect = { partyId = it.id; partyLabel = it.title },
         )
@@ -977,7 +1048,9 @@ private fun PurchaseInvoiceForm(
     if (pickWarehouse) {
         PickerDialog(
             title = "اختر المستودع",
-            items = state.warehouses.map { PickerItem(it.id, it.label, trailing = if (it.isDefault == true) "افتراضيّ" else null) },
+            items = availableWarehouses.map { PickerItem(it.id, it.label, trailing = if (it.effectiveIsDefault) "افتراضيّ" else null) },
+            loading = state.loadingLookups,
+            onRefresh = { vm.ensureLookups(force = true) },
             onDismiss = { pickWarehouse = false },
             onSelect = { warehouseId = it.id; warehouseLabel = it.title },
         )
@@ -986,7 +1059,19 @@ private fun PurchaseInvoiceForm(
         val at = pickLineAt
         PickerDialog(
             title = "صنفُ السطر ${at + 1}",
-            items = state.items.map { PickerItem(it.id, it.label) },
+            items = availableItems.map { item ->
+                PickerItem(
+                    id = item.id,
+                    title = item.label,
+                    subtitle = item.subtitle,
+                    trailing = item.effectivePurchasePrice?.let { "${Dec.money(it)} ر.س" },
+                )
+            },
+            loading = state.loadingLookups || state.staff.loadingKey == "purchases",
+            errorMessage = state.lookupsError,
+            onRefresh = { vm.ensureLookups(force = true) },
+            onQueryChange = { vm.searchItemsRemotely(it) },
+            alwaysShowSearch = true,
             onDismiss = { pickLineAt = -1 },
             onSelect = { item ->
                 val (rate, tgId, defaultCost) = resolveItemTaxAndCost(item.id)

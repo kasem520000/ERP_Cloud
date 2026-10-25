@@ -39,13 +39,15 @@ val AppJson: Json = Json {
 class HostSelectionInterceptor(private val sessionStore: SessionStore) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val original = chain.request()
-        val server = parseServer(sessionStore.cached.serverUrl) ?: return chain.proceed(original)
-        val rewritten = original.url.newBuilder()
+        val server = parseServer(com.erpcloud.rep.data.offline.SessionState.DEFAULT_SERVER_URL)
+            ?: return chain.proceed(original)
+        val builder = original.url.newBuilder()
             .scheme(server.first)
             .host(server.second)
-            .port(server.third)
-            .build()
-        return chain.proceed(original.newBuilder().url(rewritten).build())
+        if ((server.first == "https" && server.third != 443) || (server.first == "http" && server.third != 80)) {
+            builder.port(server.third)
+        }
+        return chain.proceed(original.newBuilder().url(builder.build()).build())
     }
 
     companion object {
@@ -68,7 +70,7 @@ class HostSelectionInterceptor(private val sessionStore: SessionStore) : Interce
     }
 }
 
-/** إلحاقُ رمز الحمل — لا يُلحق بمساري الدخول والتجديد. */
+/** إلحاقُ رمز الحمل — لا يُلحق بمساري الدخول والتجديد والمسارات العامّة. */
 class AuthInterceptor(private val sessionStore: SessionStore) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
@@ -76,7 +78,8 @@ class AuthInterceptor(private val sessionStore: SessionStore) : Interceptor {
         if (
             path.endsWith("/auth/login") ||
             path.endsWith("/auth/refresh") ||
-            path.endsWith("/auth/forgot-password")
+            path.endsWith("/auth/forgot-password") ||
+            path.contains("/public/")
         ) {
             return chain.proceed(request)
         }
@@ -103,7 +106,8 @@ class AuthAuthenticator(
         if (
             path.endsWith("/auth/login") ||
             path.endsWith("/auth/refresh") ||
-            path.endsWith("/auth/forgot-password")
+            path.endsWith("/auth/forgot-password") ||
+            path.contains("/public/")
         ) return null
         // لا تُكرِّر: إن سبق أن أُعيد المحاولة على الطلب نفسه فتوقّف.
         if (response.request.header("X-Retry-After-Refresh") != null) return null
@@ -139,9 +143,8 @@ class AuthAuthenticator(
     private fun tryRefresh(refreshToken: String): Pair<String, String>? {
         if (refreshToken.isEmpty()) return null
         return try {
-            val server = HostSelectionInterceptor.parseServer(sessionStore.cached.serverUrl)
-                ?: return null
-            val url = "${server.first}://${server.second}:${server.third}/api/v1/auth/refresh"
+            val base = com.erpcloud.rep.data.offline.SessionState.DEFAULT_SERVER_URL.trimEnd('/')
+            val url = "$base/api/v1/auth/refresh"
             val body = AppJson.encodeToString(
                 RefreshRequest.serializer(),
                 RefreshRequest(refreshToken),
@@ -187,9 +190,7 @@ class NetworkFactory(private val sessionStore: SessionStore, private val events:
             .build()
 
         Retrofit.Builder()
-            // بادئةٌ افتراضيّة — الستضاف والحقيقيّ يُطبَّق في HostSelectionInterceptor،
-            // والمساراتُ النسبيّة تُلحق `/api/v1` بها.
-            .baseUrl("http://10.0.2.2:3000/api/v1/")
+            .baseUrl("https://api.sahabaccounting.com/api/v1/")
             .client(authed)
             .addConverterFactory(AppJson.asConverterFactory("application/json".toMediaType()))
             .build()

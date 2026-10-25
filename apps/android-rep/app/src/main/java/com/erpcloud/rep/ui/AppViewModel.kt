@@ -38,10 +38,13 @@ import java.io.IOException
 /** حالةُ الواجهةِ الواحدةُ المشتركة. */
 data class UiState(
     val sessionLoaded: Boolean = false,
+    val splashDone: Boolean = false,
     val session: SessionState = SessionState(),
     val me: MeResponse? = null,
     val workspace: RepWorkspace? = null,
     val parties: List<PartyDto> = emptyList(),
+    val loadingParties: Boolean = false,
+    val partiesError: String? = null,
     val queue: List<QueueRecord> = emptyList(),
     val loadingWorkspace: Boolean = false,
     val workspaceError: String? = null,
@@ -89,8 +92,12 @@ data class NotificationsState(
     val error: String? = null,
 )
 
-/** نتيجةُ إرسال نيّةٍ + (المفتاح، بصمةُ الجسم) — النيّةُ الواحدةُ مفتاحٌ واحد ما لم تتغيّر المسودة. */
-data class SubmitOutcome(val result: ActionResult, val intent: Pair<String, String>?)
+/** نتيجةُ إرسال نيّةٍ + (المفتاح، بصمةُ الجسم) + معرّف المستند المُنشأ حديثًا إن وُجد. */
+data class SubmitOutcome(
+    val result: ActionResult,
+    val intent: Pair<String, String>?,
+    val createdDocumentId: String? = null,
+)
 
 /**
  * نموذجُ العرضِ الواحد — الحمولةُ كلُّها من `GET /van-sales/me`، والإشعارُ عابرٌ،
@@ -122,6 +129,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private var workspaceLoadedOnce = false
 
     init {
+        viewModelScope.launch {
+            val splashFloor = kotlinx.coroutines.async { kotlinx.coroutines.delay(1650L) }
+            kotlinx.coroutines.withTimeoutOrNull(2400L) { repo.fetchPublicSite() }
+            splashFloor.await()
+            _uiState.update { it.copy(splashDone = true) }
+            repo.fetchPublicSite()
+        }
         // الجلسة: أوّلُ قراءةٍ تُعلم أنّ التخزين جاهز (شاشةُ الانتظار)، ثم كلُّ تغيير.
         viewModelScope.launch {
             container.sessionStore.state.collect { session ->
@@ -139,6 +153,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             me = null,
                             workspace = null,
                             parties = emptyList(),
+                            loadingParties = false,
+                            partiesError = null,
                             workspaceError = null,
                             notifications = NotificationsState(),
                             lastRefreshAt = 0L,
@@ -230,7 +246,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         } catch (error: ApiException) {
             error.userMessage
         } catch (error: IOException) {
-            "تعذّر الوصول إلى الخادم — تحقّق من العنوان والشبكة"
+            "تعذّر الاتصال بالخدمة السحابية — تحقّق من اتصال الإنترنت وحاول مرّةً أخرى"
         } catch (error: Exception) {
             error.message ?: "تعذّر تسجيل الدخول"
         }
@@ -464,20 +480,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private fun payloadText(payload: kotlinx.serialization.json.JsonObject?, key: String): String? =
         (payload?.get(key) as? JsonPrimitive)?.content
 
-    private fun loadParties() {
+    fun loadParties() {
         viewModelScope.launch {
+            _uiState.update { it.copy(loadingParties = true, partiesError = null) }
             try {
                 val parties = repo.parties()
-                _uiState.update { it.copy(parties = parties) }
-            } catch (_: Exception) {
-                // بطاقاتُ العملاء أحسنُ جهدٍ — شاشةُ البيع تعمل بالاسم النقديّ بدلها.
+                _uiState.update { it.copy(parties = parties, loadingParties = false, partiesError = null) }
+            } catch (error: Exception) {
+                _uiState.update { it.copy(loadingParties = false, partiesError = friendly(error)) }
             }
         }
     }
 
+    fun ensureParties(force: Boolean = false) {
+        val s = _uiState.value
+        if (s.loadingParties) return
+        if (force || s.parties.isEmpty()) loadParties()
+    }
+
+    fun friendlyError(error: Exception): String = friendly(error)
+
     private fun friendly(error: Exception): String = when (error) {
         is ApiException -> error.userMessage
-        is IOException -> "تعذّر الوصول إلى الخادم — تحقّق من الشبكة وعنوان الخادم"
+        is IOException -> "تعذّر الاتصال بالخدمة السحابية — تحقّق من اتصال الإنترنت وحاول مرّةً أخرى"
         else -> error.message ?: "خطأٌ غير متوقّع"
     }
 
@@ -497,6 +522,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     ) {
         viewModelScope.launch {
             try {
+                val previousIds = _uiState.value.workspace?.documents?.map { it.id }?.toSet().orEmpty()
                 val body = repo.encodeBody(request)
                 val fingerprint = Idempotency.fnv1a32(Idempotency.canonicalText(body))
                 val existingKey =
@@ -504,10 +530,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val keyed = repo.withIdempotencyKey(operation, body, existingKey)
                 val key = (keyed["idempotencyKey"] as? JsonPrimitive)?.content
                 val result = repo.submitQueueable(operation, targetId, keyed, _uiState.value.online)
-                if (result is ActionResult.Synced || result is ActionResult.StoredOffline) {
+                var createdDocId: String? = null
+                if (result is ActionResult.Synced && operation == QueueOperation.DOCUMENT) {
+                    val fresh = runCatching { repo.workspace() }.getOrNull()
+                    if (fresh != null) {
+                        _uiState.update {
+                            it.copy(
+                                workspace = fresh,
+                                loadingWorkspace = false,
+                                lastRefreshAt = System.currentTimeMillis(),
+                            )
+                        }
+                        createdDocId = fresh.documents.firstOrNull { it.isSale && it.id !in previousIds }?.id
+                            ?: fresh.documents.firstOrNull { it.isSale }?.id
+                    } else {
+                        refreshWorkspace()
+                    }
+                } else if (result is ActionResult.Synced || result is ActionResult.StoredOffline) {
                     refreshWorkspace()
                 }
-                onDone(SubmitOutcome(result, key?.let { it to fingerprint }))
+                onDone(SubmitOutcome(result, key?.let { it to fingerprint }, createdDocId))
             } catch (error: Exception) {
                 // لا تُعلِّق الشاشةَ على زرِّ إرسالٍ يدور إلى الأبد.
                 onDone(SubmitOutcome(ActionResult.Refused(friendly(error)), null))
@@ -622,4 +664,34 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun consumeNotice() {
         _notice.value = null
     }
+
+    fun showNoticeOk(messageAr: String) {
+        _notice.value = Notice.ok(messageAr)
+    }
+
+    fun showNoticeDanger(messageAr: String) {
+        _notice.value = Notice.danger(messageAr)
+    }
+
+    // --------------------------------------------------- الدعم الفني ومركز المساعدة
+
+    suspend fun supportTickets(): List<com.erpcloud.rep.data.api.SupportTicketDto> =
+        repo.supportTickets()
+
+    suspend fun supportTicketDetail(id: String): com.erpcloud.rep.data.api.SupportTicketDto =
+        repo.supportTicketDetail(id)
+
+    suspend fun createSupportTicket(body: kotlinx.serialization.json.JsonObject): com.erpcloud.rep.data.api.SupportTicketDto =
+        repo.createSupportTicket(body)
+
+    suspend fun replySupportTicket(id: String, body: kotlinx.serialization.json.JsonObject): com.erpcloud.rep.data.api.SupportTicketDto =
+        repo.replySupportTicket(id, body)
+
+    suspend fun publicHelp(q: String? = null): List<com.erpcloud.rep.data.api.PublicHelpPostDto> =
+        repo.publicHelp(q)
+
+    suspend fun publicFaq(): List<com.erpcloud.rep.data.api.PublicFaqDto> =
+        repo.publicFaq()
+
+    fun friendlyError(error: Exception): String = friendly(error)
 }

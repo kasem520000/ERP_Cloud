@@ -23,7 +23,9 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.BakeryDining
+import androidx.compose.material.icons.outlined.CloudDone
 import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.LocalShipping
@@ -36,6 +38,7 @@ import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material.icons.outlined.SupportAgent
 import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material.icons.outlined.WorkHistory
@@ -104,6 +107,9 @@ fun DashboardScreen(
     onPrinters: () -> Unit,
     onNotifications: () -> Unit,
     onChangePassword: () -> Unit,
+    onAiAssistant: () -> Unit = {},
+    onTaxFilings: () -> Unit = {},
+    onSupport: () -> Unit = {},
     onLogout: () -> Unit,
 ) {
     val state by vm.uiState.collectAsState()
@@ -394,6 +400,12 @@ fun DashboardScreen(
 
                 val canView = state.can("van_sales.view")
                 val tiles = buildList {
+                    if (state.can("ai.assistant.use")) {
+                        add(Tile("المساعد الذكي AI", Icons.Outlined.AutoAwesome, onAiAssistant))
+                    }
+                    if (state.can("einvoice.view")) {
+                        add(Tile("الفواتير الضريبية", Icons.Outlined.CloudDone, onTaxFilings))
+                    }
                     if (canView) {
                         add(Tile("الإنتاج", Icons.Outlined.BakeryDining, onProduction))
                         add(Tile("التوزيع والتحميل", Icons.Outlined.LocalShipping, onDistribution))
@@ -405,6 +417,7 @@ fun DashboardScreen(
                         add(Tile("سياسةُ العجز", Icons.Outlined.Verified, onPolicy))
                         add(Tile("المستنداتُ والحركات", Icons.Outlined.Inventory2, onCollection))
                     }
+                    add(Tile("طلب المساعدة والدعم", Icons.Outlined.SupportAgent, onSupport))
                     add(Tile("الطابعات", Icons.Outlined.Print, onPrinters))
                     add(Tile("تغييرُ كلمة المرور", Icons.Outlined.Speed, onChangePassword))
                 }

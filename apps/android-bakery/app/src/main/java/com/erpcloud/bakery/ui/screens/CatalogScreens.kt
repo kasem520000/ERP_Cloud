@@ -1,5 +1,8 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -76,12 +79,31 @@ fun ItemsScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     LaunchedEffect(Unit) { vm.loadCatalog() }
 
+    val inSubView = showCreate || editTarget != null
+    BackHandler(enabled = inSubView) {
+        if (showCreate) showCreate = false else editTarget = null
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("الأصناف") },
+                title = {
+                    Text(
+                        when {
+                            showCreate -> "إضافة صنف جديد"
+                            editTarget != null -> "تعديل الصنف"
+                            else -> "الأصناف"
+                        },
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(
+                        onClick = {
+                            if (showCreate) showCreate = false
+                            else if (editTarget != null) editTarget = null
+                            else onBack()
+                        },
+                    ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
                 },
             )
         },
@@ -193,12 +215,31 @@ fun CategoriesScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     LaunchedEffect(Unit) { vm.loadCatalog() }
 
+    val inSubView = showCreate || editTarget != null
+    BackHandler(enabled = inSubView) {
+        if (showCreate) showCreate = false else editTarget = null
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("مجموعاتُ الأصناف") },
+                title = {
+                    Text(
+                        when {
+                            showCreate -> "إضافة مجموعة جديدة"
+                            editTarget != null -> "تعديل المجموعة"
+                            else -> "مجموعاتُ الأصناف"
+                        },
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(
+                        onClick = {
+                            if (showCreate) showCreate = false
+                            else if (editTarget != null) editTarget = null
+                            else onBack()
+                        },
+                    ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
                 },
             )
         },
@@ -290,12 +331,31 @@ fun UnitsScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     LaunchedEffect(Unit) { vm.loadCatalog() }
 
+    val inSubView = showCreate || editTarget != null
+    BackHandler(enabled = inSubView) {
+        if (showCreate) showCreate = false else editTarget = null
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("وحداتُ القياس") },
+                title = {
+                    Text(
+                        when {
+                            showCreate -> "إضافة وحدة قياس"
+                            editTarget != null -> "تعديل وحدة القياس"
+                            else -> "وحداتُ القياس"
+                        },
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(
+                        onClick = {
+                            if (showCreate) showCreate = false
+                            else if (editTarget != null) editTarget = null
+                            else onBack()
+                        },
+                    ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
                 },
             )
         },
@@ -452,6 +512,7 @@ private fun ItemForm(
                     value = categoryLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickCategory = true },
                     label = { Text("المجموعة *") },
                     placeholder = { Text("اختر المجموعة") },
                     modifier = Modifier.fillMaxWidth(),
@@ -463,6 +524,7 @@ private fun ItemForm(
                     onValueChange = {},
                     readOnly = true,
                     enabled = initial == null,
+                    interactionSource = rememberPickerInteractionSource { if (initial == null) pickUnit = true },
                     label = { Text(if (initial == null) "الوحدةُ الأساسيّة *" else "الوحدةُ الأساسيّة (تُحدَّد عند الإنشاء)") },
                     placeholder = { Text("اختر الوحدة") },
                     modifier = Modifier.fillMaxWidth(),
@@ -477,6 +539,7 @@ private fun ItemForm(
                     value = taxGroupLabel.ifBlank { "بدون مجموعة ضريبيّة" },
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickTaxGroup = true },
                     label = { Text("المجموعةُ الضريبيّة") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickTaxGroup = true }) },
@@ -690,6 +753,7 @@ private fun CategoryForm(
             value = parentLabel.ifBlank { "مجموعةٌ رئيسيّة (بلا أب)" },
             onValueChange = {},
             readOnly = true,
+            interactionSource = rememberPickerInteractionSource { pickParent = true },
             label = { Text("المجموعةُ الأب (اختياريّ)") },
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = { PickerTrigger(onClick = { pickParent = true }) },

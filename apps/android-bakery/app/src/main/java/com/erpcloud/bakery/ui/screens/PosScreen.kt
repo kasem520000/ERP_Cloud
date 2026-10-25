@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -57,10 +58,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.api.PosCheckoutReceiptDto
 import com.erpcloud.bakery.data.api.PosItemDto
+import com.erpcloud.bakery.printing.PosReceiptLine
+import com.erpcloud.bakery.printing.PosReceiptMeta
 import com.erpcloud.bakery.printing.posReceipt
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.PickerTrigger
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.EmptyState
 import com.erpcloud.bakery.ui.components.InlineAction
@@ -108,6 +112,8 @@ fun PosScreen(vm: AppViewModel, onBack: () -> Unit) {
     // آخرُ إيصالٍ ناجحٍ يُحفَظُ لإعادةِ طباعتِه من قربِ ملخّصِ السلّة.
     var lastReceipt by remember { mutableStateOf<PosCheckoutReceiptDto?>(null) }
     var lastReceiptTotals by remember { mutableStateOf(BigDecimal.ZERO) }
+    var lastReceiptLines by remember { mutableStateOf<List<PosReceiptLine>>(emptyList()) }
+    var lastReceiptMeta by remember { mutableStateOf(PosReceiptMeta()) }
     var editPriceFor by remember { mutableStateOf<PosCartLine?>(null) }
     var priceNotice by remember { mutableStateOf<String?>(null) }
     // نمطُ السعر: شاملُ الضريبةِ (افتراضيّ الخادم) أم قبلَها — كما في شاشة الويب.
@@ -279,10 +285,10 @@ fun PosScreen(vm: AppViewModel, onBack: () -> Unit) {
             // ------------------------------------------------ إعادةُ طباعة آخر إيصال
             item(span = { GridItemSpan(2) }) {
                 InlineAction(
-                    label = "إعادةُ طباعة آخر إيصال",
+                    label = "إعادةُ طباعة آخر فاتورة كاشير",
                     onClick = {
                         lastReceipt?.let { receipt ->
-                            printReceiptAction(vm, state, scope, receipt, lastReceiptTotals)
+                            printReceiptAction(vm, state, scope, receipt, lastReceiptTotals, lastReceiptLines, lastReceiptMeta)
                         }
                     },
                     enabled = lastReceipt != null,
@@ -414,6 +420,28 @@ fun PosScreen(vm: AppViewModel, onBack: () -> Unit) {
                         },
                     )
                 }
+                val soldSnapshot = cart.map { line ->
+                    val lineTotal = Dec.orZero(line.qty).multiply(Dec.orZero(line.price)).toPlainString()
+                    PosReceiptLine(
+                        nameAr = line.item.nameAr,
+                        qty = line.qty,
+                        unitPrice = line.price,
+                        lineTotal = lineTotal,
+                        sku = line.item.sku,
+                    )
+                }
+                val metaSnapshot = PosReceiptMeta(
+                    branchName = pos.branches.firstOrNull { it.id == checkoutBranchId }?.nameAr.orEmpty(),
+                    cashierName = state.me?.user?.fullName?.takeIf { it.isNotBlank() } ?: state.me?.user?.email.orEmpty(),
+                    customerName = if (partyId.isNotBlank()) {
+                        pos.customers.firstOrNull { it.id == partyId }?.name ?: "عميل مسجّل"
+                    } else {
+                        "عميل نقدي"
+                    },
+                    issuedAt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(java.util.Date()),
+                    sellerCrNo = state.companyProfile?.crNo.orEmpty(),
+                    sellerPhone = state.companyProfile?.phones?.firstOrNull().orEmpty(),
+                )
                 // B5: نيّةُ شراءٍ واحدةٌ مفتاحٌ واحد — المفتاحُ يُحفَظُ لا يُولَّدُ عند
                 // كلِّ محاولةٍ، فإعادةُ الإرسالِ بعد مهلةِ شبكةٍ تُعيدُ المفتاحَ نفسَه.
                 if (posKey.isBlank()) {
@@ -427,11 +455,13 @@ fun PosScreen(vm: AppViewModel, onBack: () -> Unit) {
                         // لقطةُ الإيصالِ الأخير للطباعةِ الإضافيّة.
                         lastReceipt = receipt
                         lastReceiptTotals = cartTotalsSnapshot(withKey)
+                        lastReceiptLines = soldSnapshot
+                        lastReceiptMeta = metaSnapshot
                         cart.clear()
                         // البيعةُ نجحت — يُعرضُ ملخّصُ الإيصالِ فورًا حتى لا يُقرأَ
                         // فشلُ طباعةٍ لاحقٌ كفشلِ حفظ. ثمّ تُطبَعُ تلقائيًّا على IO.
                         showReceipt = receipt
-                        printReceiptAction(vm, state, scope, receipt, cartTotalsSnapshot(withKey))
+                        printReceiptAction(vm, state, scope, receipt, lastReceiptTotals, soldSnapshot, metaSnapshot)
                     }
                 }
             },
@@ -450,17 +480,32 @@ fun PosScreen(vm: AppViewModel, onBack: () -> Unit) {
     // ------------------------------------------------ ملخّصُ الإيصالِ الناجح
     showReceipt?.let { receipt ->
         ReceiptSuccessDialog(
+            vm = vm,
+            state = state,
             receipt = receipt,
-            onPrint = { printReceiptAction(vm, state, scope, receipt, lastReceiptTotals) },
+            subtotal = lastReceiptTotals,
+            lines = lastReceiptLines,
+            meta = lastReceiptMeta,
+            onPrint = {
+                printReceiptAction(vm, state, scope, receipt, lastReceiptTotals, lastReceiptLines, lastReceiptMeta)
+            },
             onShare = {
                 scope.launch {
                     try {
                         val context = vm.androidContext()
-                        // 🧾 ترويسةُ المنشأةِ وQR الزكاة على الصورةِ المُشارَكةِ أيضًا.
                         val qr = vm.receiptQrPayload(receipt)
                         val company = state.companyProfile
                         val bitmap = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            posReceipt(receipt, lastReceiptTotals, qr, company?.nameAr ?: "", company?.taxNo ?: "")
+                            posReceipt(
+                                receipt = receipt,
+                                subtotal = lastReceiptTotals,
+                                qrPayload = qr,
+                                sellerName = company?.nameAr?.takeIf { it.isNotBlank() } ?: state.session.brandName,
+                                sellerTaxNo = company?.taxNo.orEmpty(),
+                                widthPx = 900,
+                                lines = lastReceiptLines,
+                                meta = lastReceiptMeta,
+                            )
                         }
                         com.erpcloud.bakery.printing.PrintKit.shareImage(
                             context, bitmap, "receipt-${receipt.number.ifBlank { "pos" }}.png",
@@ -528,25 +573,44 @@ private fun printReceiptAction(
     scope: kotlinx.coroutines.CoroutineScope,
     receipt: PosCheckoutReceiptDto,
     totals: BigDecimal,
+    lines: List<PosReceiptLine> = emptyList(),
+    meta: PosReceiptMeta = PosReceiptMeta(),
 ) {
     scope.launch {
         try {
             val context = vm.androidContext()
             val mac = state.session.printerMac
+            val qr = vm.receiptQrPayload(receipt)
+            val company = state.companyProfile
+            val seller = company?.nameAr?.takeIf { it.isNotBlank() } ?: state.session.brandName
             if (mac.isBlank()) {
-                val html = vm.salesInvoicePrintHtml(receipt.resolvedId, paper = "small")
-                com.erpcloud.bakery.printing.HtmlPrint.printViaSystem(
-                    context, html, "إيصال ${receipt.number}",
+                val rendered = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    posReceipt(
+                        receipt = receipt,
+                        subtotal = totals,
+                        qrPayload = qr,
+                        sellerName = seller,
+                        sellerTaxNo = company?.taxNo.orEmpty(),
+                        widthPx = 900,
+                        lines = lines,
+                        meta = meta,
+                    )
+                }
+                com.erpcloud.bakery.printing.PrintKit.printViaSystem(
+                    context, rendered, "فاتورة كاشير ${receipt.number}",
                 )
             } else {
-                // 🖨️ طابعةُ بلوتوثٍ مسجّلة: الإيصالُ النقطيّ ESC/POS بترويسةِ المنشأةِ وQR الزكاة.
                 val width = state.session.printerWidthDots
-                val qr = vm.receiptQrPayload(receipt)
-                val company = state.companyProfile
                 withContext(kotlinx.coroutines.Dispatchers.IO) {
                     val rendered = posReceipt(
-                        receipt, totals, qr,
-                        company?.nameAr ?: "", company?.taxNo ?: "",
+                        receipt = receipt,
+                        subtotal = totals,
+                        qrPayload = qr,
+                        sellerName = seller,
+                        sellerTaxNo = company?.taxNo.orEmpty(),
+                        widthPx = width,
+                        lines = lines,
+                        meta = meta,
                     )
                     com.erpcloud.bakery.printing.EscPos.printBitmap(context, mac, width, rendered)
                 }
@@ -558,46 +622,78 @@ private fun printReceiptAction(
 }
 
 /**
- * حوارُ نجاحِ البيعة — يُقطعُ اللبسَ الذي أظلمَ تجربةَ الكاشير: البيعةُ نُفِّذت
- * عند الخادم (رقمُ الفاتورةِ والإجمالياتُ من الردّ) وطباعتُها اختياريّةٌ
- * تُعادُ من هنا. فشلُ الطباعةِ لا يعني فشلَ الحفظ.
+ * حوارُ نجاحِ البيعة — يعرضُ معاينةً حيّةً لفاتورة الكاشير الاحترافيّة مع خيارات
+ * الطباعة الحراريّة/PDF والمشاركة الفوريّة.
  */
 @Composable
 private fun ReceiptSuccessDialog(
+    vm: AppViewModel,
+    state: com.erpcloud.bakery.ui.UiState,
     receipt: PosCheckoutReceiptDto,
+    subtotal: BigDecimal,
+    lines: List<PosReceiptLine>,
+    meta: PosReceiptMeta,
     onPrint: () -> Unit,
     onShare: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var previewBitmap by remember(receipt.resolvedId) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    LaunchedEffect(receipt.resolvedId) {
+        val qr = vm.receiptQrPayload(receipt)
+        val company = state.companyProfile
+        previewBitmap = withContext(kotlinx.coroutines.Dispatchers.IO) {
+            posReceipt(
+                receipt = receipt,
+                subtotal = subtotal,
+                qrPayload = qr,
+                sellerName = company?.nameAr?.takeIf { it.isNotBlank() } ?: state.session.brandName,
+                sellerTaxNo = company?.taxNo.orEmpty(),
+                widthPx = 720,
+                lines = lines,
+                meta = meta,
+            )
+        }
+    }
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("تمّت البيعة بنجاح ✓") },
+        title = { Text("تمّت البيعة بنجاح ✓", fontWeight = FontWeight.ExtraBold) },
         text = {
-            Column {
-                KeyValue("رقمُ الفاتورة", receipt.number.ifBlank { "—" })
-                receipt.subtotal?.let { KeyValue("الصافي قبل الضريبة", Dec.money(it) + " ر.س") }
-                receipt.taxTotal?.let { KeyValue("الضريبة", Dec.money(it) + " ر.س") }
-                receipt.total?.let { KeyValue("الإجماليُّ المستحقّ", Dec.money(it) + " ر.س") }
-                receipt.paidTotal?.let { KeyValue("المدفوع", Dec.money(it) + " ر.س") }
-                receipt.change?.takeIf { Dec.isPositive(it) }?.let { KeyValue("الباقي للعميل", Dec.money(it) + " ر.س") }
+            Column(Modifier.height(420.dp)) {
+                val bmp = previewBitmap
+                if (bmp != null) {
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        androidx.compose.foundation.Image(
+                            bitmap = androidx.compose.ui.graphics.asImageBitmap(bmp),
+                            contentDescription = "معاينة فاتورة الكاشير",
+                            contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                } else {
+                    KeyValue("رقمُ الفاتورة", receipt.number.ifBlank { "—" })
+                    receipt.total?.let { KeyValue("الإجماليُّ المستحقّ", Dec.money(it) + " ر.س") }
+                }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "نُفِّذت عند الخادم وحُفِظت — فشلُ الطباعةِ (إن حدث) لا يُلغي البيعة، ويمكنُ إعادتُها الآن.",
+                    "حُفظت الفاتورةُ رسميًّا — يمكنك إعادة طباعتها أو مشاركتها الآن.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         },
         confirmButton = {
-            androidx.compose.material3.TextButton(onClick = onPrint) { Text("طباعةُ الإيصال") }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                androidx.compose.material3.TextButton(onClick = onShare) { Text("مشاركة") }
+                Button(onClick = onPrint) { Text("طباعة فاتورة الكاشير") }
+            }
         },
         dismissButton = {
-            androidx.compose.material3.TextButton(
-                onClick = {
-                    onShare()
-                    onDismiss()
-                },
-            ) { Text("مشاركة") }
+            androidx.compose.material3.TextButton(onClick = onDismiss) { Text("إغلاق") }
         },
     )
 }
@@ -899,6 +995,7 @@ private fun PayDialog(
                     value = warehouseLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickWarehouse = true },
                     label = { Text("المستودعُ المُصرفُ منه *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickWarehouse = true }) },
@@ -909,6 +1006,7 @@ private fun PayDialog(
                         value = partyLabel,
                         onValueChange = {},
                         readOnly = true,
+                        interactionSource = rememberPickerInteractionSource { pickCustomer = true },
                         label = { Text("العميل * (الآجلُ يحتاج عميلًا مسجّلًا)") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = { PickerTrigger(onClick = { pickCustomer = true }) },
@@ -919,6 +1017,7 @@ private fun PayDialog(
                         value = cashLabel,
                         onValueChange = {},
                         readOnly = true,
+                        interactionSource = rememberPickerInteractionSource { pickCash = true },
                         label = { Text(if (method == "cash") "الصندوقُ الذي يستلمُ المبلغ *" else "الحسابُ البنكيّ الذي يستلمُ المبلغ *") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = { PickerTrigger(onClick = { pickCash = true }) },

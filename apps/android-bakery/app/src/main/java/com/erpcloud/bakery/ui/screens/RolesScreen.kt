@@ -1,5 +1,8 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -68,17 +71,36 @@ fun RolesScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     LaunchedEffect(Unit) { vm.loadRoles() }
 
+    val inSubView = showCreate || editTarget != null
+    BackHandler(enabled = inSubView) {
+        if (showCreate) showCreate = false else editTarget = null
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("الأدوار والصلاحيات") },
+                title = {
+                    Text(
+                        when {
+                            showCreate -> "دور جديد"
+                            editTarget != null -> "صلاحيات الدور"
+                            else -> "الأدوار والصلاحيات"
+                        },
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(
+                        onClick = {
+                            if (showCreate) showCreate = false
+                            else if (editTarget != null) editTarget = null
+                            else onBack()
+                        },
+                    ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
                 },
             )
         },
         floatingActionButton = {
-            if (!showCreate && state.can("tenant.role.manage")) {
+            if (!showCreate && editTarget == null && state.can("tenant.role.manage")) {
                 FloatingActionButton(onClick = { showCreate = true }) {
                     Icon(Icons.Default.Add, contentDescription = "دور جديد")
                 }
@@ -88,6 +110,17 @@ fun RolesScreen(vm: AppViewModel, onBack: () -> Unit) {
         if (showCreate) {
             androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
                 RoleForm(vm, onDone = { showCreate = false })
+            }
+            return@Scaffold
+        }
+        val currentEdit = editTarget
+        if (currentEdit != null) {
+            androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(padding)) {
+                RolePermissionsEditor(
+                    vm = vm,
+                    role = currentEdit,
+                    onDone = { editTarget = null },
+                )
             }
             return@Scaffold
         }
@@ -175,14 +208,6 @@ fun RolesScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         }
     }
-
-    if (editTarget != null) {
-        RolePermissionsEditor(
-            vm = vm,
-            role = editTarget ?: return,
-            onDone = { editTarget = null },
-        )
-    }
 }
 
 /**
@@ -244,6 +269,7 @@ private fun RolePermissionsEditor(vm: AppViewModel, role: RoleDto, onDone: () ->
                     value = if (codes.isEmpty()) "" else "مُختار: ${codes.size} صلاحيّةً",
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickPermissions = true },
                     label = { Text("الصلاحيات") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickPermissions = true }) },
@@ -310,6 +336,7 @@ private fun RoleForm(vm: AppViewModel, onDone: () -> Unit) {
                     value = if (codes.isEmpty()) "" else "مُختار: ${codes.size} صلاحيّةً",
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickPermissions = true },
                     label = { Text("الأذونات") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickPermissions = true }) },

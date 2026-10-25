@@ -1,5 +1,7 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +54,7 @@ import com.erpcloud.bakery.printing.PrintKit
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.PickerTrigger
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.ConfirmReasonDialog
@@ -83,20 +87,23 @@ fun DistributionScreen(vm: AppViewModel, onBack: () -> Unit) {
     var showForm by remember { mutableStateOf(false) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
+    BackHandler(enabled = showForm) { showForm = false }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("التوزيع والتحميل") },
+                title = { Text(if (showForm) "أمر تحميل جديد" else "التوزيع والتحميل") },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(onClick = { if (showForm) showForm = false else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
+                    }
                 },
             )
         },
         floatingActionButton = {
-            if (state.can("van_sales.load.manage")) {
-                // FAB الموك-أب: حاويةٌ كهرمانيّةٌ فاتحةٌ بأيقونةٍ غامقةٍ وزوايا ١٨.
-                FloatingActionButton(onClick = { showForm = !showForm }, shape = MaterialTheme.shapes.medium) {
+            if (!showForm && state.can("van_sales.load.manage")) {
+                FloatingActionButton(onClick = { showForm = true }, shape = MaterialTheme.shapes.medium) {
                     Icon(Icons.Default.Add, contentDescription = "أمر تحميل جديد")
                 }
             }
@@ -500,6 +507,11 @@ private fun LoadOrderForm(vm: AppViewModel, onDone: () -> Unit) {
     var pickItem by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf<String?>(null) }
 
+    LaunchedEffect(Unit) {
+        vm.ensureLookups()
+        if (state.salesmen.isEmpty()) vm.refreshSalesmen()
+    }
+
     LazyColumn(
         Modifier.fillMaxSize().padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -513,6 +525,7 @@ private fun LoadOrderForm(vm: AppViewModel, onDone: () -> Unit) {
                     value = salesmanLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickSalesman = true },
                     label = { Text("المندوب *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickSalesman = true }) },
@@ -522,7 +535,9 @@ private fun LoadOrderForm(vm: AppViewModel, onDone: () -> Unit) {
                     value = itemLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickItem = true },
                     label = { Text("الصنف *") },
+                    placeholder = { Text("اضغط لاختيار الصنف…") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickItem = true }) },
                 )
@@ -626,6 +641,8 @@ private fun LoadOrderForm(vm: AppViewModel, onDone: () -> Unit) {
                         trailing = if (s.vehiclePlate != null) s.vehiclePlate else null,
                     )
                 },
+            loading = state.loadingSalesmen,
+            onRefresh = { vm.refreshSalesmen() },
             onDismiss = { pickSalesman = false },
             onSelect = { item ->
                 salesmanId = item.id
@@ -636,7 +653,12 @@ private fun LoadOrderForm(vm: AppViewModel, onDone: () -> Unit) {
     if (pickItem) {
         PickerDialog(
             title = "اختر الصنف",
-            items = state.items.map { PickerItem(it.id, it.label) },
+            items = state.effectiveItems.map { PickerItem(it.id, it.label, subtitle = it.subtitle) },
+            loading = state.loadingLookups,
+            errorMessage = state.lookupsError,
+            onRefresh = { vm.ensureLookups(force = true) },
+            onQueryChange = { vm.searchItemsRemotely(it) },
+            alwaysShowSearch = true,
             onDismiss = { pickItem = false },
             onSelect = { item ->
                 itemId = item.id

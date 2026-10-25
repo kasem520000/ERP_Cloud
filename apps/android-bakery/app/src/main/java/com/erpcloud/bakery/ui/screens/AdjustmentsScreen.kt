@@ -1,5 +1,8 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -73,12 +76,16 @@ fun AdjustmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     LaunchedEffect(Unit) { vm.loadAdjustments() }
 
+    BackHandler(enabled = showCreate) { showCreate = false }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("المنصرفات والإضافات") },
+                title = { Text(if (showCreate) "تسجيل منصرف أو إضافة" else "المنصرفات والإضافات") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(onClick = { if (showCreate) showCreate = false else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
+                    }
                 },
             )
         },
@@ -225,6 +232,7 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
                     value = employeeLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickEmployee = true },
                     label = { Text("الموظف *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickEmployee = true }) },
@@ -234,6 +242,7 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
                     value = typeLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickType = true },
                     label = { Text("نوعُ الإجراء *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickType = true }) },
@@ -279,6 +288,7 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
                         value = Labels.payMethod(paymentMethod),
                         onValueChange = {},
                         readOnly = true,
+                        interactionSource = rememberPickerInteractionSource { pickMethod = true },
                         label = { Text("طريقةُ الصرف *") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = { PickerTrigger(onClick = { pickMethod = true }) },
@@ -288,6 +298,7 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
                         value = cashLabel,
                         onValueChange = {},
                         readOnly = true,
+                        interactionSource = rememberPickerInteractionSource { pickCash = true },
                         label = { Text(if (paymentMethod == "cash") "الصندوق (للنقدي) *" else "البنك (للتحويل) *") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = { PickerTrigger(onClick = { pickCash = true }) },

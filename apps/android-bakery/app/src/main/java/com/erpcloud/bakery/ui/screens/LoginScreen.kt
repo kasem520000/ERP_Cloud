@@ -85,13 +85,13 @@ fun LoginScreen(vm: AppViewModel) {
     val scope = rememberCoroutineScope()
 
     val saved = vm.savedCredentials
-    var server by rememberSaveable { mutableStateOf(state.session.serverUrl) }
     var email by rememberSaveable { mutableStateOf(saved?.email ?: "") }
     var password by rememberSaveable { mutableStateOf(saved?.password ?: "") }
     var tenantCode by rememberSaveable { mutableStateOf(saved?.tenantCode ?: "") }
     var mfaCode by rememberSaveable { mutableStateOf("") }
     var rememberMe by rememberSaveable { mutableStateOf(true) }
     var useBiometric by rememberSaveable { mutableStateOf(vm.biometricEnabled) }
+    var showPassword by rememberSaveable { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var biometricBusy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -117,7 +117,7 @@ fun LoginScreen(vm: AppViewModel) {
         scope.launch {
             busy = true
             error = null
-            error = vm.login(server.trim(), emailArg.trim(), passwordArg, tenantArg.trim(), mfaCode)
+            error = vm.login(state.session.serverUrl, emailArg.trim(), passwordArg, tenantArg.trim(), mfaCode)
             if (error == null) {
                 // نجح الدخول: حفظُ البيانات أو نسيانُها + خيارُ البصمة.
                 vm.rememberCredentials(emailArg.trim(), tenantArg.trim(), passwordArg, rememberMe)
@@ -199,35 +199,32 @@ fun LoginScreen(vm: AppViewModel) {
                         .padding(start = 20.dp, end = 20.dp, top = 30.dp, bottom = 26.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = BakeryColors.Primary,
-                        border = BorderStroke(3.dp, Color.White),
-                        modifier = Modifier.shadow(
-                            elevation = 10.dp,
-                            shape = CircleShape,
-                            ambientColor = BakeryColors.PrimaryDark.copy(alpha = 0.30f),
-                            spotColor = BakeryColors.PrimaryDark.copy(alpha = 0.38f),
-                        ),
-                    ) {
-                        Box(Modifier.size(112.dp), contentAlignment = Alignment.Center) {
-                            Image(
-                                painter = painterResource(R.drawable.ic_launcher_foreground),
-                                contentDescription = "شعار التطبيق",
-                                modifier = Modifier.size(82.dp),
-                            )
-                        }
-                    }
+                    BrandCrestLogo(size = 112.dp)
                     Spacer(Modifier.height(14.dp))
                     Text(
-                        "إدارة المخابز",
+                        state.session.brandName.ifBlank { "سحاب المحاسبي" },
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White,
+                        textAlign = TextAlign.Center,
                     )
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = Color.White.copy(alpha = 0.16f),
+                        border = BorderStroke(1.dp, Color(0xFFFDE68A).copy(alpha = 0.7f)),
+                    ) {
+                        Text(
+                            BAKERY_EDITION_LABEL,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFEF3C7),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
                     Text(
-                        "الإدارةُ والعمليّاتُ والمحاسبةُ ونقطةُ البيع",
+                        state.session.brandTagline.ifBlank { "الإدارةُ والعمليّاتُ والمحاسبةُ ونقطةُ البيع" },
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.92f),
                         textAlign = TextAlign.Center,
@@ -273,18 +270,8 @@ fun LoginScreen(vm: AppViewModel) {
                     Spacer(Modifier.height(10.dp))
                 }
 
-                // بطاقةٌ بيضاءُ واحدةٌ (٢٦) تحوي كلَّ الحقول — كما الموك-أب.
-                SectionCard(title = "بياناتُ الخادم والحساب") {
+                SectionCard(title = "تسجيلُ الدخول إلى حسابك") {
                     Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedTextField(
-                            value = server,
-                            onValueChange = { server = it },
-                            label = { Text("عنوانُ الخادم") },
-                            supportingText = { Text("مثال: http://192.168.1.10:3000 — يُلحق به /api/v1 تلقائيًّا") },
-                            singleLine = true,
-                            shape = ShapeField,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
                         OutlinedTextField(
                             value = email,
                             onValueChange = { email = it },
@@ -300,7 +287,16 @@ fun LoginScreen(vm: AppViewModel) {
                             label = { Text("كلمةُ المرور") },
                             singleLine = true,
                             shape = ShapeField,
-                            visualTransformation = PasswordVisualTransformation(),
+                            visualTransformation = if (showPassword) {
+                                androidx.compose.ui.text.input.VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                            trailingIcon = {
+                                TextButton(onClick = { showPassword = !showPassword }) {
+                                    Text(if (showPassword) "إخفاء" else "إظهار")
+                                }
+                            },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -371,7 +367,7 @@ fun LoginScreen(vm: AppViewModel) {
                     label = "دخول",
                     icon = Icons.AutoMirrored.Filled.Login,
                     loading = busy,
-                    enabled = server.isNotBlank() && email.isNotBlank() && password.isNotBlank() && tenantCode.isNotBlank(),
+                    enabled = email.isNotBlank() && password.isNotBlank() && tenantCode.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { doLogin(email, password, tenantCode) },
                 )

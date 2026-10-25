@@ -1,5 +1,6 @@
 package com.erpcloud.bakery.data.api
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -167,20 +168,49 @@ data class ReportsPayloadDto(
 
 // --------------------------------------------------------------- البحث
 
-/** صنفُ كتالوج — صفوف drizzle ⇒ camelCase، والاسم من أيّ تهجئةٍ يقولها الخادم. */
+/** صنفُ كتالوج — صفوف drizzle ⇒ camelCase (مع قبول snake_case احتياطيًّا). */
 @Serializable
 data class ItemOptionDto(
     val id: String = "",
     val sku: String? = null,
+    val barcode: String? = null,
     val nameAr: String? = null,
+    @SerialName("name_ar") val nameArSnake: String? = null,
     val name: String? = null,
     val nameEn: String? = null,
+    val kind: String? = null,
+    val salePrice: String? = null,
+    @SerialName("sale_price") val salePriceSnake: String? = null,
+    val purchasePrice: String? = null,
+    @SerialName("purchase_price") val purchasePriceSnake: String? = null,
     val trackLot: Boolean? = null,
+    val trackSerial: Boolean? = null,
     val taxGroupId: String? = null,
+    @SerialName("tax_group_id") val taxGroupIdSnake: String? = null,
+    val active: Boolean? = null,
+    val deletedAt: String? = null,
 ) {
     val label: String
-        get() = listOfNotNull(nameAr, name, nameEn, sku).firstOrNull { it.isNotBlank() }
-            ?: id
+        get() = listOfNotNull(nameAr, nameArSnake, name, nameEn, sku)
+            .firstOrNull { it.isNotBlank() } ?: id
+
+    val subtitle: String?
+        get() = listOfNotNull(
+            sku?.takeIf { it.isNotBlank() }?.let { "كود: $it" },
+            barcode?.takeIf { it.isNotBlank() }?.let { "باركود: $it" },
+        ).joinToString(" · ").takeIf { it.isNotBlank() }
+
+    val effectiveTaxGroupId: String?
+        get() = taxGroupId?.takeIf { it.isNotBlank() } ?: taxGroupIdSnake?.takeIf { it.isNotBlank() }
+
+    val effectiveSalePrice: String?
+        get() = salePrice?.takeIf { it.isNotBlank() } ?: salePriceSnake?.takeIf { it.isNotBlank() }
+
+    val effectivePurchasePrice: String?
+        get() = purchasePrice?.takeIf { it.isNotBlank() } ?: purchasePriceSnake?.takeIf { it.isNotBlank() }
+
+    val isUsable: Boolean
+        get() = id.isNotBlank() && deletedAt == null && active != false
 }
 
 @Serializable
@@ -189,12 +219,22 @@ data class WarehouseOptionDto(
     val code: String? = null,
     val name: String? = null,
     val nameAr: String? = null,
+    @SerialName("name_ar") val nameArSnake: String? = null,
     val isDefault: Boolean? = null,
+    @SerialName("is_default") val isDefaultSnake: Boolean? = null,
     val isActive: Boolean? = null,
+    @SerialName("is_active") val isActiveSnake: Boolean? = null,
     val branchId: String? = null,
+    @SerialName("branch_id") val branchIdSnake: String? = null,
 ) {
     val label: String
-        get() = listOfNotNull(nameAr, name, code).firstOrNull { it.isNotBlank() } ?: id
+        get() = listOfNotNull(nameAr, nameArSnake, name, code).firstOrNull { it.isNotBlank() } ?: id
+
+    val effectiveIsDefault: Boolean
+        get() = (isDefault ?: isDefaultSnake) == true
+
+    val effectiveIsActive: Boolean
+        get() = (isActive ?: isActiveSnake) != false
 }
 
 /** صفحةُ مستودعات `{ data: [...], meta }` — نقرأ `data` وحدها. */

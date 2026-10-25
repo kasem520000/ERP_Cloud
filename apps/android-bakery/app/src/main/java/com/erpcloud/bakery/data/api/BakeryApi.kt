@@ -160,17 +160,17 @@ interface BakeryApi {
 
     // ------------------------------------------------------------- البحث
 
-    /** مستودعاتُ المنشأة — غلافُ صفحةٍ `{ data: [...], meta }`. */
+    /** مستودعاتُ المنشأة — يقبل غلافَ صفحةٍ `{ data: [...], meta }` أو مصفوفةً خام. */
     @GET("warehouses")
-    suspend fun warehouses(): Response<WarehousesPageDto>
+    suspend fun warehouses(): Response<JsonElement>
 
-    /** أصنافُ الكتالوج — مصفوفةٌ خام (صفوف drizzle ⇒ camelCase). */
+    /** أصنافُ الكتالوج — مصفوفةٌ خام (صفوف drizzle ⇒ camelCase) مع دعم البحث النصيّ. */
     @GET("organization/catalog/items")
-    suspend fun catalogItems(): Response<JsonElement>
+    suspend fun catalogItems(@Query("q") q: String? = null): Response<JsonElement>
 
-    /** أصنافُ الكتالوج كاملةً — لشاشةِ الكتالوج (أعمدةُ الأسعار والتتبّع). */
+    /** أصنافُ الكتالوج كاملةً — لشاشةِ الكتالوج والفواتير (أعمدةُ الأسعار والتتبّع). */
     @GET("organization/catalog/items")
-    suspend fun catalogItemsFull(): Response<JsonElement>
+    suspend fun catalogItemsFull(@Query("q") q: String? = null): Response<JsonElement>
 
     /** العملاء — مصفوفةٌ خام بلا غلاف (كما في تطبيق المندوب). */
     @GET("parties")
@@ -638,4 +638,99 @@ interface BakeryApi {
     /** ملفُ المنشأة — `GET /company-profile` (`{data}`): الاسمُ والرقمُ الضريبيّ لوسوم QR. */
     @GET("company-profile")
     suspend fun companyProfile(): Response<ApiEnvelope<CompanyProfileDto>>
+
+    // --------------------------------------------------- الهوية العامة والدعم الفني
+
+    /** هويةُ النظام من الخادم (بلا جلسة) — `GET /public/site`. */
+    @GET("public/site")
+    suspend fun publicSite(): Response<ApiEnvelope<PublicSiteDto>>
+
+    /** مقالاتُ مركز المساعدة — `GET /public/help`. */
+    @GET("public/help")
+    suspend fun publicHelp(@Query("q") q: String? = null): Response<JsonElement>
+
+    /** الأسئلةُ الشائعة — `GET /public/faq`. */
+    @GET("public/faq")
+    suspend fun publicFaq(): Response<JsonElement>
+
+    /** تذاكرُ الدعم الفنيّ للمنشأة — `GET /support/tickets`. */
+    @GET("support/tickets")
+    suspend fun supportTickets(): Response<JsonElement>
+
+    /** تفاصيلُ تذكرة دعمٍ مع محادثاتها — `GET /support/tickets/{id}`. */
+    @GET("support/tickets/{id}")
+    suspend fun supportTicketDetail(@Path("id") id: String): Response<ApiEnvelope<SupportTicketDto>>
+
+    /** رفعُ طلب مساعدةٍ جديد — `POST /support/tickets`. */
+    @POST("support/tickets")
+    suspend fun createSupportTicket(@Body body: JsonObject): Response<ApiEnvelope<SupportTicketDto>>
+
+    /** الردُّ على تذكرة دعم — `POST /support/tickets/{id}/reply`. */
+    @POST("support/tickets/{id}/reply")
+    suspend fun replySupportTicket(
+        @Path("id") id: String,
+        @Body body: JsonObject,
+    ): Response<ApiEnvelope<SupportTicketDto>>
+
+    // ------------------------------------------ الفواتير الضريبية المرفوعة (ZATCA)
+
+    /** سجلُّ الفواتير المرفوعة على بوابة الضرائب — إذن `einvoice.view`. */
+    @GET("einvoice/filings")
+    suspend fun einvoiceFilings(
+        @Query("status") status: String? = null,
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null,
+        @Query("pageNo") pageNo: Int = 1,
+        @Query("pageSize") pageSize: Int = 50,
+    ): Response<ApiEnvelope<EinvoiceFilingPageDto>>
+
+    /** تفاصيلُ فاتورةٍ مرفوعةٍ واحدةٍ مع وسم QR والسلسلة — إذن `einvoice.view`. */
+    @GET("einvoice/filings/{id}")
+    suspend fun einvoiceFilingDetail(@Path("id") id: String): Response<ApiEnvelope<EinvoiceFilingDetailDto>>
+
+    /** حالةُ سلسلة التشفير الضريبيّة — إذن `einvoice.view`. */
+    @GET("einvoice/chain")
+    suspend fun einvoiceChain(): Response<ApiEnvelope<EinvoiceChainStateDto>>
+
+    /** مزامنةُ الفواتير المرحّلة ورفعُها للضرائب — إذن `einvoice.submit`. */
+    @POST("einvoice/sync")
+    suspend fun syncEinvoices(@Body body: JsonObject): Response<ApiEnvelope<EinvoiceSyncReportDto>>
+
+    /** إعادةُ إرسال فاتورةٍ مرفوضة/متعثّرة — إذن `einvoice.submit`. */
+    @POST("einvoice/submissions/{id}/retry")
+    suspend fun retryEinvoice(@Path("id") id: String, @Body body: JsonObject): Response<JsonElement>
+
+    // ------------------------------------------------ المساعد الذكي (AI) وإعداداته
+
+    /** إعداداتُ المساعد الذكيّ للمنشأة — إذن `ai.assistant.use`. */
+    @GET("ai/settings")
+    suspend fun aiSettings(): Response<ApiEnvelope<AiSettingsDto>>
+
+    /** حفظُ إعدادات المساعد الذكيّ ومفتاح API — إذن `ai.settings.manage`. */
+    @PUT("ai/settings")
+    suspend fun updateAiSettings(@Body body: JsonObject): Response<JsonElement>
+
+    /** فحصُ اتّصال مزوّد الذكاء الاصطناعيّ — إذن `ai.settings.manage`. */
+    @POST("ai/settings/test")
+    suspend fun testAiSettings(@Body body: JsonObject): Response<ApiEnvelope<AiTestResultDto>>
+
+    /** التنبيهاتُ والاقتراحاتُ الذكيّة — إذن `ai.assistant.use`. */
+    @GET("ai/suggestions")
+    suspend fun aiSuggestions(): Response<JsonElement>
+
+    /** توليدُ تنبيهات اليوم الذكيّة — إذن `ai.assistant.use`. */
+    @POST("ai/suggest")
+    suspend fun generateAiSuggestions(@Body body: JsonObject): Response<JsonElement>
+
+    /** سجلُّ المحادثات السابقة — إذن `ai.assistant.use`. */
+    @GET("ai/conversations")
+    suspend fun aiConversations(): Response<JsonElement>
+
+    /** قراءةُ محادثةٍ سابقة — إذن `ai.assistant.use`. */
+    @GET("ai/conversations/{id}")
+    suspend fun aiConversation(@Path("id") id: String): Response<ApiEnvelope<AiStoredConversationDto>>
+
+    /** إرسالُ سؤالٍ إلى المساعد الذكيّ (JSON مباشر مع `stream: false`) — إذن `ai.assistant.use`. */
+    @POST("ai/chat")
+    suspend fun aiChat(@Body body: JsonObject): Response<ApiEnvelope<AiChatResultDto>>
 }

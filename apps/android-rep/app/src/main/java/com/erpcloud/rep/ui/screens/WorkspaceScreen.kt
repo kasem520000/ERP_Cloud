@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -93,6 +94,7 @@ fun WorkspaceScreen(
     onPrinters: () -> Unit,
     onNotifications: () -> Unit,
     onChangePassword: () -> Unit,
+    onSupport: () -> Unit,
     onReceipt: (String) -> Unit,
     onPrint: (String) -> Unit,
 ) {
@@ -127,6 +129,9 @@ fun WorkspaceScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onSupport) {
+                        Icon(Icons.Default.SupportAgent, contentDescription = "طلب المساعدة والدعم")
+                    }
                     IconButton(onClick = onNotifications) {
                         BadgedBox(
                             badge = { BadgeCount(state.workspaceUnread) }
@@ -165,6 +170,7 @@ fun WorkspaceScreen(
                 onQueue = onQueue,
                 onPrinters = onPrinters,
                 onChangePassword = onChangePassword,
+                onSupport = onSupport,
                 onReceipt = onReceipt,
                 onPrint = onPrint,
             )
@@ -183,6 +189,7 @@ private fun WorkspaceBody(
     onQueue: () -> Unit,
     onPrinters: () -> Unit,
     onChangePassword: () -> Unit,
+    onSupport: () -> Unit,
     onReceipt: (String) -> Unit,
     onPrint: (String) -> Unit,
 ) {
@@ -566,6 +573,11 @@ private fun WorkspaceBody(
                             Spacer(Modifier.size(6.dp))
                             Text("الطابعات")
                         }
+                    }
+                    FilledTonalButton(onClick = onSupport, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                        Icon(Icons.Default.SupportAgent, contentDescription = null, Modifier.size(18.dp))
+                        Spacer(Modifier.size(6.dp))
+                        Text("طلب المساعدة والدعم الفني", fontWeight = FontWeight.Bold)
                     }
                     TextButton(onClick = onQueue, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.FactCheck, contentDescription = null, Modifier.size(18.dp))

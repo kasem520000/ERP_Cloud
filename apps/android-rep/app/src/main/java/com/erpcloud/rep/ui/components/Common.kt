@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.AlertDialog
@@ -598,17 +599,20 @@ data class PickerItem(
     val trailing: String? = null,
 )
 
-/** نافذةُ انتقاءٍ منظّمة ببحثٍ فوريّ وبطاقاتِ خياراتٍ واضحة. */
+/** نافذةُ انتقاءٍ منظّمة ببحثٍ فوريّ وبطاقاتِ خياراتٍ واضحة وتحديثٍ فوريّ. */
 @Composable
 fun PickerDialog(
     title: String,
     items: List<PickerItem>,
     onDismiss: () -> Unit,
     onSelect: (PickerItem) -> Unit,
+    loading: Boolean = false,
+    errorMessage: String? = null,
+    onRefresh: (() -> Unit)? = null,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    val searchable = items.size >= 4
-    val visible = if (!searchable || query.isBlank()) items else {
+    val searchable = items.size >= 4 || query.isNotBlank()
+    val visible = if (query.isBlank()) items else {
         val needle = query.trim()
         items.filter { item ->
             item.title.contains(needle, ignoreCase = true) ||
@@ -640,11 +644,17 @@ fun PickerDialog(
                             color = titleColor(),
                         )
                         Text(
-                            if (query.isBlank()) "${items.size} خيارًا متاحًا"
+                            if (loading) "جارٍ التحميل من الخادم…"
+                            else if (query.isBlank()) "${items.size} خيارًا متاحًا"
                             else "النتائج: ${visible.size} من ${items.size}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    if (onRefresh != null) {
+                        IconButton(onClick = onRefresh, enabled = !loading) {
+                            Icon(Icons.Filled.Refresh, contentDescription = "تحديث")
+                        }
                     }
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Filled.Close, contentDescription = "إغلاق")
@@ -657,11 +667,16 @@ fun PickerDialog(
                         placeholder = "ابحث بالاسم أو الرقم…",
                     )
                 }
+                if (!errorMessage.isNullOrBlank()) {
+                    InfoCallout(errorMessage, ChipTone.DANGER)
+                }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                if (visible.isEmpty()) {
+                if (loading && items.isEmpty()) {
+                    CenterLoading("جارٍ جلب القائمة من الخادم…")
+                } else if (visible.isEmpty()) {
                     EmptyState(
                         if (searchable && query.isNotBlank()) "لا نتائج تطابق «${query.trim()}»."
-                        else "لا عناصر متاحة حاليًّا.",
+                        else "لا عناصر متاحة حاليًّا — اضغط زرّ التحديث لإعادة الجلب.",
                     )
                 } else {
                     LazyColumn(

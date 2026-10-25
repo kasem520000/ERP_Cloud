@@ -1,5 +1,8 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -71,12 +74,21 @@ fun SystemReportsScreen(vm: AppViewModel, onBack: () -> Unit) {
         vm.ensureBranches()
     }
 
+    BackHandler(enabled = runKey != null) { runKey = null }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("التقارير") },
+                title = {
+                    val activeTitle = runKey?.let { key ->
+                        state.staff.reportCatalog.firstOrNull { it.key == key }?.titleAr
+                    }
+                    Text(activeTitle ?: "التقارير")
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(onClick = { if (runKey != null) runKey = null else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
+                    }
                 },
             )
         },
@@ -173,6 +185,7 @@ private fun ReportRunner(vm: AppViewModel, reportKey: String, onBack: () -> Unit
                 value = branchLabel,
                 onValueChange = {},
                 readOnly = true,
+                interactionSource = rememberPickerInteractionSource { pickBranch = true },
                 label = { Text("الفرع (كلُّ الفروع إن تُرك)") },
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },

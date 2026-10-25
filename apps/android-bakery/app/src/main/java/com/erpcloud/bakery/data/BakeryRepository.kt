@@ -159,16 +159,14 @@ class BakeryRepository(
             unwrapEnvelope(response) ?: throw ApiException(ProblemDto(title = "Empty reports response"), response.code())
         }
 
-    suspend fun warehouses(): List<WarehouseOptionDto> = withContext(Dispatchers.IO) {
-        val response = api.warehouses()
-        if (!response.isSuccessful) throw response.toApiException()
-        response.body()?.data ?: emptyList()
-    }
+    suspend fun warehouses(): List<WarehouseOptionDto> = rawList { api.warehouses() }
 
-    suspend fun catalogItems(): List<ItemOptionDto> = rawList { api.catalogItems() }
+    suspend fun catalogItems(q: String? = null): List<ItemOptionDto> =
+        rawList { api.catalogItems(q?.trim()?.takeIf { it.isNotEmpty() }) }
 
-    /** أصنافُ الكتالوج كاملةً (شاشةُ الكتالوج) — نفس المسار برؤيةٍ أوسع. */
-    suspend fun catalogItemsFull(): List<CatalogItemDto> = rawList { api.catalogItemsFull() }
+    /** أصنافُ الكتالوج كاملةً (شاشةُ الكتالوج والفواتير) — نفس المسار برؤيةٍ أوسع وبحثٍ اختياريّ. */
+    suspend fun catalogItemsFull(q: String? = null): List<CatalogItemDto> =
+        rawList { api.catalogItemsFull(q?.trim()?.takeIf { it.isNotEmpty() }) }
 
     suspend fun parties(kind: String = "customer"): List<PartyDto> =
         rawList { api.parties(kind = kind) }
@@ -387,12 +385,17 @@ class BakeryRepository(
         withContext(Dispatchers.IO) {
             val response = call()
             if (!response.isSuccessful) throw response.toApiException()
-            val element = response.body() ?: return@withContext emptyList()
-            val payload = when (element) {
-                is JsonObject -> element["data"] ?: element["items"] ?: element["rows"] ?: element
-                else -> element
+            var payload: JsonElement = response.body() ?: return@withContext emptyList()
+            repeat(3) {
+                if (payload is JsonObject) {
+                    val obj = payload as JsonObject
+                    val next = obj["data"] ?: obj["items"] ?: obj["rows"]
+                    if (next != null) {
+                        payload = next
+                    }
+                }
             }
-            if (payload is JsonNull || (payload is JsonObject && payload.isEmpty())) {
+            if (payload !is kotlinx.serialization.json.JsonArray) {
                 emptyList()
             } else {
                 AppJson.decodeFromJsonElement(
@@ -799,5 +802,136 @@ class BakeryRepository(
             val response = api.companyProfile()
             if (!response.isSuccessful) throw response.toApiException()
             response.body()?.data ?: throw ApiException(ProblemDto(title = "Empty company profile"), response.code())
+        }
+
+    // --------------------------------------------------- الهوية العامة والدعم الفني
+
+    suspend fun fetchPublicSite(): com.erpcloud.bakery.data.api.PublicSiteDto? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val resp = api.publicSite()
+                if (resp.isSuccessful) {
+                    val site = resp.body()?.data
+                    if (site != null && site.brandName.isNotBlank()) {
+                        sessionStore.setBranding(site.brandName, site.taglineAr)
+                    }
+                    site
+                } else null
+            }.getOrNull()
+        }
+
+    suspend fun publicHelp(q: String? = null): List<com.erpcloud.bakery.data.api.PublicHelpPostDto> =
+        rawList { api.publicHelp(q?.trim()?.takeIf { it.isNotEmpty() }) }
+
+    suspend fun publicFaq(): List<com.erpcloud.bakery.data.api.PublicFaqDto> =
+        rawList { api.publicFaq() }
+
+    suspend fun supportTickets(): List<com.erpcloud.bakery.data.api.SupportTicketDto> =
+        rawList { api.supportTickets() }
+
+    suspend fun supportTicketDetail(id: String): com.erpcloud.bakery.data.api.SupportTicketDto =
+        withContext(Dispatchers.IO) {
+            val resp = api.supportTicketDetail(id)
+            unwrapEnvelope(resp) ?: throw ApiException(ProblemDto(title = "Empty support ticket"), resp.code())
+        }
+
+    suspend fun createSupportTicket(body: JsonObject): com.erpcloud.bakery.data.api.SupportTicketDto =
+        withContext(Dispatchers.IO) {
+            val resp = api.createSupportTicket(body)
+            unwrapEnvelope(resp) ?: throw ApiException(ProblemDto(title = "Empty support ticket response"), resp.code())
+        }
+
+    suspend fun replySupportTicket(id: String, body: JsonObject): com.erpcloud.bakery.data.api.SupportTicketDto =
+        withContext(Dispatchers.IO) {
+            val resp = api.replySupportTicket(id, body)
+            unwrapEnvelope(resp) ?: throw ApiException(ProblemDto(title = "Empty support reply response"), resp.code())
+        }
+
+    // ------------------------------------------ الفواتير الضريبية المرفوعة (ZATCA)
+
+    suspend fun einvoiceFilings(
+        status: String? = null,
+        from: String? = null,
+        to: String? = null,
+        pageNo: Int = 1,
+        pageSize: Int = 50,
+    ): com.erpcloud.bakery.data.api.EinvoiceFilingPageDto = withContext(Dispatchers.IO) {
+        val resp = api.einvoiceFilings(
+            status = status?.takeIf { it.isNotBlank() },
+            from = from?.takeIf { it.isNotBlank() },
+            to = to?.takeIf { it.isNotBlank() },
+            pageNo = pageNo,
+            pageSize = pageSize,
+        )
+        unwrapEnvelope(resp) ?: com.erpcloud.bakery.data.api.EinvoiceFilingPageDto()
+    }
+
+    suspend fun einvoiceFilingDetail(id: String): com.erpcloud.bakery.data.api.EinvoiceFilingDetailDto =
+        withContext(Dispatchers.IO) {
+            val resp = api.einvoiceFilingDetail(id)
+            unwrapEnvelope(resp) ?: throw ApiException(ProblemDto(title = "Empty filing detail"), resp.code())
+        }
+
+    suspend fun einvoiceChain(): com.erpcloud.bakery.data.api.EinvoiceChainStateDto? =
+        withContext(Dispatchers.IO) {
+            runCatching { unwrapEnvelope(api.einvoiceChain()) }.getOrNull()
+        }
+
+    suspend fun syncEinvoices(): com.erpcloud.bakery.data.api.EinvoiceSyncReportDto =
+        withContext(Dispatchers.IO) {
+            val resp = api.syncEinvoices(kotlinx.serialization.json.buildJsonObject {})
+            unwrapEnvelope(resp) ?: com.erpcloud.bakery.data.api.EinvoiceSyncReportDto()
+        }
+
+    suspend fun retryEinvoice(id: String): ActionResult =
+        submitDirect("إعادة إرسال الفاتورة الضريبية") {
+            api.retryEinvoice(id, kotlinx.serialization.json.buildJsonObject {})
+        }
+
+    // ------------------------------------------------ المساعد الذكي (AI) وإعداداته
+
+    suspend fun aiSettings(): com.erpcloud.bakery.data.api.AiSettingsDto = withContext(Dispatchers.IO) {
+        val resp = api.aiSettings()
+        unwrapEnvelope(resp) ?: com.erpcloud.bakery.data.api.AiSettingsDto()
+    }
+
+    suspend fun updateAiSettings(body: JsonObject): ActionResult =
+        submitDirect("حفظ إعدادات المساعد الذكي") { api.updateAiSettings(body) }
+
+    suspend fun testAiSettings(): com.erpcloud.bakery.data.api.AiTestResultDto = withContext(Dispatchers.IO) {
+        val resp = api.testAiSettings(kotlinx.serialization.json.buildJsonObject {})
+        unwrapEnvelope(resp) ?: throw ApiException(ProblemDto(title = "Empty AI test response"), resp.code())
+    }
+
+    suspend fun aiSuggestions(): List<com.erpcloud.bakery.data.api.AiSuggestionDto> {
+        val existing: List<com.erpcloud.bakery.data.api.AiSuggestionDto> = rawList { api.aiSuggestions() }
+        if (existing.isNotEmpty()) return existing
+        return runCatching {
+            rawList<com.erpcloud.bakery.data.api.AiSuggestionDto> {
+                api.generateAiSuggestions(kotlinx.serialization.json.buildJsonObject {})
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    suspend fun aiConversations(): List<com.erpcloud.bakery.data.api.AiConversationRowDto> =
+        rawList { api.aiConversations() }
+
+    suspend fun aiConversation(id: String): com.erpcloud.bakery.data.api.AiStoredConversationDto =
+        withContext(Dispatchers.IO) {
+            val resp = api.aiConversation(id)
+            unwrapEnvelope(resp) ?: com.erpcloud.bakery.data.api.AiStoredConversationDto(id = id)
+        }
+
+    suspend fun aiChat(message: String, conversationId: String?): com.erpcloud.bakery.data.api.AiChatResultDto =
+        withContext(Dispatchers.IO) {
+            val payload = kotlinx.serialization.json.buildJsonObject {
+                put("message", kotlinx.serialization.json.JsonPrimitive(message))
+                if (!conversationId.isNullOrBlank()) {
+                    put("conversationId", kotlinx.serialization.json.JsonPrimitive(conversationId))
+                }
+                put("stream", kotlinx.serialization.json.JsonPrimitive(false))
+            }
+            val resp = api.aiChat(payload)
+            unwrapEnvelope(resp) ?: throw ApiException(ProblemDto(title = "Empty AI chat response"), resp.code())
         }
 }

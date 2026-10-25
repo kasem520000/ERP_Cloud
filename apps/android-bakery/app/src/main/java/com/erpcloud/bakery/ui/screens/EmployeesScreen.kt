@@ -1,5 +1,8 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -73,13 +76,32 @@ fun EmployeesScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     LaunchedEffect(Unit) { vm.loadEmployees() }
 
+    val inSubView = showCreate || editTarget != null
+    BackHandler(enabled = inSubView) {
+        if (showCreate) showCreate = false else editTarget = null
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("الموظفون") },
+                title = {
+                    Text(
+                        when {
+                            showCreate -> "إضافة موظف جديد"
+                            editTarget != null -> "تعديل بيانات الموظف"
+                            else -> "الموظفون"
+                        },
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(
+                        onClick = {
+                            if (showCreate) showCreate = false
+                            else if (editTarget != null) editTarget = null
+                            else onBack()
+                        },
+                    ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
                 },
             )
         },
@@ -253,6 +275,7 @@ private fun EmployeeForm(
                     value = departmentLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickDepartment = true },
                     label = { Text("القسم") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickDepartment = true }) },
@@ -262,6 +285,7 @@ private fun EmployeeForm(
                     value = jobLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickJob = true },
                     label = { Text("الوظيفة") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickJob = true }) },
@@ -271,6 +295,7 @@ private fun EmployeeForm(
                     value = branchLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickBranch = true },
                     label = { Text("الفرع") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },

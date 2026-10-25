@@ -61,7 +61,23 @@ data class CatalogItemDto(
     val showInPos: Boolean = false,
     val active: Boolean? = null,
     val deletedAt: String? = null,
-)
+) {
+    fun toItemOption(): ItemOptionDto = ItemOptionDto(
+        id = id,
+        sku = sku.takeIf { it.isNotBlank() },
+        barcode = barcode,
+        nameAr = nameAr.takeIf { it.isNotBlank() },
+        nameEn = nameEn,
+        kind = kind,
+        salePrice = salePrice,
+        purchasePrice = purchasePrice,
+        trackLot = trackLot,
+        trackSerial = trackSerial,
+        taxGroupId = taxGroupId,
+        active = active,
+        deletedAt = deletedAt,
+    )
+}
 
 /** مجموعةُ ضريبةٍ — `GET /organization/catalog/tax-groups`. */
 typealias TaxGroupDto = PosTaxGroupDto
@@ -349,7 +365,20 @@ data class PosItemDto(
     val taxGroupId: String? = null,
     val trackLot: Boolean = false,
     val trackSerial: Boolean = false,
-)
+) {
+    fun toItemOption(): ItemOptionDto = ItemOptionDto(
+        id = id,
+        sku = sku.takeIf { it.isNotBlank() },
+        barcode = barcode,
+        nameAr = nameAr.takeIf { it.isNotBlank() },
+        nameEn = nameEn,
+        kind = kind,
+        salePrice = salePrice,
+        trackLot = trackLot,
+        trackSerial = trackSerial,
+        taxGroupId = taxGroupId,
+    )
+}
 
 /** مجموعةُ أصنافٍ لنقطة البيع. */
 @Serializable
@@ -885,3 +914,265 @@ data class CompanyProfileDto(
     val email: String? = null,
     val phones: List<String> = emptyList(),
 )
+
+// ------------------------------------------------------------ الهوية العامة والدعم الفني
+
+@Serializable
+data class PublicSiteDto(
+    val brandName: String = "",
+    val brandInitials: String = "",
+    val taglineAr: String = "",
+    val taglineEn: String = "",
+    val supportEmail: String = "",
+    val supportPhone: String = "",
+    val companyLegalName: String = "",
+)
+
+@Serializable
+data class PublicHelpPostDto(
+    val slug: String = "",
+    val titleAr: String = "",
+    val summaryAr: String? = null,
+    val category: String? = null,
+    val publishedAt: String = "",
+)
+
+@Serializable
+data class PublicFaqDto(
+    val slug: String = "",
+    val question: String = "",
+    val answer: String = "",
+)
+
+@Serializable
+data class SupportTicketDto(
+    val id: String = "",
+    val subject: String = "",
+    val status: String = "open",
+    val priority: String = "normal",
+    val category: String? = null,
+    val createdAt: String = "",
+    val updatedAt: String = "",
+    val firstResponseAt: String? = null,
+    val messageCount: Int = 0,
+    val messages: List<SupportMessageDto> = emptyList(),
+)
+
+@Serializable
+data class SupportMessageDto(
+    val id: String = "",
+    val authorLabel: String? = null,
+    val authorKind: String = "customer",
+    val body: String = "",
+    val createdAt: String = "",
+)
+
+// ------------------------------------------------------------ الفواتير الضريبية المرفوعة (ZATCA)
+
+@Serializable
+data class EinvoiceInvoiceRefDto(
+    val number: String? = null,
+    val kind: String? = null,
+    val total: String? = null,
+    val issuedAt: String? = null,
+    val partyName: String? = null,
+    val branchName: String? = null,
+    val createdByName: String? = null,
+)
+
+@Serializable
+data class EinvoiceResponseMetaDto(
+    val submitted: Boolean? = null,
+    val reason: String? = null,
+    val message: String? = null,
+    val clearance: Boolean? = null,
+    val profile: String? = null,
+    val gateway: String? = null,
+    val errorMessages: List<String> = emptyList(),
+    val warningMessages: List<String> = emptyList(),
+)
+
+@Serializable
+data class EinvoiceFilingRowDto(
+    val id: String = "",
+    val invoice: EinvoiceInvoiceRefDto? = null,
+    val invoiceId: String = "",
+    val authority: String = "zatca",
+    val environment: String = "",
+    val status: String = "",
+    val authorityStatus: String? = null,
+    val uuid: String? = null,
+    val hash: String? = null,
+    val previousHash: String? = null,
+    val chainIndex: Int? = null,
+    val attempts: kotlinx.serialization.json.JsonPrimitive? = null,
+    val error: String? = null,
+    val submittedAt: String? = null,
+    val createdAt: String = "",
+    val response: kotlinx.serialization.json.JsonObject? = null,
+) {
+    val attemptsText: String get() = attempts?.content?.ifBlank { "1" } ?: "1"
+}
+
+@Serializable
+data class EinvoiceFilingPageDto(
+    val items: List<EinvoiceFilingRowDto> = emptyList(),
+    val total: Int = 0,
+    val pageNo: Int = 1,
+    val pageSize: Int = 50,
+    val pages: Int = 1,
+)
+
+@Serializable
+data class EinvoiceQrTagDto(
+    val tag: Int = 0,
+    val labelAr: String = "",
+    val value: String = "",
+    val bytes: Int = 0,
+)
+
+@Serializable
+data class EinvoiceQrDto(
+    val payload: String? = null,
+    val tags: List<EinvoiceQrTagDto> = emptyList(),
+)
+
+@Serializable
+data class EinvoiceInvoiceDetailDto(
+    val id: String = "",
+    val number: String? = null,
+    val kind: String = "",
+    val total: String = "0",
+    val taxTotal: String = "0",
+    val currency: String = "SAR",
+    val issuedAt: String? = null,
+)
+
+@Serializable
+data class EinvoiceChainPairDto(
+    val previousHash: String? = null,
+    val hash: String? = null,
+)
+
+@Serializable
+data class EinvoiceAuthorityDto(
+    val status: String? = null,
+    val errors: List<String> = emptyList(),
+    val warnings: List<String> = emptyList(),
+    val error: String? = null,
+)
+
+@Serializable
+data class EinvoiceFilingDetailDto(
+    val submission: EinvoiceFilingRowDto = EinvoiceFilingRowDto(),
+    val invoice: EinvoiceInvoiceDetailDto? = null,
+    val chain: EinvoiceChainPairDto? = null,
+    val qr: EinvoiceQrDto? = null,
+    val authority: EinvoiceAuthorityDto? = null,
+)
+
+@Serializable
+data class EinvoiceChainStateDto(
+    val authority: String = "zatca",
+    val environment: String = "",
+    val counter: Int = 0,
+    val lastHash: String = "",
+    val nextCounter: Int = 1,
+    val updatedAt: String? = null,
+)
+
+@Serializable
+data class EinvoiceSyncReportDto(
+    val requested: Int = 0,
+    val sent: Int = 0,
+    val failed: Int = 0,
+    val skipped: Int = 0,
+    val message: String = "",
+)
+
+// ------------------------------------------------------------ المساعد الذكي (AI) وإعداداته
+
+@Serializable
+data class AiUsageDto(
+    val tokens: Long = 0L,
+    val spent: String = "0",
+    val tokenLimit: Long? = null,
+    val costLimit: String? = null,
+    val period: String = "",
+)
+
+@Serializable
+data class AiSettingsDto(
+    val enabled: Boolean = true,
+    val platformSuspended: Boolean = false,
+    val platformEnabled: Boolean = true,
+    val provider: String? = null,
+    val effectiveProvider: String = "local",
+    val model: String? = null,
+    val effectiveModel: String = "local-grounded",
+    val baseUrl: String? = null,
+    val effectiveBaseUrl: String? = null,
+    val monthlyTokenLimit: Long? = null,
+    val monthlyCostLimit: String? = null,
+    val hasPlatformKey: Boolean = false,
+    val hasTenantApiKey: Boolean = false,
+    val apiKeyMasked: String? = null,
+    val usage: AiUsageDto = AiUsageDto(),
+)
+
+@Serializable
+data class AiTestResultDto(
+    val ok: Boolean = false,
+    val provider: String = "",
+    val model: String = "",
+    val latencyMs: Long = 0L,
+    val reply: String = "",
+)
+
+@Serializable
+data class AiSuggestionDto(
+    val kind: String? = null,
+    val title: String = "",
+    val body: String = "",
+)
+
+@Serializable
+data class AiConversationRowDto(
+    val id: String = "",
+    val title: String = "",
+    val updated_at: String? = null,
+    val updatedAt: String? = null,
+)
+
+@Serializable
+data class AiStoredMessageDto(
+    val role: String = "assistant",
+    val content: String = "",
+    val at: String? = null,
+)
+
+@Serializable
+data class AiStoredConversationDto(
+    val id: String = "",
+    val messages: List<AiStoredMessageDto> = emptyList(),
+)
+
+@Serializable
+data class AiChatUsageDto(
+    val tokensIn: Int = 0,
+    val tokensOut: Int = 0,
+    val spent: String = "0",
+)
+
+@Serializable
+data class AiChatResultDto(
+    val conversationId: String = "",
+    val intent: String = "",
+    val text: String = "",
+    val hrefs: List<String> = emptyList(),
+    val tools: List<String> = emptyList(),
+    val provider: String = "",
+    val degraded: Boolean = false,
+    val usage: AiChatUsageDto = AiChatUsageDto(),
+)
+

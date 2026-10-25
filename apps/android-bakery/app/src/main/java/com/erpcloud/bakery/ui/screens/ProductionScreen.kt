@@ -1,5 +1,7 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,6 +47,7 @@ import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.DatePickerField
 import com.erpcloud.bakery.ui.components.PickerTrigger
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -85,18 +88,22 @@ fun ProductionScreen(vm: AppViewModel, onBack: () -> Unit) {
     var showForm by remember { mutableStateOf(false) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
+    BackHandler(enabled = showForm) { showForm = false }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("الإنتاج") },
+                title = { Text(if (showForm) "تسجيل دفعة إنتاج" else "الإنتاج") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(onClick = { if (showForm) showForm = false else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
+                    }
                 },
             )
         },
         floatingActionButton = {
-            if (state.can("van_sales.production.manage")) {
-                FloatingActionButton(onClick = { showForm = !showForm }) {
+            if (!showForm && state.can("van_sales.production.manage")) {
+                FloatingActionButton(onClick = { showForm = true }) {
                     Icon(Icons.Default.Add, contentDescription = "دفعة جديدة")
                 }
             }
@@ -221,18 +228,21 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
     var pickComponentAt by remember { mutableStateOf(-1) }
 
     // المستودعُ الرئيسيّ كما تقوله اللوحة — يُقترح مرّةً ولا يُخترع مستودع.
-    LaunchedEffect(state.warehouses, state.dashboard?.mainWarehouseId) {
-        if (warehouseId.isBlank() && state.warehouses.isNotEmpty()) {
-            val main = state.warehouses.firstOrNull { it.id == state.dashboard?.mainWarehouseId }
-                ?: state.warehouses.firstOrNull { it.isDefault == true }
+    LaunchedEffect(state.effectiveWarehouses, state.dashboard?.mainWarehouseId) {
+        if (warehouseId.isBlank() && state.effectiveWarehouses.isNotEmpty()) {
+            val main = state.effectiveWarehouses.firstOrNull { it.id == state.dashboard?.mainWarehouseId }
+                ?: state.effectiveWarehouses.firstOrNull { it.effectiveIsDefault }
             if (main != null) {
                 warehouseId = main.id
                 warehouseLabel = main.label
             }
         }
     }
-    // قوائمُ الموادّ تُحمَّل مع النموذج (إذنُ manufacturing.view — فشلُها لا يُسقط اليدويّ).
-    LaunchedEffect(Unit) { vm.loadBoms() }
+    // قوائمُ الموادّ والأصنافُ تُحمَّل مع النموذج.
+    LaunchedEffect(Unit) {
+        vm.ensureLookups()
+        vm.loadBoms()
+    }
 
     // التقديرُ الإرشاديّ — من officialStock (متوسطُ تكلفةٍ رسميّ)، لا رقمَ يُخترع.
     val estimate: ComponentEstimate? = remember(components.toList(), materialSource, warehouseId, producedQty) {
@@ -272,6 +282,7 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                     value = itemLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickItems = true },
                     label = { Text("الصنف *") },
                     placeholder = { Text("اختر الصنف") },
                     modifier = Modifier.fillMaxWidth(),
@@ -284,6 +295,7 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                     value = warehouseLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickWarehouses = true },
                     label = { Text("المستودع *") },
                     placeholder = { Text("المستودع الرئيسيّ") },
                     modifier = Modifier.fillMaxWidth(),
@@ -368,6 +380,7 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                         value = bomLabel,
                         onValueChange = {},
                         readOnly = true,
+                        interactionSource = rememberPickerInteractionSource { pickBoms = true },
                         label = { Text("قائمةُ الموادّ *") },
                         placeholder = { Text("اختر قائمة الموادّ") },
                         modifier = Modifier.fillMaxWidth(),
@@ -398,6 +411,7 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                                 value = line.itemLabel,
                                 onValueChange = {},
                                 readOnly = true,
+                                interactionSource = rememberPickerInteractionSource { pickComponentAt = index },
                                 label = { Text("صنفُ المكوّن ${index + 1}") },
                                 placeholder = { Text("اختر الصنف") },
                                 modifier = Modifier.weight(1.6f),
@@ -539,7 +553,12 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
     if (pickItems) {
         PickerDialog(
             title = "اختر الصنف",
-            items = state.items.map { PickerItem(it.id, it.label) },
+            items = state.effectiveItems.map { PickerItem(it.id, it.label, subtitle = it.subtitle) },
+            loading = state.loadingLookups,
+            errorMessage = state.lookupsError,
+            onRefresh = { vm.ensureLookups(force = true) },
+            onQueryChange = { vm.searchItemsRemotely(it) },
+            alwaysShowSearch = true,
             onDismiss = { pickItems = false },
             onSelect = { item ->
                 itemId = item.id
@@ -550,7 +569,9 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
     if (pickWarehouses) {
         PickerDialog(
             title = "اختر المستودع",
-            items = state.warehouses.map { PickerItem(it.id, it.label, trailing = if (it.isDefault == true) "افتراضيّ" else null) },
+            items = state.effectiveWarehouses.map { PickerItem(it.id, it.label, trailing = if (it.effectiveIsDefault) "افتراضيّ" else null) },
+            loading = state.loadingLookups,
+            onRefresh = { vm.ensureLookups(force = true) },
             onDismiss = { pickWarehouses = false },
             onSelect = { item ->
                 warehouseId = item.id
@@ -567,6 +588,8 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                     bom.name + (bom.lines.takeIf { it.isNotEmpty() }?.let { " — ${it.size} مكوّنًا" } ?: ""),
                 )
             },
+            loading = state.staff.loadingKey == "boms",
+            onRefresh = { vm.loadBoms() },
             onDismiss = { pickBoms = false },
             onSelect = { item ->
                 bomId = item.id
@@ -578,7 +601,12 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
         val at = pickComponentAt
         PickerDialog(
             title = "صنفُ المكوّن ${at + 1}",
-            items = state.items.map { PickerItem(it.id, it.label) },
+            items = state.effectiveItems.map { PickerItem(it.id, it.label, subtitle = it.subtitle) },
+            loading = state.loadingLookups,
+            errorMessage = state.lookupsError,
+            onRefresh = { vm.ensureLookups(force = true) },
+            onQueryChange = { vm.searchItemsRemotely(it) },
+            alwaysShowSearch = true,
             onDismiss = { pickComponentAt = -1 },
             onSelect = { item ->
                 components[at] = components[at].copy(itemId = item.id, itemLabel = item.title)

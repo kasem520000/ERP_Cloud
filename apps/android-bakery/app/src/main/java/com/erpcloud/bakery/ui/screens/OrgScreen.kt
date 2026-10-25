@@ -1,5 +1,10 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -74,16 +79,53 @@ fun OrgScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     LaunchedEffect(Unit) { vm.loadOrg() }
 
+    val inSubView = createBranch || createWarehouse || createCash
+    val closeSubView = {
+        createBranch = false
+        createWarehouse = false
+        createCash = false
+    }
+    BackHandler(enabled = inSubView) { closeSubView() }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("الفروع والمستودعات والخزائن") },
+                title = {
+                    Text(
+                        when {
+                            createBranch -> "إضافة فرع جديد"
+                            createWarehouse -> "إضافة مستودع جديد"
+                            createCash -> "إضافة خزينة جديدة"
+                            else -> "الفروع والمستودعات والخزائن"
+                        },
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(onClick = { if (inSubView) closeSubView() else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
+                    }
                 },
             )
         },
     ) { padding ->
+        if (createBranch) {
+            Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
+                BranchForm(vm, onDone = { createBranch = false; vm.loadOrg() })
+            }
+            return@Scaffold
+        }
+        if (createWarehouse) {
+            Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
+                WarehouseForm(vm, onDone = { createWarehouse = false; vm.loadOrg() })
+            }
+            return@Scaffold
+        }
+        if (createCash) {
+            Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
+                CashForm(vm, onDone = { createCash = false; vm.loadOrg() })
+            }
+            return@Scaffold
+        }
         if (state.staff.loadingKey == "org") {
             CenterLoading("جارٍ تحميل بيانات المنشأة…", Modifier.padding(padding))
             return@Scaffold
@@ -201,15 +243,6 @@ fun OrgScreen(vm: AppViewModel, onBack: () -> Unit) {
         }
     }
 
-    if (createBranch) {
-        BranchForm(vm, onDone = { createBranch = false; vm.loadOrg() })
-    }
-    if (createWarehouse) {
-        WarehouseForm(vm, onDone = { createWarehouse = false; vm.loadOrg() })
-    }
-    if (createCash) {
-        CashForm(vm, onDone = { createCash = false; vm.loadOrg() })
-    }
     editBranchId?.let { id ->
         val branch = state.staff.branches.firstOrNull { it.id == id }
         if (branch != null) {
@@ -383,6 +416,7 @@ private fun WarehouseForm(vm: AppViewModel, onDone: () -> Unit) {
             value = branchLabel,
             onValueChange = {},
             readOnly = true,
+            interactionSource = rememberPickerInteractionSource { pickBranch = true },
             label = { Text("الفرع *") },
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
@@ -456,6 +490,7 @@ private fun CashForm(vm: AppViewModel, onDone: () -> Unit) {
             value = branchLabel,
             onValueChange = {},
             readOnly = true,
+            interactionSource = rememberPickerInteractionSource { pickBranch = true },
             label = { Text("الفرع *") },
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
@@ -465,6 +500,7 @@ private fun CashForm(vm: AppViewModel, onDone: () -> Unit) {
             value = kindLabel,
             onValueChange = {},
             readOnly = true,
+            interactionSource = rememberPickerInteractionSource { pickKind = true },
             label = { Text("النوع *") },
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = { PickerTrigger(onClick = { pickKind = true }) },
@@ -556,6 +592,7 @@ private fun WarehouseEditDialog(
                     value = branchLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickBranch = true },
                     label = { Text("الفرع") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },

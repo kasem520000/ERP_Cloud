@@ -1,6 +1,7 @@
 package com.erpcloud.bakery
 
 import android.os.Bundle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
@@ -30,12 +31,14 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.BakeryDining
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.Group
@@ -54,8 +57,10 @@ import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ErrorOutline
@@ -104,6 +109,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.erpcloud.bakery.ui.screens.AdjustmentsScreen
+import com.erpcloud.bakery.ui.screens.AiAssistantScreen
+import com.erpcloud.bakery.ui.screens.BAKERY_EDITION_LABEL
+import com.erpcloud.bakery.ui.screens.BrandCrestLogo
 import com.erpcloud.bakery.ui.screens.CountAdjustmentsScreen
 import com.erpcloud.bakery.ui.screens.CategoriesScreen
 import com.erpcloud.bakery.ui.screens.ItemsScreen
@@ -117,7 +125,10 @@ import com.erpcloud.bakery.ui.screens.PosScreen
 import com.erpcloud.bakery.ui.screens.PurchasesScreen
 import com.erpcloud.bakery.ui.screens.RolesScreen
 import com.erpcloud.bakery.ui.screens.SalesRegistryScreen
+import com.erpcloud.bakery.ui.screens.SplashScreen
+import com.erpcloud.bakery.ui.screens.SupportScreen
 import com.erpcloud.bakery.ui.screens.SystemReportsScreen
+import com.erpcloud.bakery.ui.screens.TaxFilingsScreen
 import com.erpcloud.bakery.ui.screens.TreasuryScreen
 import com.erpcloud.bakery.ui.screens.UsersScreen
 import com.erpcloud.bakery.ui.screens.VouchersScreen
@@ -213,6 +224,11 @@ internal object Routes {
     const val ITEMS = "items"
     const val CATEGORIES = "categories"
     const val UNITS = "units"
+    // الشاشاتُ المضافة: المساعد الذكي + إعداداته + الفواتير الضريبية + المساعدة والدعم
+    const val AI_ASSISTANT = "ai-assistant"
+    const val AI_SETTINGS = "ai-settings"
+    const val TAX_FILINGS = "tax-filings"
+    const val SUPPORT = "support"
 }
 
 /** بندُ درجٍ — مسارٌ + عنوانٌ + إذنُ الدخول (الدخولُ بلا إذنٍ يُخفي البندَ لا أكثر). */
@@ -239,10 +255,11 @@ fun AppRoot(vm: AppViewModel) {
     val serverOffline by com.erpcloud.bakery.data.offline.ServerConnectivity.offline.collectAsState()
     val navController = rememberNavController()
 
-    if (!state.sessionLoaded) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
+    if (!state.sessionLoaded || !state.splashDone) {
+        SplashScreen(
+            systemName = state.session.brandName,
+            taglineAr = state.session.brandTagline,
+        )
         return
     }
 
@@ -250,13 +267,21 @@ fun AppRoot(vm: AppViewModel) {
     val scope = rememberCoroutineScope()
     val backStack by navController.currentBackStackEntryAsState()
     val groups = drawerGroups { state.can(it) }
+    val popOrHome: () -> Unit = {
+        if (!navController.popBackStack()) {
+            navController.navigate(Routes.HOME) { launchSingleTop = true }
+        }
+    }
+
+    BackHandler(enabled = drawer.isOpen) {
+        scope.launch { drawer.close() }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawer,
+        gesturesEnabled = state.session.loggedIn,
         drawerContent = {
             ModalDrawerSheet(
-                // ترويسةُ الدرج v3 (كما في الموك-أب): بطاقةٌ دافئةٌ متدرّجةٌ
-                // بشعارٍ دائريٍّ حرفيٍّ وهويّةِ المستخدم، لا سطرَينِ عاريين.
                 drawerContainerColor = MaterialTheme.colorScheme.background,
             ) {
                 Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 18.dp, bottom = 6.dp)) {
@@ -269,28 +294,20 @@ fun AppRoot(vm: AppViewModel) {
                             Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Surface(
-                                shape = androidx.compose.foundation.shape.CircleShape,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(46.dp),
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    val identity0 = state.me?.user?.let { it.fullName.ifBlank { it.email } }
-                                    Text(
-                                        identity0?.trim()?.take(1)?.ifBlank { "م" } ?: "م",
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                }
-                            }
+                            BrandCrestLogo(size = 46.dp)
                             Spacer(Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    "المخبز — وحداتُ المنشأة",
+                                    state.session.brandName,
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                )
+                                Text(
+                                    BAKERY_EDITION_LABEL,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
                                 )
                                 val identity = state.me?.user?.let { it.fullName.ifBlank { it.email } }
                                 if (identity != null) {
@@ -332,7 +349,9 @@ fun AppRoot(vm: AppViewModel) {
                                         .fillMaxWidth()
                                         .clickable {
                                             scope.launch { drawer.close() }
-                                            if (!selected) navController.navigate(entry.route)
+                                            if (!selected) {
+                                                navController.navigate(entry.route) { launchSingleTop = true }
+                                            }
                                         }
                                         .padding(horizontal = 10.dp, vertical = 11.dp),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -391,55 +410,70 @@ fun AppRoot(vm: AppViewModel) {
                     onPrinters = { navController.navigate(Routes.PRINTERS) },
                     onNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                     onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
+                    onAiAssistant = { navController.navigate(Routes.AI_ASSISTANT) },
+                    onTaxFilings = { navController.navigate(Routes.TAX_FILINGS) },
+                    onSupport = { navController.navigate(Routes.SUPPORT) },
                     onLogout = { vm.logout() },
                 )
             }
-            composable(Routes.PRODUCTION) { ProductionScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.DISTRIBUTION) { DistributionScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.CUSTODY) { CustodyScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.SALESMEN) { SalesmenScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.COLLECTION) { CollectionScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.PRICES) { PricesScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.REPORTS) { ReportsScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.POLICY) { PolicyScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.PRINTERS) { PrintersScreen(vm, onBack = { navController.popBackStack() }) }
+            composable(Routes.PRODUCTION) { ProductionScreen(vm, onBack = popOrHome) }
+            composable(Routes.DISTRIBUTION) { DistributionScreen(vm, onBack = popOrHome) }
+            composable(Routes.CUSTODY) { CustodyScreen(vm, onBack = popOrHome) }
+            composable(Routes.SALESMEN) { SalesmenScreen(vm, onBack = popOrHome) }
+            composable(Routes.COLLECTION) { CollectionScreen(vm, onBack = popOrHome) }
+            composable(Routes.PRICES) { PricesScreen(vm, onBack = popOrHome) }
+            composable(Routes.REPORTS) { ReportsScreen(vm, onBack = popOrHome) }
+            composable(Routes.POLICY) { PolicyScreen(vm, onBack = popOrHome) }
+            composable(Routes.PRINTERS) { PrintersScreen(vm, onBack = popOrHome) }
             composable(Routes.NOTIFICATIONS) {
                 NotificationsScreen(
                     vm = vm,
-                    onBack = { navController.popBackStack() },
+                    onBack = popOrHome,
                     onNavigateRoute = { route -> navController.navigate(route) },
                 )
             }
             composable(Routes.CHANGE_PASSWORD) {
-                ChangePasswordScreen(vm, onBack = { navController.popBackStack() })
+                ChangePasswordScreen(vm, onBack = popOrHome)
             }
             // ------------------------------------------------ وحداتُ «الطاقم»
-            composable(Routes.PURCHASES) { PurchasesScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.VOUCHERS) { VouchersScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.POS) { PosScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.EMPLOYEES) { EmployeesScreen(vm, onBack = { navController.popBackStack() }) }
+            composable(Routes.PURCHASES) { PurchasesScreen(vm, onBack = popOrHome) }
+            composable(Routes.VOUCHERS) { VouchersScreen(vm, onBack = popOrHome) }
+            composable(Routes.POS) { PosScreen(vm, onBack = popOrHome) }
+            composable(Routes.EMPLOYEES) { EmployeesScreen(vm, onBack = popOrHome) }
             composable(Routes.SALES_REGISTRY) {
-                SalesRegistryScreen(vm, onBack = { navController.popBackStack() })
+                SalesRegistryScreen(vm, onBack = popOrHome)
             }
-            composable(Routes.USERS) { UsersScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.ROLES) { RolesScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.ADJUSTMENTS) { AdjustmentsScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.PAYROLL) { PayrollScreen(vm, onBack = { navController.popBackStack() }) }
+            composable(Routes.USERS) { UsersScreen(vm, onBack = popOrHome) }
+            composable(Routes.ROLES) { RolesScreen(vm, onBack = popOrHome) }
+            composable(Routes.ADJUSTMENTS) { AdjustmentsScreen(vm, onBack = popOrHome) }
+            composable(Routes.PAYROLL) { PayrollScreen(vm, onBack = popOrHome) }
             composable(Routes.EMPLOYEE_ACCOUNT) {
-                EmployeeAccountScreen(vm, onBack = { navController.popBackStack() })
+                EmployeeAccountScreen(vm, onBack = popOrHome)
             }
             composable(Routes.SYSTEM_REPORTS) {
-                SystemReportsScreen(vm, onBack = { navController.popBackStack() })
+                SystemReportsScreen(vm, onBack = popOrHome)
             }
-            composable(Routes.TREASURY) { TreasuryScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.INVENTORY) { InventoryScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.COUNTS) { CountAdjustmentsScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.PARTIES) { PartiesScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.SALES_INVOICES) { SalesInvoicesScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.ORG) { OrgScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.ITEMS) { ItemsScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.CATEGORIES) { CategoriesScreen(vm, onBack = { navController.popBackStack() }) }
-            composable(Routes.UNITS) { UnitsScreen(vm, onBack = { navController.popBackStack() }) }
+            composable(Routes.TREASURY) { TreasuryScreen(vm, onBack = popOrHome) }
+            composable(Routes.INVENTORY) { InventoryScreen(vm, onBack = popOrHome) }
+            composable(Routes.COUNTS) { CountAdjustmentsScreen(vm, onBack = popOrHome) }
+            composable(Routes.PARTIES) { PartiesScreen(vm, onBack = popOrHome) }
+            composable(Routes.SALES_INVOICES) { SalesInvoicesScreen(vm, onBack = popOrHome) }
+            composable(Routes.ORG) { OrgScreen(vm, onBack = popOrHome) }
+            composable(Routes.ITEMS) { ItemsScreen(vm, onBack = popOrHome) }
+            composable(Routes.CATEGORIES) { CategoriesScreen(vm, onBack = popOrHome) }
+            composable(Routes.UNITS) { UnitsScreen(vm, onBack = popOrHome) }
+            composable(Routes.AI_ASSISTANT) {
+                AiAssistantScreen(vm, onBack = popOrHome, startInSettings = false)
+            }
+            composable(Routes.AI_SETTINGS) {
+                AiAssistantScreen(vm, onBack = popOrHome, startInSettings = true)
+            }
+            composable(Routes.TAX_FILINGS) {
+                TaxFilingsScreen(vm, onBack = popOrHome)
+            }
+            composable(Routes.SUPPORT) {
+                SupportScreen(vm, onBack = popOrHome)
+            }
             }
 
             // الدخولُ والخروجُ يقودان التوجيه — **بعد** تركيبِ NavHost لا قبله:
@@ -657,6 +691,14 @@ private fun drawerGroups(can: (String) -> Boolean): List<Pair<String, List<Drawe
             ),
         ),
         DrawerGroup(
+            "الذكاء الاصطناعي والضرائب",
+            listOf(
+                DrawerEntry(Routes.AI_ASSISTANT, "المساعد الذكي AI", "ai.assistant.use", Icons.Filled.AutoAwesome),
+                DrawerEntry(Routes.AI_SETTINGS, "إعدادات المساعد الذكي", "ai.settings.manage", Icons.Filled.Settings),
+                DrawerEntry(Routes.TAX_FILINGS, "الفواتير الضريبية", "einvoice.view", Icons.Filled.CloudDone),
+            ),
+        ),
+        DrawerGroup(
             "التقارير",
             listOf(DrawerEntry(Routes.SYSTEM_REPORTS, "التقارير", "reporting.view", Icons.Filled.BarChart)),
         ),
@@ -666,6 +708,7 @@ private fun drawerGroups(can: (String) -> Boolean): List<Pair<String, List<Drawe
                 DrawerEntry(Routes.ORG, "الفروع والمستودعات والخزائن", "organization.branch.view", Icons.Filled.Store),
                 DrawerEntry(Routes.USERS, "المستخدمون", "tenant.membership.manage", Icons.Filled.ManageAccounts),
                 DrawerEntry(Routes.ROLES, "الأدوار والصلاحيّات", "tenant.role.manage", Icons.Filled.AdminPanelSettings),
+                DrawerEntry(Routes.SUPPORT, "طلب المساعدة والدعم", icon = Icons.Filled.SupportAgent),
                 DrawerEntry(Routes.NOTIFICATIONS, "الإشعارات", icon = Icons.Filled.Notifications),
                 DrawerEntry(Routes.PRINTERS, "الطباعة والطابعات", icon = Icons.Filled.Print),
                 DrawerEntry(Routes.CHANGE_PASSWORD, "تغييرُ كلمة المرور", icon = Icons.Filled.Lock),

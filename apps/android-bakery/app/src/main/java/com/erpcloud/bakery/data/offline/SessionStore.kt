@@ -31,10 +31,13 @@ data class SessionState(
     val printerMac: String = "",
     val printerWidthDots: Int = 576,
     val deviceId: String = "",
+    val brandName: String = DEFAULT_BRAND_NAME,
+    val brandTagline: String = "",
 ) {
     companion object {
-        /** عنوانُ الخادم الافتراضيّ: جهازُ المضيف عند التشغيل في محاكي أندرويد. */
-        const val DEFAULT_SERVER_URL = "http://10.0.2.2:3000"
+        /** عنوانُ الخدمة السحابية الرسميّ الثابت (محقونٌ في الكود ولا يظهر في الواجهة). */
+        const val DEFAULT_SERVER_URL = "https://api.sahabaccounting.com"
+        const val DEFAULT_BRAND_NAME = "سحاب المحاسبي"
     }
 }
 
@@ -51,10 +54,11 @@ class SessionStore(private val context: Context) {
         val REFRESH = stringPreferencesKey("refresh_token")
         val TENANT = stringPreferencesKey("tenant_code")
         val EXPIRES = longPreferencesKey("expires_at")
-        val SERVER = stringPreferencesKey("server_url")
         val PRINTER_MAC = stringPreferencesKey("printer_mac")
         val PRINTER_WIDTH = intPreferencesKey("printer_width")
         val DEVICE = stringPreferencesKey("device_id")
+        val BRAND_NAME = stringPreferencesKey("brand_name")
+        val BRAND_TAGLINE = stringPreferencesKey("brand_tagline")
     }
 
     /** نسخةٌ متطايرةٌ — تُحدَّث مع كل كتابة. */
@@ -62,8 +66,10 @@ class SessionStore(private val context: Context) {
     var cached: SessionState = SessionState()
         private set
 
-    /** التدفّقُ الرسميّ للحالة (للواجهة). */
-    val state: Flow<SessionState> = context.sessionDataStore.data.map(::readState)
+    /** التدفّقُ الرسميّ للحالة (للواجهة) — يُحدّث [cached] فورًا قبل بثّ الحالة لأيّ مستمع. */
+    val state: Flow<SessionState> = context.sessionDataStore.data.map { prefs ->
+        readState(prefs).also { cached = it }
+    }
 
     init {
         // إبقاءُ النسخة المتطايرة مواكبةً، وإنشاءُ وسمِ الجهاز مرّةً واحدة.
@@ -82,10 +88,12 @@ class SessionStore(private val context: Context) {
             refreshToken = prefs[Keys.REFRESH].orEmpty(),
             tenantCode = prefs[Keys.TENANT].orEmpty(),
             expiresAt = prefs[Keys.EXPIRES] ?: 0L,
-            serverUrl = prefs[Keys.SERVER] ?: SessionState.DEFAULT_SERVER_URL,
+            serverUrl = SessionState.DEFAULT_SERVER_URL,
             printerMac = prefs[Keys.PRINTER_MAC].orEmpty(),
             printerWidthDots = prefs[Keys.PRINTER_WIDTH] ?: 576,
             deviceId = prefs[Keys.DEVICE].orEmpty(),
+            brandName = prefs[Keys.BRAND_NAME]?.takeIf { it.isNotBlank() } ?: SessionState.DEFAULT_BRAND_NAME,
+            brandTagline = prefs[Keys.BRAND_TAGLINE].orEmpty(),
         )
     }
 
@@ -94,6 +102,7 @@ class SessionStore(private val context: Context) {
             if (prefs[Keys.DEVICE].isNullOrEmpty()) {
                 prefs[Keys.DEVICE] = UUID.randomUUID().toString()
             }
+            cached = readState(prefs)
         }
     }
 
@@ -101,10 +110,10 @@ class SessionStore(private val context: Context) {
         context.sessionDataStore.edit { prefs ->
             prefs[Keys.ACCESS] = response.accessToken
             prefs[Keys.REFRESH] = response.refreshToken
-            prefs[Keys.TENANT] = tenantCode
+            prefs[Keys.TENANT] = tenantCode.trim()
             prefs[Keys.EXPIRES] = System.currentTimeMillis() + response.expiresIn * 1000L
+            cached = readState(prefs)
         }
-        cached = readState(context.sessionDataStore.data.first())
     }
 
     suspend fun updateTokens(access: String, refresh: String, expiresIn: Int) {
@@ -112,21 +121,31 @@ class SessionStore(private val context: Context) {
             prefs[Keys.ACCESS] = access
             prefs[Keys.REFRESH] = refresh
             prefs[Keys.EXPIRES] = System.currentTimeMillis() + expiresIn * 1000L
+            cached = readState(prefs)
         }
-        cached = readState(context.sessionDataStore.data.first())
     }
 
+    @Suppress("UNUSED_PARAMETER")
     suspend fun setServerUrl(url: String) {
-        context.sessionDataStore.edit { it[Keys.SERVER] = url.trim().trimEnd('/') }
-        cached = readState(context.sessionDataStore.data.first())
+        // عنوانُ الخادم ثابتٌ ومحقونٌ في الكود (SessionState.DEFAULT_SERVER_URL).
+    }
+
+    suspend fun setBranding(brandName: String, taglineAr: String = "") {
+        val cleanName = brandName.trim()
+        if (cleanName.isEmpty()) return
+        context.sessionDataStore.edit { prefs ->
+            prefs[Keys.BRAND_NAME] = cleanName
+            prefs[Keys.BRAND_TAGLINE] = taglineAr.trim()
+            cached = readState(prefs)
+        }
     }
 
     suspend fun setPrinter(mac: String, widthDots: Int) {
         context.sessionDataStore.edit { prefs ->
             prefs[Keys.PRINTER_MAC] = mac
             prefs[Keys.PRINTER_WIDTH] = widthDots
+            cached = readState(prefs)
         }
-        cached = readState(context.sessionDataStore.data.first())
     }
 
     suspend fun clearSession() {
@@ -135,7 +154,7 @@ class SessionStore(private val context: Context) {
             prefs.remove(Keys.REFRESH)
             prefs.remove(Keys.TENANT)
             prefs.remove(Keys.EXPIRES)
+            cached = readState(prefs)
         }
-        cached = readState(context.sessionDataStore.data.first())
     }
 }

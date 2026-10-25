@@ -1,5 +1,8 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -68,12 +71,16 @@ fun UsersScreen(vm: AppViewModel, onBack: () -> Unit) {
         vm.ensureBranches()
     }
 
+    BackHandler(enabled = showInvite) { showInvite = false }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("المستخدمون والعضويّات") },
+                title = { Text(if (showInvite) "دعوة مستخدم جديد" else "المستخدمون والعضويّات") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(onClick = { if (showInvite) showInvite = false else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
+                    }
                 },
             )
         },
@@ -200,6 +207,7 @@ private fun InviteUserForm(vm: AppViewModel, onDone: () -> Unit) {
             value = if (roleIds.isEmpty()) "" else "مُختار: ${roleIds.size} دورًا",
             onValueChange = {},
             readOnly = true,
+            interactionSource = rememberPickerInteractionSource { pickRoles = true },
             label = { Text("الأدوار * (واحدٌ على الأقلّ)") },
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = { PickerTrigger(onClick = { pickRoles = true }) },
@@ -214,6 +222,7 @@ private fun InviteUserForm(vm: AppViewModel, onDone: () -> Unit) {
                 value = if (branchScope.isEmpty()) "" else "مُختار: ${branchScope.size} فرعًا",
                 onValueChange = {},
                 readOnly = true,
+                interactionSource = rememberPickerInteractionSource { pickBranches = true },
                 label = { Text("نطاقُ الفروع *") },
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = { PickerTrigger(onClick = { pickBranches = true }) },

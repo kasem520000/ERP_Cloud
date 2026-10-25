@@ -1,5 +1,7 @@
 package com.erpcloud.bakery.ui.screens
 
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -103,6 +105,7 @@ fun ReportsScreen(vm: AppViewModel, onBack: () -> Unit) {
                         value = salesmanLabel,
                         onValueChange = {},
                         readOnly = true,
+                        interactionSource = rememberPickerInteractionSource { pickSalesman = true },
                         label = { Text("المندوب (الكلّ)") },
                         modifier = Modifier.weight(1f),
                         trailingIcon = { PickerTrigger(onClick = { pickSalesman = true }) },

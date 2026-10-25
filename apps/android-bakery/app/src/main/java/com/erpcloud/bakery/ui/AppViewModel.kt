@@ -98,6 +98,7 @@ data class HomeSales(
  */
 data class UiState(
     val sessionLoaded: Boolean = false,
+    val splashDone: Boolean = false,
     val session: SessionState = SessionState(),
     val me: MeResponse? = null,
     val dashboard: DashboardDto? = null,
@@ -108,6 +109,7 @@ data class UiState(
     val items: List<ItemOptionDto> = emptyList(),
     val warehouses: List<WarehouseOptionDto> = emptyList(),
     val parties: List<PartyDto> = emptyList(),
+    val loadingLookups: Boolean = false,
     val lookupsError: String? = null,
     val policy: ShortagePolicyDto? = null,
     val reports: ReportsPayloadDto? = null,
@@ -130,10 +132,91 @@ data class UiState(
     /** هل يطلب الخادمُ من هذا الحساب تغييرَ كلمة مروره؟ */
     val mustChangePassword: Boolean get() = me?.user?.mustChangePassword == true
 
+    /**
+     * قائمةُ الأصناف الموحّدة لكلّ منتقي أصناف في التطبيق — تدمج الكتالوج الكامل
+     * (`staff.catalogItems`) و`items` وبيانات نقطة البيع (`posData`) وأرصدة اللوحة
+     * الرسميّة (`officialStock`) بلا تكرار وبلا أصنافٍ محذوفة.
+     */
+    val effectiveItems: List<ItemOptionDto>
+        get() = mergeItemOptionLists(
+            staff.catalogItems.map { it.toItemOption() },
+            items,
+            staff.posData?.items?.map { it.toItemOption() }.orEmpty(),
+            dashboard?.officialStock?.mapNotNull { row ->
+                val id = row.itemId?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                ItemOptionDto(id = id, nameAr = row.itemName)
+            }.orEmpty(),
+        )
+
+    /** قائمةُ المستودعات الموحّدة عبر مختلف مصادر التطبيق. */
+    val effectiveWarehouses: List<WarehouseOptionDto>
+        get() {
+            val map = LinkedHashMap<String, WarehouseOptionDto>()
+            fun accept(w: WarehouseOptionDto) {
+                if (w.id.isBlank() || !w.effectiveIsActive) return
+                val prev = map[w.id]
+                map[w.id] = if (prev == null) w else prev.copy(
+                    code = prev.code ?: w.code,
+                    name = prev.name ?: w.name,
+                    nameAr = prev.nameAr ?: w.nameAr ?: w.nameArSnake,
+                    isDefault = prev.isDefault ?: w.isDefault ?: w.isDefaultSnake,
+                    branchId = prev.branchId ?: w.branchId ?: w.branchIdSnake,
+                )
+            }
+            warehouses.forEach(::accept)
+            staff.posData?.warehouses.orEmpty().forEach(::accept)
+            dashboard?.officialStock?.forEach { row ->
+                val wid = row.warehouseId?.takeIf { it.isNotBlank() } ?: return@forEach
+                accept(WarehouseOptionDto(id = wid, nameAr = row.warehouseName))
+            }
+            return map.values.toList()
+        }
+
     /** المستودعُ الرئيسي كما تقوله اللوحة (لا يُخترع مستودع). */
     val mainWarehouse: WarehouseOptionDto?
-        get() = warehouses.firstOrNull { it.id == dashboard?.mainWarehouseId }
-            ?: warehouses.firstOrNull { it.isDefault == true }
+        get() = effectiveWarehouses.firstOrNull { it.id == dashboard?.mainWarehouseId }
+            ?: effectiveWarehouses.firstOrNull { it.effectiveIsDefault }
+}
+
+internal fun mergeItemOptionLists(vararg lists: List<ItemOptionDto>): List<ItemOptionDto> {
+    val map = LinkedHashMap<String, ItemOptionDto>()
+    for (list in lists) {
+        for (item in list) {
+            if (!item.isUsable) continue
+            val prev = map[item.id]
+            map[item.id] = if (prev == null) item else prev.copy(
+                sku = prev.sku?.takeIf { it.isNotBlank() } ?: item.sku,
+                barcode = prev.barcode?.takeIf { it.isNotBlank() } ?: item.barcode,
+                nameAr = prev.nameAr?.takeIf { it.isNotBlank() } ?: item.nameAr ?: item.nameArSnake,
+                name = prev.name?.takeIf { it.isNotBlank() } ?: item.name,
+                nameEn = prev.nameEn?.takeIf { it.isNotBlank() } ?: item.nameEn,
+                kind = prev.kind?.takeIf { it.isNotBlank() } ?: item.kind,
+                salePrice = prev.effectiveSalePrice ?: item.effectiveSalePrice,
+                purchasePrice = prev.effectivePurchasePrice ?: item.effectivePurchasePrice,
+                trackLot = prev.trackLot ?: item.trackLot,
+                trackSerial = prev.trackSerial ?: item.trackSerial,
+                taxGroupId = prev.effectiveTaxGroupId ?: item.effectiveTaxGroupId,
+            )
+        }
+    }
+    return map.values.toList()
+}
+
+internal fun mergeCatalogItemLists(
+    existing: List<CatalogItemDto>,
+    incoming: List<CatalogItemDto>,
+): List<CatalogItemDto> {
+    val map = LinkedHashMap<String, CatalogItemDto>()
+    existing.forEach { if (it.id.isNotBlank() && it.deletedAt == null && it.active != false) map[it.id] = it }
+    incoming.forEach {
+        if (it.id.isBlank()) return@forEach
+        if (it.deletedAt != null || it.active == false) {
+            map.remove(it.id)
+        } else {
+            map[it.id] = it
+        }
+    }
+    return map.values.toList()
 }
 
 /** حالةُ صندوق الإشعارات. */
@@ -234,12 +317,27 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
+            val splashFloor = kotlinx.coroutines.async { kotlinx.coroutines.delay(1650L) }
+            kotlinx.coroutines.withTimeoutOrNull(2400L) { repo.fetchPublicSite() }
+            splashFloor.await()
+            _uiState.update { it.copy(splashDone = true) }
+            // إن تأخّر الخادمُ عن مهلة الترحيب، أكمِل تحديثَ الاسم في الخلفيّة.
+            repo.fetchPublicSite()
+        }
+        viewModelScope.launch {
             container.sessionStore.state.collect { session ->
                 val becameLoggedIn = session.loggedIn && !lastLoggedIn
                 val becameLoggedOut = !session.loggedIn && lastLoggedIn
                 lastLoggedIn = session.loggedIn
                 if (becameLoggedOut) {
-                    _uiState.update { UiState(session = session, sessionLoaded = true, online = it.online) }
+                    _uiState.update {
+                        UiState(
+                            session = session,
+                            sessionLoaded = true,
+                            splashDone = it.splashDone,
+                            online = it.online,
+                        )
+                    }
                 } else {
                     _uiState.update { it.copy(session = session, sessionLoaded = true) }
                 }
@@ -307,7 +405,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         } catch (error: ApiException) {
             error.userMessage
         } catch (error: IOException) {
-            "تعذّر الوصول إلى الخادم — تحقّق من العنوان والشبكة"
+            "تعذّر الاتصال بالخدمة السحابية — تحقّق من اتصال الإنترنت وحاول مرّةً أخرى"
         } catch (error: Exception) {
             error.message ?: "تعذّر تسجيل الدخول"
         }
@@ -495,26 +593,107 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** البحثُ المشترك: أصنافٌ ومستودعاتٌ وعملاء — مرّةً واحدة، وصامتُ الأخطاء يُقال في شاشاته. */
+    /** البحثُ المشترك: أصنافٌ ومستودعاتٌ وعملاء — يُحمَّل عند الدخول وعند الطلب في الشاشات. */
     fun refreshLookups() {
+        ensureLookups(force = true)
+    }
+
+    /**
+     * ضمانُ تحميل الأصناف والمستودعات والأطراف — مع مزامنةِ `items` و`staff.catalogItems`
+     * والرجوعِ الاحتياطيّ إلى بيانات نقطة البيع إن تعذّر الكتالوج، وتسجيلِ رسالة الخطأ عند الفشل.
+     */
+    fun ensureLookups(force: Boolean = false) {
+        val current = _uiState.value
+        val needItems = force || current.effectiveItems.isEmpty()
+        val needWarehouses = force || current.effectiveWarehouses.isEmpty()
+        val needParties = force || current.parties.isEmpty()
+        if (!needItems && !needWarehouses && !needParties) return
+
         viewModelScope.launch {
-            try {
-                val items = repo.catalogItems()
-                _uiState.update { it.copy(items = items) }
-            } catch (_: Exception) {
+            _uiState.update { it.copy(loadingLookups = true, lookupsError = null) }
+            var itemErr: String? = null
+            if (needItems) {
+                try {
+                    val full = repo.catalogItemsFull()
+                    _uiState.update { s ->
+                        val mergedCatalog = mergeCatalogItemLists(s.staff.catalogItems, full)
+                        val mergedOptions = mergeItemOptionLists(
+                            mergedCatalog.map { it.toItemOption() },
+                            s.items,
+                            s.staff.posData?.items?.map { it.toItemOption() }.orEmpty(),
+                        )
+                        s.copy(
+                            items = mergedOptions,
+                            staff = s.staff.copy(catalogItems = mergedCatalog),
+                        )
+                    }
+                } catch (error: Exception) {
+                    itemErr = friendly(error)
+                    // محاولةٌ احتياطيّةٌ من `pos/offline-data` إن كان الحساب يحمل `pos.view` فقط.
+                    try {
+                        val pos = repo.posOfflineData()
+                        _uiState.update { s ->
+                            s.copy(
+                                items = mergeItemOptionLists(
+                                    s.items,
+                                    pos.items.map { it.toItemOption() },
+                                ),
+                                warehouses = if (s.warehouses.isEmpty()) pos.warehouses else s.warehouses,
+                                staff = s.staff.copy(posData = s.staff.posData ?: pos),
+                            )
+                        }
+                        if (pos.items.isNotEmpty()) itemErr = null
+                    } catch (_: Exception) {
+                    }
+                }
+            }
+            if (needWarehouses) {
+                try {
+                    val warehouses = repo.warehouses()
+                    _uiState.update { it.copy(warehouses = warehouses) }
+                } catch (_: Exception) {
+                }
+            }
+            if (needParties) {
+                try {
+                    val parties = repo.parties()
+                    _uiState.update { it.copy(parties = parties) }
+                } catch (_: Exception) {
+                }
+            }
+            _uiState.update { s ->
+                s.copy(
+                    loadingLookups = false,
+                    lookupsError = if (s.effectiveItems.isEmpty()) itemErr else null,
+                )
             }
         }
+    }
+
+    /**
+     * بحثٌ مباشرٌ في الخادم (`GET /organization/catalog/items?q=...`) لتجاوز سقف الـ 100 صنف
+     * الأوّليّ في المنشآت كبيرة الكتالوج، مع دمج النتائج في `staff.catalogItems` و`items`.
+     */
+    fun searchItemsRemotely(rawQuery: String) {
+        val q = rawQuery.trim()
+        if (q.length < 2) return
         viewModelScope.launch {
             try {
-                val warehouses = repo.warehouses()
-                _uiState.update { it.copy(warehouses = warehouses) }
-            } catch (_: Exception) {
-            }
-        }
-        viewModelScope.launch {
-            try {
-                val parties = repo.parties()
-                _uiState.update { it.copy(parties = parties) }
+                val matches = repo.catalogItemsFull(q)
+                if (matches.isNotEmpty()) {
+                    _uiState.update { s ->
+                        val mergedCatalog = mergeCatalogItemLists(s.staff.catalogItems, matches)
+                        val mergedOptions = mergeItemOptionLists(
+                            mergedCatalog.map { it.toItemOption() },
+                            s.items,
+                            s.staff.posData?.items?.map { it.toItemOption() }.orEmpty(),
+                        )
+                        s.copy(
+                            items = mergedOptions,
+                            staff = s.staff.copy(catalogItems = mergedCatalog),
+                        )
+                    }
+                }
             } catch (_: Exception) {
             }
         }
@@ -650,7 +829,24 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.update { it.copy(staff = it.staff.copy(loadingKey = key, error = null)) }
             try {
                 val patched = update(_uiState.value.staff)
-                _uiState.update { it.copy(staff = patched.copy(loadingKey = null)) }
+                _uiState.update { prev ->
+                    val syncedItems = mergeItemOptionLists(
+                        patched.catalogItems.map { it.toItemOption() },
+                        prev.items,
+                        patched.posData?.items?.map { it.toItemOption() }.orEmpty(),
+                    )
+                    val syncedWarehouses = if (prev.warehouses.isEmpty() && patched.posData?.warehouses?.isNotEmpty() == true) {
+                        patched.posData.warehouses
+                    } else {
+                        prev.warehouses
+                    }
+                    prev.copy(
+                        items = syncedItems,
+                        warehouses = syncedWarehouses,
+                        lookupsError = if (syncedItems.isNotEmpty()) null else prev.lookupsError,
+                        staff = patched.copy(loadingKey = null),
+                    )
+                }
             } catch (error: Exception) {
                 _uiState.update {
                     it.copy(staff = it.staff.copy(loadingKey = null, error = friendly(error)))
@@ -677,16 +873,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    fun loadPurchases() = loadStaff("purchases") { s ->
-        s.copy(
-            purchaseInvoices = repo.purchaseInvoices(),
-            suppliers = optionalList(s.suppliers) { repo.parties("supplier") },
-            branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
-            cashLocations = if (s.cashLocations.isEmpty()) optionalList(s.cashLocations) { repo.cashLocations() } else s.cashLocations,
-            accounts = if (s.accounts.isEmpty()) optionalList(s.accounts) { repo.accounts() } else s.accounts,
-            taxGroups = if (s.taxGroups.isEmpty()) optionalList(s.taxGroups) { repo.catalogTaxGroups() } else s.taxGroups,
-            catalogItems = if (s.catalogItems.isEmpty()) optionalList(s.catalogItems) { repo.catalogItemsFull() } else s.catalogItems,
-        )
+    fun loadPurchases() {
+        ensureLookups()
+        loadStaff("purchases") { s ->
+            s.copy(
+                purchaseInvoices = repo.purchaseInvoices(),
+                suppliers = optionalList(s.suppliers) { repo.parties("supplier") },
+                branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
+                cashLocations = if (s.cashLocations.isEmpty()) optionalList(s.cashLocations) { repo.cashLocations() } else s.cashLocations,
+                accounts = if (s.accounts.isEmpty()) optionalList(s.accounts) { repo.accounts() } else s.accounts,
+                taxGroups = if (s.taxGroups.isEmpty()) optionalList(s.taxGroups) { repo.catalogTaxGroups() } else s.taxGroups,
+                catalogItems = if (s.catalogItems.isEmpty()) optionalList(s.catalogItems) { repo.catalogItemsFull() } else s.catalogItems,
+            )
+        }
     }
 
     /** قراءةُ ركائزِ المنشأة — الفروعُ والخزائنُ في «الطاقم» والمستودعاتُ في جانبِ المخابز. */
@@ -706,23 +905,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun loadSalesInvoices() = loadStaff("sales-invoices") { s ->
-        s.copy(
-            salesInvoices = repo.salesInvoices(),
-            customers = if (s.customers.isEmpty()) optionalList(s.customers) { repo.parties("customer") } else s.customers,
-            branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
-            cashLocations = if (s.cashLocations.isEmpty()) optionalList(s.cashLocations) { repo.cashLocations() } else s.cashLocations,
-            accounts = if (s.accounts.isEmpty()) optionalList(s.accounts) { repo.accounts() } else s.accounts,
-            taxGroups = if (s.taxGroups.isEmpty()) optionalList(s.taxGroups) { repo.catalogTaxGroups() } else s.taxGroups,
-            catalogItems = if (s.catalogItems.isEmpty()) optionalList(s.catalogItems) { repo.catalogItemsFull() } else s.catalogItems,
-        )
+    fun loadSalesInvoices() {
+        ensureLookups()
+        loadStaff("sales-invoices") { s ->
+            s.copy(
+                salesInvoices = repo.salesInvoices(),
+                customers = if (s.customers.isEmpty()) optionalList(s.customers) { repo.parties("customer") } else s.customers,
+                branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
+                cashLocations = if (s.cashLocations.isEmpty()) optionalList(s.cashLocations) { repo.cashLocations() } else s.cashLocations,
+                accounts = if (s.accounts.isEmpty()) optionalList(s.accounts) { repo.accounts() } else s.accounts,
+                taxGroups = if (s.taxGroups.isEmpty()) optionalList(s.taxGroups) { repo.catalogTaxGroups() } else s.taxGroups,
+                catalogItems = if (s.catalogItems.isEmpty()) optionalList(s.catalogItems) { repo.catalogItemsFull() } else s.catalogItems,
+            )
+        }
     }
 
-    fun loadVouchers(kind: String? = null) = loadStaff("vouchers") { s ->
-        s.copy(
-            vouchers = repo.stockVouchers(kind),
-            branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
-        )
+    fun loadVouchers(kind: String? = null) {
+        ensureLookups()
+        loadStaff("vouchers") { s ->
+            s.copy(
+                vouchers = repo.stockVouchers(kind),
+                branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
+                catalogItems = if (s.catalogItems.isEmpty()) optionalList(s.catalogItems) { repo.catalogItemsFull() } else s.catalogItems,
+            )
+        }
     }
 
     fun loadPos() = loadStaff("pos") { s ->
@@ -906,7 +1112,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun createSupplier(body: JsonObject, onDone: (ActionResult) -> Unit) {
-        staffAction("supplier", { repo.createParty(body) }, onDone)
+        staffAction("supplier", { repo.createParty(body) }, onDone = { result ->
+            if (result is ActionResult.Synced) {
+                viewModelScope.launch {
+                    try {
+                        val suppliers = repo.parties("supplier")
+                        _uiState.update { it.copy(staff = it.staff.copy(suppliers = suppliers)) }
+                    } catch (_: Exception) {
+                    }
+                }
+            }
+            onDone(result)
+        })
     }
 
     fun createCategory(body: JsonObject, onDone: (ActionResult) -> Unit) {
@@ -918,7 +1135,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun createCatalogItem(body: JsonObject, onDone: (ActionResult) -> Unit) {
-        staffAction("item", { repo.createCatalogItem(body) }, onDone)
+        staffAction("item", { repo.createCatalogItem(body) }, onDone = { result ->
+            if (result is ActionResult.Synced) ensureLookups(force = true)
+            onDone(result)
+        })
     }
 
     /**
@@ -928,8 +1148,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun createCatalogItemWithPos(body: JsonObject, showInPos: Boolean, onDone: (ActionResult) -> Unit) {
         viewModelScope.launch {
+            var created = false
             val result = try {
                 val id = repo.createCatalogItemReturningId(body)
+                created = true
                 if (showInPos) {
                     val patch = repo.updateCatalogItem(
                         id,
@@ -950,6 +1172,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             } catch (error: Exception) {
                 ActionResult.Refused(friendly(error))
             }
+            if (created) ensureLookups(force = true)
             _notice.value = when (result) {
                 is ActionResult.Synced -> Notice.ok(result.messageAr)
                 is ActionResult.Refused -> Notice.danger(result.messageAr)
@@ -1033,7 +1256,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     /** تعديلُ مستودع — `PATCH /warehouses/{id}` (المرحلة 2). */
     fun updateWarehouse(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
-        staffAction("warehouse-update", { repo.updateWarehouse(id, body) }, onDone)
+        staffAction("warehouse-update", { repo.updateWarehouse(id, body) }, onDone = { result ->
+            if (result is ActionResult.Synced) ensureLookups(force = true)
+            onDone(result)
+        })
     }
 
     /** تعديلُ خزينة — `PATCH /cash-locations/{id}` (المرحلة 2). */
@@ -1043,7 +1269,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     /** تعديلُ صنف — `PATCH /organization/catalog/items/{id}` (المرحلة 2). */
     fun updateCatalogItem(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
-        staffAction("item-update", { repo.updateCatalogItem(id, body) }, onDone)
+        staffAction("item-update", { repo.updateCatalogItem(id, body) }, onDone = { result ->
+            if (result is ActionResult.Synced) ensureLookups(force = true)
+            onDone(result)
+        })
     }
 
     /** تعديلُ مجموعة — `PATCH /organization/catalog/categories/{id}`. */
@@ -1063,7 +1292,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     /** تعديلُ طرفٍ (عميل/مورّد) — `PUT /parties/{id}` (المرحلة 2). */
     fun updateParty(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
-        staffAction("party-update", { repo.updateParty(id, body) }, onDone)
+        staffAction("party-update", { repo.updateParty(id, body) }, onDone = { result ->
+            if (result is ActionResult.Synced) ensureLookups(force = true)
+            onDone(result)
+        })
     }
 
     /** طلبُ استعادة كلمة المرور بالبريد — من شاشة الدخول (بلا جلسة). */
@@ -1080,7 +1312,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun createWarehouse(body: JsonObject, onDone: (ActionResult) -> Unit) {
-        staffAction("warehouse", { repo.createWarehouse(body) }, onDone)
+        staffAction("warehouse", { repo.createWarehouse(body) }, onDone = { result ->
+            if (result is ActionResult.Synced) ensureLookups(force = true)
+            onDone(result)
+        })
     }
 
     fun createCashLocation(body: JsonObject, onDone: (ActionResult) -> Unit) {
@@ -1271,26 +1506,37 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // ---------------------------------------------- المخزون والأرصدة
 
-    fun loadStockLevels(warehouseId: String? = null) = loadStaff("levels") { s ->
-        s.copy(stockLevels = repo.stockLevels(warehouseId))
+    fun loadStockLevels(warehouseId: String? = null) {
+        ensureLookups()
+        loadStaff("levels") { s ->
+            s.copy(stockLevels = repo.stockLevels(warehouseId))
+        }
     }
 
-    fun loadStockMovements(itemId: String?, warehouseId: String?, from: String?, to: String?) =
+    fun loadStockMovements(itemId: String?, warehouseId: String?, from: String?, to: String?) {
+        ensureLookups()
         loadStaff("movements") { s ->
             s.copy(stockMovements = repo.stockMovements(itemId, warehouseId, from, to))
         }
+    }
 
-    fun loadItemCard(itemId: String, warehouseId: String?, from: String?, to: String?) =
+    fun loadItemCard(itemId: String, warehouseId: String?, from: String?, to: String?) {
+        ensureLookups()
         loadStaff("item-card") { s ->
             s.copy(itemCard = repo.itemCard(itemId, warehouseId, from, to))
         }
+    }
 
-    fun loadCountAdjustments() = loadStaff("counts") { s ->
-        s.copy(
-            countAdjustments = repo.stockAdjustments(),
-            branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
-            accounts = if (s.accounts.isEmpty()) optionalList(s.accounts) { repo.accounts() } else s.accounts,
-        )
+    fun loadCountAdjustments() {
+        ensureLookups()
+        loadStaff("counts") { s ->
+            s.copy(
+                countAdjustments = repo.stockAdjustments(),
+                branches = if (s.branches.isEmpty()) optionalList(s.branches) { repo.branches() } else s.branches,
+                accounts = if (s.accounts.isEmpty()) optionalList(s.accounts) { repo.accounts() } else s.accounts,
+                catalogItems = if (s.catalogItems.isEmpty()) optionalList(s.catalogItems) { repo.catalogItemsFull() } else s.catalogItems,
+            )
+        }
     }
 
     fun createStockAdjustment(body: JsonObject, onDone: (ActionResult) -> Unit) {
@@ -1314,7 +1560,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun createParty(body: JsonObject, onDone: (ActionResult) -> Unit) {
-        staffAction("party", { repo.createParty(body) }, onDone)
+        staffAction("party", { repo.createParty(body) }, onDone = { result ->
+            if (result is ActionResult.Synced) ensureLookups(force = true)
+            onDone(result)
+        })
     }
 
     // ------------------------------------------------------------ الإشعارات
@@ -1415,9 +1664,85 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _notice.value = Notice.danger(messageAr)
     }
 
+    fun showNoticeOk(messageAr: String) {
+        _notice.value = Notice.ok(messageAr)
+    }
+
+    fun showNoticeDanger(messageAr: String) {
+        _notice.value = Notice.danger(messageAr)
+    }
+
+    // --------------------------------------------------- الدعم الفني ومركز المساعدة
+
+    suspend fun supportTickets(): List<com.erpcloud.bakery.data.api.SupportTicketDto> =
+        repo.supportTickets()
+
+    suspend fun supportTicketDetail(id: String): com.erpcloud.bakery.data.api.SupportTicketDto =
+        repo.supportTicketDetail(id)
+
+    suspend fun createSupportTicket(body: JsonObject): com.erpcloud.bakery.data.api.SupportTicketDto =
+        repo.createSupportTicket(body)
+
+    suspend fun replySupportTicket(id: String, body: JsonObject): com.erpcloud.bakery.data.api.SupportTicketDto =
+        repo.replySupportTicket(id, body)
+
+    suspend fun publicHelp(q: String? = null): List<com.erpcloud.bakery.data.api.PublicHelpPostDto> =
+        repo.publicHelp(q)
+
+    suspend fun publicFaq(): List<com.erpcloud.bakery.data.api.PublicFaqDto> =
+        repo.publicFaq()
+
+    // ------------------------------------------ الفواتير الضريبية المرفوعة (ZATCA)
+
+    suspend fun einvoiceFilings(
+        status: String? = null,
+        from: String? = null,
+        to: String? = null,
+        pageNo: Int = 1,
+        pageSize: Int = 50,
+    ): com.erpcloud.bakery.data.api.EinvoiceFilingPageDto =
+        repo.einvoiceFilings(status = status, from = from, to = to, pageNo = pageNo, pageSize = pageSize)
+
+    suspend fun einvoiceFilingDetail(id: String): com.erpcloud.bakery.data.api.EinvoiceFilingDetailDto =
+        repo.einvoiceFilingDetail(id)
+
+    suspend fun einvoiceChain(): com.erpcloud.bakery.data.api.EinvoiceChainStateDto? =
+        repo.einvoiceChain()
+
+    suspend fun syncEinvoices(): com.erpcloud.bakery.data.api.EinvoiceSyncReportDto =
+        repo.syncEinvoices()
+
+    suspend fun retryEinvoice(id: String): ActionResult =
+        repo.retryEinvoice(id)
+
+    // ------------------------------------------------ المساعد الذكي (AI) وإعداداته
+
+    suspend fun aiSettings(): com.erpcloud.bakery.data.api.AiSettingsDto =
+        repo.aiSettings()
+
+    suspend fun updateAiSettings(body: JsonObject): ActionResult =
+        repo.updateAiSettings(body)
+
+    suspend fun testAiSettings(): com.erpcloud.bakery.data.api.AiTestResultDto =
+        repo.testAiSettings()
+
+    suspend fun aiSuggestions(): List<com.erpcloud.bakery.data.api.AiSuggestionDto> =
+        repo.aiSuggestions()
+
+    suspend fun aiConversations(): List<com.erpcloud.bakery.data.api.AiConversationRowDto> =
+        repo.aiConversations()
+
+    suspend fun aiConversation(id: String): com.erpcloud.bakery.data.api.AiStoredConversationDto =
+        repo.aiConversation(id)
+
+    suspend fun aiChat(message: String, conversationId: String?): com.erpcloud.bakery.data.api.AiChatResultDto =
+        repo.aiChat(message, conversationId)
+
+    fun friendlyError(error: Exception): String = friendly(error)
+
     private fun friendly(error: Exception): String = when (error) {
         is ApiException -> error.userMessage
-        is IOException -> "لم يصل الطلب إلى الخادم — تحقّق من الشبكة وعنوان الخادم"
+        is IOException -> "تعذّر الاتصال بالخدمة السحابية — تحقّق من اتصال الإنترنت وحاول مرّةً أخرى"
         else -> error.message ?: "تعذّر إكمال الطلب"
     }
 }

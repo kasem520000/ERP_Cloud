@@ -27,6 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,9 +57,15 @@ import com.erpcloud.rep.util.Dec
  * اسمٌ نقديّ، والجسمُ يحمل مفتاحَ عدم تكرارٍ واحدًا للنيّةِ الواحدة.
  */
 @Composable
-fun SaleScreen(vm: AppViewModel, onDone: () -> Unit) {
+fun SaleScreen(
+    vm: AppViewModel,
+    onDone: () -> Unit,
+    onPrintSale: ((String) -> Unit)? = null,
+) {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val workspace = state.workspace
+
+    LaunchedEffect(Unit) { vm.ensureParties() }
 
     var loadOrderId by rememberSaveable { mutableStateOf("") }
     var registeredCustomer by rememberSaveable { mutableStateOf(false) }
@@ -376,7 +383,12 @@ fun SaleScreen(vm: AppViewModel, onDone: () -> Unit) {
                         when (val result = outcome.result) {
                             is ActionResult.Synced -> {
                                 intentKey = ""; intentFingerprint = ""
-                                onDone()
+                                val createdId = outcome.createdDocumentId
+                                if (!createdId.isNullOrBlank() && onPrintSale != null) {
+                                    onPrintSale(createdId)
+                                } else {
+                                    onDone()
+                                }
                             }
                             is ActionResult.StoredOffline -> {
                                 intentKey = ""; intentFingerprint = ""
@@ -412,9 +424,22 @@ fun SaleScreen(vm: AppViewModel, onDone: () -> Unit) {
     }
 
     if (showPartyPicker) {
+        LaunchedEffect(Unit) { vm.ensureParties() }
         PickerDialog(
             title = "اختر بطاقةَ العميل",
-            items = state.parties.map { PickerItem(id = it.id, title = it.displayName, subtitle = it.phone) },
+            items = state.parties.map {
+                PickerItem(
+                    id = it.id,
+                    title = it.displayName,
+                    subtitle = listOfNotNull(
+                        it.phone?.takeIf { p -> p.isNotBlank() },
+                        it.taxNo?.takeIf { t -> t.isNotBlank() }?.let { t -> "ضريبي: $t" },
+                    ).joinToString(" · ").ifBlank { null },
+                )
+            },
+            loading = state.loadingParties,
+            errorMessage = state.partiesError,
+            onRefresh = { vm.loadParties() },
             onDismiss = { showPartyPicker = false },
             onSelect = { partyId = it.id },
         )

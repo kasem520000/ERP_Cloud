@@ -1,5 +1,7 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -52,6 +54,7 @@ import com.erpcloud.bakery.data.api.SalesInvoiceDetailDto
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.PickerTrigger
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.ConfirmReasonDialog
@@ -101,16 +104,43 @@ fun SalesInvoicesScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     LaunchedEffect(Unit) { vm.loadSalesInvoices() }
 
+    val inSubView = showCreate || editTarget != null || returnTarget != null
+    val handleSubBack = {
+        when {
+            showCreate -> showCreate = false
+            editTarget != null -> {
+                editTarget = null
+                vm.clearDocumentDetail()
+            }
+            returnTarget != null -> {
+                returnTarget = null
+                vm.clearDocumentDetail()
+            }
+        }
+    }
+    BackHandler(enabled = inSubView) { handleSubBack() }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                // شريطٌ فاتحٌ يمتزجُ بخلفيّةِ الشاشة (كما في الموك-أب) وعنوانٌ عريضٌ جدًّا.
-                title = { Text("فواتير المبيعات والمردودات", fontWeight = FontWeight.ExtraBold) },
+                title = {
+                    Text(
+                        when {
+                            showCreate -> "إنشاء فاتورة مبيعات"
+                            editTarget != null -> "تعديل فاتورة مبيعات"
+                            returnTarget != null -> "مردود مبيعات"
+                            else -> "فواتير المبيعات والمردودات"
+                        },
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                 ),
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(onClick = { if (inSubView) handleSubBack() else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
+                    }
                 },
             )
         },
@@ -328,7 +358,7 @@ fun SalesInvoicesScreen(vm: AppViewModel, onBack: () -> Unit) {
                         EmptyState("لا سطورَ في الفاتورة.")
                     } else {
                         DocumentLines(detail.lines) { itemId ->
-                            state.items.firstOrNull { it.id == itemId }?.label ?: "—"
+                            state.effectiveItems.firstOrNull { it.id == itemId }?.label ?: "—"
                         }
                     }
                 }
@@ -574,13 +604,18 @@ private data class SaleLine(
 @Composable
 private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesInvoiceDetailDto? = null) {
     val state by vm.uiState.collectAsState()
+    val availableItems = state.effectiveItems
+    val availableWarehouses = state.effectiveWarehouses
+
+    LaunchedEffect(Unit) { vm.ensureLookups() }
+
     var branchId by remember { mutableStateOf(edit?.branchId ?: "") }
     var branchLabel by remember {
         mutableStateOf(edit?.branchId?.let { bid -> state.staff.branches.firstOrNull { it.id == bid }?.nameAr } ?: "")
     }
     var warehouseId by remember { mutableStateOf(edit?.warehouseId ?: "") }
     var warehouseLabel by remember {
-        mutableStateOf(edit?.warehouseId?.let { wid -> state.warehouses.firstOrNull { it.id == wid }?.label } ?: "")
+        mutableStateOf(edit?.warehouseId?.let { wid -> availableWarehouses.firstOrNull { it.id == wid }?.label } ?: "")
     }
     var partyId by remember { mutableStateOf(edit?.partyId ?: "") }
     var partyLabel by remember { mutableStateOf(edit?.partyName ?: "") }
@@ -596,18 +631,19 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
 
     fun resolveItemTaxAndPrice(itemId: String): Triple<String, String?, String?> {
         val catItem = state.staff.catalogItems.firstOrNull { it.id == itemId }
-        val optItem = state.items.firstOrNull { it.id == itemId }
-        val tgId = catItem?.taxGroupId ?: optItem?.taxGroupId
+        val optItem = availableItems.firstOrNull { it.id == itemId }
+        val tgId = catItem?.taxGroupId ?: optItem?.effectiveTaxGroupId
         val tg = tgId?.let { id -> state.staff.taxGroups.firstOrNull { it.id == id } }
         val rate = tg?.rate?.let { Dec.fmt(it, maxScale = 2, minScale = 0) }?.ifBlank { "15" } ?: "15"
-        return Triple(rate, tgId, catItem?.salePrice)
+        val salePrice = catItem?.salePrice ?: optItem?.effectiveSalePrice
+        return Triple(rate, tgId, salePrice)
     }
 
     val lines = remember {
         val initial = edit?.lines?.map { line ->
             SaleLine(
                 itemId = line.itemId,
-                itemLabel = state.items.firstOrNull { it.id == line.itemId }?.label ?: line.description ?: "",
+                itemLabel = availableItems.firstOrNull { it.id == line.itemId }?.label ?: line.description ?: "",
                 qty = line.quantity,
                 price = line.unitPrice ?: "",
                 taxRate = line.taxRate?.let { Dec.fmt(it, maxScale = 2, minScale = 0) }?.ifBlank { "15" } ?: "15",
@@ -627,13 +663,20 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
             state.staff.branches.firstOrNull { it.id == branchId }?.let { branchLabel = it.nameAr }
         }
     }
-    LaunchedEffect(state.warehouses, state.dashboard?.mainWarehouseId) {
+    LaunchedEffect(availableWarehouses, state.dashboard?.mainWarehouseId, availableItems) {
         if (warehouseId.isBlank()) {
-            (state.warehouses.firstOrNull { it.id == state.dashboard?.mainWarehouseId }
-                ?: state.warehouses.firstOrNull { it.isDefault == true })
+            (availableWarehouses.firstOrNull { it.id == state.dashboard?.mainWarehouseId }
+                ?: availableWarehouses.firstOrNull { it.effectiveIsDefault })
                 ?.let { warehouseId = it.id; warehouseLabel = it.label }
         } else if (warehouseLabel.isBlank()) {
-            state.warehouses.firstOrNull { it.id == warehouseId }?.let { warehouseLabel = it.label }
+            availableWarehouses.firstOrNull { it.id == warehouseId }?.let { warehouseLabel = it.label }
+        }
+        lines.forEachIndexed { idx, line ->
+            if (line.itemId.isNotBlank() && line.itemLabel.isBlank()) {
+                availableItems.firstOrNull { it.id == line.itemId }?.let { opt ->
+                    lines[idx] = line.copy(itemLabel = opt.label)
+                }
+            }
         }
     }
     LaunchedEffect(state.staff.customers) {
@@ -662,6 +705,7 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                     value = branchLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickBranch = true },
                     label = { Text("الفرع *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
@@ -671,6 +715,7 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                     value = warehouseLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickWarehouse = true },
                     label = { Text("مستودعُ الصرف *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickWarehouse = true }) },
@@ -680,6 +725,7 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                     value = partyLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickParty = true },
                     label = { Text("العميل (من السجلّ)") },
                     placeholder = { Text("عميلٌ نقديٌّ إن تُرك فارغًا") },
                     modifier = Modifier.fillMaxWidth(),
@@ -741,7 +787,9 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
                                 value = line.itemLabel,
                                 onValueChange = {},
                                 readOnly = true,
+                                interactionSource = rememberPickerInteractionSource { pickLineAt = index },
                                 label = { Text("الصنف ${index + 1} *") },
+                                placeholder = { Text("اضغط لاختيار الصنف…") },
                                 modifier = Modifier.weight(1.4f),
                                 trailingIcon = { PickerTrigger(onClick = { pickLineAt = index }) },
                             )
@@ -875,6 +923,8 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
         PickerDialog(
             title = "اختر الفرع",
             items = state.staff.branches.map { PickerItem(it.id, it.nameAr, trailing = if (it.isDefault) "افتراضيّ" else null) },
+            loading = state.staff.loadingKey == "sales-invoices",
+            onRefresh = { vm.loadSalesInvoices() },
             onDismiss = { pickBranch = false },
             onSelect = { branchId = it.id; branchLabel = it.title },
         )
@@ -882,21 +932,28 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
     if (pickWarehouse) {
         PickerDialog(
             title = "اختر المستودع",
-            items = state.warehouses.map { PickerItem(it.id, it.label, trailing = if (it.isDefault == true) "افتراضيّ" else null) },
+            items = availableWarehouses.map { PickerItem(it.id, it.label, trailing = if (it.effectiveIsDefault) "افتراضيّ" else null) },
+            loading = state.loadingLookups,
+            onRefresh = { vm.ensureLookups(force = true) },
             onDismiss = { pickWarehouse = false },
             onSelect = { warehouseId = it.id; warehouseLabel = it.title },
         )
     }
     if (pickParty) {
+        val customers = state.staff.customers.ifEmpty { state.parties.filter { it.kind == "customer" } }
         PickerDialog(
             title = "اختر العميل",
-            items = state.staff.customers.map {
+            items = customers.map {
                 PickerItem(
                     id = it.id,
                     title = it.displayName,
+                    subtitle = it.phone,
                     trailing = if (it.creditHold) "موقوف ائتمانيًّا" else null,
                 )
             },
+            loading = state.staff.loadingKey == "sales-invoices" || state.loadingLookups,
+            onRefresh = { vm.loadSalesInvoices() },
+            alwaysShowSearch = true,
             onDismiss = { pickParty = false },
             onSelect = { partyId = it.id; partyLabel = it.title },
         )
@@ -905,7 +962,19 @@ private fun SalesInvoiceForm(vm: AppViewModel, onDone: () -> Unit, edit: SalesIn
         val at = pickLineAt
         PickerDialog(
             title = "صنفُ السطر ${at + 1}",
-            items = state.items.map { PickerItem(it.id, it.label) },
+            items = availableItems.map { item ->
+                PickerItem(
+                    id = item.id,
+                    title = item.label,
+                    subtitle = item.subtitle,
+                    trailing = item.effectiveSalePrice?.let { "${Dec.money(it)} ر.س" },
+                )
+            },
+            loading = state.loadingLookups || state.staff.loadingKey == "sales-invoices",
+            errorMessage = state.lookupsError,
+            onRefresh = { vm.ensureLookups(force = true) },
+            onQueryChange = { vm.searchItemsRemotely(it) },
+            alwaysShowSearch = true,
             onDismiss = { pickLineAt = -1 },
             onSelect = { item ->
                 val (rate, tgId, defaultPrice) = resolveItemTaxAndPrice(item.id)
@@ -970,7 +1039,7 @@ private fun ReturnForm(vm: AppViewModel, sourceId: String, onDone: () -> Unit) {
         val initial = detail.lines.map { line ->
             ReturnLine(
                 itemId = line.itemId,
-                itemLabel = state.items.firstOrNull { it.id == line.itemId }?.label ?: line.description ?: line.itemId,
+                itemLabel = state.effectiveItems.firstOrNull { it.id == line.itemId }?.label ?: line.description ?: line.itemId,
                 sourceQty = line.quantity,
                 qty = "0",
                 price = line.unitPrice ?: "0",

@@ -1,5 +1,7 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,6 +42,7 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.PickerTrigger
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
@@ -82,12 +85,16 @@ fun VouchersScreen(vm: AppViewModel, onBack: () -> Unit) {
 
     LaunchedEffect(Unit) { vm.loadVouchers() }
 
+    BackHandler(enabled = showCreate) { showCreate = false }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("السندات المخزنيّة") },
+                title = { Text(if (showCreate) "إنشاء سند مخزني" else "السندات المخزنيّة") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(onClick = { if (showCreate) showCreate = false else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
+                    }
                 },
             )
         },
@@ -273,16 +280,17 @@ private fun VoucherForm(vm: AppViewModel, onDone: () -> Unit) {
     )
     val lines = remember { mutableStateListOf(VoucherLineDraft(), VoucherLineDraft()) }
 
+    LaunchedEffect(Unit) { vm.ensureLookups() }
     LaunchedEffect(state.staff.branches) {
         if (branchId.isBlank()) {
             (state.staff.branches.firstOrNull { it.isDefault } ?: state.staff.branches.firstOrNull())
                 ?.let { branchId = it.id; branchLabel = it.nameAr }
         }
     }
-    LaunchedEffect(state.warehouses, state.dashboard?.mainWarehouseId) {
+    LaunchedEffect(state.effectiveWarehouses, state.dashboard?.mainWarehouseId) {
         if (warehouseId.isBlank()) {
-            (state.warehouses.firstOrNull { it.id == state.dashboard?.mainWarehouseId }
-                ?: state.warehouses.firstOrNull { it.isDefault == true })
+            (state.effectiveWarehouses.firstOrNull { it.id == state.dashboard?.mainWarehouseId }
+                ?: state.effectiveWarehouses.firstOrNull { it.effectiveIsDefault })
                 ?.let { warehouseId = it.id; warehouseLabel = it.label }
         }
     }
@@ -297,6 +305,7 @@ private fun VoucherForm(vm: AppViewModel, onDone: () -> Unit) {
                     value = kindLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickKind = true },
                     label = { Text("نوعُ السند *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickKind = true }) },
@@ -306,6 +315,7 @@ private fun VoucherForm(vm: AppViewModel, onDone: () -> Unit) {
                     value = branchLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickBranch = true },
                     label = { Text("الفرع *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
@@ -315,6 +325,7 @@ private fun VoucherForm(vm: AppViewModel, onDone: () -> Unit) {
                     value = warehouseLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickWarehouse = true },
                     label = { Text("المستودع *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickWarehouse = true }) },
@@ -332,7 +343,9 @@ private fun VoucherForm(vm: AppViewModel, onDone: () -> Unit) {
                                 value = line.itemLabel,
                                 onValueChange = {},
                                 readOnly = true,
+                                interactionSource = rememberPickerInteractionSource { pickLineAt = index },
                                 label = { Text("الصنف ${index + 1} *") },
+                                placeholder = { Text("اضغط لاختيار الصنف…") },
                                 modifier = Modifier.weight(1.4f),
                                 trailingIcon = { PickerTrigger(onClick = { pickLineAt = index }) },
                             )
@@ -459,7 +472,9 @@ private fun VoucherForm(vm: AppViewModel, onDone: () -> Unit) {
     if (pickWarehouse) {
         PickerDialog(
             title = "اختر المستودع",
-            items = state.warehouses.map { PickerItem(it.id, it.label, trailing = if (it.isDefault == true) "افتراضيّ" else null) },
+            items = state.effectiveWarehouses.map { PickerItem(it.id, it.label, trailing = if (it.effectiveIsDefault) "افتراضيّ" else null) },
+            loading = state.loadingLookups,
+            onRefresh = { vm.ensureLookups(force = true) },
             onDismiss = { pickWarehouse = false },
             onSelect = { warehouseId = it.id; warehouseLabel = it.title },
         )
@@ -468,7 +483,12 @@ private fun VoucherForm(vm: AppViewModel, onDone: () -> Unit) {
         val at = pickLineAt
         PickerDialog(
             title = "صنفُ السطر ${at + 1}",
-            items = state.items.map { PickerItem(it.id, it.label) },
+            items = state.effectiveItems.map { PickerItem(it.id, it.label, subtitle = it.subtitle) },
+            loading = state.loadingLookups || state.staff.loadingKey == "vouchers",
+            errorMessage = state.lookupsError,
+            onRefresh = { vm.ensureLookups(force = true) },
+            onQueryChange = { vm.searchItemsRemotely(it) },
+            alwaysShowSearch = true,
             onDismiss = { pickLineAt = -1 },
             onSelect = { item ->
                 lines[at] = lines[at].copy(itemId = item.id, itemLabel = item.title)

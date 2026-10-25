@@ -81,7 +81,6 @@ fun LoginScreen(vm: AppViewModel) {
     val scope = rememberCoroutineScope()
 
     val saved = vm.savedCredentials
-    var server by rememberSaveable { mutableStateOf(state.session.serverUrl) }
     var email by rememberSaveable { mutableStateOf(saved?.email ?: "") }
     var password by rememberSaveable { mutableStateOf(saved?.password ?: "") }
     var tenantCode by rememberSaveable { mutableStateOf(saved?.tenantCode ?: "") }
@@ -115,7 +114,7 @@ fun LoginScreen(vm: AppViewModel) {
         scope.launch {
             busy = true
             error = null
-            error = vm.login(server.trim(), emailArg.trim(), passwordArg, tenantArg.trim(), mfaCode)
+            error = vm.login(state.session.serverUrl, emailArg.trim(), passwordArg, tenantArg.trim(), mfaCode)
             if (error == null) {
                 // نجح الدخول: حفظُ البيانات أو نسيانُها + خيارُ البصمة.
                 vm.rememberCredentials(emailArg.trim(), tenantArg.trim(), passwordArg, rememberMe)
@@ -189,25 +188,31 @@ fun LoginScreen(vm: AppViewModel) {
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Surface(
-                        color = Color.White.copy(alpha = 0.16f),
-                        shape = CircleShape,
-                    ) {
-                        Image(
-                            painter = painterResource(R.drawable.ic_launcher_foreground),
-                            contentDescription = "شعار التطبيق",
-                            modifier = Modifier.size(84.dp),
-                        )
-                    }
-                    Spacer(Modifier.height(10.dp))
+                    BrandCrestLogo(size = 108.dp)
+                    Spacer(Modifier.height(12.dp))
                     Text(
-                        "مندوب التوزيع",
+                        state.session.brandName.ifBlank { "سحاب المحاسبي" },
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color.White,
                     )
+                    Spacer(Modifier.height(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = Color.White.copy(alpha = 0.16f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFDE68A).copy(alpha = 0.7f)),
+                    ) {
+                        Text(
+                            REP_EDITION_LABEL,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFEF3C7),
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
                     Text(
-                        "البيع الميدانيّ · تحصيل الذمم · جرد العهدة",
+                        state.session.brandTagline.ifBlank { "البيع الميدانيّ · تحصيل الذمم · جرد العهدة" },
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.88f),
                     )
@@ -248,16 +253,8 @@ fun LoginScreen(vm: AppViewModel) {
                 Spacer(Modifier.height(6.dp))
             }
 
-            SectionCard(title = "بياناتُ الخادم والحساب") {
+            SectionCard(title = "تسجيلُ الدخول إلى حسابك") {
                 Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = server,
-                        onValueChange = { server = it },
-                        label = { Text("عنوانُ الخادم") },
-                        supportingText = { Text("مثال: http://192.168.1.10:3000 — يُلحق به /api/v1 تلقائيًّا") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
@@ -344,7 +341,7 @@ fun LoginScreen(vm: AppViewModel) {
                 label = "دخول",
                 icon = Icons.AutoMirrored.Filled.Login,
                 loading = busy,
-                enabled = server.isNotBlank() && email.isNotBlank() && password.isNotBlank() && tenantCode.isNotBlank(),
+                enabled = email.isNotBlank() && password.isNotBlank() && tenantCode.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { doLogin(email, password, tenantCode) },
             )
@@ -381,7 +378,7 @@ fun LoginScreen(vm: AppViewModel) {
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "أدخل عنوان الخادم وبريدك الإلكتروني ورمز المنشأة لإرسال رابط إعادة التعيين.",
+                        "أدخل بريدك الإلكتروني ورمز المنشأة لإرسال رابط إعادة التعيين.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     OutlinedTextField(
@@ -405,11 +402,11 @@ fun LoginScreen(vm: AppViewModel) {
             },
             confirmButton = {
                 TextButton(
-                    enabled = !resetBusy && server.isNotBlank() && email.isNotBlank() && tenantCode.isNotBlank(),
+                    enabled = !resetBusy && email.isNotBlank() && tenantCode.isNotBlank(),
                     onClick = {
                         resetBusy = true
                         forgotMessage = null
-                        vm.forgotPassword(server.trim(), email.trim(), tenantCode.trim()) { res ->
+                        vm.forgotPassword(state.session.serverUrl, email.trim(), tenantCode.trim()) { res ->
                             resetBusy = false
                             forgotMessage = when (res) {
                                 is com.erpcloud.rep.data.ActionResult.Synced ->

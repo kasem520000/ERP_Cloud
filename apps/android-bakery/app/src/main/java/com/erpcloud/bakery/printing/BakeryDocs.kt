@@ -36,7 +36,9 @@ private data class KvRow(
 
 private sealed class Op {
     data class Section(val block: StaticLayout, val topGap: Int = 0) : Op()
+    data class Banner(val block: StaticLayout, val topGap: Int = 4) : Op()
     data object Dash : Op()
+    data object DoubleRule : Op()
     data class Kv(val row: KvRow) : Op()
     data class Signatures(val height: Int, val boxes: List<StaticLayout>, val boxWidth: Int) : Op()
 
@@ -92,11 +94,13 @@ private class DocCanvas(widthPx: Int) {
         for (op in ops) {
             height += when (op) {
                 is Op.Section -> op.topGap + op.block.height
+                is Op.Banner -> op.topGap + op.block.height + pad / 2 + 6
                 is Op.Dash -> 14
+                is Op.DoubleRule -> 16
                 is Op.Kv -> kvRowHeight(op.row, bodyPaint, boldPaint) + (if (op.row.boxed) pad / 2 else 0)
                 is Op.Signatures -> pad / 2 + op.height + (op.boxes.maxOfOrNull { it.height } ?: 0) + 8
-                is Op.Columns -> (op.cells.maxOfOrNull { it.block.height } ?: 0) + (if (op.header) 4 else 6)
-                is Op.Qr -> op.bitmap.height + pad
+                is Op.Columns -> (op.cells.maxOfOrNull { it.block.height } ?: 0) + (if (op.header) 14 else 8)
+                is Op.Qr -> op.bitmap.height + pad + 10
             }
         }
         height += pad
@@ -106,8 +110,11 @@ private class DocCanvas(widthPx: Int) {
         canvas.drawColor(Color.WHITE)
 
         val dividerPaint = Paint().apply { color = Color.DKGRAY; strokeWidth = 2f }
-        val framePaint = Paint().apply { style = Paint.Style.STROKE; color = Color.DKGRAY; strokeWidth = 2f }
+        val boldRulePaint = Paint().apply { color = Color.BLACK; strokeWidth = 3f }
+        val framePaint = Paint().apply { style = Paint.Style.STROKE; color = Color.BLACK; strokeWidth = 2.5f }
         val softFillPaint = Paint().apply { color = Color.rgb(0xF5, 0xED, 0xE3); style = Paint.Style.FILL }
+        val headerBarPaint = Paint().apply { color = Color.rgb(0xEB, 0xE5, 0xDC); style = Paint.Style.FILL }
+        val bannerFillPaint = Paint().apply { color = Color.BLACK; style = Paint.Style.FILL }
 
         fun dashedLine(y: Float) {
             var x = pad.toFloat()
@@ -127,9 +134,27 @@ private class DocCanvas(widthPx: Int) {
                     canvas.withTranslation(y) { op.block.draw(this) }
                     y += op.block.height
                 }
+                is Op.Banner -> {
+                    y += op.topGap
+                    val boxH = op.block.height + pad / 2f
+                    val rect = RectF(pad.toFloat(), y, (width - pad).toFloat(), y + boxH)
+                    canvas.drawRoundRect(rect, 10f, 10f, bannerFillPaint)
+                    canvas.save()
+                    canvas.translate(pad.toFloat(), y + (boxH - op.block.height) / 2f)
+                    op.block.draw(canvas)
+                    canvas.restore()
+                    y += boxH + 6f
+                }
                 is Op.Dash -> {
                     dashedLine(y + 5f)
                     y += 14f
+                }
+                is Op.DoubleRule -> {
+                    val left = pad.toFloat()
+                    val end = (width - pad).toFloat()
+                    canvas.drawLine(left, y + 4f, end, y + 4f, boldRulePaint)
+                    canvas.drawLine(left, y + 10f, end, y + 10f, dividerPaint)
+                    y += 16f
                 }
                 is Op.Kv -> {
                     val row = op.row
@@ -156,16 +181,22 @@ private class DocCanvas(widthPx: Int) {
                 }
                 is Op.Columns -> {
                     val rowH = (op.cells.maxOfOrNull { it.block.height } ?: 0).toFloat()
+                    if (op.header) {
+                        val headerBox = RectF(pad.toFloat(), y, (width - pad).toFloat(), y + rowH + 10f)
+                        canvas.drawRoundRect(headerBox, 6f, 6f, headerBarPaint)
+                        canvas.drawLine(pad.toFloat(), y + rowH + 10f, (width - pad).toFloat(), y + rowH + 10f, boldRulePaint)
+                    }
+                    val yText = if (op.header) y + 5f else y + 2f
                     var xRight = (width - pad).toFloat()
                     for (cell in op.cells) {
                         val w = innerWidth * cell.weight
                         canvas.save()
-                        canvas.translate(xRight - w, y)
+                        canvas.translate(xRight - w, yText)
                         cell.block.draw(canvas)
                         canvas.restore()
                         xRight -= w
                     }
-                    y += rowH + (if (op.header) 4 else 6)
+                    y += rowH + (if (op.header) 14f else 8f)
                 }
                 is Op.Signatures -> {
                     y += pad / 4f
@@ -186,14 +217,17 @@ private class DocCanvas(widthPx: Int) {
                 }
                 is Op.Qr -> {
                     val size = op.bitmap.width.toFloat()
+                    val framePad = 8f
+                    val left = (width - size) / 2f
                     y += pad / 3f
-                    canvas.drawBitmap(
-                        op.bitmap,
-                        (width - size) / 2f,
-                        y,
-                        null,
+                    canvas.drawRoundRect(
+                        RectF(left - framePad, y - framePad, left + size + framePad, y + size + framePad),
+                        10f,
+                        10f,
+                        framePaint,
                     )
-                    y += size + pad / 2f
+                    canvas.drawBitmap(op.bitmap, left, y, null)
+                    y += size + pad / 2f + 10f
                 }
             }
         }
@@ -349,12 +383,28 @@ fun batchLabel(batch: ProductionBatchDto, widthPx: Int = 576): Bitmap {
     return doc.render(ops)
 }
 
+/** سطرُ صنفٍ مطبوعٍ في فاتورة الكاشير الاحترافيّة. */
+data class PosReceiptLine(
+    val nameAr: String,
+    val qty: String,
+    val unitPrice: String,
+    val lineTotal: String,
+    val sku: String = "",
+)
+
+/** بياناتٌ تكميليّةٌ لترويسة فاتورة الكاشير (الفرع/الكاشير/العميل/التاريخ). */
+data class PosReceiptMeta(
+    val branchName: String = "",
+    val cashierName: String = "",
+    val customerName: String = "عميل نقدي",
+    val issuedAt: String = "",
+    val sellerCrNo: String = "",
+    val sellerPhone: String = "",
+)
+
 /**
- * إيصالُ بيعةِ نقطة البيع — يُطبعُ فور نجاح `pos/checkout` (رقمُ الفاتورة من الخادم).
- *
- * @param qrPayload حمولةُ QR الزكاة (من الخادم `zatca_qr` أو المرحلةِ الأولى) —
- *   تُرسمُ مربّعًا فوقَ الختامِ فيحملَ الإيصالُ المتطلّبَ النظاميّ. null ⇒ بلا مربّع.
- * @param sellerName/sellerTaxNo ترويسةُ المنشأة — من ملفِ المنشأة (بلا اختراعٍ عند الغياب).
+ * فاتورةُ كاشيرٍ ضريبيّةٌ احترافيّة (80mm / 58mm) — تُطبعُ فور نجاح `pos/checkout`
+ * بترويسة المنشأة الكاملة، وجدولِ الأصناف ذي الـ٤ أعمدة، والإجماليّ المؤطّر، ورمز QR الزكاة.
  */
 fun posReceipt(
     receipt: com.erpcloud.bakery.data.api.PosCheckoutReceiptDto,
@@ -363,59 +413,131 @@ fun posReceipt(
     sellerName: String = "",
     sellerTaxNo: String = "",
     widthPx: Int = 576,
+    lines: List<PosReceiptLine> = emptyList(),
+    meta: PosReceiptMeta = PosReceiptMeta(),
 ): Bitmap {
     val doc = DocCanvas(widthPx)
     val titlePaint = doc.paint(doc.titleSize, bold = true)
+    val bannerPaint = doc.paint(doc.bodySize * 1.12f, bold = true, color = Color.WHITE)
     val bodyPaint = doc.paint(doc.bodySize)
+    val boldPaint = doc.paint(doc.bodySize, bold = true)
     val smallPaint = doc.paint(doc.smallSize, color = Color.DKGRAY)
+    val smallBold = doc.paint(doc.smallSize, bold = true)
     val center = Layout.Alignment.ALIGN_CENTER
+    val right = Layout.Alignment.ALIGN_NORMAL
 
     val ops = mutableListOf<Op>()
 
-    // ---------------------------------------------- ترويسة المنشأة (إن وُجدت)
-    if (sellerName.isNotBlank()) {
-        ops += Op.Section(doc.layout(sellerName.trim(), titlePaint, doc.innerWidth, center))
-        if (sellerTaxNo.isNotBlank()) {
-            ops += Op.Section(doc.layout("الرقمُ الضريبيّ: ${sellerTaxNo.trim()}", smallPaint, doc.innerWidth, center))
-        }
-        ops += Op.Dash
+    // ١) ترويسةُ المنشأة
+    val effectiveSeller = sellerName.trim().ifBlank { "منشأة المخابز والإنتاج" }
+    ops += Op.Section(doc.layout(effectiveSeller, titlePaint, doc.innerWidth, center))
+    if (meta.branchName.isNotBlank()) {
+        ops += Op.Section(doc.layout("الفرع: ${meta.branchName.trim()}", smallBold, doc.innerWidth, center))
     }
+    if (sellerTaxNo.isNotBlank()) {
+        ops += Op.Section(doc.layout("الرقمُ الضريبيّ: ${sellerTaxNo.trim()}", smallPaint, doc.innerWidth, center))
+    }
+    val subHeader = buildList {
+        if (meta.sellerCrNo.isNotBlank()) add("س.ت: ${meta.sellerCrNo.trim()}")
+        if (meta.sellerPhone.isNotBlank()) add("هاتف: ${meta.sellerPhone.trim()}")
+    }.joinToString("  ·  ")
+    if (subHeader.isNotBlank()) {
+        ops += Op.Section(doc.layout(subHeader, smallPaint, doc.innerWidth, center))
+    }
+    ops += Op.DoubleRule
 
-    ops += Op.Section(doc.layout("إيصال بيع — نقطة البيع", titlePaint, doc.innerWidth, center))
-    ops += Op.Section(
-        doc.layout(
-            "فاتورة ${receipt.number.ifBlank { "—" }} · ${Labels_receipt(receipt)}",
-            smallPaint, doc.innerWidth, center,
-        ),
-    )
-    ops += Op.Dash
+    // ٢) شريطُ عنوانِ فاتورة الكاشير
+    val bannerTitle = if (sellerTaxNo.isNotBlank() || !qrPayload.isNullOrBlank()) {
+        "فاتورة ضريبية مبسطة — إيصال كاشير"
+    } else {
+        "فاتورة مبيعات نقدية — إيصال كاشير"
+    }
+    ops += Op.Banner(doc.layout(bannerTitle, bannerPaint, doc.innerWidth, center))
 
     fun kv(label: String, value: String, bold: Boolean = false, boxed: Boolean = false) {
         ops += Op.Kv(KvRow(label, value, bold, boxed))
     }
 
-    val effectiveSubtotal = receipt.subtotal?.takeIf { it.isNotBlank() } ?: subtotal.toPlainString()
-    kv("الإجماليُّ قبل الضريبة", Dec.money(effectiveSubtotal) + " ر.س")
-    receipt.taxTotal?.let { kv("الضريبة", Dec.money(it) + " ر.س") }
-    receipt.total?.let { kv("الصافي", Dec.money(it) + " ر.س", bold = true, boxed = true) }
-    receipt.paidTotal?.let { kv("المدفوع", Dec.money(it) + " ر.س") }
-    receipt.change?.takeIf { it.isNotBlank() && Dec.isPositive(it) }?.let { kv("الباقي للعميل", Dec.money(it) + " ر.س") }
-    receipt.paymentStatus?.let { kv("حالةُ السداد", com.erpcloud.bakery.ui.screens.Labels.docStatus(it).first) }
+    val stamp = meta.issuedAt.ifBlank {
+        java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(java.util.Date())
+    }
+    kv("رقمُ الفاتورة", receipt.number.ifBlank { "—" }, bold = true)
+    kv("التاريخُ والوقت", stamp)
+    kv("العميل", meta.customerName.ifBlank { "عميل نقدي" })
+    if (meta.cashierName.isNotBlank()) kv("الكاشير", meta.cashierName)
+    kv("طريقةُ الدفع", Labels_receipt(receipt))
     ops += Op.Dash
 
-    // 🧾 مربّعُ QR الزكاة — حمولةُ الخادمِ أو المرحلةُ الأولى (لا يُرسمُ بلا حمولة).
+    // ٣) جدولُ الأصناف (٤ أعمدة احترافيّة)
+    if (lines.isNotEmpty()) {
+        fun tableRow(
+            c1: String,
+            c2: String,
+            c3: String,
+            c4: String,
+            paint: TextPaint,
+            header: Boolean = false,
+        ) {
+            ops += Op.Columns(
+                listOf(
+                    Op.Cell(0.42f, doc.layout(c1, paint, (doc.innerWidth * 0.42f).toInt(), if (header) center else right)),
+                    Op.Cell(0.15f, doc.layout(c2, paint, (doc.innerWidth * 0.15f).toInt(), center)),
+                    Op.Cell(0.19f, doc.layout(c3, paint, (doc.innerWidth * 0.19f).toInt(), center)),
+                    Op.Cell(0.24f, doc.layout(c4, paint, (doc.innerWidth * 0.24f).toInt(), center)),
+                ),
+                header = header,
+            )
+        }
+        tableRow("الصنف", "الكمية", "السعر", "الإجمالي", smallBold, header = true)
+        var totalPieces = java.math.BigDecimal.ZERO
+        for (line in lines) {
+            totalPieces = totalPieces.add(Dec.orZero(line.qty))
+            tableRow(
+                line.nameAr,
+                Dec.fmt(line.qty, 2, 0),
+                Dec.money(line.unitPrice),
+                Dec.money(line.lineTotal),
+                bodyPaint,
+            )
+        }
+        ops += Op.Section(
+            doc.layout(
+                "عددُ الأصناف: ${lines.size}   ·   إجمالي الكميّات: ${Dec.fmt(totalPieces.toPlainString(), 2, 0)}",
+                smallPaint,
+                doc.innerWidth,
+                right,
+            ),
+            topGap = 4,
+        )
+        ops += Op.Dash
+    }
+
+    // ٤) ملخّصُ المبالغ والضريبة
+    val effectiveSubtotal = receipt.subtotal?.takeIf { it.isNotBlank() } ?: subtotal.toPlainString()
+    kv("المجموعُ الخاضع للضريبة", Dec.money(effectiveSubtotal) + " ر.س")
+    receipt.taxTotal?.let { kv("ضريبةُ القيمة المضافة (15%)", Dec.money(it) + " ر.س") }
+    receipt.total?.let { kv("الإجماليُّ شامل الضريبة", Dec.money(it) + " ر.س", bold = true, boxed = true) }
+    receipt.paidTotal?.let { kv("المبلغُ المقبوض", Dec.money(it) + " ر.س") }
+    receipt.change?.takeIf { it.isNotBlank() && Dec.isPositive(it) }?.let {
+        kv("المتبقّي للعميل", Dec.money(it) + " ر.س", bold = true)
+    }
+    receipt.paymentStatus?.let { kv("حالةُ السداد", com.erpcloud.bakery.ui.screens.Labels.docStatus(it).first) }
+    ops += Op.DoubleRule
+
+    // ٥) رمزُ QR الزكاة المؤطّر
     if (!qrPayload.isNullOrBlank()) {
-        val qrSize = (doc.innerWidth * 0.42f).toInt().coerceIn(140, 320)
+        val qrSize = (doc.innerWidth * 0.44f).toInt().coerceIn(148, 320)
         runCatching { ZatcaQr.bitmap(qrPayload, qrSize) }.getOrNull()?.let { square ->
             ops += Op.Qr(square)
             ops += Op.Section(
-                doc.layout("امسحْ للتحقّق — فاتورة إلكترونيّة (مرحلة أولى)", smallPaint, doc.innerWidth, center),
+                doc.layout("فاتورة إلكترونيّة متوافقة مع متطلّبات ZATCA", smallBold, doc.innerWidth, center),
             )
         }
     }
 
     ops += Op.Section(
-        doc.layout("شكرًا لزيارتكم — الإيصالُ من نظام المخبز الرسميّ.", smallPaint, doc.innerWidth, center),
+        doc.layout("شكرًا لتعاملكم معنا — نتمنّى لكم يومًا سعيدًا", boldPaint, doc.innerWidth, center),
+        topGap = 6,
     )
     return doc.render(ops)
 }

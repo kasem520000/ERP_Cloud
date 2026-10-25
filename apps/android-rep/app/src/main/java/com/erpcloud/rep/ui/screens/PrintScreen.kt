@@ -4,6 +4,7 @@ package com.erpcloud.rep.ui.screens
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,14 +48,15 @@ import com.erpcloud.rep.printing.InvoicePrint
 import com.erpcloud.rep.ui.AppViewModel
 import com.erpcloud.rep.ui.components.ActionButton
 import com.erpcloud.rep.ui.components.CenterLoading
+import com.erpcloud.rep.ui.components.ChipTone
+import com.erpcloud.rep.ui.components.InfoCallout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * شاشةُ طباعةِ الفاتورة — تقرأ `print-view` (نسختان: العميل والمندوب الموقَّعة)،
- * ثمّ طباعةٌ عبر نظام أندرويد (أو حفظ PDF) أو مشاركةُ صورةٍ أو طباعةٌ حراريّةٌ
- * بالبلوتوث — على النسخة المُختارة.
+ * شاشةُ طباعةِ فاتورة الكاشير — تطبع افتراضيًّا **نسختين معًا** (نسخة العميل الأصل
+ + نسخة المندوب المخصّصة للتوقيع والمحاسبة) بضغطةٍ واحدة عبر البلوتوث أو PDF.
  */
 @Composable
 fun PrintScreen(vm: AppViewModel, documentId: String, onBack: () -> Unit) {
@@ -66,9 +68,9 @@ fun PrintScreen(vm: AppViewModel, documentId: String, onBack: () -> Unit) {
     var loading by remember { mutableStateOf(true) }
     var printingBt by remember { mutableStateOf(false) }
     var btError by remember { mutableStateOf<String?>(null) }
-    // النسخةُ المُختارة للطباعة: العميلُ أولًا، والمندوبُ تحمل خانةَ توقيع العميل.
-    var copyKind by rememberSaveable { mutableStateOf("customer") }
-    // المعاينةُ تُرسمُ في خلفيةٍ (١٠٨٠px على الخيط الرئيسيّ تُجمّدُ الشاشة لحظةً ظاهرة).
+    var btSuccess by remember { mutableStateOf<String?>(null) }
+    // الافتراضيّ: طباعةُ النسختين معًا (العميل + المندوب).
+    var copyMode by rememberSaveable { mutableStateOf("both") }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var rendering by remember { mutableStateOf(true) }
 
@@ -79,11 +81,15 @@ fun PrintScreen(vm: AppViewModel, documentId: String, onBack: () -> Unit) {
     }
 
     val currentView = view
-    LaunchedEffect(currentView, copyKind) {
+    LaunchedEffect(currentView, copyMode) {
         if (currentView == null) return@LaunchedEffect
         rendering = true
         bitmap = withContext(Dispatchers.Default) {
-            InvoiceBitmap.render(currentView, widthPx = 1080, copyKind = copyKind)
+            if (copyMode == "both") {
+                InvoiceBitmap.renderTwoCopies(currentView, widthPx = 1080)
+            } else {
+                InvoiceBitmap.render(currentView, widthPx = 1080, copyKind = copyMode)
+            }
         }
         rendering = false
     }
@@ -91,7 +97,7 @@ fun PrintScreen(vm: AppViewModel, documentId: String, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("طباعةُ الفاتورة", fontWeight = FontWeight.ExtraBold) },
+                title = { Text("طباعة فاتورة الكاشير (نسختين)", fontWeight = FontWeight.ExtraBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
@@ -101,22 +107,20 @@ fun PrintScreen(vm: AppViewModel, documentId: String, onBack: () -> Unit) {
         },
     ) { padding ->
         if (loading) {
-            CenterLoading("تُقرأ نسختا الطباعة من الخادم…", Modifier.padding(padding))
+            CenterLoading("تُجهَّز نسختا فاتورة الكاشير من الخادم…", Modifier.padding(padding))
             return@Scaffold
         }
         val printView = view
         if (printView == null) {
             Column(Modifier.padding(padding).padding(16.dp)) {
-                Text(
-                    "تعذّر قراءةُ نسخة الطباعة — رسالةُ الخطأ في شريط الإشعار أعلى الشاشة.",
-                    color = MaterialTheme.colorScheme.error,
+                InfoCallout(
+                    "تعذّر قراءةُ بيانات الطباعة من الخادم — تحقّق من الاتصال وأعد المحاولة.",
+                    ChipTone.DANGER,
                 )
             }
             return@Scaffold
         }
 
-        val kinds = printView.copies.map { it.kind }.ifEmpty { listOf("customer") }
-        if (copyKind !in kinds) copyKind = kinds.first()
         val preview = bitmap
 
         Column(
@@ -127,56 +131,45 @@ fun PrintScreen(vm: AppViewModel, documentId: String, onBack: () -> Unit) {
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                kinds.forEach { kind ->
-                    FilterChip(
-                        selected = copyKind == kind,
-                        onClick = { copyKind = kind },
-                        label = { Text(if (kind == "rep") "نسخةُ المندوب (تُوقَّع)" else "نسخةُ العميل") },
-                    )
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                FilterChip(
+                    selected = copyMode == "both",
+                    onClick = { copyMode = "both"; btSuccess = null },
+                    label = { Text("نسختان معًا (العميل + المندوب)") },
+                )
+                FilterChip(
+                    selected = copyMode == "customer",
+                    onClick = { copyMode = "customer"; btSuccess = null },
+                    label = { Text("نسخة العميل فقط (١/٢)") },
+                )
+                FilterChip(
+                    selected = copyMode == "rep",
+                    onClick = { copyMode = "rep"; btSuccess = null },
+                    label = { Text("نسخة المندوب فقط (٢/٢)") },
+                )
             }
-            Text(
-                "اطبعِ النسختين: نسخةَ العميل له، ونسخةَ المندوب التي تُوقَّعُ من العميل وتُعاد إلى المحاسب مع إغلاق الوردية.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+
+            InfoCallout(
+                if (copyMode == "both") {
+                    "وضعُ النسختين مفعّل: ستُطبَع نسخةُ العميل أولًا ثمّ تُقطع وتُطبَع نسخةُ المندوب المخصّصة للتوقيع وتسليم المحاسبة."
+                } else {
+                    "تُطبع الآن نسخةٌ مفردة — اختر «نسختان معًا» لطباعة نسختَي العميل والمندوب دفعةً واحدة."
+                },
+                ChipTone.INFO,
             )
 
             if (rendering || preview == null) {
-                CenterLoading("تُرسمُ معاينةُ النسخة…")
+                CenterLoading("تُرسمُ معاينةُ الفاتورة…")
             } else {
-                Image(
-                    bitmap = preview.asImageBitmap(),
-                    contentDescription = "معاينةُ الفاتورة",
-                    contentScale = ContentScale.FillWidth,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ActionButton(
-                        label = "طباعة / PDF",
-                        icon = Icons.Default.Print,
-                        onClick = {
-                            val ok = InvoicePrint.printViaSystem(context, preview, "فاتورة ${printView.documentNumber}")
-                            if (!ok) btError = "تعذّر فتح نافذة الطباعة في النظام — جرّب المشاركة أو أعد فتح الشاشة."
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                    ActionButton(
-                        label = "مشاركة",
-                        icon = Icons.AutoMirrored.Filled.Send,
-                        onClick = {
-                            InvoicePrint.shareImage(
-                                context, preview,
-                                "invoice-${printView.documentNumber}-$copyKind.png",
-                            )
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-
                 ActionButton(
-                    label = if (state.session.printerMac.isBlank()) "طباعةٌ حراريّةٌ (اختر طابعةً أولًا)" else "طباعةٌ حراريّةٌ بالبلوتوث",
+                    label = when {
+                        state.session.printerMac.isBlank() -> "طباعة حراريّة (اختر طابعة بلوتوث أولًا)"
+                        copyMode == "both" -> "طباعة النسختين حراريًّا بالبلوتوث"
+                        else -> "طباعة هذه النسخة حراريًّا بالبلوتوث"
+                    },
                     icon = Icons.Default.Bluetooth,
                     loading = printingBt,
                     enabled = state.session.printerMac.isNotBlank(),
@@ -186,13 +179,17 @@ fun PrintScreen(vm: AppViewModel, documentId: String, onBack: () -> Unit) {
                         val width = state.session.printerWidthDots
                         printingBt = true
                         btError = null
+                        btSuccess = null
                         scope.launch {
                             val result = withContext(Dispatchers.IO) {
                                 try {
-                                    // صورةٌ بعرضِ الطابعة نفسِه كي لا يُصغَّر النصّ مرّتين.
-                                    val printerBitmap: Bitmap =
-                                        InvoiceBitmap.render(printView, widthPx = width, copyKind = copyKind)
-                                    EscPos.printBitmap(context, mac, width, printerBitmap)
+                                    if (copyMode == "both") {
+                                        val copies = InvoiceBitmap.renderPairForThermal(printView, widthPx = width)
+                                        EscPos.printBitmaps(context, mac, width, copies)
+                                    } else {
+                                        val single = InvoiceBitmap.render(printView, widthPx = width, copyKind = copyMode)
+                                        EscPos.printBitmap(context, mac, width, single)
+                                    }
                                     null
                                 } catch (error: EscPos.PrintException) {
                                     error.message
@@ -202,20 +199,61 @@ fun PrintScreen(vm: AppViewModel, documentId: String, onBack: () -> Unit) {
                             }
                             printingBt = false
                             btError = result
+                            if (result == null) {
+                                btSuccess = if (copyMode == "both") {
+                                    "تمّت طباعةُ النسختين (نسخة العميل + نسخة المندوب) بنجاح ✓"
+                                } else {
+                                    "تمّت طباعةُ النسخة بنجاح ✓"
+                                }
+                            }
                         }
                     },
                 )
 
-                if (btError != null) {
-                    Text(btError ?: "", color = MaterialTheme.colorScheme.error)
-                }
-                if (state.session.printerMac.isBlank()) {
-                    Text(
-                        "لم تُختر طابعةٌ حراريّةٌ بعد — من شاشة «طابعات البلوتوث» في مساحة العمل.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ActionButton(
+                        label = if (copyMode == "both") "طباعة نسختين / PDF" else "طباعة / PDF",
+                        icon = Icons.Default.Print,
+                        onClick = {
+                            val ok = InvoicePrint.printViaSystem(
+                                context, preview, "فاتورة كاشير ${printView.documentNumber}",
+                            )
+                            if (!ok) btError = "تعذّر فتح نافذة الطباعة في النظام — جرّب المشاركة."
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                    ActionButton(
+                        label = "مشاركة",
+                        icon = Icons.AutoMirrored.Filled.Send,
+                        onClick = {
+                            InvoicePrint.shareImage(
+                                context, preview,
+                                "invoice-${printView.documentNumber}-$copyMode.png",
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
                     )
                 }
+
+                if (btSuccess != null) {
+                    InfoCallout(btSuccess ?: "", ChipTone.OK)
+                }
+                if (btError != null) {
+                    InfoCallout(btError ?: "", ChipTone.DANGER)
+                }
+                if (state.session.printerMac.isBlank()) {
+                    InfoCallout(
+                        "لم تُختر طابعةٌ حراريّةٌ بعد — يمكنك ربطها من «طابعات البلوتوث» في القائمة الجانبيّة، أو الطباعة كـ PDF الآن.",
+                        ChipTone.WARN,
+                    )
+                }
+
+                Image(
+                    bitmap = preview.asImageBitmap(),
+                    contentDescription = "معاينةُ فاتورة الكاشير",
+                    contentScale = ContentScale.FillWidth,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }

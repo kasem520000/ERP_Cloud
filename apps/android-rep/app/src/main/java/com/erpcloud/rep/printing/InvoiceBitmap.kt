@@ -14,25 +14,6 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 
-/**
- * توليدُ صورةِ الفاتورة من `print-view` — تخطيطٌ احترافيٌّ بأسلوب إيصالات ZATCA:
- *
- * - ترويسةُ المنشأة (الاسم، الرقمُ الضريبيّ، السجلّ، الهواتف) وسطًا.
- * - شريطُ عنوانِ المستند، وصفوفُ بياناتٍ ثنائيّةَ الأعمدة (تسميةٌ يمينًا وقيمةٌ
- *   يسارًا) تفصل بينها فواصلُ منقّطة.
- * - الإجماليُّ المستحقُّ داخل إطارٍ ملوّنٍ خفيف، ورمزُ QR داخل إطارٍ مع تسميته.
- * - الرسمُ بـCanvas وStaticLayout (تشكيلٌ عربيٌّ سليم)، ورمزُ QR من `qrPayload`
- *   كما يرسله الخادم — لا يُخترع في التطبيق.
- *
- * البناءُ بمسارِ أوامرٍ واحد (Ops) يُقاس ويُرسَم بالترتيبِ نفسه — فلا انفصامَ بين
- * الارتفاعِ المحسوب والمحتوى المرسوم.
- *
- * العرضُ مُعاملٌ: ٥٧٦ نقطةً لطابعة ٨٠ملم و٣٨٤ لـ٥٨ملم، وأعلى للطباعة عبر النظام.
- */
-/**
- * لبناتُ مسار الرسم — تُبنى بالترتيب البصريّ ثم تُقاس وتُرسَم بالترتيب نفسه،
- * فلا انفصامَ بين الارتفاعِ المحسوب والمحتوى المرسوم. (خاصّةٌ بالملف.)
- */
 private data class KvRow(
     val label: String,
     val value: String,
@@ -40,13 +21,14 @@ private data class KvRow(
     val boxed: Boolean = false,
 )
 
-private data class ItemBlock(val name: StaticLayout, val details: StaticLayout)
-
 private sealed class Op {
     data class Section(val block: StaticLayout, val topGap: Int = 0) : Op()
+    data class Banner(val block: StaticLayout, val topGap: Int = 4, val outlined: Boolean = false) : Op()
     data object Dash : Op()
+    data object DoubleRule : Op()
     data class Kv(val row: KvRow) : Op()
-    data class Item(val block: ItemBlock) : Op()
+    data class Cell(val weight: Float, val block: StaticLayout)
+    data class Columns(val cells: List<Cell>, val header: Boolean = false) : Op()
     data class Qr(val bitmap: Bitmap, val caption: StaticLayout, val frameSide: Int) : Op()
     data class Signatures(
         val height: Int,
@@ -56,15 +38,96 @@ private sealed class Op {
     ) : Op()
 }
 
+/**
+ * توليدُ فاتورة كاشير ضريبيّة احترافيّة (80mm / 58mm / PDF) مع دعم طباعة
+ * نسختين رسميّتين (نسخة العميل + نسخة المندوب الموقّعة).
+ */
 object InvoiceBitmap {
 
-    fun render(view: PrintViewDto, widthPx: Int, copyKind: String? = null): Bitmap {
+    /** قائمةُ معرّفات النسخ الرسميّة: نسخة العميل (١/٢) ثم نسخة المندوب (٢/٢). */
+    fun twoCopyKinds(view: PrintViewDto): List<String> {
+        val kinds = view.copies.map { it.kind }.distinct()
+        return when {
+            kinds.size >= 2 -> kinds.take(2)
+            kinds.size == 1 && kinds.first() == "customer" -> listOf("customer", "rep")
+            kinds.size == 1 && kinds.first() == "rep" -> listOf("customer", "rep")
+            else -> listOf("customer", "rep")
+        }
+    }
+
+    /** رسمُ النسختين معًا في شريطٍ واحدٍ يفصل بينهما خطّ قصٍّ واضح (للمعاينة وطباعة النظام/PDF). */
+    fun renderTwoCopies(view: PrintViewDto, widthPx: Int): Bitmap {
+        val width = widthPx.coerceAtLeast(240)
+        val kinds = twoCopyKinds(view)
+        val first = render(view, widthPx = width, copyKind = kinds[0], copyBadgeOverride = "النسخة ١ من ٢ — نسخة العميل (الأصل)")
+        val second = render(view, widthPx = width, copyKind = kinds[1], copyBadgeOverride = "النسخة ٢ من ٢ — نسخة المندوب (للمحاسبة والتوقيع)")
+
+        val cutBarH = (width * 0.085f).toInt().coerceAtLeast(44)
+        val combined = Bitmap.createBitmap(width, first.height + cutBarH + second.height, Bitmap.Config.RGB_565)
+        val canvas = Canvas(combined)
+        canvas.drawColor(Color.WHITE)
+        canvas.drawBitmap(first, 0f, 0f, null)
+
+        val pad = (width / 22).toFloat()
+        val cutY = first.height + cutBarH / 2f
+        val dashPaint = Paint().apply {
+            color = Color.BLACK
+            strokeWidth = 2.5f
+            style = Paint.Style.STROKE
+        }
+        var x = pad
+        val end = width - pad
+        while (x < end) {
+            canvas.drawLine(x, cutY, minOf(x + 12f, end), cutY, dashPaint)
+            x += 20f
+        }
+        val labelPaint = TextPaint().apply {
+            isAntiAlias = true
+            textSize = (width / 32f).coerceIn(10f, 30f)
+            color = Color.BLACK
+            isFakeBoldText = true
+        }
+        val cutText = "✂  افصل هنا — النسخة الثانية للمندوب  ✂"
+        val cutLayout = StaticLayout.Builder.obtain(cutText, 0, cutText.length, labelPaint, (width * 0.68f).toInt())
+            .setAlignment(Layout.Alignment.ALIGN_CENTER)
+            .build()
+        val pillW = cutLayout.width + 24f
+        val pillH = cutLayout.height + 10f
+        val pillLeft = (width - pillW) / 2f
+        val pillTop = cutY - pillH / 2f
+        val whiteFill = Paint().apply { color = Color.WHITE; style = Paint.Style.FILL }
+        canvas.drawRoundRect(RectF(pillLeft, pillTop, pillLeft + pillW, pillTop + pillH), 8f, 8f, whiteFill)
+        canvas.drawRoundRect(RectF(pillLeft, pillTop, pillLeft + pillW, pillTop + pillH), 8f, 8f, dashPaint)
+        canvas.save()
+        canvas.translate((width - cutLayout.width) / 2f, cutY - cutLayout.height / 2f)
+        cutLayout.draw(canvas)
+        canvas.restore()
+
+        canvas.drawBitmap(second, 0f, (first.height + cutBarH).toFloat(), null)
+        return combined
+    }
+
+    /** توليدُ قائمتَي الصورتين المستقلّتين لإرسالهما إلى الطابعة الحراريّة (مع قطعٍ بينهما). */
+    fun renderPairForThermal(view: PrintViewDto, widthPx: Int): List<Bitmap> {
+        val kinds = twoCopyKinds(view)
+        return listOf(
+            render(view, widthPx = widthPx, copyKind = kinds[0], copyBadgeOverride = "النسخة ١ من ٢ — نسخة العميل (الأصل)"),
+            render(view, widthPx = widthPx, copyKind = kinds[1], copyBadgeOverride = "النسخة ٢ من ٢ — نسخة المندوب (للمحاسبة والتوقيع)"),
+        )
+    }
+
+    fun render(
+        view: PrintViewDto,
+        widthPx: Int,
+        copyKind: String? = null,
+        copyBadgeOverride: String? = null,
+    ): Bitmap {
         val width = widthPx.coerceAtLeast(200)
         val pad = width / 22
         val innerWidth = width - pad * 2
-        val bodySize = (width / 26f).coerceIn(9f, 42f)
-        val titleSize = bodySize * 1.5f
-        val smallSize = bodySize * 0.85f
+        val bodySize = (width / 27f).coerceIn(9f, 40f)
+        val titleSize = bodySize * 1.45f
+        val smallSize = bodySize * 0.84f
 
         fun paint(size: Float, bold: Boolean = false, color: Int = Color.BLACK) = TextPaint().apply {
             isAntiAlias = true
@@ -80,159 +143,175 @@ object InvoiceBitmap {
             align: Layout.Alignment = Layout.Alignment.ALIGN_CENTER,
         ): StaticLayout = StaticLayout.Builder.obtain(text, 0, text.length, tp, w.coerceAtLeast(1))
             .setAlignment(align)
-            .setLineSpacing(0f, 1.15f)
+            .setLineSpacing(0f, 1.14f)
             .build()
 
         val titlePaint = paint(titleSize, bold = true)
+        val bannerPaint = paint(bodySize * 1.12f, bold = true, color = Color.WHITE)
         val bodyPaint = paint(bodySize)
         val boldPaint = paint(bodySize, bold = true)
         val smallPaint = paint(smallSize, color = Color.DKGRAY)
+        val smallBold = paint(smallSize, bold = true)
         val center = Layout.Alignment.ALIGN_CENTER
-        val right = Layout.Alignment.ALIGN_NORMAL // مع RTL يبدأ من اليمين
+        val right = Layout.Alignment.ALIGN_NORMAL
 
-        val copy = view.copies.firstOrNull { copyKind == null || it.kind == copyKind }
-            ?: view.copies.firstOrNull()
+        val effectiveKind = copyKind ?: view.copies.firstOrNull()?.kind ?: "customer"
+        val copy = view.copies.firstOrNull { it.kind == effectiveKind }
+        val isRepCopy = effectiveKind == "rep" || copy?.requiresCustomerSignature == true
 
         val ops = mutableListOf<Op>()
 
-        // ---------------- بناءُ المحتوى بالترتيب البصريّ ----------------
-
         // ١) ترويسةُ المنشأة
-        ops += Op.Section(layout(view.companyName.ifBlank { "—" }, titlePaint, innerWidth, center))
-        val headerLines = buildList {
-            if (view.companyTaxNo.isNotBlank()) add("الرقمُ الضريبيّ: ${view.companyTaxNo}")
-            if (view.companyCrNo.isNotBlank()) add("السجلُّ التجاريّ: ${view.companyCrNo}")
-            view.companyPhones.joinToString(" · ").takeIf { it.isNotBlank() }?.let { add(it) }
-            view.companyEmail.takeIf { it.isNotBlank() }?.let { add(it) }
+        ops += Op.Section(layout(view.companyName.ifBlank { "منشأة التوزيع والمبيعات" }, titlePaint, innerWidth, center))
+        if (view.companyTaxNo.isNotBlank()) {
+            ops += Op.Section(layout("الرقمُ الضريبيّ: ${view.companyTaxNo}", smallBold, innerWidth, center))
         }
-        headerLines.forEach { ops += Op.Section(layout(it, smallPaint, innerWidth, center)) }
-        ops += Op.Dash
+        val crAndPhones = buildList {
+            if (view.companyCrNo.isNotBlank()) add("س.ت: ${view.companyCrNo}")
+            view.companyPhones.joinToString(" · ").takeIf { it.isNotBlank() }?.let { add("هاتف: $it") }
+        }.joinToString("  ·  ")
+        if (crAndPhones.isNotBlank()) {
+            ops += Op.Section(layout(crAndPhones, smallPaint, innerWidth, center))
+        }
+        ops += Op.DoubleRule
 
-        // ٢) عنوانُ المستند وأرقامُه
+        // ٢) شريطُ عنوان فاتورة الكاشير + شارةُ النسخة
         val isReturnDoc = view.documentKind == "return" || view.documentKind == "sale_return"
         val docTitle = when {
-            isReturnDoc && view.isZatca -> "إشعار دائن ضريبي (مرتجع)"
-            isReturnDoc -> "مستند مرتجع مبيعات"
-            view.isZatca -> "فاتورة ضريبية"
-            view.invoiceMode == "internal_delivery" -> "مستند تسليم داخلي"
-            else -> "مستند بيع"
+            isReturnDoc && view.isZatca -> "إشعار دائن ضريبي — إيصال كاشير"
+            isReturnDoc -> "إيصال مرتجع مبيعات"
+            view.isZatca && view.customerTaxNo.isNotBlank() -> "فاتورة ضريبية — إيصال كاشير"
+            view.isZatca -> "فاتورة ضريبية مبسطة — إيصال كاشير"
+            view.invoiceMode == "internal_delivery" -> "سند تسليم بضاعة"
+            else -> "فاتورة مبيعات — إيصال كاشير"
         }
-        ops += Op.Section(layout(docTitle, titlePaint, innerWidth, center), topGap = pad / 3)
-        ops += Op.Section(
-            layout(
-                "رقمُ المستند: ${view.documentNumber}" +
-                    (view.invoiceNumber?.takeIf { it.isNotBlank() }?.let { " · رقمُ الفاتورة: $it" } ?: ""),
-                bodyPaint, innerWidth, center,
-            ),
-        )
-        ops += Op.Dash
+        ops += Op.Banner(layout(docTitle, bannerPaint, innerWidth, center))
 
-        // ٣) بياناتُ الطرفين
-        fun kv(label: String, value: String) {
-            ops += Op.Kv(KvRow(label, value))
+        val copyBadge = copyBadgeOverride ?: copy?.copyLabel ?: if (isRepCopy) {
+            "نسخة المندوب — تُوقَّع وتُسلَّم للمحاسبة"
+        } else {
+            "نسخة العميل — الأصل"
+        }
+        ops += Op.Banner(layout(copyBadge, smallBold, innerWidth, center), topGap = 2, outlined = true)
+
+        // ٣) بياناتُ المستند والطرفين
+        fun kv(label: String, value: String, bold: Boolean = false, boxed: Boolean = false) {
+            ops += Op.Kv(KvRow(label, value, bold, boxed))
+        }
+        val mainNo = view.invoiceNumber?.takeIf { it.isNotBlank() } ?: view.documentNumber
+        kv("رقمُ الفاتورة", mainNo, bold = true)
+        if (!view.invoiceNumber.isNullOrBlank() && view.documentNumber != view.invoiceNumber) {
+            kv("مرجعُ السند", view.documentNumber)
         }
         kv("التاريخ", view.saleDate)
-        kv("العميل", view.customerName.ifBlank { "عميل نقدي" })
+        kv("العميل", view.customerName.ifBlank { "عميل نقدي" }, bold = true)
         if (view.customerTaxNo.isNotBlank()) kv("الرقمُ الضريبيّ للعميل", view.customerTaxNo)
         val phone = listOf(view.customerMobile, view.customerPhone).firstOrNull { it.isNotBlank() }
-        if (phone != null) kv("هاتف العميل", phone)
+        if (phone != null) kv("جوال العميل", phone)
         kv("المندوب", view.salesmanName)
         if (view.vanWarehouseName.isNotBlank()) kv("السيارة", view.vanWarehouseName)
         if (view.loadOrderNumber.isNotBlank()) kv("أمرُ التحميل", view.loadOrderNumber)
-        if (view.productionBatchNo.isNotBlank()) kv("دفعةُ الإنتاج", view.productionBatchNo)
-        kv("طريقةُ الدفع", paymentAr(view.paymentMethod))
-        kv("النسخة", copy?.copyLabel ?: "نسخة العميل")
+        kv("طريقةُ الدفع", paymentAr(view.paymentMethod), bold = true)
         ops += Op.Dash
 
-        // ٤) الأسطر
-        for (line in view.lines) {
-            val nameText = when {
-                line.kind == "bonus" && !line.itemName.contains("بونص") ->
-                    "${line.itemName} — كمية مجانية (بونص)"
-                line.kind == "return" && !line.itemName.contains("مرتجع") ->
-                    "${line.itemName} — مرتجع"
-                else -> line.itemName
-            }
-            val details = buildList {
-                add("الكميّة: ${Dec.fmt(line.quantity, 3)}")
-                if (line.kind != "bonus") add("سعرُ الوحدة: ${Dec.money(line.unitPrice)}")
-                if (line.kind != "bonus" && Dec.isPositive(line.discount)) {
-                    add("خصم: ${Dec.money(line.discount)}")
-                }
-                if (line.reason != null && line.reason.isNotBlank()) add("السبب: ${line.reason}")
-                if (line.kind != "bonus") add("الإجمالي: ${Dec.money(line.lineTotal)}")
-            }
-            ops += Op.Item(
-                ItemBlock(
-                    name = layout(nameText, boldPaint, innerWidth, right),
-                    details = layout(details.joinToString("  ·  "), smallPaint, innerWidth, right),
+        // ٤) جدولُ الأصناف بأربعة أعمدة احترافيّة (كاشير)
+        if (view.lines.isNotEmpty()) {
+            fun tableRow(
+                c1: String,
+                c2: String,
+                c3: String,
+                c4: String,
+                tp: TextPaint,
+                header: Boolean = false,
+            ) {
+                ops += Op.Columns(
+                    listOf(
+                        Op.Cell(0.42f, layout(c1, tp, (innerWidth * 0.42f).toInt(), if (header) center else right)),
+                        Op.Cell(0.16f, layout(c2, tp, (innerWidth * 0.16f).toInt(), center)),
+                        Op.Cell(0.19f, layout(c3, tp, (innerWidth * 0.19f).toInt(), center)),
+                        Op.Cell(0.23f, layout(c4, tp, (innerWidth * 0.23f).toInt(), center)),
+                    ),
+                    header = header,
                 )
-            )
+            }
+            tableRow("الصنف", "الكمية", "السعر", "الإجمالي", smallBold, header = true)
+            for (line in view.lines) {
+                val nameText = buildString {
+                    append(line.itemName)
+                    if (line.kind == "bonus" && !line.itemName.contains("بونص")) append(" (بونص)")
+                    if (line.kind == "return" && !line.itemName.contains("مرتجع")) append(" (مرتجع)")
+                }
+                val priceStr = if (line.kind == "bonus") "مجاني" else Dec.money(line.unitPrice)
+                val totalStr = if (line.kind == "bonus") "0.00" else Dec.money(line.lineTotal)
+                tableRow(nameText, Dec.fmt(line.quantity, 2), priceStr, totalStr, bodyPaint)
+                if (!line.reason.isNullOrBlank() || (line.kind != "bonus" && Dec.isPositive(line.discount))) {
+                    val subNote = buildList {
+                        if (line.kind != "bonus" && Dec.isPositive(line.discount)) add("خصم السطر: ${Dec.money(line.discount)}")
+                        if (!line.reason.isNullOrBlank()) add("السبب: ${line.reason}")
+                    }.joinToString(" · ")
+                    ops += Op.Section(layout("   ↳ $subNote", smallPaint, innerWidth, right))
+                }
+            }
+            ops += Op.Dash
         }
-        if (view.lines.isNotEmpty()) ops += Op.Dash
 
-        // ٥) المجموعات — الإجماليُّ مؤطَّر
-        fun total(label: String, value: String, bold: Boolean = false, boxed: Boolean = false) {
-            ops += Op.Kv(KvRow(label, value, bold, boxed))
-        }
-        total("المجموعُ قبل الضريبة", Dec.money(view.subtotal))
+        // ٥) ملخّصُ المبالغ والضريبة
+        kv("المجموعُ قبل الضريبة", Dec.money(view.subtotal) + " ر.س")
         if (view.discountTotal.isNotBlank() && Dec.parse(view.discountTotal)?.signum() != 0) {
-            total("الخصم", Dec.money(view.discountTotal))
+            kv("الخصم", Dec.money(view.discountTotal) + " ر.س")
         }
         if (view.isZatca) {
-            total("ضريبةُ القيمة المضافة (${Dec.fmt(view.vatRate)}%)", Dec.money(view.vatTotal))
+            kv("ضريبةُ القيمة المضافة (${Dec.fmt(view.vatRate)}%)", Dec.money(view.vatTotal) + " ر.س")
         }
-        total("الإجماليُّ المستحقّ", Dec.money(view.grandTotal), bold = true, boxed = true)
-        total("المدفوع", Dec.money(view.paidAmount))
-        total("المتبقّي", Dec.money(view.outstandingAmount))
+        kv("الإجماليُّ المستحقّ", Dec.money(view.grandTotal) + " ر.س", bold = true, boxed = true)
+        kv("المدفوع", Dec.money(view.paidAmount) + " ر.س")
+        kv("المتبقّي", Dec.money(view.outstandingAmount) + " ر.س", bold = Dec.isPositive(view.outstandingAmount))
         if (Dec.isPositive(view.bonusQtyTotal)) {
-            total("إجماليُّ البونص", "${Dec.fmt(view.bonusQtyTotal, 3)} كجم")
+            kv("إجماليُّ البونص المجانيّ", "${Dec.fmt(view.bonusQtyTotal, 2)} كجم")
         }
+        ops += Op.DoubleRule
 
-        // ٦) رمزُ QR — من الخادم كما هو، داخل إطارٍ مع تسمية
+        // ٦) رمزُ QR الزكاة
         val qrValue = view.effectiveQr
         if (view.isZatca && qrValue.isNotBlank()) {
-            val qrSize = (innerWidth * 0.58f).toInt().coerceAtLeast(80)
+            val qrSize = (innerWidth * 0.48f).toInt().coerceAtLeast(100)
             val qrImage = qrBitmap(qrValue, qrSize)
-            val caption = layout("امسح الرمز للتحقّق من الفاتورة", smallPaint, innerWidth, center)
+            val caption = layout("فاتورة إلكترونيّة متوافقة مع ZATCA — امسح للتحقّق", smallBold, innerWidth, center)
             ops += Op.Qr(qrImage, caption, frameSide = qrSize + pad / 2)
         }
 
-        // ٧) الملاحظاتُ والتذييل
+        // ٧) الملاحظاتُ وخانةُ التوقيع (في نسخة المندوب)
         if (view.notes.isNotBlank()) {
             ops += Op.Section(layout("ملاحظات: ${view.notes}", smallPaint, innerWidth, right), topGap = pad / 3)
         }
-        ops += Op.Section(layout("حُرِّرت في: ${view.printedAt}", smallPaint, innerWidth, center), topGap = pad / 2)
-        ops += Op.Section(layout("شكرًا لثقتكم — مندوب التوزيع", boldPaint, innerWidth, center))
-
-        // ٨) خانةُ التوقيع لنسخة المندوب
-        if (copy?.requiresCustomerSignature == true) {
-            val labelPaint = paint(smallSize)
+        if (isRepCopy) {
             val boxWidth = (innerWidth - pad) / 2
-            val sigHeight = (width * 0.15f).toInt()
+            val sigHeight = (width * 0.14f).toInt()
             ops += Op.Signatures(
                 height = sigHeight,
                 customer = layout(
-                    copy.signatureBlock?.customerSignatureLabel ?: "توقيع العميل / المستلم",
-                    labelPaint, boxWidth, center,
+                    copy?.signatureBlock?.customerSignatureLabel ?: "توقيع وختم العميل المستلم",
+                    smallBold, boxWidth, center,
                 ),
                 rep = layout(
-                    copy.signatureBlock?.repSignatureLabel ?: "توقيع المندوب",
-                    labelPaint, boxWidth, center,
+                    copy?.signatureBlock?.repSignatureLabel ?: "توقيع المندوب",
+                    smallBold, boxWidth, center,
                 ),
                 boxWidth = boxWidth,
             )
-            val accNote = copy.signatureBlock?.accountantNote?.trim().orEmpty()
-            if (accNote.isNotEmpty()) {
-                ops += Op.Section(layout(accNote, smallPaint, innerWidth, center), topGap = 4)
-            }
+            val accNote = copy?.signatureBlock?.accountantNote?.trim().orEmpty()
+                .ifBlank { "تُحفَظ هذه النسخةُ موقّعةً وتُسلَّم لقسم المحاسبة عند إقفال العهدة." }
+            ops += Op.Section(layout(accNote, smallPaint, innerWidth, center), topGap = 4)
         }
 
-        // ---------------- القياسُ بالترتيبِ نفسه ----------------
+        ops += Op.Section(layout("طُبعت في: ${view.printedAt}", smallPaint, innerWidth, center), topGap = pad / 3)
+        ops += Op.Section(layout("شكرًا لتعاملكم معنا", boldPaint, innerWidth, center), topGap = 2)
+
+        // ---------------- القياسُ والرسم ----------------
         fun kvRowHeight(row: KvRow): Int {
             val tp = if (row.bold) boldPaint else bodyPaint
-            val labelLayout = layout(row.label, tp, (innerWidth * 0.62f).toInt(), right)
-            val valueLayout = layout(row.value, tp, (innerWidth * 0.36f).toInt(), right)
+            val labelLayout = layout(row.label, tp, (innerWidth * 0.58f).toInt(), right)
+            val valueLayout = layout(row.value, tp, (innerWidth * 0.40f).toInt(), right)
             val minH = maxOf(tp.fontSpacing, tp.textSize * 1.25f).toInt()
             return maxOf(minH, labelLayout.height + 4, valueLayout.height + 4)
         }
@@ -241,23 +320,27 @@ object InvoiceBitmap {
         for (op in ops) {
             height += when (op) {
                 is Op.Section -> op.topGap + op.block.height
+                is Op.Banner -> op.topGap + op.block.height + pad / 2 + 6
                 is Op.Dash -> 14
+                is Op.DoubleRule -> 16
                 is Op.Kv -> kvRowHeight(op.row) + (if (op.row.boxed) pad / 2 else 0)
-                is Op.Item -> op.block.name.height + op.block.details.height + pad / 3
+                is Op.Columns -> (op.cells.maxOfOrNull { it.block.height } ?: 0) + (if (op.header) 14 else 8)
                 is Op.Qr -> op.frameSide + op.caption.height + pad / 2
-                is Op.Signatures -> pad / 2 + op.height + maxOf(op.customer.height, op.rep.height) + 8
+                is Op.Signatures -> pad / 2 + op.height + maxOf(op.customer.height, op.rep.height) + 10
             }
         }
         height += pad
 
-        // ---------------- الرسمُ بالترتيبِ نفسه ----------------
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
         val canvas = Canvas(bitmap)
         canvas.drawColor(Color.WHITE)
 
         val dividerPaint = Paint().apply { color = Color.DKGRAY; strokeWidth = 2f }
-        val framePaint = Paint().apply { style = Paint.Style.STROKE; color = Color.DKGRAY; strokeWidth = 2f }
+        val boldRulePaint = Paint().apply { color = Color.BLACK; strokeWidth = 3f }
+        val framePaint = Paint().apply { style = Paint.Style.STROKE; color = Color.BLACK; strokeWidth = 2.5f }
         val softFillPaint = Paint().apply { color = Color.rgb(0xF5, 0xED, 0xE3); style = Paint.Style.FILL }
+        val headerBarPaint = Paint().apply { color = Color.rgb(0xEB, 0xE5, 0xDC); style = Paint.Style.FILL }
+        val bannerFillPaint = Paint().apply { color = Color.BLACK; style = Paint.Style.FILL }
 
         fun dashedLine(y: Float) {
             var x = pad.toFloat()
@@ -276,9 +359,32 @@ object InvoiceBitmap {
                     canvas.withTranslation(y) { op.block.draw(this) }
                     y += op.block.height
                 }
+                is Op.Banner -> {
+                    y += op.topGap
+                    val boxH = op.block.height + pad / 2f
+                    val rect = RectF(pad.toFloat(), y, (width - pad).toFloat(), y + boxH)
+                    if (op.outlined) {
+                        canvas.drawRoundRect(rect, 8f, 8f, softFillPaint)
+                        canvas.drawRoundRect(rect, 8f, 8f, framePaint)
+                    } else {
+                        canvas.drawRoundRect(rect, 10f, 10f, bannerFillPaint)
+                    }
+                    canvas.save()
+                    canvas.translate(pad.toFloat(), y + (boxH - op.block.height) / 2f)
+                    op.block.draw(canvas)
+                    canvas.restore()
+                    y += boxH + 6f
+                }
                 is Op.Dash -> {
                     dashedLine(y + 5f)
                     y += 14f
+                }
+                is Op.DoubleRule -> {
+                    val left = pad.toFloat()
+                    val end = (width - pad).toFloat()
+                    canvas.drawLine(left, y + 4f, end, y + 4f, boldRulePaint)
+                    canvas.drawLine(left, y + 10f, end, y + 10f, dividerPaint)
+                    y += 16f
                 }
                 is Op.Kv -> {
                     val row = op.row
@@ -290,9 +396,8 @@ object InvoiceBitmap {
                         canvas.drawRoundRect(box, 8f, 8f, framePaint)
                         y += pad / 4f
                     }
-                    // التسميةُ تلتصقُ باليمين، والقيمةُ باليسار — عمودان لا سطرٌ واحد.
-                    val label = layout(row.label, tp, (innerWidth * 0.62f).toInt(), right)
-                    val value = layout(row.value, tp, (innerWidth * 0.36f).toInt(), right)
+                    val label = layout(row.label, tp, (innerWidth * 0.58f).toInt(), right)
+                    val value = layout(row.value, tp, (innerWidth * 0.40f).toInt(), right)
                     canvas.save()
                     canvas.translate((pad + innerWidth - label.width).toFloat(), y + (rowH - label.height) / 2f)
                     label.draw(canvas)
@@ -303,17 +408,32 @@ object InvoiceBitmap {
                     canvas.restore()
                     y += rowH + (if (row.boxed) pad / 4 else 0)
                 }
-                is Op.Item -> {
-                    canvas.withTranslation(y) { op.block.name.draw(this) }
-                    y += op.block.name.height
-                    canvas.withTranslation(y) { op.block.details.draw(this) }
-                    y += op.block.details.height + pad / 3f
+                is Op.Columns -> {
+                    val rowH = (op.cells.maxOfOrNull { it.block.height } ?: 0).toFloat()
+                    if (op.header) {
+                        val headerBox = RectF(pad.toFloat(), y, (width - pad).toFloat(), y + rowH + 10f)
+                        canvas.drawRoundRect(headerBox, 6f, 6f, headerBarPaint)
+                        canvas.drawLine(pad.toFloat(), y + rowH + 10f, (width - pad).toFloat(), y + rowH + 10f, boldRulePaint)
+                    }
+                    val yText = if (op.header) y + 5f else y + 2f
+                    var xRight = (width - pad).toFloat()
+                    for (cell in op.cells) {
+                        val w = innerWidth * cell.weight
+                        canvas.save()
+                        canvas.translate(xRight - w, yText)
+                        cell.block.draw(canvas)
+                        canvas.restore()
+                        xRight -= w
+                    }
+                    y += rowH + (if (op.header) 14f else 8f)
                 }
                 is Op.Qr -> {
                     val frameLeft = (width - op.frameSide) / 2f
                     val frameTop = y + pad / 6f
-                    canvas.drawRect(
+                    canvas.drawRoundRect(
                         RectF(frameLeft, frameTop, frameLeft + op.frameSide, frameTop + op.frameSide),
+                        10f,
+                        10f,
                         framePaint,
                     )
                     canvas.drawBitmap(
@@ -328,10 +448,7 @@ object InvoiceBitmap {
                 is Op.Signatures -> {
                     val top = y + pad / 2f
                     canvas.drawRect(
-                        RectF(
-                            (width - pad - op.boxWidth).toFloat(), top,
-                            (width - pad).toFloat(), top + op.height,
-                        ),
+                        RectF((width - pad - op.boxWidth).toFloat(), top, (width - pad).toFloat(), top + op.height),
                         framePaint,
                     )
                     canvas.drawRect(
@@ -346,7 +463,7 @@ object InvoiceBitmap {
                     canvas.translate(pad.toFloat(), top + op.height + 4f)
                     op.rep.draw(canvas)
                     canvas.restore()
-                    y = top + op.height + maxOf(op.customer.height, op.rep.height) + 8f
+                    y = top + op.height + maxOf(op.customer.height, op.rep.height) + 10f
                 }
             }
         }
@@ -356,12 +473,12 @@ object InvoiceBitmap {
 
     private fun paymentAr(method: String): String = when (method) {
         "cash" -> "نقديّ"
-        "card" -> "بطاقة"
+        "card" -> "شبكة / بطاقة"
+        "bank", "transfer" -> "تحويل بنكيّ"
         "credit" -> "آجل"
         else -> method
     }
 
-    /** رمزُ QR من نصّ الحمولة (base64 TLV من الخادم) — محارفُ ASCII آمنة. */
     private fun qrBitmap(payload: String, size: Int): Bitmap {
         val matrix = QRCodeWriter().encode(
             payload,

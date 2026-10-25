@@ -42,6 +42,7 @@ import java.util.Locale
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.PickerTrigger
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.DatePickerField
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -119,6 +120,7 @@ private fun LevelsTab(vm: AppViewModel) {
                 value = warehouseLabel,
                 onValueChange = {},
                 readOnly = true,
+                interactionSource = rememberPickerInteractionSource { pickWarehouse = true },
                 label = { Text("المستودع (كلُّ المستودعات إن تُرك)") },
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = { PickerTrigger(onClick = { pickWarehouse = true }) },
@@ -132,7 +134,7 @@ private fun LevelsTab(vm: AppViewModel) {
                 val levels = state.staff.stockLevels
                 val queryText = query.trim()
                 val visibleLevels = if (queryText.isEmpty()) levels else levels.filter { level ->
-                    val itemName = state.items.firstOrNull { it.id == level.itemId }?.label ?: level.itemId
+                    val itemName = state.effectiveItems.firstOrNull { it.id == level.itemId }?.label ?: level.itemId
                     itemName.contains(queryText, ignoreCase = true) || level.itemId.contains(queryText, ignoreCase = true)
                 }
                 if (visibleLevels.isEmpty() && levels.isNotEmpty()) {
@@ -146,8 +148,8 @@ private fun LevelsTab(vm: AppViewModel) {
                     ) {
                         items(visibleLevels.size) { index ->
                             val level = visibleLevels[index]
-                            val itemLabel = state.items.firstOrNull { it.id == level.itemId }?.label ?: level.itemId
-                            val warehouseName = state.warehouses.firstOrNull { it.id == level.warehouseId }?.label
+                            val itemLabel = state.effectiveItems.firstOrNull { it.id == level.itemId }?.label ?: level.itemId
+                            val warehouseName = state.effectiveWarehouses.firstOrNull { it.id == level.warehouseId }?.label
                                 ?: level.warehouseId
                             SectionCard(title = itemLabel, subtitle = warehouseName) {
                                 KeyValue("الكميّة", Dec.kg(level.quantity))
@@ -167,7 +169,9 @@ private fun LevelsTab(vm: AppViewModel) {
         PickerDialog(
             title = "اختر المستودع",
             items = listOf(PickerItem("", "كلُّ المستودعات")) +
-                state.warehouses.map { PickerItem(it.id, it.label) },
+                state.effectiveWarehouses.map { PickerItem(it.id, it.label) },
+            loading = state.loadingLookups,
+            onRefresh = { vm.ensureLookups(force = true) },
             onDismiss = { pickWarehouse = false },
             onSelect = {
                 warehouseId = it.id
@@ -219,6 +223,7 @@ private fun MovementsTab(vm: AppViewModel) {
                         value = itemLabel,
                         onValueChange = {},
                         readOnly = true,
+                        interactionSource = rememberPickerInteractionSource { pickItem = true },
                         label = { Text("الصنف (الكلّ)") },
                         modifier = Modifier.weight(1f),
                         trailingIcon = { PickerTrigger(onClick = { pickItem = true }) },
@@ -227,6 +232,7 @@ private fun MovementsTab(vm: AppViewModel) {
                         value = warehouseLabel,
                         onValueChange = {},
                         readOnly = true,
+                        interactionSource = rememberPickerInteractionSource { pickWarehouse = true },
                         label = { Text("المستودع (الكلّ)") },
                         modifier = Modifier.weight(1f),
                         trailingIcon = { PickerTrigger(onClick = { pickWarehouse = true }) },
@@ -275,18 +281,26 @@ private fun MovementsTab(vm: AppViewModel) {
     if (pickItem) {
         PickerDialog(
             title = "اختر الصنف",
-            items = state.items.map { PickerItem(it.id, it.label) },
+            items = listOf(PickerItem("", "كلُّ الأصناف")) +
+                state.effectiveItems.map { PickerItem(it.id, it.label, subtitle = it.subtitle) },
+            loading = state.loadingLookups,
+            errorMessage = state.lookupsError,
+            onRefresh = { vm.ensureLookups(force = true) },
+            onQueryChange = { vm.searchItemsRemotely(it) },
+            alwaysShowSearch = true,
             onDismiss = { pickItem = false },
-            onSelect = { itemId = it.id; itemLabel = it.title; pickItem = false },
+            onSelect = { itemId = it.id; itemLabel = if (it.id.isBlank()) "" else it.title; pickItem = false },
         )
     }
     if (pickWarehouse) {
         PickerDialog(
             title = "اختر المستودع",
             items = listOf(PickerItem("", "كلُّ المستودعات")) +
-                state.warehouses.map { PickerItem(it.id, it.label) },
+                state.effectiveWarehouses.map { PickerItem(it.id, it.label) },
+            loading = state.loadingLookups,
+            onRefresh = { vm.ensureLookups(force = true) },
             onDismiss = { pickWarehouse = false },
-            onSelect = { warehouseId = it.id; warehouseLabel = it.title; pickWarehouse = false },
+            onSelect = { warehouseId = it.id; warehouseLabel = if (it.id.isBlank()) "" else it.title; pickWarehouse = false },
         )
     }
 }
@@ -307,7 +321,9 @@ private fun ItemCardTab(vm: AppViewModel) {
                 value = itemLabel,
                 onValueChange = {},
                 readOnly = true,
+                interactionSource = rememberPickerInteractionSource { pickItem = true },
                 label = { Text("الصنف *") },
+                placeholder = { Text("اضغط لاختيار الصنف…") },
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = { PickerTrigger(onClick = { pickItem = true }) },
             )
@@ -384,7 +400,12 @@ private fun ItemCardTab(vm: AppViewModel) {
     if (pickItem) {
         PickerDialog(
             title = "اختر الصنف",
-            items = state.items.map { PickerItem(it.id, it.label) },
+            items = state.effectiveItems.map { PickerItem(it.id, it.label, subtitle = it.subtitle) },
+            loading = state.loadingLookups,
+            errorMessage = state.lookupsError,
+            onRefresh = { vm.ensureLookups(force = true) },
+            onQueryChange = { vm.searchItemsRemotely(it) },
+            alwaysShowSearch = true,
             onDismiss = { pickItem = false },
             onSelect = { itemId = it.id; itemLabel = it.title; pickItem = false },
         )

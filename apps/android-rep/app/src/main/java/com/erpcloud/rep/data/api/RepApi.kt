@@ -47,7 +47,31 @@ interface RepApi {
     suspend fun workspace(): Response<ApiEnvelope<RepWorkspace>>
 
     @GET("parties")
-    suspend fun parties(@Query("kind") kind: String = "customer"): Response<ApiEnvelope<List<PartyDto>>>
+    suspend fun parties(@Query("kind") kind: String = "customer"): Response<JsonElement>
+
+    @GET("public/site")
+    suspend fun publicSite(): Response<ApiEnvelope<PublicSiteDto>>
+
+    @GET("public/help")
+    suspend fun publicHelp(@Query("q") q: String? = null): Response<JsonElement>
+
+    @GET("public/faq")
+    suspend fun publicFaq(): Response<JsonElement>
+
+    @GET("support/tickets")
+    suspend fun supportTickets(): Response<JsonElement>
+
+    @GET("support/tickets/{id}")
+    suspend fun supportTicketDetail(@Path("id") id: String): Response<ApiEnvelope<SupportTicketDto>>
+
+    @POST("support/tickets")
+    suspend fun createSupportTicket(@Body body: JsonObject): Response<ApiEnvelope<SupportTicketDto>>
+
+    @POST("support/tickets/{id}/reply")
+    suspend fun replySupportTicket(
+        @Path("id") id: String,
+        @Body body: JsonObject,
+    ): Response<ApiEnvelope<SupportTicketDto>>
 
     @POST("van-sales/documents")
     suspend fun createDocument(@Body body: JsonObject): Response<JsonElement>

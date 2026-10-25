@@ -96,10 +96,48 @@ class RepRepository(
         unwrapEnvelope(response) ?: throw ApiException(ProblemDto(title = "Empty workspace response"), response.code())
     }
 
-    suspend fun parties(): List<PartyDto> = withContext(Dispatchers.IO) {
-        val response = api.parties()
-        unwrapEnvelope(response) ?: emptyList()
-    }
+    suspend fun parties(): List<PartyDto> = rawList { api.parties() }
+
+    suspend fun fetchPublicSite(): com.erpcloud.rep.data.api.PublicSiteDto? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val resp = api.publicSite()
+                if (resp.isSuccessful) {
+                    val site = resp.body()?.data
+                    if (site != null && site.brandName.isNotBlank()) {
+                        sessionStore.setBranding(site.brandName, site.taglineAr)
+                    }
+                    site
+                } else null
+            }.getOrNull()
+        }
+
+    suspend fun publicHelp(q: String? = null): List<com.erpcloud.rep.data.api.PublicHelpPostDto> =
+        rawList { api.publicHelp(q?.trim()?.takeIf { it.isNotEmpty() }) }
+
+    suspend fun publicFaq(): List<com.erpcloud.rep.data.api.PublicFaqDto> =
+        rawList { api.publicFaq() }
+
+    suspend fun supportTickets(): List<com.erpcloud.rep.data.api.SupportTicketDto> =
+        rawList { api.supportTickets() }
+
+    suspend fun supportTicketDetail(id: String): com.erpcloud.rep.data.api.SupportTicketDto =
+        withContext(Dispatchers.IO) {
+            val resp = api.supportTicketDetail(id)
+            unwrapEnvelope(resp) ?: throw ApiException(ProblemDto(title = "Empty support ticket"), resp.code())
+        }
+
+    suspend fun createSupportTicket(body: JsonObject): com.erpcloud.rep.data.api.SupportTicketDto =
+        withContext(Dispatchers.IO) {
+            val resp = api.createSupportTicket(body)
+            unwrapEnvelope(resp) ?: throw ApiException(ProblemDto(title = "Empty support ticket response"), resp.code())
+        }
+
+    suspend fun replySupportTicket(id: String, body: JsonObject): com.erpcloud.rep.data.api.SupportTicketDto =
+        withContext(Dispatchers.IO) {
+            val resp = api.replySupportTicket(id, body)
+            unwrapEnvelope(resp) ?: throw ApiException(ProblemDto(title = "Empty support reply response"), resp.code())
+        }
 
     suspend fun forgotPassword(server: String, email: String, tenantCode: String): ActionResult =
         withContext(Dispatchers.IO) {
@@ -340,6 +378,36 @@ class RepRepository(
         ActionResult.StoredOffline("خطأُ خادمٍ (${error.httpStatus}) — النيّةُ لم تُرفض فحُفظت في الطابور.")
     } else {
         ActionResult.Refused(error.userMessage)
+    }
+
+    private suspend inline fun <reified T> rawList(
+        crossinline call: suspend () -> Response<kotlinx.serialization.json.JsonElement>,
+    ): List<T> = withContext(Dispatchers.IO) {
+        val response = call()
+        if (!response.isSuccessful) throw response.toApiException()
+        val body = response.body() ?: return@withContext emptyList()
+        fun extractArray(el: kotlinx.serialization.json.JsonElement?): kotlinx.serialization.json.JsonArray? = when (el) {
+            is kotlinx.serialization.json.JsonArray -> el
+            is JsonObject -> {
+                for (key in listOf("data", "items", "rows", "results")) {
+                    val inner = el[key]
+                    if (inner is kotlinx.serialization.json.JsonArray) return inner
+                    if (inner is JsonObject) {
+                        for (subKey in listOf("items", "rows", "data", "results")) {
+                            val sub = inner[subKey]
+                            if (sub is kotlinx.serialization.json.JsonArray) return sub
+                        }
+                    }
+                }
+                null
+            }
+            else -> null
+        }
+        val array = extractArray(body) ?: return@withContext emptyList()
+        val itemSerializer = kotlinx.serialization.serializer<T>()
+        array.mapNotNull { elem ->
+            runCatching { AppJson.decodeFromJsonElement(itemSerializer, elem) }.getOrNull()
+        }
     }
 
     private fun <T : Any> unwrapEnvelope(response: Response<ApiEnvelope<T>>): T? {

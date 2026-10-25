@@ -3,6 +3,8 @@ package com.erpcloud.bakery.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +30,8 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material.icons.filled.WarningAmber
@@ -42,6 +46,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -51,9 +56,11 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -439,16 +446,38 @@ data class PickerItem(
     val trailing: String? = null,
 )
 
-/** نافذةُ انتقاءٍ من قائمة ببحثٍ فوريّ وتصميمٍ منظّم (عملاء، أصناف، مستودعات، حسابات…). */
+/** نافذةُ انتقاءٍ من قائمة ببحثٍ فوريّ وتحديثٍ مباشر وتصميمٍ منظّم (عملاء، أصناف، مستودعات، حسابات…). */
 @Composable
 fun PickerDialog(
     title: String,
     items: List<PickerItem>,
     onDismiss: () -> Unit,
     onSelect: (PickerItem) -> Unit,
+    loading: Boolean = false,
+    errorMessage: String? = null,
+    onRefresh: (() -> Unit)? = null,
+    onQueryChange: ((String) -> Unit)? = null,
+    alwaysShowSearch: Boolean = false,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    val searchable = items.size >= 5
+    val currentOnRefresh by rememberUpdatedState(onRefresh)
+    val currentOnQueryChange by rememberUpdatedState(onQueryChange)
+
+    LaunchedEffect(Unit) {
+        if (items.isEmpty() && !loading) {
+            currentOnRefresh?.invoke()
+        }
+    }
+    LaunchedEffect(query) {
+        val cb = currentOnQueryChange ?: return@LaunchedEffect
+        val trimmed = query.trim()
+        if (trimmed.length >= 2) {
+            kotlinx.coroutines.delay(280)
+            cb(trimmed)
+        }
+    }
+
+    val searchable = alwaysShowSearch || onQueryChange != null || items.size >= 5
     val visible = if (!searchable || query.isBlank()) items else {
         val needle = query.trim()
         items.filter { item ->
@@ -480,11 +509,19 @@ fun PickerDialog(
                             fontWeight = FontWeight.ExtraBold,
                         )
                         Text(
-                            if (query.isBlank()) "${items.size} خيارًا متاحًا"
-                            else "النتائج: ${visible.size} من ${items.size}",
+                            when {
+                                loading && items.isEmpty() -> "جارٍ تحميل القائمة…"
+                                query.isBlank() -> "${items.size} خيارًا متاحًا"
+                                else -> "النتائج: ${visible.size} من ${items.size}"
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    if (onRefresh != null) {
+                        IconButton(onClick = { onRefresh() }, enabled = !loading) {
+                            Icon(Icons.Filled.Refresh, contentDescription = "إعادة التحميل")
+                        }
                     }
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Filled.Close, contentDescription = "إغلاق")
@@ -511,11 +548,42 @@ fun PickerDialog(
                     )
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                if (visible.isEmpty()) {
-                    EmptyState(
-                        if (searchable && query.isNotBlank()) "لا نتائج تطابق «${query.trim()}»."
-                        else "لا عناصرَ متاحة حاليًّا.",
-                    )
+                if (loading && visible.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+                        Text(
+                            "جارٍ تحميل الخيارات من الخادم…",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else if (visible.isEmpty()) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        EmptyState(
+                            when {
+                                searchable && query.isNotBlank() -> "لا نتائج تطابق «${query.trim()}»."
+                                !errorMessage.isNullOrBlank() -> errorMessage
+                                else -> "لا عناصرَ متاحة حاليًّا."
+                            },
+                        )
+                        if (onRefresh != null) {
+                            OutlinedButton(onClick = { onRefresh() }) {
+                                Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("إعادة التحميل", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 } else {
                     LazyColumn(
                         modifier = Modifier
@@ -1068,6 +1136,24 @@ fun InlineAction(
     }
 }
 
+/**
+ * مصدرُ تفاعلٍ لحقول الانتقاء المقروءة (`OutlinedTextField(readOnly = true)`) —
+ * يجعل الضغط على أيّ موضعٍ في الحقل يفتح نافذة الاختيار فورًا، لا مجرّد زرّ «اختر» الجانبيّ.
+ */
+@Composable
+fun rememberPickerInteractionSource(onClick: () -> Unit): MutableInteractionSource {
+    val source = remember { MutableInteractionSource() }
+    val currentOnClick by rememberUpdatedState(onClick)
+    LaunchedEffect(source) {
+        source.interactions.collect { interaction ->
+            if (interaction is PressInteraction.Release) {
+                currentOnClick()
+            }
+        }
+    }
+    return source
+}
+
 /** زرُّ فتحِ منتقي العناصر داخل الحقول المقروءة — كبسولةٌ واضحةٌ بأيقونة سهمين لا تُقصُّ نصَّ «اختر». */
 @Composable
 fun PickerTrigger(
@@ -1102,3 +1188,96 @@ fun PickerTrigger(
         }
     }
 }
+
+/** صندوقُ تنبيهٍ أو إرشادٍ منظم داخل نماذج الإدخال والشاشات. */
+@Composable
+fun InfoCallout(
+    text: String,
+    tone: ChipTone = ChipTone.INFO,
+    modifier: Modifier = Modifier,
+) {
+    val (bg, fg) = when (tone) {
+        ChipTone.OK -> BakeryColors.OkBg to BakeryColors.Ok
+        ChipTone.WARN -> BakeryColors.WarnBg to BakeryColors.Warn
+        ChipTone.DANGER -> BakeryColors.DangerBg to BakeryColors.Danger
+        ChipTone.INFO -> BakeryColors.InfoBg to BakeryColors.Info
+        ChipTone.NEUTRAL -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val icon = when (tone) {
+        ChipTone.OK -> Icons.Filled.CheckCircle
+        ChipTone.WARN -> Icons.Filled.WarningAmber
+        ChipTone.DANGER -> Icons.Filled.ErrorOutline
+        ChipTone.INFO, ChipTone.NEUTRAL -> Icons.Filled.Info
+    }
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = bg,
+        border = BorderStroke(1.dp, fg.copy(alpha = 0.25f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(18.dp))
+            Text(
+                text,
+                color = fg,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/** بطاقةُ عنصرٍ في قائمة مع دعم النقر الاختياريّ. */
+@Composable
+fun ListItemCard(
+    modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    val bg = if (highlighted) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    val border = BorderStroke(
+        width = if (highlighted) 1.4.dp else 1.dp,
+        color = if (highlighted) MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+        else MaterialTheme.colorScheme.outlineVariant,
+    )
+    if (onClick != null) {
+        Surface(
+            onClick = onClick,
+            shape = shape,
+            color = bg,
+            border = border,
+            modifier = modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                content = content,
+            )
+        }
+    } else {
+        Surface(
+            shape = shape,
+            color = bg,
+            border = border,
+            modifier = modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                content = content,
+            )
+        }
+    }
+}
+

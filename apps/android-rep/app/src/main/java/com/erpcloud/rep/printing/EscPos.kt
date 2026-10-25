@@ -37,17 +37,24 @@ object EscPos {
     data class PrinterDevice(val name: String, val address: String)
 
     /**
-     * طباعةُ صورةٍ على طابعةٍ حراريّة — يُستدعى من خيط IO.
-     * الصورةُ تُقرَص إلى عرض الطابعة ثم تُحوَّل أحاديّةَ اللون بعتبةِ إضاءة.
+     * طباعةُ صورةٍ أو عدّة نسخٍ متتالية (مثل نسختَي العميل والمندوب) على طابعةٍ حراريّة
+     * عبر جلسة اتصال SPP واحدة مع تغذيةٍ وقطعٍ مستقلٍّ بعد كلّ نسخة.
      */
     fun printBitmap(context: Context, macAddress: String, widthDots: Int, bitmap: Bitmap) {
+        printBitmaps(context, macAddress, widthDots, listOf(bitmap))
+    }
+
+    fun printBitmaps(context: Context, macAddress: String, widthDots: Int, bitmaps: List<Bitmap>) {
+        if (bitmaps.isEmpty()) return
         val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
         val adapter = manager?.adapter
             ?: throw PrintException("لا يوجد بلوتوث في هذا الجهاز")
         if (!adapter.isEnabled) throw PrintException("البلوتوثُ مطفأ — شغّله وأعد المحاولة")
 
-        val scaled = scaleToWidth(bitmap, widthDots)
-        val bands = rasterBands(scaled, bandRows = 90)
+        val allBands = bitmaps.map { bmp ->
+            val scaled = scaleToWidth(bmp, widthDots)
+            rasterBands(scaled, bandRows = 90)
+        }
 
         try {
             val device = adapter.getRemoteDevice(macAddress)
@@ -56,14 +63,23 @@ object EscPos {
                 adapter.cancelDiscovery()
                 socket.connect()
                 val output = socket.getOutputStream()
-                output.write(byteArrayOf(0x1B, 0x40)) // ESC @ — تهيئة
-                for (band in bands) {
-                    output.write(band)
+                for ((index, bands) in allBands.withIndex()) {
+                    output.write(byteArrayOf(0x1B, 0x40)) // ESC @ — تهيئة
+                    for (band in bands) {
+                        output.write(band)
+                        output.flush()
+                    }
+                    output.write(byteArrayOf(0x1B, 0x64, 0x05)) // تغذية ٥ أسطر قبل القطع
+                    output.write(byteArrayOf(0x1D, 0x56, 0x00)) // قطع الورق بين النسخ
                     output.flush()
+                    if (index < allBands.lastIndex) {
+                        try {
+                            Thread.sleep(250)
+                        } catch (_: InterruptedException) {
+                            Thread.currentThread().interrupt()
+                        }
+                    }
                 }
-                output.write(byteArrayOf(0x1B, 0x64, 0x04)) // تغذية ٤ أسطر
-                output.write(byteArrayOf(0x1D, 0x56, 0x00)) // قطع الورق
-                output.flush()
             } finally {
                 try {
                     socket.close()

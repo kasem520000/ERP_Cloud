@@ -1,5 +1,8 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -76,12 +79,16 @@ fun SalesRegistryScreen(vm: AppViewModel, onBack: () -> Unit) {
         vm.ensureEmployees()
     }
 
+    BackHandler(enabled = showCreate) { showCreate = false }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("مناديبُ المبيعات") },
+                title = { Text(if (showCreate) "إضافة مندوب مبيعات" else "مناديبُ المبيعات") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(onClick = { if (showCreate) showCreate = false else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
+                    }
                 },
             )
         },
@@ -201,6 +208,7 @@ private fun SalesmanRegistryForm(vm: AppViewModel, onDone: () -> Unit) {
             value = employeeLabel,
             onValueChange = {},
             readOnly = true,
+            interactionSource = rememberPickerInteractionSource { pickEmployee = true },
             label = { Text("بطاقةُ الموظف (اختياريّ)") },
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = { PickerTrigger(onClick = { pickEmployee = true }) },
@@ -329,6 +337,7 @@ private fun EditSalesmanDialog(vm: AppViewModel, salesman: SalesRegistryDto, onD
             value = employeeLabel,
             onValueChange = {},
             readOnly = true,
+            interactionSource = rememberPickerInteractionSource { pickEmployee = true },
             label = { Text("بطاقةُ الموظف") },
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = { PickerTrigger(onClick = { pickEmployee = true }) },
@@ -338,6 +347,7 @@ private fun EditSalesmanDialog(vm: AppViewModel, salesman: SalesRegistryDto, onD
             value = warehouseLabel,
             onValueChange = {},
             readOnly = true,
+            interactionSource = rememberPickerInteractionSource { pickWarehouse = true },
             label = { Text("مستودعُ المندوب") },
             modifier = Modifier.fillMaxWidth(),
             trailingIcon = { PickerTrigger(onClick = { pickWarehouse = true }) },

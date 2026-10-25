@@ -1,5 +1,7 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -77,16 +79,30 @@ fun PartiesScreen(vm: AppViewModel, onBack: () -> Unit) {
     val currentKind = if (kind == 0) "customer" else "supplier"
     LaunchedEffect(kind) { vm.loadParties(currentKind) }
 
+    BackHandler(enabled = showCreate) {
+        showCreate = false
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                // شريطٌ فاتحٌ يمتزجُ بخلفيّةِ الشاشة (كما في الموك-أب) وعنوانٌ عريضٌ جدًّا.
-                title = { Text("العملاء والموردون", fontWeight = FontWeight.ExtraBold) },
+                title = {
+                    Text(
+                        if (showCreate) {
+                            if (currentKind == "customer") "إضافة عميل جديد" else "إضافة مورّد جديد"
+                        } else {
+                            "العملاء والموردون"
+                        },
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                 ),
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(onClick = { if (showCreate) showCreate = false else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
+                    }
                 },
             )
         },

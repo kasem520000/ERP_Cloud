@@ -1,5 +1,8 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.activity.compose.BackHandler
+import com.erpcloud.bakery.ui.components.rememberPickerInteractionSource
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -80,12 +83,16 @@ fun PayrollScreen(vm: AppViewModel, onBack: () -> Unit) {
         if (tab == 1 && state.staff.salaryPayments.isEmpty()) vm.loadSalaryPayments()
     }
 
+    BackHandler(enabled = showCreate) { showCreate = false }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("الرواتب") },
+                title = { Text(if (showCreate) "إنشاء مسيّرة رواتب" else "الرواتب") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                    IconButton(onClick = { if (showCreate) showCreate = false else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع")
+                    }
                 },
             )
         },
@@ -307,6 +314,7 @@ private fun PayRunDialog(vm: AppViewModel, runId: String, onDone: () -> Unit) {
                     value = branchLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickBranch = true },
                     label = { Text("الفرع * (لملفّ الدفع)") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickBranch = true }) },
@@ -325,6 +333,7 @@ private fun PayRunDialog(vm: AppViewModel, runId: String, onDone: () -> Unit) {
                     value = cashLabel,
                     onValueChange = {},
                     readOnly = true,
+                    interactionSource = rememberPickerInteractionSource { pickCash = true },
                     label = { Text("الخزينة *") },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { PickerTrigger(onClick = { pickCash = true }) },
