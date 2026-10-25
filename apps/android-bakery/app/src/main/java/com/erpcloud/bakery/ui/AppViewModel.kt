@@ -1675,6 +1675,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _notice.value = Notice.danger(messageAr)
     }
 
+    fun showNoticeWarn(messageAr: String) {
+        _notice.value = Notice(Notice.Kind.WARN, messageAr)
+    }
+
     // --------------------------------------------------- الدعم الفني ومركز المساعدة
 
     suspend fun supportTickets(): List<com.erpcloud.bakery.data.api.SupportTicketDto> =
