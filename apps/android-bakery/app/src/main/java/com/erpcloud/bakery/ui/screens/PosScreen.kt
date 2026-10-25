@@ -2,6 +2,9 @@ package com.erpcloud.bakery.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -667,10 +670,10 @@ private fun ReceiptSuccessDialog(
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState()),
                     ) {
-                        androidx.compose.foundation.Image(
-                            bitmap = androidx.compose.ui.graphics.asImageBitmap(bmp),
+                        Image(
+                            bitmap = bmp.asImageBitmap(),
                             contentDescription = "معاينة فاتورة الكاشير",
-                            contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
+                            contentScale = ContentScale.FillWidth,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }

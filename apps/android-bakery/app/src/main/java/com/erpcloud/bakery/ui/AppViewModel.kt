@@ -61,10 +61,13 @@ import com.erpcloud.bakery.data.api.UnitDto
 import com.erpcloud.bakery.data.offline.SavedCredentials
 import com.erpcloud.bakery.data.offline.SessionState
 import com.erpcloud.bakery.ui.components.Notice
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.put
 import java.io.IOException
@@ -317,8 +320,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            val splashFloor = kotlinx.coroutines.async { kotlinx.coroutines.delay(1650L) }
-            kotlinx.coroutines.withTimeoutOrNull(2400L) { repo.fetchPublicSite() }
+            val splashFloor = async { delay(1650L) }
+            withTimeoutOrNull(2400L) { repo.fetchPublicSite() }
             splashFloor.await()
             _uiState.update { it.copy(splashDone = true) }
             // إن تأخّر الخادمُ عن مهلة الترحيب، أكمِل تحديثَ الاسم في الخلفيّة.

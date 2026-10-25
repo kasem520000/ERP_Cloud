@@ -386,22 +386,24 @@ class RepRepository(
         val response = call()
         if (!response.isSuccessful) throw response.toApiException()
         val body = response.body() ?: return@withContext emptyList()
-        fun extractArray(el: kotlinx.serialization.json.JsonElement?): kotlinx.serialization.json.JsonArray? = when (el) {
-            is kotlinx.serialization.json.JsonArray -> el
-            is JsonObject -> {
-                for (key in listOf("data", "items", "rows", "results")) {
-                    val inner = el[key]
-                    if (inner is kotlinx.serialization.json.JsonArray) return inner
-                    if (inner is JsonObject) {
-                        for (subKey in listOf("items", "rows", "data", "results")) {
-                            val sub = inner[subKey]
-                            if (sub is kotlinx.serialization.json.JsonArray) return sub
+        fun extractArray(el: kotlinx.serialization.json.JsonElement?): kotlinx.serialization.json.JsonArray? {
+            return when (el) {
+                is kotlinx.serialization.json.JsonArray -> el
+                is JsonObject -> {
+                    for (key in listOf("data", "items", "rows", "results")) {
+                        val inner = el[key]
+                        if (inner is kotlinx.serialization.json.JsonArray) return inner
+                        if (inner is JsonObject) {
+                            for (subKey in listOf("items", "rows", "data", "results")) {
+                                val sub = inner[subKey]
+                                if (sub is kotlinx.serialization.json.JsonArray) return sub
+                            }
                         }
                     }
+                    null
                 }
-                null
+                else -> null
             }
-            else -> null
         }
         val array = extractArray(body) ?: return@withContext emptyList()
         val itemSerializer = kotlinx.serialization.serializer<T>()

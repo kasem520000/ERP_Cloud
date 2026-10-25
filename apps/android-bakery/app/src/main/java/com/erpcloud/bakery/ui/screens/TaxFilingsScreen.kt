@@ -283,7 +283,7 @@ fun TaxFilingsScreen(vm: AppViewModel, onBack: () -> Unit) {
                                             reload()
                                         }
                                         is ActionResult.Refused -> vm.showNoticeDanger(res.messageAr)
-                                        is ActionResult.Blocked -> vm.showNoticeDanger(res.reasonsAr.joinToString(" · "))
+                                        is ActionResult.Offline -> vm.showNoticeWarn(res.messageAr)
                                     }
                                     retrying = false
                                 }

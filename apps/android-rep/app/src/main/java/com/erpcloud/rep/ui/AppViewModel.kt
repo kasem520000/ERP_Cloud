@@ -28,10 +28,13 @@ import com.erpcloud.rep.data.offline.SessionState
 import com.erpcloud.rep.platform.AppNotifier
 import com.erpcloud.rep.util.Dec
 import com.erpcloud.rep.ui.components.Notice
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonPrimitive
 import java.io.IOException
 
@@ -130,8 +133,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            val splashFloor = kotlinx.coroutines.async { kotlinx.coroutines.delay(1650L) }
-            kotlinx.coroutines.withTimeoutOrNull(2400L) { repo.fetchPublicSite() }
+            val splashFloor = async { delay(1650L) }
+            withTimeoutOrNull(2400L) { repo.fetchPublicSite() }
             splashFloor.await()
             _uiState.update { it.copy(splashDone = true) }
             repo.fetchPublicSite()
@@ -692,6 +695,4 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun publicFaq(): List<com.erpcloud.rep.data.api.PublicFaqDto> =
         repo.publicFaq()
-
-    fun friendlyError(error: Exception): String = friendly(error)
 }
