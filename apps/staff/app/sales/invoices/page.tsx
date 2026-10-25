@@ -76,7 +76,11 @@ const STATUS_CHIPS: StatusChip[] = [
   {
     key: 'unpaid',
     label: 'غير مسددة',
-    test: (row) => row.paymentStatus === 'unpaid' && row.status === 'posted',
+    test: (row) =>
+      row.paymentStatus === 'unpaid' &&
+      row.status === 'posted' &&
+      row.kind !== 'sale_return' &&
+      row.kind !== 'credit_note',
   },
 ];
 
@@ -187,24 +191,30 @@ function InvoicesInner() {
           {
             label: 'غير مسددة',
             value: money(
-              (invoices.data ?? [])
-                .filter(
-                  (row) =>
-                    row.status === 'posted' &&
-                    row.kind === 'sale' &&
-                    row.paymentStatus !== 'paid',
-                )
-                .reduce((sum, row) => sum + (Number(row.total) - Number(row.paidTotal)), 0),
+              Math.max(
+                0,
+                (invoices.data ?? [])
+                  .filter((row) => row.status === 'posted')
+                  .reduce((sum, row) => {
+                    const rem = Number(row.total) - Number(row.paidTotal);
+                    if (row.kind === 'sale' || row.kind === 'debit_note') return sum + rem;
+                    if (row.kind === 'sale_return' || row.kind === 'credit_note') return sum - rem;
+                    return sum;
+                  }, 0),
+              ),
             ),
             hint: 'المتبقي على العملاء (ذمم المبيعات)',
-            tone: (invoices.data ?? []).some(
-              (row) =>
-                row.status === 'posted' &&
-                row.kind === 'sale' &&
-                row.paymentStatus !== 'paid',
-            )
-              ? 'warn'
-              : 'up',
+            tone:
+              (invoices.data ?? [])
+                .filter((row) => row.status === 'posted')
+                .reduce((sum, row) => {
+                  const rem = Number(row.total) - Number(row.paidTotal);
+                  if (row.kind === 'sale' || row.kind === 'debit_note') return sum + rem;
+                  if (row.kind === 'sale_return' || row.kind === 'credit_note') return sum - rem;
+                  return sum;
+                }, 0) > 0.005
+                ? 'warn'
+                : 'up',
           },
           {
             label: 'مسودات',
@@ -437,15 +447,19 @@ function InvoicesInner() {
                       {row.status === 'posted' ? 'مرحّلة' : 'مسودة'}
                     </Badge>
                     {row.status === 'posted' ? (
-                      // ACC-203 (R33): الفاتورة الجزئية كانت تُوسم «غير مسدّدة» بينما
-                      // تفاصيلها تقول «مسددة جزئياً» — الوسم يقرأ payment_status كما هو.
-                      <Badge tone={row.paymentStatus === 'paid' ? 'blue' : 'amber'}>
-                        {row.paymentStatus === 'paid'
-                          ? 'مسدّدة'
-                          : row.paymentStatus === 'partial'
-                            ? 'مسددة جزئياً'
-                            : 'غير مسدّدة'}
-                      </Badge>
+                      row.kind === 'sale_return' || row.kind === 'credit_note' ? (
+                        <Badge tone="purple">إشعار دائن</Badge>
+                      ) : (
+                        // ACC-203 (R33): الفاتورة الجزئية كانت تُوسم «غير مسدّدة» بينما
+                        // تفاصيلها تقول «مسددة جزئياً» — الوسم يقرأ payment_status كما هو.
+                        <Badge tone={row.paymentStatus === 'paid' ? 'blue' : 'amber'}>
+                          {row.paymentStatus === 'paid'
+                            ? 'مسدّدة'
+                            : row.paymentStatus === 'partial'
+                              ? 'مسددة جزئياً'
+                              : 'غير مسدّدة'}
+                        </Badge>
+                      )
                     ) : null}
                   </span>
                 ),

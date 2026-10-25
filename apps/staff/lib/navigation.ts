@@ -2367,8 +2367,13 @@ export const allScreens: Array<
 );
 
 export function findScreenByHref(href: string) {
+  const exact = allScreens.find((item) => item.href === href);
+  if (exact) return exact;
   const normalised = href.split('?')[0];
-  return allScreens.find((item) => item.href.split('?')[0] === normalised);
+  return (
+    allScreens.find((item) => item.href === normalised) ??
+    allScreens.find((item) => item.href.split('?')[0] === normalised)
+  );
 }
 
 /**

@@ -1,33 +1,17 @@
-probe-d10 — 2026-10-24T21:09:51.395Z
+probe-d10 — 2026-10-25T04:59:30.505Z
 API=http://127.0.0.1:3000/api/v1
 
 PASS L01 — login → 200
 PASS F01 — حسابات: خسارة=true مخصص=true مصروف=true
 PASS F02 — قاعدة 30+: true · القواعد 1
-PASS F03 — فاتورة متأخرة: SI-000003 · متاح 100.0000 · تأخر Mon Sep 14 2026 00:00:00 GMT+0000 (Coordinated Universal Time)
+PASS F03 — فاتورة متأخرة: SI-000006 · متاح 100.0000 · تأخر Tue Sep 15 2026 00:00:00 GMT+0000 (Coordinated Universal Time)
 PASS F04 — إرسال → 201 not_configured · أحداث في الكشف: 1
 PASS F05 — مخصص → 201 بمبلغ 10.0000 · قفزة المصروف +10.0000 · المخصص -10.0000
 PASS F06 — شطب 100.0000 → approved · رصيد 100.0000→0.0000 · سطر مُخصَّص=true · في الكشف=approved · اعتماد ثانٍ=409
 PASS F07 — استرداد 25 → 201 · الخسارة -25.0000 · المسترد 25.0000 · تجاوز → 422 RECOVERY_EXCEEDS
 PASS F08 — التقرير → 200 · إجمالي=0.0000 · الكشف=0.0000
-PASS T01 — ميزان كليّ: مدين=303541.2000 دائن=303541.2000
+PASS T01 — ميزان كليّ: مدين=303659.9400 دائن=303659.9400
 PASS S01 — GET staff /accounting/collection → 200
 PASS S02 — GET staff /reports/balance-confirmation → 200
 
 TOTAL 12 · FAIL 0
-
---- إعادة تشغيل فورية (استدامة المسارات البديلة: هدوء/إعادة استخدام) — 2026-10-24T21:11:10.387Z ---
-PASS L01 — login → 200
-PASS F01 — حسابات: خسارة=true مخصص=true مصروف=true
-PASS F02 — قاعدة 30+: true · القواعد 1
-PASS F03 — فاتورة متأخرة: SI-000004 · متاح 100.0000 · تأخر Mon Sep 14 2026 00:00:00 GMT+0000 (Coordinated Universal Time)
-PASS F04 — إرسال → 422 REMINDER_COOLDOWN · أحداث في الكشف: 1
-PASS F05 — مخصص سابق قائم (1) — بلا تكديس عند إعادة التشغيل
-PASS F06 — شطب 100.0000 → approved · رصيد 100.0000→0.0000 · سطر مُخصَّص=true · في الكشف=approved · اعتماد ثانٍ=409
-PASS F07 — استرداد 25 → 201 · الخسارة -25.0000 · المسترد 25.0000 · تجاوز → 422 RECOVERY_EXCEEDS
-PASS F08 — التقرير → 200 · إجمالي=0.0000 · الكشف=0.0000
-PASS T01 — ميزان كليّ: مدين=303806.2000 دائن=303806.2000
-PASS S01 — GET staff /accounting/collection → 200
-PASS S02 — GET staff /reports/balance-confirmation → 200
-
-TOTAL 12 · FAIL 0 (rerun)

@@ -16,6 +16,7 @@ import {
   tailoringOrders,
   tailoringOrderStatuses,
   tailoringTypes,
+  taxGroups,
   tenantSettings,
   withTenantTx,
   type DatabaseHandle,
@@ -1655,16 +1656,24 @@ export class TailoringService {
       garmentTypeName: string | null;
     },
   ): Promise<InvoiceRow> {
-    const payments = await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx
+    const { payments, taxRate } = await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const paymentRows = await tx
         .select()
         .from(tailoringInvoicePayments)
         .where(and(eq(tailoringInvoicePayments.tenantId, tenantId), eq(tailoringInvoicePayments.invoiceId, row.invoice.id)))
-        .orderBy(desc(tailoringInvoicePayments.paidAt), desc(tailoringInvoicePayments.createdAt)),
-    );
+        .orderBy(desc(tailoringInvoicePayments.paidAt), desc(tailoringInvoicePayments.createdAt));
+      const [tg] = await tx
+        .select({ rate: taxGroups.rate })
+        .from(taxGroups)
+        .where(and(eq(taxGroups.tenantId, tenantId), isNull(taxGroups.deletedAt), sql`${taxGroups.rate} > 0`))
+        .orderBy(desc(taxGroups.rate))
+        .limit(1);
+      const resolvedRate = tg ? decimal(tg.rate) / 100 : TAX_RATE;
+      return { payments: paymentRows, taxRate: resolvedRate };
+    });
     const invoiceTotal = decimal(row.invoice.total);
-    // 💰 الإجمالي في `frmViewOrders` = sale_price × 1.05 (L88).
-    const grossTotal = invoiceTotal + invoiceTotal * TAX_RATE;
+    // ACC-149 / MF-47: قراءة نسبة الضريبة الفعّالة للمستأجر من tax_groups مع احتياطي 15%
+    const grossTotal = invoiceTotal + invoiceTotal * taxRate;
     return {
       id: row.invoice.id,
       number: row.invoice.number,

@@ -291,19 +291,24 @@ export class PartiesService {
   async partyBalance(tenantId: string, partyId: string, asOf?: string) {
     // رصيد صفرٌ لعميلٍ غير موجود رقمٌ كاذب؛ والكشف مثله. الغياب يُعلَن قبل الحساب.
     await this.get(tenantId, partyId);
-    const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
+    const allRows = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
         .select({
           accountId: journalEntryLines.accountId,
+          accountCode: accounts.code,
+          accountType: accounts.type,
           debit: journalEntryLines.debit,
           credit: journalEntryLines.credit,
           date: journalEntries.date,
           entryId: journalEntries.id,
+          entryNumber: journalEntries.number,
+          description: sql<string | null>`coalesce(${journalEntryLines.description}, ${journalEntries.description})`,
           sourceType: journalEntries.sourceType,
           sourceId: journalEntries.sourceId,
         })
         .from(journalEntryLines)
         .innerJoin(journalEntries, eq(journalEntryLines.entryId, journalEntries.id))
+        .innerJoin(accounts, eq(journalEntryLines.accountId, accounts.id))
         .where(
           and(
             eq(journalEntryLines.tenantId, tenantId),
@@ -311,9 +316,22 @@ export class PartiesService {
             eq(journalEntries.status, 'posted'),
             asOf ? sql`${journalEntries.date} <= ${asOf}` : undefined,
           ),
-        ),
+        )
+        .orderBy(journalEntries.date, journalEntries.number),
     );
-    const total = rows.reduce((sum, row) => sum.plus(new Decimal(row.debit).minus(row.credit)), new Decimal(0));
+    const isReceivableAccount = (type: string, code: string) =>
+      type === 'asset' && !code.startsWith('121') && !code.startsWith('122') && !code.startsWith('127');
+    const isPayableAccount = (type: string, code: string) =>
+      type === 'liability' && !code.startsWith('2222');
+    const rows = allRows.filter(
+      (row) => isReceivableAccount(row.accountType, row.accountCode) || isPayableAccount(row.accountType, row.accountCode),
+    );
+    const receivable = rows
+      .filter((row) => isReceivableAccount(row.accountType, row.accountCode))
+      .reduce((sum, row) => sum.plus(new Decimal(row.debit).minus(row.credit)), new Decimal(0));
+    const payable = rows
+      .filter((row) => isPayableAccount(row.accountType, row.accountCode))
+      .reduce((sum, row) => sum.plus(new Decimal(row.credit).minus(row.debit)), new Decimal(0));
     const allocations = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
         .select()
@@ -343,24 +361,30 @@ export class PartiesService {
       if (w.status !== 'approved') continue;
       writeoffByInvoice.set(w.invoiceId, (writeoffByInvoice.get(w.invoiceId) ?? new Decimal(0)).plus(new Decimal(w.amount)));
     }
-    // ACC-017: مطابقة التخصيص عبر sourceId للمستند (الفاتورة أو السند) بدلاً من معرّف القيد
+    // ACC-017 + ACC-222 + NEW-02: مطابقة التخصيص على سطور الفواتير فقط (دون تكرارها على سطر السند نفسه)
     return {
-      receivable: total.toFixed(4),
-      payable: '0.0000',
+      receivable: receivable.toFixed(4),
+      payable: payable.toFixed(4),
       reminders,
       writeoffs,
       open: rows.map((row) => ({
-        ...row,
-        allocated: allocations
-          .filter(
-            (a) =>
-              a.invoiceId === row.sourceId ||
-              a.invoiceId === row.entryId ||
-              (row.sourceId && a.voucherId === row.sourceId),
-          )
-          .reduce((sum, a) => sum.plus(a.amount), new Decimal(0))
-          .plus(row.sourceId ? writeoffByInvoice.get(row.sourceId) ?? new Decimal(0) : new Decimal(0))
-          .toFixed(4),
+        accountId: row.accountId,
+        debit: row.debit,
+        credit: row.credit,
+        date: row.date,
+        entryId: row.entryId,
+        entryNumber: row.entryNumber,
+        description: row.description,
+        sourceType: row.sourceType,
+        sourceId: row.sourceId,
+        allocated:
+          row.sourceType === 'voucher'
+            ? '0.0000'
+            : allocations
+                .filter((a) => a.invoiceId === row.sourceId || a.invoiceId === row.entryId)
+                .reduce((sum, a) => sum.plus(a.amount), new Decimal(0))
+                .plus(row.sourceId ? writeoffByInvoice.get(row.sourceId) ?? new Decimal(0) : new Decimal(0))
+                .toFixed(4),
       })),
     };
   }

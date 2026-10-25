@@ -96,9 +96,11 @@ export class NotificationsService {
     const sort = parseSort(query.sort, NOTIFICATION_SORT_COLUMNS);
 
     return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const visibility = await this.vanSalesAudienceFilterInTx(tx, tenantId, membershipId);
       const conditions: (SQL | undefined)[] = [
         eq(notifications.tenantId, tenantId),
         eq(notifications.membershipId, membershipId),
+        visibility,
       ];
       if (filters.type) conditions.push(eq(notifications.type, filters.type));
       if (filters.read === 'true') conditions.push(isNotNull(notifications.readAt));
@@ -151,6 +153,7 @@ export class NotificationsService {
 
   async unreadCount(tenantId: string, membershipId: string): Promise<number> {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const visibility = await this.vanSalesAudienceFilterInTx(tx, tenantId, membershipId);
       const [row] = await tx
         .select({ value: count() })
         .from(notifications)
@@ -159,10 +162,77 @@ export class NotificationsService {
             eq(notifications.tenantId, tenantId),
             eq(notifications.membershipId, membershipId),
             isNull(notifications.readAt),
+            visibility,
           ),
         );
       return row?.value ?? 0;
     });
+  }
+
+  /**
+   * عزلُ جمهور إشعارات التوزيع عند القراءة أيضاً (حمايةٌ إضافية فوق التوجيه الصارم عند الإنشاء،
+   * وتنظيفٌ فوري لأيّ إشعاراتٍ قديمة كُتبت قبل فصلِ جمهور الإدارة عن المناديب):
+   * - المندوبُ الميداني (غير المالك وبلا صلاحية إدارة خط التوزيع) لا يرى إشعارات الإدارة
+   *   (`van_sales_closing_request`، `van_sales_receipt_confirmed`، `van_sales_receipt_discrepancy`).
+   * - الإدارة/المحاسب (غير المربوط ببطاقة مندوب) لا يرى إشعارات عهدة المندوب الفردية
+   *   (`van_sales_supply_pending_receipt`، `van_sales_load_canceled`، `van_sales_closing_approved` المرسلة للمندوب).
+   */
+  private async vanSalesAudienceFilterInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    membershipId: string,
+  ): Promise<SQL | undefined> {
+    const scopeResult = await tx.execute(sql`
+      SELECT
+        COALESCE(m.is_owner, false) AS is_owner,
+        EXISTS (
+          SELECT 1
+          FROM employees e
+          JOIN salesmen s ON s.employee_id = e.id
+          WHERE e.tenant_id = m.tenant_id
+            AND e.membership_id = m.id
+            AND e.deleted_at IS NULL
+            AND s.active = true
+        ) AS is_rep
+      FROM memberships m
+      WHERE m.tenant_id = ${tenantId}::uuid
+        AND m.id = ${membershipId}::uuid
+        AND m.deleted_at IS NULL
+      LIMIT 1
+    `);
+    const scopeRow = (scopeResult.rows?.[0] ?? null) as
+      | { is_owner?: boolean; is_rep?: boolean }
+      | null;
+    if (!scopeRow) return undefined;
+
+    const isOwner = scopeRow.is_owner === true;
+    const isRep = scopeRow.is_rep === true;
+
+    if (isRep && !isOwner) {
+      return sql`(
+        ${notifications.type} NOT IN (
+          'van_sales_closing_request',
+          'van_sales_receipt_confirmed',
+          'van_sales_receipt_discrepancy'
+        )
+        AND COALESCE(${notifications.payload}->>'audience', '') <> 'management'
+      )`;
+    }
+
+    if (!isRep) {
+      return sql`(
+        ${notifications.type} NOT IN (
+          'van_sales_supply_pending_receipt',
+          'van_sales_load_canceled'
+        )
+        AND (
+          ${notifications.type} <> 'van_sales_closing_approved'
+          OR COALESCE(${notifications.payload}->>'audience', '') = 'management'
+        )
+      )`;
+    }
+
+    return undefined;
   }
 
   private async loadOwned(

@@ -1,30 +1,30 @@
-probe-d2-year-close — 2026-10-24T07:48:05.441Z
+probe-d2-year-close — 2026-10-25T05:02:30.006Z
 API=http://127.0.0.1:3000/api/v1
 
 PASS L01 — login owner → 200
-PASS Y00 — GET /fiscal-years → 200 (3 سنة)
-PASS P00 — GET /fiscal-periods → 200; أول فترة مفتوحة 2030-12
-PASS F01 — preflight 2030-12 → 200; checks=[draft_invoices,draft_journals,draft_vouchers,negative_stock,open_shifts,pending_approvals]; blockers=[]
+PASS Y00 — GET /fiscal-years → 200 (1 سنة)
+PASS P00 — GET /fiscal-periods → 200; أول فترة مفتوحة 2026-12
+PASS F01 — preflight 2026-12 → 200; checks=[draft_invoices,draft_journals,draft_vouchers,negative_stock,open_shifts,pending_approvals]; blockers=[]
 PASS V01 — close-preview 2026 → 200; blockingErrors=["FISCAL_YEAR_PERIODS_OPEN"] openPeriods=12
-PASS N01 — FY2029 موجودة سلفاً (id=01a16cc1-43d5-7618-82cc-baed475bf7c4) — تُستعمل كما هي
+PASS N01 — POST /fiscal-years 2029 → 201
 PASS N02 — فترات 2029 → 12
 PASS N03 — accounts: 1110001=ok 4100001=ok
-PASS J01 — إيراد الاستكشاف موجود سلفاً (id=01a16cc1-5029-765a-8655-af4a5cda4830) — يُستعمل كما هو
-PASS C01 — 2029: أُغلقت 1 فترة هذه الجولة؛ المفتوحة الآن 0
-PASS V02 — close-preview 2029 → netIncome=1458 (مجموع الأسطر 1458.0000) retained=2130001 blocking=[]
-PASS Y01 — POST close 2029 → 201; entry=JE-000032 netIncome=1458.0000 (متوقّع 1458)
+PASS J01 — POST /journal-entries إيراد 2029-06 → 201
+PASS C01 — 2029: أُغلقت 12 فترة هذه الجولة؛ المفتوحة الآن 0
+PASS V02 — close-preview 2029 → netIncome=1218 (مجموع الأسطر 1218.0000) retained=2130001 blocking=[]
+PASS Y01 — POST close 2029 → 201; entry=JE-000015 netIncome=1218.0000 (متوقّع 1218)
 PASS Y02 — nextYear → 2030 2030-01-01
-PASS Y03 — closing entry → type=year_end_close src=yearId DR=1688 CR=1688 (متوقّع 1458) 4100001:DR=1588.0000 2130001:CR=1458.0000
+PASS Y03 — closing entry → type=year_end_close src=yearId DR=1448 CR=1448 (متوقّع 1218) 4100001:DR=1348.0000 2130001:CR=1218.0000
 PASS Y04 — بعد الإقفال netIncome=0.0000
 PASS Y05 — إعادة إقفال → 409 FISCAL_YEAR_ALREADY_CLOSED
 PASS X01 — عكس من الشاشة → 409 JOURNAL_SOURCE_DOCUMENT_REVERSAL
 PASS R01 — reopen بلا سبب → 422 REOPEN_REASON_REQUIRED
 PASS R02 — reopen → 201 status=open
-PASS R03 — بعد الفتح netIncome المستعاد=1458.0000 (متوقّع 1458)
-PASS Z01 — إعادة الإقفال → 201; مفتاح جديد entry=JE-000034 (السابق 01a16ce1)
+PASS R03 — بعد الفتح netIncome المستعاد=1218.0000 (متوقّع 1218)
+PASS Z01 — إعادة الإقفال → 201; مفتاح جديد entry=JE-000017 (السابق 01a17170)
 PASS Z02 — الفتح الأخير → 201
 PASS Z03 — فتح 2029-06 → 201؛ عكس إيراد الاستكشاف → 201
 PASS Z04 — إعادة إغلاق 2029-06 → 201
-PASS Z05 — الحالة النهائية netIncome=458 (متوقّع 1458 − 1000 إيراد معكوس)
+PASS Z05 — الحالة النهائية netIncome=218 (متوقّع 1218 − 1000 إيراد معكوس)
 
 TOTAL 25 · FAIL 0

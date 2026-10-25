@@ -1,7 +1,9 @@
 'use client';
 
 import { FilterBand, Panel } from '@erp/ui';
-import { useState } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 
 import { DataTable, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -12,6 +14,9 @@ import { useQuery } from '../../../lib/use-query';
 
 type StatementRow = {
   entryId: string;
+  entryNumber?: string | null;
+  description?: string | null;
+  sourceType?: string | null;
   accountId: string;
   date: string;
   debit: string;
@@ -20,8 +25,10 @@ type StatementRow = {
 };
 type Statement = { receivable: string; payable: string; open: StatementRow[] };
 
-export default function PartyStatementPage() {
-  const [kind, setKind] = useState<'customer' | 'supplier'>('customer');
+function PartyStatementInner() {
+  const searchParams = useSearchParams();
+  const initialKind = searchParams.get('kind') === 'supplier' ? 'supplier' : 'customer';
+  const [kind, setKind] = useState<'customer' | 'supplier'>(initialKind);
   const [partyId, setPartyId] = useState('');
   const parties = useQuery<Party[]>(() => listParties(kind), [kind]);
   const statement = useQuery<Statement | null>(
@@ -32,15 +39,19 @@ export default function PartyStatementPage() {
   const rows = statement.data?.open ?? [];
   let running = 0;
   const withBalance = rows.map((row) => {
-    running += Number(row.debit) - Number(row.credit);
+    const delta =
+      kind === 'supplier'
+        ? Number(row.credit) - Number(row.debit)
+        : Number(row.debit) - Number(row.credit);
+    running += delta;
     return { ...row, runningText: running.toFixed(4) };
   });
 
   return (
     <Screen
-      title="كشف حساب طرف"
-      subtitle="حركة العميل أو المورد على حسابه في الأستاذ مع الرصيد التراكمي."
-      crumbs={['المبيعات', 'تقارير']}
+      title={kind === 'supplier' ? 'كشف حساب مورد' : 'كشف حساب عميل'}
+      subtitle="حركة العميل أو المورد على حساب ذمته في الأستاذ مع رقم القيد والبيان والرصيد التراكمي."
+      crumbs={[kind === 'supplier' ? 'المشتريات' : 'المبيعات', 'تقارير']}
       actions={
         <button
           className="btn"
@@ -49,8 +60,16 @@ export default function PartyStatementPage() {
           onClick={() =>
             downloadCsv(
               'party-statement.csv',
-              ['التاريخ', 'مدين', 'دائن', 'الرصيد'],
-              withBalance.map((row) => [shortDate(row.date), row.debit, row.credit, row.runningText]),
+              ['التاريخ', 'رقم القيد', 'البيان', 'مدين', 'دائن', 'المسدّد', 'الرصيد'],
+              withBalance.map((row) => [
+                shortDate(row.date),
+                row.entryNumber ?? row.entryId.slice(0, 8),
+                row.description ?? '',
+                row.debit,
+                row.credit,
+                row.allocated,
+                row.runningText,
+              ]),
             )
           }
         >
@@ -98,7 +117,7 @@ export default function PartyStatementPage() {
       ) : null}
       {partyId ? (
         <>
-          <Panel title="الرصيد الحالي" hint="مستحقٌّ لنا أو علينا بحسب طبيعة الحساب.">
+          <Panel title="الرصيد الحالي" hint="مستحقٌّ لنا أو علينا بحسب طبيعة حساب الذمة.">
             <div className="ui-kpi-grid">
               <div className="ui-kpi-cell">
                 <span className="ui-kpi-label">الرصيد المدين (مستحق لنا)</span>
@@ -107,7 +126,7 @@ export default function PartyStatementPage() {
                 </span>
               </div>
               <div className="ui-kpi-cell">
-                <span className="ui-kpi-label">الرصيد الدائن (مستحق عليه)</span>
+                <span className="ui-kpi-label">الرصيد الدائن (مستحق له / علينا)</span>
                 <span className="ui-kpi-value num" dir="ltr">
                   {money(statement.data?.payable)}
                 </span>
@@ -115,7 +134,7 @@ export default function PartyStatementPage() {
             </div>
           </Panel>
 
-          <Panel flush hint="كل صف قيدٌ مرحَّل، والرصيد عمودٌ تراكمي من أول الحركة." title="حركة الحساب">
+          <Panel flush hint="كل صف قيدٌ مرحَّل على حساب الذمة، والرصيد عمودٌ تراكمي بحسب طبيعة الطرف." title="حركة الحساب">
             <QueryView
               query={statement}
               isEmpty={() => withBalance.length === 0}
@@ -128,13 +147,28 @@ export default function PartyStatementPage() {
                   rowKey={(row, index) => `${row.entryId}:${index}`}
                   columns={[
                     { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => shortDate(row.date) },
+                    {
+                      key: 'entryNumber',
+                      header: 'رقم القيد',
+                      align: 'ltr',
+                      cell: (row) => (
+                        <Link href={`/accounting/journal-entries/${row.entryId}`}>
+                          {row.entryNumber ?? row.entryId.slice(0, 8)}
+                        </Link>
+                      ),
+                    },
+                    {
+                      key: 'description',
+                      header: 'البيان',
+                      cell: (row) => row.description ?? '—',
+                    },
                     { key: 'debit', header: 'مدين', align: 'num', cell: (row) => money(row.debit) },
                     { key: 'credit', header: 'دائن', align: 'num', cell: (row) => money(row.credit) },
                     {
                       key: 'allocated',
                       header: 'المسدّد',
                       align: 'num',
-                      cell: (row) => money(row.allocated),
+                      cell: (row) => (row.sourceType === 'voucher' ? '—' : money(row.allocated)),
                     },
                     { key: 'running', header: 'الرصيد', align: 'num', cell: (row) => money(row.runningText) },
                   ]}
@@ -145,5 +179,13 @@ export default function PartyStatementPage() {
         </>
       ) : null}
     </Screen>
+  );
+}
+
+export default function PartyStatementPage() {
+  return (
+    <Suspense fallback={null}>
+      <PartyStatementInner />
+    </Suspense>
   );
 }

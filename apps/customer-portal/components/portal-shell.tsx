@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Decimal } from 'decimal.js';
 
-import { fetchProfile, logout, readToken, type PortalProfile } from '../lib/api';
+import { fetchProfile, logout, type PortalProfile } from '../lib/api';
 import { moneyText } from '../lib/format';
 import { portalRoutes } from '../lib/navigation';
 
@@ -23,10 +23,6 @@ export function PortalShell({ children }: { children: ReactNode }) {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    if (!readToken()) {
-      globalThis.location.assign('/auth/login');
-      return;
-    }
     fetchProfile()
       .then((profile) => setState({ profile, error: '' }))
       .catch((error: Error) => setState({ profile: null, error: error.message }))

@@ -57,7 +57,7 @@ export default function LanguagePage() {
   };
 
   return (
-    <Screen title="اللغة" subtitle="Language" crumbs={['الإعدادات', 'عامة']}>
+    <Screen title="اللغة" subtitle="لغة العرض والواجهة" crumbs={['الإعدادات', 'عامة']}>
       <Panel title="لغة الواجهة" hint="يُطبَّق الاختيار على القوائم والتنقل وشاشة الدخول.">
         <div className="grid gap-3 sm:grid-cols-2">
           {option(

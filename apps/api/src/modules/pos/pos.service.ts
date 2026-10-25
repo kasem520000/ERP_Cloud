@@ -1305,12 +1305,18 @@ export class PosService {
         .limit(1),
     );
     if (!table) throw new DomainError('NOT_FOUND', 'Dining table not found', 404);
-    const allocated = await withTenantTx(this.database.db, tenantId, (tx) =>
-      this.sequences.next({ tenantId, branchId: table.branchId, docType: `pos_order:${businessDay}` }, tx, {
-        prefix: `POS-${businessDay.replaceAll('-', '')}-`,
-        padding: 4,
-      }),
-    );
+    const allocated = await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const policy = await readTenantMoneyPolicy(tx, tenantId);
+      return this.sequences.next(
+        { tenantId, branchId: table.branchId, docType: `pos_order:${businessDay}` },
+        tx,
+        {
+          prefix: `${policy.posPrefix}${businessDay.replaceAll('-', '')}-`,
+          padding: policy.posPadding,
+          startAt: policy.posStartAt,
+        },
+      );
+    });
     // A table order is a stock-moving sale, and the posting engine (rightly) refuses
     // one without a warehouse. The till's own branch default is the only sensible
     // answer — the desktop `frmPOS` always sold out of the branch's store.

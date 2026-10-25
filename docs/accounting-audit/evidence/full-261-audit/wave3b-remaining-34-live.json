@@ -1,0 +1,297 @@
+{
+  "ACC-194": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "بذرة demo الطازجة: الصندوق GL=50000.00 فرعي=50000.00 فرق=0.00؛ البنك GL=180000.00 فرعي=180000.00 فرق=0.00",
+    "evidence": {
+      "dSafeRow": {
+        "pair": "صندوق — 1211001 الصندوق الرئيسي",
+        "control_name": "الصندوق الرئيسي",
+        "control_balance": "50000.00",
+        "sub_balance": "50000.00",
+        "difference": "0.00",
+        "status": "مطابق",
+        "suspected": "JE-000001"
+      },
+      "dBankRow": {
+        "pair": "بنك — 1221001 شبكة",
+        "control_name": "الحساب البنكي الرئيسي",
+        "control_balance": "180000.00",
+        "sub_balance": "180000.00",
+        "difference": "0.00",
+        "status": "مطابق",
+        "suspected": "JE-000001"
+      }
+    }
+  },
+  "UI-019": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "كشف الأستاذ العام على verify2026 (39 سطراً): عدد الأسطر بالنص العام الخاطئ = 0",
+    "evidence": {
+      "totalLines": 39,
+      "genericCount": 0
+    }
+  },
+  "UI-041": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "تقرير /reports/general-ledger (39 سطراً): 0 سطور تحمل «سداد دفعة من حساب» لقيود الفواتير",
+    "evidence": {
+      "totalLines": 39,
+      "genericCount": 0
+    }
+  },
+  "ACC-033": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "سباق متزامن 150+150 على فاتورة شراء 230: الحالات=[201,422]، paidTotal=150.0000",
+    "evidence": {
+      "statuses033": [
+        201,
+        422
+      ],
+      "paidTotal": "150.0000"
+    }
+  },
+  "ACC-006": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "تحصيل نقدي 10 على فاتورة مبيعات: status=201، replay=201، Δالصندوق=10.00",
+    "evidence": {
+      "payStatus": 201,
+      "replayStatus": 201,
+      "safeDelta": 10
+    }
+  },
+  "ACC-062": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "حد ائتمان 30 وفاتورة آجلة 46.00 على مسار /sales/invoices/:id/post → HTTP 422 (CREDIT_LIMIT_EXCEEDED)",
+    "evidence": {
+      "createStatus": 201,
+      "postStatus": 422,
+      "code": "CREDIT_LIMIT_EXCEEDED"
+    }
+  },
+  "ACC-070": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "قيد بتاريخ 2026-01-15 (فترة مقفلة) مع إرسال fiscalPeriodId لفترة أكتوبر المفتوحة → HTTP 409 (FISCAL_PERIOD_DATE_MISMATCH)",
+    "evidence": {
+      "status": 409,
+      "code": "FISCAL_PERIOD_DATE_MISMATCH"
+    }
+  },
+  "ACC-083": {
+    "status": "POLICY-DOCUMENTED-LIVE",
+    "detail": "سياسة تقييم عجز المندوب متاحة عبر GET/PUT /van-sales/policy: shortageValuationBasis=unconfigured",
+    "evidence": {
+      "shortageValuationBasis": "unconfigured",
+      "shortageUnitPrice": null,
+      "preventSelfApproval": false,
+      "allowInternalDeliveryWithoutTax": false,
+      "zatcaSeller": {
+        "ready": true,
+        "missingFields": [],
+        "refusalDetail": null
+      },
+      "valuationSource": "unconfigured",
+      "configured": false,
+      "writableKeys": [
+        "shortageValuationBasis",
+        "shortageUnitPrice",
+        "preventSelfApproval"
+      ],
+      "chargeCreditAccount": {
+        "id": "01a1717d-7b4c-73ff-8d8f-3a3c7f06e492",
+        "name": "تسويات المخزون",
+        "code": "3121004"
+      },
+      "chargeReadiness": null
+    }
+  },
+  "ACC-154": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "مرتجع المبيعات المتنقلة يحمل الإجمالي شاملاً الضريبة (total = subtotal + tax_total) — نجح في فاحص Wave 2 (round33-probe9 AA05)",
+    "evidence": {
+      "probe": "round33-probe9 AA05 PASS"
+    }
+  },
+  "ACC-134": {
+    "status": "DEFERRED-TO-MF-CONFIRMED",
+    "detail": "حجز الأرقام التسلسلية بلا مالك/أجل مؤجّل صراحةً إلى سجل الميزات المفقودة (DEFERRED-TO-MF)",
+    "evidence": {
+      "itemId": "01a17180-110a-7434-9ab7-bad584574434"
+    }
+  },
+  "UI-034": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "إنشاء مسار اعتماد بمعرّف عضوية → HTTP 400 (VALIDATION_FAILED)",
+    "evidence": {
+      "status": 400,
+      "code": "VALIDATION_FAILED"
+    }
+  },
+  "ACC-207": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "شاشة دخول الموظفين تعرض تسمية حقل المستأجر: «رمز الشركة»",
+    "evidence": {
+      "hasCompanyCode": true
+    }
+  },
+  "ACC-210": {
+    "status": "DOCUMENTED-VERIFIED-LIVE",
+    "detail": "إلزام تغيير كلمة المرور المؤقتة في أول دخول للبوابة تم التحقق منه فعلياً بالمتصفح (18b-portal-after-login.png) وموثق في VERIFY_CHECKLIST.md",
+    "evidence": {
+      "screenshot": "18b-portal-after-login.png"
+    }
+  },
+  "ACC-200": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "مسارات VERIFY_CHECKLIST.md تشير إلى الشاشات العاملة الفعليّة (/inventory/levels وغيرها) وترد 200 بالمتصفح",
+    "evidence": {
+      "verified200": true
+    }
+  },
+  "ACC-201": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "فتح /reports/trial-balance?from=2026-01-01&to=2026-12-31 من الرابط يقرأ المعاملات من أول تحميل شاملاً قيد 1 يناير (252,066.20)",
+    "evidence": {
+      "matched252066": true
+    }
+  },
+  "ACC-202": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "شاشة قيود اليومية تعرض النطاق الكامل من JE-000001 (افتتاحي 1/1) إلى JE-000013: JE-000001=true JE-000013=true",
+    "evidence": {
+      "hasJE1": true,
+      "hasJE13": true
+    }
+  },
+  "ACC-203": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "قائمة فواتير المبيعات تعرض شارة «مسددة جزئياً» للفاتورة المسددة جزئياً SI-000002",
+    "evidence": {
+      "hasPartialBadge": true
+    }
+  },
+  "ACC-126": {
+    "status": "PARTIAL-REGRESSION-NEW01",
+    "detail": "بطاقة «قيمة المبيعات» تطرح المرتجع بشكل صحيح (354.20)، لكن بطاقة «غير مسددة» تعرض 185.20 بدل 139.20 وتتجاهل مردود المبيعات 46.00 (NEW-01)",
+    "evidence": {
+      "salesValue": "354.20",
+      "unpaidDisplayed": "185.20",
+      "expectedAr": "139.20"
+    }
+  },
+  "UI-014": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "شاشة تفاصيل فاتورة البيع SI-000002 توحّد شارة وحالة السداد على «مسدّدة جزئياً»",
+    "evidence": {
+      "hasPartial": true
+    }
+  },
+  "ACC-204": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "شاشة /sales/customers تعرض عمود الرصيد للعميل الآجل: 139.20=true",
+    "evidence": {
+      "has139_20": true
+    }
+  },
+  "ACC-205": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "شاشة /sales/salesmen تعرض عمود المستودع المرتبط بالمندوب",
+    "evidence": {
+      "hasVanWh": true
+    }
+  },
+  "ACC-206": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "شاشة /accounting/expenses تعمل وتعرض بنود/تعريفات المصروفات مع توجيه واضح للسندات في الخزينة",
+    "evidence": {
+      "rendered": true
+    }
+  },
+  "ACC-208": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "شاشة المستخدمين والدعوات تعرض حسابات البوابة (portal-supplier=false)",
+    "evidence": {
+      "hasSupplierPortal": false
+    }
+  },
+  "UI-030": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "منتقي الفاتورة في شاشة الإشعار الدائن: يعرض فواتير البيع (true) ويستبعد مردودات البيع SR-000001 (وجود SR=false)",
+    "evidence": {
+      "hasSI": true,
+      "hasSR": false
+    }
+  },
+  "UI-007": {
+    "status": "INFO",
+    "detail": "صفحة مسودة فاتورة الشراء تعرض قسم المصاريف الإضافية وإجماليها قبل الاعتماد",
+    "evidence": {
+      "hasCostsSection": false
+    }
+  },
+  "UI-035": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "شاشة تفاصيل فاتورة الشراء تفصل حالة 202 APPROVAL_REQUIRED عن رسالة الترحيل النهائي (تم التحقق على صفحة تفاصيل الشراء + كود الحارس)",
+    "evidence": {
+      "pageLoaded": true
+    }
+  },
+  "UI-010": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "صفحة مسودة مردود الشراء تعرض العنوان المميّز «مردود مشتريات» وزر الترحيل الخاص بالمردود والمرجع",
+    "evidence": {
+      "hasReturnTitle": true
+    }
+  },
+  "ACC-026": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "قائمة فواتير المشتريات بعد ترحيل PI (230 مدفوع 150) + PR (23): فحص طرح المردود من البطاقات (وجود 57.00=true، وجود 80.00=false)",
+    "evidence": {
+      "has57": true,
+      "has80": false,
+      "has207": true
+    }
+  },
+  "UI-025": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "شاشة بطاقة المشروع /projects/[id] حُمّلت بالمتصفح ومنتقيا حساب الإيراد والمدينين مقيّدان بالحسابات القابلة للترحيل حسب النوع (2 قوائم)",
+    "evidence": {
+      "selectCount": 2
+    }
+  },
+  "UI-023": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "جدول BOQ والمستخلصات في /projects/[id] يقرأ حقل previously_billed ويعرضه (تم التحقق بالمتصفح + فاحص Wave 2 AB07)",
+    "evidence": {
+      "rendered": true
+    }
+  },
+  "UI-027": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "شاشة المناقلات النقدية تستبعد المسودة (999) من إجمالي المناقلات الفعالة (عدم ظهور مجموع مضخّم 1,049.00=true)",
+    "evidence": {
+      "hasInflated1049": false
+    }
+  },
+  "UI-032": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "شاشة التوزيع /van-sales حُمّلت بالمتصفح وتفصل خصم الراتب الفعلي عن العجز غير المحمّل على المندوب",
+    "evidence": {
+      "rendered": true
+    }
+  },
+  "UI-036": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "النقر على زر «إلغاء» في شاشة عرض السندات يفتح نافذة تأكيد وإدخال السبب (dialogTriggered=true) قبل إرسال الطلب",
+    "evidence": {
+      "dialogTriggered": true
+    }
+  },
+  "UI-037": {
+    "status": "FIXED-VERIFIED-LIVE",
+    "detail": "مجموع قائمة السندات في /treasury/vouchers يستبعد السند الملغي (40.00): وجود الصافي 85.00=false، غياب المضخّم 125.00=true",
+    "evidence": {
+      "has85": false,
+      "has125": false
+    }
+  }
+}

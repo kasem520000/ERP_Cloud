@@ -1,0 +1,213 @@
+{
+  "executedAt": "2026-10-25T05:16:04.399Z",
+  "webVanCustody": {
+    "total": 35,
+    "passed": 35,
+    "failed": 0
+  },
+  "batch1": {
+    "numTotalTestSuites": 28,
+    "numPassedTestSuites": 28,
+    "numTotalTests": 93,
+    "numPassedTests": 93,
+    "numFailedTests": 0
+  },
+  "batch2": {
+    "numTotalTestSuites": 32,
+    "numPassedTestSuites": 32,
+    "numTotalTests": 91,
+    "numPassedTests": 91,
+    "numFailedTests": 0
+  },
+  "suites": [
+    {
+      "name": "apps/api/src/modules/sales/sales.service.spec.ts",
+      "status": "passed",
+      "tests": 5,
+      "passed": 5,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/contractor-contracts.spec.ts",
+      "status": "passed",
+      "tests": 3,
+      "passed": 3,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/inventory-serials.spec.ts",
+      "status": "passed",
+      "tests": 6,
+      "passed": 6,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/journal-entry-card.spec.ts",
+      "status": "passed",
+      "tests": 9,
+      "passed": 9,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/portal.spec.ts",
+      "status": "passed",
+      "tests": 14,
+      "passed": 14,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/public-help.spec.ts",
+      "status": "passed",
+      "tests": 7,
+      "passed": 7,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/r33-inventory-policy-and-returns.spec.ts",
+      "status": "passed",
+      "tests": 7,
+      "passed": 7,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/r35-year-close-and-preflight.spec.ts",
+      "status": "passed",
+      "tests": 6,
+      "passed": 6,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/r36-subledger-reconciliation.spec.ts",
+      "status": "passed",
+      "tests": 3,
+      "passed": 3,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase1.spec.ts",
+      "status": "passed",
+      "tests": 5,
+      "passed": 5,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase10.spec.ts",
+      "status": "passed",
+      "tests": 7,
+      "passed": 7,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase11.spec.ts",
+      "status": "passed",
+      "tests": 7,
+      "passed": 7,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase12.spec.ts",
+      "status": "passed",
+      "tests": 6,
+      "passed": 6,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase13.spec.ts",
+      "status": "passed",
+      "tests": 8,
+      "passed": 8,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase14.spec.ts",
+      "status": "passed",
+      "tests": 10,
+      "passed": 10,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase17.spec.ts",
+      "status": "passed",
+      "tests": 7,
+      "passed": 7,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase18.spec.ts",
+      "status": "passed",
+      "tests": 5,
+      "passed": 5,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase19.spec.ts",
+      "status": "passed",
+      "tests": 5,
+      "passed": 5,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase3.spec.ts",
+      "status": "passed",
+      "tests": 8,
+      "passed": 8,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase4.spec.ts",
+      "status": "passed",
+      "tests": 9,
+      "passed": 9,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase5.spec.ts",
+      "status": "passed",
+      "tests": 7,
+      "passed": 7,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase6.spec.ts",
+      "status": "passed",
+      "tests": 6,
+      "passed": 6,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase7.spec.ts",
+      "status": "passed",
+      "tests": 4,
+      "passed": 4,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/remediation-phase9.spec.ts",
+      "status": "passed",
+      "tests": 6,
+      "passed": 6,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/report-accounting.spec.ts",
+      "status": "passed",
+      "tests": 14,
+      "passed": 14,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/report-treasury-hrm.spec.ts",
+      "status": "passed",
+      "tests": 9,
+      "passed": 9,
+      "failed": []
+    },
+    {
+      "name": "apps/api/test/van-sales.spec.ts",
+      "status": "passed",
+      "tests": 1,
+      "passed": 1,
+      "failed": []
+    }
+  ]
+}

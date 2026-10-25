@@ -1,0 +1,106 @@
+[
+  {
+    "probe": "probe-d3-mf33.mjs",
+    "exitCode": 0,
+    "durationMs": 2213,
+    "passCount": 5,
+    "failCount": 1,
+    "output": "probe-d3-mf33 — 2026-10-25T04:57:49.403Z\nAPI=http://127.0.0.1:3000/api/v1\n\nPASS L01 — login owner → 200\nPASS M01 — catalog → 200; entry=group=accounting title=مطابقة الأستاذ مع الدفاتر الفرعية (إجمالي 108)\nPASS M02 — run → 200; 6 صفاً؛ أزواج: بنك — 1221001 شبكة | صندوق — 1211001 الصندوق الرئيسي | مخزون — 1270001 | ذمم مدينة — عميل التحقق الآجل | ذمم دائنة — مورد التحقق | ضريبة — 2222001\nPASS M03 — grandTotal=[{\"key\":\"difference\",\"labelAr\":\"💰 مجموع الفروق (المتوقّع 0)\",\"amount\":\"0.00\"}]؛ الحالة متسقة مع المبلغ لكل صف: true\nPASS M04 — فروق verify الحية: صفر (كل الأزواج مطابقة)؛ رقابة−فرعي=فرق متسق: true\n\nصفوف التقرير الحيّة:\n  ✓ بنك — 1221001 شبكة | رقابة 180100.00 | فرعي 180100.00 | فرق 0.00 | مشتبه: JE-000011، JE-000001\n  ✓ صندوق — 1211001 الصندوق الرئيسي | رقابة 49890.00 | فرعي 49890.00 | فرق 0.00 | مشتبه: JE-000010، JE-000009، JE-000008\n  ✓ مخزون — 1270001 | رقابة 350.00 | فرعي 350.00 | فرق 0.00 | \n  ✓ ذمم مدينة — عميل التحقق الآجل | رقابة 139.20 | فرعي 139.20 | فرق 0.00 | مشتبه: SR-000001، SI-000002\n  ✓ ذمم دائنة — مورد التحقق | رقابة 275.00 | فرعي 275.00 | فرق 0.00 | مشتبه: PI-000001\n  ✓ ضريبة — 2222001 | رقابة -13.80 | فرعي -13.8000 | فرق 0.00 | \n\nTOTAL 5 · FAIL 0\n"
+  },
+  {
+    "probe": "probe-d5-mf32.mjs",
+    "exitCode": 0,
+    "durationMs": 6911,
+    "passCount": 12,
+    "failCount": 1,
+    "output": "probe-d5-mf32 — 2026-10-25T04:57:56.315Z\nAPI=http://127.0.0.1:3000/api/v1\n\nPASS L01 — login owner → 200\nPASS C01 — equity-changes=مُسجَّل — BS params=[to,compareFrom,compareTo,branchId] — IS params=[from,to,compareFrom,compareTo,branchId]\nPASS E01 — GET equity-changes → 200، صفوف=2\nPASS E02 — هوية الصفوف: فحصنا=2، مخالف=0\nPASS E04 — مجاميع: Σافتتاحي=0.0000 + Σتغييرات=250218.0000 = 250218.0000\nPASS B01 — أعمدة بلا مقارنة: [section,code,account,balance]\nPASS B02 — أعمدة مقارنة: [section,code,account,balance,prev,diff] — صفوف=11، فحصنا=11، فرق خاطئ=0\nPASS I01 — أعمدة بلا مقارنة: [section,code,account,amount]\nPASS I02 — أعمدة مقارنة: [section,code,account,amount,prev,diff] — صفوف=5، فحصنا=5، فرق خاطئ=0\nPASS N01 — compareFrom وحده → أعمدة: [section,code,account,balance]\nPASS X01 — CSV export → 201، يحوي «السابق»=true، «الفرق»=true\nPASS S01 — GET staff /reports → 200\n\nTOTAL 12 · FAIL 0\n"
+  },
+  {
+    "probe": "probe-d6-cash-flow.mjs",
+    "exitCode": 0,
+    "durationMs": 2891,
+    "passCount": 8,
+    "failCount": 1,
+    "output": "probe-d6-cash-flow — 2026-10-25T04:57:59.207Z\nAPI=http://127.0.0.1:3000/api/v1\n\nPASS L01 — login owner → 200\nPASS C01 — cash-flow-statement=مُسجَّل — params=[from,to,branchId]\nPASS F01 — GET → 200، أعمدة=[section,item,amount]، صفوف=11\nPASS F02 — هوية حية: تشغيلي=-10.00 · استثماري=-20000.00 · تمويلي=250000.00 · تغير=229990.00 · أول=0.00 · آخر=229990.00\nPASS F03 — صفوف الملخص الستة موجودة\nPASS F04 — صف «غير مصنّف» = 0.0000\nPASS X01 — CSV export → 201، رؤوس=[القسم:true، البند:true، المبلغ:true]\nPASS S01 — GET staff /reports → 200\n\nTOTAL 8 · FAIL 0\n"
+  },
+  {
+    "probe": "probe-d1-r34.mjs",
+    "exitCode": 0,
+    "durationMs": 13929,
+    "passCount": 14,
+    "failCount": 0,
+    "output": "PASS L01 — login owner → 200\nPASS P01 — POST /parties paymentTermsDays=45 → 201 (45)\nPASS R01 — scope branch=01a17158-03b5-736e-a0ab-0ed71d19f38d wh=01a17158-03b6-71af-a461-864c66f95e18 safe=01a17158-03b9-73fb-b2a9-b177a295c259 item=01a17158-0ca8-77bd-85dc-64cfd98a0f89\nPASS D01 — create sales invoice → 201; dueDate=2026-12-09 (expected 2026-12-09)\nPASS D02 — post → 201 status=posted\nPASS A01 — ar-aging@+40 → bucket_0_30=46.00 bucket_31_60=0.00 (>=46/0 = due-based)\nPASS H01 — PUT creditHold=true → 200\nPASS H02 — credit post while held → 422 PARTY_CREDIT_HOLD\nPASS H03 — full cash sale while held → 201 status=posted\nPASS H04 — after lifting the hold → 201\nPASS P02 — purchase invoice status=201 dueDate=2026-11-24 (expected 2026-11-24)\nPASS B01 — seed NET30 invoice SI-000002 dueDate=2026-11-24\nPASS B02 — seed cash invoice SI-000001 dueDate=NULL (بلا مدة = NULL والعمار من القيد)\n\nALL PASS (13 checks)\n"
+  },
+  {
+    "probe": "probe-d4-mf15.mjs",
+    "exitCode": 0,
+    "durationMs": 18345,
+    "passCount": 17,
+    "failCount": 1,
+    "output": "probe-d4-mf15 — 2026-10-25T04:58:31.482Z\nAPI=http://127.0.0.1:3000/api/v1\n\nPASS L01 — login owner → 200\nPASS P01 — فترات مفتوحة: 12؛ تاريخ الأسطر=2026-10-01\nPASS F01 — POST /treasury/bank-accounts → 201 id=01a1716c-7683-744c-8875-fec39cb3e89c\nPASS F01b — POST /expense-types → 201\nPASS F02 — import → 201 statement=01a1716c-8277-721f-932e-86d9d20a086c\nPASS F02b — أسطر: 2 (رسوم=نعم)\nPASS F03 — expense → 201؛ سند=PV-000003 status=posted amount=13.3700؛ السطر=matched ثقة=1.0000\nPASS F04a — إعادة استخدام السطر → 409 BANK_EXPENSE_LINE_NOT_PENDING\nPASS F04b — سطر دائن → 422 BANK_EXPENSE_LINE_NOT_DEBIT\nPASS F05a — approve → 201 status=approved\nPASS F05b — تكرار → 409 BANK_STATEMENT_APPROVED\nPASS F05c — تلقائي → 409 BANK_STATEMENT_APPROVED\nPASS F05d — مطابقة (بجسم ناقص!) → 409 BANK_STATEMENT_APPROVED\nPASS F05e — القراءة أثناء القفل → 200\nPASS F06a — unapprove → 201 status=processed\nPASS F06b — تلقائي بعد الفك → 201\nPASS F07 — تنظيف: void=201، unmatch=200، del-stmt=200، del-type=200، del-bank=200\n\nTOTAL 17 · FAIL 0\n"
+  },
+  {
+    "probe": "probe-d8-amortization.mjs",
+    "exitCode": 0,
+    "durationMs": 16652,
+    "passCount": 9,
+    "failCount": 1,
+    "output": "probe-d8 — 2026-10-25T04:58:48.133Z\nAPI=http://127.0.0.1:3000/api/v1\n\nPASS L01 — login → 200\nPASS A01 — voucher → 201/201، قفزة المقدّم=12000.0000\nPASS A02 — POST schedules → 201، القسط=1000.0000\nPASS A03 — توليد=201/201/201، مقدّم=9000.0000 (المطلوب9,000)، مصروف=3000.0000، قائمة balance=9000.0000 count=3\nPASS A04 — تكرار → 409 AMORTIZATION_INSTALLMENT_EXISTS، مقدّم ما زال=9000.0000\nPASS A05 — إقفال=true، توليد في مغلق → 409 FISCAL_PERIOD_CLOSED، المصروف ثابت=true، إعادة الفتح=201 والحالة النهائية=open\nPASS A06 — إنشاء=201 توليد=201، يوليو=-1000.0000 (المطلوب−1,000)، عكس.1أغسطس=1000.0000، الكلّي=0.0000، تكرار→409\nPASS T01 — ميزان كليّ: مدين=269184.9400 دائن=269184.9400\nPASS S01 — GET staff /accounting/amortization-schedules → 200\n\nTOTAL 9 · FAIL 0\n"
+  },
+  {
+    "probe": "probe-d9-fixed-assets.mjs",
+    "exitCode": 0,
+    "durationMs": 17832,
+    "passCount": 11,
+    "failCount": 1,
+    "output": "probe-d9 — 2026-10-25T04:59:05.965Z\nAPI=http://127.0.0.1:3000/api/v1\n\nPASS L01 — login → 200\nPASS F01 — حسابات: أصل=true مُهلك=true مصروف=true ربح=true خسارة=true تمويل=true\nPASS F02 — فئة FA-PROBE → جاهزة\nPASS F03 — أصل=مُسجَّل، قفزة حساب الأصل=12000.0000 (12,000 عند الإنشاء)، السجل cost=12000.0000\nPASS F04 — معاينة → 201 ، أسطر=1، قسط=200.0000 (200 عند الإنشاء)، المصروف بلا قيد=true\nPASS F05 — تشغيل=preview → ترحيل=201، مصروف+200.0000 مُهلك-200.0000، تكرار ترحيل→409 DEPRECIATION_RUN_ALREADY_POSTED\nPASS F06 — تشغيل مكرر → 409 DEPRECIATION_PERIOD_RUN_EXISTS، المصروف ثابت=true\nPASS F07 — بيع → 201، gainLoss=-1800.0000 (المطلوب−1,800 خسارة)، حساب الأصل=0.0000 (الفارق−12,000)، الخسارة+1800.0000، الربح=0.0000، السجل=disposed\nPASS T01 — ميزان كليّ: مدين=303384.9400 دائن=303384.9400\nPASS S01 — GET staff /accounting/fixed-assets → 200\nPASS S02 — GET staff /accounting/asset-categories → 200\n\nTOTAL 11 · FAIL 0\n"
+  },
+  {
+    "probe": "probe-d10-collection.mjs",
+    "exitCode": 0,
+    "durationMs": 24541,
+    "passCount": 12,
+    "failCount": 1,
+    "output": "probe-d10 — 2026-10-25T04:59:30.505Z\nAPI=http://127.0.0.1:3000/api/v1\n\nPASS L01 — login → 200\nPASS F01 — حسابات: خسارة=true مخصص=true مصروف=true\nPASS F02 — قاعدة 30+: true · القواعد 1\nPASS F03 — فاتورة متأخرة: SI-000006 · متاح 100.0000 · تأخر Tue Sep 15 2026 00:00:00 GMT+0000 (Coordinated Universal Time)\nPASS F04 — إرسال → 201 not_configured · أحداث في الكشف: 1\nPASS F05 — مخصص → 201 بمبلغ 10.0000 · قفزة المصروف +10.0000 · المخصص -10.0000\nPASS F06 — شطب 100.0000 → approved · رصيد 100.0000→0.0000 · سطر مُخصَّص=true · في الكشف=approved · اعتماد ثانٍ=409\nPASS F07 — استرداد 25 → 201 · الخسارة -25.0000 · المسترد 25.0000 · تجاوز → 422 RECOVERY_EXCEEDS\nPASS F08 — التقرير → 200 · إجمالي=0.0000 · الكشف=0.0000\nPASS T01 — ميزان كليّ: مدين=303659.9400 دائن=303659.9400\nPASS S01 — GET staff /accounting/collection → 200\nPASS S02 — GET staff /reports/balance-confirmation → 200\n\nTOTAL 12 · FAIL 0\n"
+  },
+  {
+    "probe": "probe-d11-payroll-eosb.mjs",
+    "exitCode": 0,
+    "durationMs": 33899,
+    "passCount": 19,
+    "failCount": 1,
+    "output": "probe-d11 — 2026-10-25T05:00:04.406Z\nAPI=http://127.0.0.1:3000/api/v1\n\nPASS L01 — login → 200\nPASS P00 — موظفا الاكتشاف: متوسط=true كامل=true ثالث=true\nPASS P05 — معاينة 201 · إجمالي الموظف المتوسط=2193.55 (< 4000 ⇐ تناسب)\nPASS P01 — إنشاء=201 · journalLines → 422 PAYROLL_JOURNAL_LINES_FORBIDDEN · الحالة=draft\nPASS P02 — ترحيل → 201 · متوازن=true · ذمة=2 بحسابات مختلفة=2 · مصروف=1\nPASS P03 — صرف → 201 · تكرار → 409 SALARY_ALREADY_PAID · سندات=2 (≥ 2 ⇐ لكل موظف)\nPASS P04 — عكس → 201 · قيد العكس=1 · سندات ملغاة=2 · الحالة=reversed\nPASS E01 — first=0.5000 after=1.0000 · حساب المخصص=true\nPASS E02 — معاينة → 201 · سطور=3 · قيود قبل/بعد=0/0 · منشورة=0\nPASS E03 — ترحيل1 → 201 Δ=30596.0000 · تكرار → 409 EOSB_PERIOD_ALREADY_POSTED · ترحيل2 → 201 · قيد1 متوازن=true\nPASS E04 — AC3 بعد مرحلتين · التقرير=31253.6000 · GL=31253.6000\nPASS E05a — AC3 بعد عكس الفترة2 · التقرير=30596.0000 · GL=30596.0000\nPASS E05b — بلا سبب → 422 · عكس → 201 · إعادة → 201 (AC3 بعد العكس=30596.0000)\nPASS E05c — AC3 بعد إعادة الترحيل · التقرير=31253.6000 · GL=31253.6000\nPASS E06 — ترحيل3 → 201 · أسطر=4 · مخصص مدين=7664.3500 دائن=339.2000 · Δ=-7325.1500\nPASS E06b — AC3 بعد Δ السالب (مختلط) · التقرير=23928.4500 · GL=23928.4500\nPASS T01 — ميزان كليّ: مدين=368232.2900 دائن=368232.2900\nPASS S01 — GET staff /hrm/payroll/eosb → 200\nPASS S02 — GET staff /reports/end-of-service-liability → 200\n\nTOTAL 19 · FAIL 0\n"
+  },
+  {
+    "probe": "probe-d12-tax-filing.mjs",
+    "exitCode": 0,
+    "durationMs": 11542,
+    "passCount": 15,
+    "failCount": 1,
+    "output": "probe-d12 — 2026-10-25T05:00:15.948Z\nAPI=http://127.0.0.1:3000/api/v1\nالنطاق المقدَّم: 2026-10-01 .. 2026-10-31 (شهر واحد على verify2026)\n\nPASS L01 — login → 200\nPASS V00 — تقرير → 200 · بنود=13 (13) · الفترة=open · الصافي=-1.8000\nPASS V01 — AC3a: صافي التقرير=-1.8000 · 2222001=-1.8000 · فرق=0.0000\nPASS V02 — تقديم → 201 · netVat=-1.8000 (التقرير -1.8000) · قيد=true (متوقّع=true) · فترات مقفلة=1\nPASS V03 — AC3b: أسطر=2 · 1280001 D=1.8000/C=0.0000 , 2222001 D=0.0000/C=1.8000 · |التسوية - |صافي||=0.0000 · 2222001 بعد=0.0000 · is_vat=false\nPASS V04 — إعادة التقرير=اللقطة (true) · بنود=13 · الفترة=closed · قيد لاحق→409 FISCAL_PERIOD_CLOSED · فاتورة لاحقة: autoPost → 409 FISCAL_PERIOD_CLOSED\nPASS V05 — نفس النطاق → 409 VAT_FILING_ALREADY_FILED\nPASS V06 — نطاق ممتد → 409 VAT_FILING_ALREADY_FILED\nPASS V07 — reopen → 409 VAT_FILING_EXISTS\nPASS V08 — قائمة → 200 · سجلات=1 · تفاصيل → 200 · snapshot.rows=13\nPASS V10 — GET /reports/vat-return → 200\nPASS T01 — ميزان كليّ: مدين=368234.0900 دائن=368234.0900\nPASS S01 — GET staff /accounting/tax-filings → 200 · manifest=true\nPASS S02 — GET staff /reports/vat-return-period → 200\nPASS N01 — nav:tax-filings في اللقطة=true وفي navigation.ts=true\nCOMPENSATION: أُعيدت بذرة التحقق بعد الفحص بـ `pnpm verify-seed -- --reset` (الإقرار لا يُلغى عبر API — قفل مقصود بـAC1).\n\nTOTAL 15 · FAIL 0\n"
+  },
+  {
+    "probe": "probe-d13-fx-cycle.mjs",
+    "exitCode": 1,
+    "durationMs": 9005,
+    "passCount": 4,
+    "failCount": 0,
+    "output": "PASS L01 — login → 200\nPASS F01 — USD → 201 · EUR → 201\nPASS F02 — سعر 3.75@2026-10-24 → 201 · 3.76@2026-10-25 → 201\nPASS F02b — فرع/مستودع/صنف/صندوق ✓ · موقع USD=true\nERROR invalid input syntax for type uuid: \"\"\n"
+  },
+  {
+    "probe": "probe-d2-year-close.mjs",
+    "exitCode": 1,
+    "durationMs": 30756,
+    "passCount": 24,
+    "failCount": 2,
+    "output": "probe-d2-year-close — 2026-10-25T05:00:55.710Z\nAPI=http://127.0.0.1:3000/api/v1\n\nPASS L01 — login owner → 200\nPASS Y00 — GET /fiscal-years → 200 (1 سنة)\nPASS P00 — GET /fiscal-periods → 200; أول فترة مفتوحة 2026-12\nPASS F01 — preflight 2026-12 → 200; checks=[draft_invoices,draft_journals,draft_vouchers,negative_stock,open_shifts,pending_approvals]; blockers=[]\nPASS V01 — close-preview 2026 → 200; blockingErrors=[\"FISCAL_YEAR_PERIODS_OPEN\"] openPeriods=11\nPASS N01 — POST /fiscal-years 2029 → 201\nPASS N02 — فترات 2029 → 12\nPASS N03 — accounts: 1110001=ok 4100001=ok\nPASS J01 — POST /journal-entries إيراد 2029-06 → 201\nPASS C01 — 2029: أُغلقت 12 فترة هذه الجولة؛ المفتوحة الآن 0\nPASS V02 — close-preview 2029 → netIncome=-27645.45 (مجموع الأسطر -27645.4500) retained=2130001 blocking=[]\nPASS Y01 — POST close 2029 → 201; entry=JE-000046 netIncome=-27645.4500 (متوقّع -27645.45)\nPASS Y02 — nextYear → 2030 2030-01-01\nFAIL Y03 — closing entry → type=year_end_close src=yearId DR=29273.45 CR=29273.45 (متوقّع -27645.45) 4100001:DR=1528.0000 2130001:CR=0.0000\nPASS Y04 — بعد الإقفال netIncome=0.0000\nPASS Y05 — إعادة إقفال → 409 FISCAL_YEAR_ALREADY_CLOSED\nPASS X01 — عكس من الشاشة → 409 JOURNAL_SOURCE_DOCUMENT_REVERSAL\nPASS R01 — reopen بلا سبب → 422 REOPEN_REASON_REQUIRED\nPASS R02 — reopen → 201 status=open\nPASS R03 — بعد الفتح netIncome المستعاد=-27645.4500 (متوقّع -27645.45)\nPASS Z01 — إعادة الإقفال → 201; مفتاح جديد entry=JE-000048 (السابق 01a1716e)\nPASS Z02 — الفتح الأخير → 201\nPASS Z03 — فتح 2029-06 → 201؛ عكس إيراد الاستكشاف → 201\nPASS Z04 — إعادة إغلاق 2029-06 → 201\nPASS Z05 — الحالة النهائية netIncome=-28645.45 (متوقّع -27645.45 − 1000 إيراد معكوس)\n\nTOTAL 25 · FAIL 1\n"
+  },
+  {
+    "probe": "probe-d7-restore-verify.mjs",
+    "exitCode": 1,
+    "durationMs": 6618,
+    "passCount": 6,
+    "failCount": 3,
+    "output": "probe-d7 — 2026-10-25T05:01:02.329Z\nAPI=http://127.0.0.1:3000/api/v1\n\nPASS L01 — login → 200\nPASS B01 — POST backups → 201، id=01a1716e، rows=562\nPASS B02 — download → 200، تجزئة=243d94f8f666…، جداول=57، usage_counters مستبعد=true، قيود=161\nFAIL F01 — dry_run → 201، passed=true، جداول=57/57، TB=487327.8900/487327.8900، أُضيف=2 تُخطي=560\nPASS F02 — apply برمز خاطئ → 422 (422=RESTORE_CONFIRMATION_REQUIRED)\nFAIL F03 — apply → 201، passed=true، أُضيف=2 تُخطي=560 (ملف ممتلئ ⇐ صفر إضافة)\nPASS F04 — GET restores → 200، آخر تشغيل mode=apply، verification محفوظ=true passed=true\nPASS S01 — GET staff /settings/restore → 200\n\nTOTAL 8 · FAIL 2\n"
+  }
+]

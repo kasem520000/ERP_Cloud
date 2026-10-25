@@ -1485,7 +1485,19 @@ rows AS (
   UNION ALL
   SELECT 2, 'مخزون — 1270001',
          coalesce((SELECT name_ar FROM accounts WHERE tenant_id = ${tenantId} AND code = '1270001' AND deleted_at IS NULL), 'حساب مفقود'),
-         control_balance, sub_balance, '—'
+         control_balance, sub_balance,
+         coalesce(
+           (SELECT string_agg(r.n, '، ') FROM (
+              SELECT pi2.number AS n FROM purchase_invoices pi2
+              WHERE pi2.tenant_id = ${tenantId} AND pi2.status = 'posted' AND coalesce(pi2.invoice_discount, 0) > 0
+              ORDER BY coalesce(pi2.posted_at, pi2.created_at) DESC, pi2.number DESC LIMIT 3) r),
+           (SELECT string_agg(r.n, '، ') FROM (
+              SELECT je.number AS n FROM journal_entries je
+              JOIN journal_entry_lines jel ON jel.entry_id = je.id
+              JOIN accounts a2 ON a2.id = jel.account_id
+              WHERE je.tenant_id = ${tenantId} AND je.status = 'posted' AND a2.code = '1270001'
+              ORDER BY je.date DESC, je.number DESC LIMIT 3) r)
+         )
   FROM inventory_row
   UNION ALL
   SELECT 3, 'ذمم مدينة — ' || coalesce(p.name, allp.party_id::text),
@@ -1516,7 +1528,13 @@ rows AS (
   UNION ALL
   SELECT 5, 'ضريبة — 2222001',
          coalesce((SELECT name_ar FROM accounts WHERE tenant_id = ${tenantId} AND code = '2222001' AND deleted_at IS NULL), 'حساب ضريبة مفقود'),
-         control_balance, sub_balance, '—'
+         control_balance, sub_balance,
+         (SELECT string_agg(r.n, '، ') FROM (
+            SELECT je.number AS n FROM journal_entries je
+            JOIN journal_entry_lines jel ON jel.entry_id = je.id
+            JOIN accounts a2 ON a2.id = jel.account_id
+            WHERE je.tenant_id = ${tenantId} AND je.status = 'posted' AND a2.code = '2222001'
+            ORDER BY je.date DESC, je.number DESC LIMIT 3) r)
   FROM vat_row
 )
 SELECT pair, control_name,
@@ -1524,7 +1542,7 @@ SELECT pair, control_name,
        sub_balance::text AS sub_balance,
        round(control_balance - sub_balance, 2)::text AS difference,
        CASE WHEN abs(round(control_balance - sub_balance, 2)) <= 0.005 THEN 'مطابق' ELSE 'فرق' END AS status,
-       coalesce(nullif(suspected, ''), '—') AS suspected
+       CASE WHEN abs(round(control_balance - sub_balance, 2)) <= 0.005 THEN '—' ELSE coalesce(nullif(suspected, ''), '—') END AS suspected
 FROM rows
 ORDER BY sort_no, pair
 `;
@@ -3479,8 +3497,8 @@ const definitions: ReportDefinition[] = [
           FROM accounts acc
           LEFT JOIN (
             SELECT jel.account_id,
-                   sum(CASE WHEN je.date < ${fromBound} THEN jel.credit - jel.debit ELSE 0 END) AS before_amt,
-                   sum(CASE WHEN je.date >= ${fromBound} AND je.date <= ${toBound} THEN jel.credit - jel.debit ELSE 0 END) AS during_amt
+                   sum(CASE WHEN coalesce(je.source_type, '') = 'account_opening' OR je.date < ${fromBound} THEN jel.credit - jel.debit ELSE 0 END) AS before_amt,
+                   sum(CASE WHEN coalesce(je.source_type, '') <> 'account_opening' AND je.date >= ${fromBound} AND je.date <= ${toBound} THEN jel.credit - jel.debit ELSE 0 END) AS during_amt
             FROM journal_entry_lines jel
             JOIN journal_entries je ON je.id = jel.entry_id
             WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND je.date <= ${toBound}
@@ -3643,15 +3661,18 @@ const definitions: ReportDefinition[] = [
      * نسبة ضريبة فاتورتها (tax_total ÷ total) لا من 15 % ثابتة.
      */
     build: (tenantId, f) => sql`
-      SELECT 'مبيعات خاضعة' AS bucket, coalesce(sum(si.subtotal), 0)::text AS base, coalesce(sum(si.tax_total), 0)::text AS vat
-      FROM sales_invoices si WHERE ${salesScope(tenantId, f, 'sale')} AND si.tax_total <> 0
+      SELECT 'مبيعات خاضعة' AS bucket, coalesce(sum(sil.net), 0)::text AS base, coalesce(sum(sil.tax), 0)::text AS vat
+      FROM sales_invoice_lines sil JOIN sales_invoices si ON si.id = sil.invoice_id
+      WHERE ${salesScope(tenantId, f, 'sale')} AND sil.tax <> 0
       UNION ALL
-      SELECT 'مبيعات بنسبة صفرية / معفاة (بلا ضريبة)', coalesce(sum(CASE WHEN si.kind = 'sale' THEN si.subtotal ELSE -si.subtotal END), 0)::text, '0'
-      FROM sales_invoices si WHERE si.tenant_id = ${tenantId} AND si.kind IN ('sale', 'sale_return') AND si.status = 'posted' AND si.tax_total = 0
+      SELECT 'مبيعات بنسبة صفرية / معفاة (بلا ضريبة)', coalesce(sum(CASE WHEN si.kind = 'sale' THEN sil.net ELSE -sil.net END), 0)::text, '0'
+      FROM sales_invoice_lines sil JOIN sales_invoices si ON si.id = sil.invoice_id
+      WHERE si.tenant_id = ${tenantId} AND si.kind IN ('sale', 'sale_return') AND si.status = 'posted' AND sil.tax = 0
         AND ${onDate(sql`si.posted_at::date`, f.from, f.to)} AND ${eqIf(sql`si.branch_id`, f.branchId)} AND ${eqIf(sql`si.party_id`, f.partyId)}
       UNION ALL
-      SELECT 'مردود مبيعات', (-coalesce(sum(si.subtotal), 0))::text, (-coalesce(sum(si.tax_total), 0))::text
-      FROM sales_invoices si WHERE ${salesScope(tenantId, f, 'sale_return')} AND si.tax_total <> 0
+      SELECT 'مردود مبيعات', (-coalesce(sum(sil.net), 0))::text, (-coalesce(sum(sil.tax), 0))::text
+      FROM sales_invoice_lines sil JOIN sales_invoices si ON si.id = sil.invoice_id
+      WHERE ${salesScope(tenantId, f, 'sale_return')} AND sil.tax <> 0
       UNION ALL
       SELECT 'إشعار دائن مبيعات',
              (-coalesce(sum(round(san.amount - san.amount * coalesce(si.tax_total / nullif(si.total, 0), 0), 2)), 0))::text,
@@ -3660,15 +3681,18 @@ const definitions: ReportDefinition[] = [
       WHERE san.tenant_id = ${tenantId} AND san.status = 'posted' AND san.kind = 'credit'
         AND ${onDate(sql`coalesce(san.posted_at::date, san.created_at::date)`, f.from, f.to)} AND ${eqIf(sql`san.branch_id`, f.branchId)}
       UNION ALL
-      SELECT 'مشتريات خاضعة', coalesce(sum(pi.subtotal), 0)::text, (-coalesce(sum(pi.tax_total), 0))::text
-      FROM purchase_invoices pi WHERE ${purchaseScope(tenantId, f, 'purchase')} AND pi.tax_total <> 0
+      SELECT 'مشتريات خاضعة', coalesce(sum(pil.net), 0)::text, (-coalesce(sum(pil.tax), 0))::text
+      FROM purchase_invoice_lines pil JOIN purchase_invoices pi ON pi.id = pil.invoice_id
+      WHERE ${purchaseScope(tenantId, f, 'purchase')} AND pil.tax <> 0
       UNION ALL
-      SELECT 'مشتريات بلا ضريبة', coalesce(sum(CASE WHEN pi.kind = 'purchase' THEN pi.subtotal ELSE -pi.subtotal END), 0)::text, '0'
-      FROM purchase_invoices pi WHERE pi.tenant_id = ${tenantId} AND pi.kind IN ('purchase', 'purchase_return') AND pi.status = 'posted' AND pi.tax_total = 0
+      SELECT 'مشتريات بلا ضريبة', coalesce(sum(CASE WHEN pi.kind = 'purchase' THEN pil.net ELSE -pil.net END), 0)::text, '0'
+      FROM purchase_invoice_lines pil JOIN purchase_invoices pi ON pi.id = pil.invoice_id
+      WHERE pi.tenant_id = ${tenantId} AND pi.kind IN ('purchase', 'purchase_return') AND pi.status = 'posted' AND pil.tax = 0
         AND ${onDate(sql`pi.posted_at::date`, f.from, f.to)} AND ${eqIf(sql`pi.branch_id`, f.branchId)}
       UNION ALL
-      SELECT 'مردود مشتريات', (-coalesce(sum(pi.subtotal), 0))::text, coalesce(sum(pi.tax_total), 0)::text
-      FROM purchase_invoices pi WHERE ${purchaseScope(tenantId, f, 'purchase_return')} AND pi.tax_total <> 0
+      SELECT 'مردود مشتريات', (-coalesce(sum(pil.net), 0))::text, coalesce(sum(pil.tax), 0)::text
+      FROM purchase_invoice_lines pil JOIN purchase_invoices pi ON pi.id = pil.invoice_id
+      WHERE ${purchaseScope(tenantId, f, 'purchase_return')} AND pil.tax <> 0
       UNION ALL
       SELECT 'إشعار مدين مشتريات',
              (-coalesce(sum(round(pan.amount - pan.amount * coalesce(pi.tax_total / nullif(pi.total, 0), 0), 2)), 0))::text,
@@ -3728,7 +3752,7 @@ const definitions: ReportDefinition[] = [
     params: [PARTY, PERIOD[1]!],
     columns: [text('party', 'الطرف'), text('kind', 'الصفة'), money('receivable', 'الرصيد المصادَق عليه'), date('as_of', 'حتى تاريخ')],
     totals: ['receivable'],
-    grandTotal: [{ key: 'receivable', labelAr: '💰 إجمالي المصادَق عليه' }],
+    grandTotal: [{ key: 'receivable', labelAr: 'إجمالي المصادَق عليه' }],
     build: (tenantId, f) => sql`
       SELECT
         p.name AS party,
@@ -3737,9 +3761,15 @@ const definitions: ReportDefinition[] = [
         ${f.to ?? new Date().toISOString().slice(0, 10)}::date AS as_of
       FROM journal_entry_lines jl
       INNER JOIN journal_entries je ON je.id = jl.entry_id
+      INNER JOIN accounts a ON a.id = jl.account_id
       INNER JOIN parties p ON p.id = jl.party_id
       WHERE jl.tenant_id = ${tenantId}
         AND je.status = 'posted'
+        AND a.type IN ('asset', 'liability')
+        AND a.code NOT LIKE '121%'
+        AND a.code NOT LIKE '122%'
+        AND a.code NOT LIKE '127%'
+        AND a.code NOT LIKE '2222%'
         ${f.to ? sql`AND je.date <= ${f.to}` : sql``}
         ${f.partyId ? sql`AND jl.party_id = ${f.partyId}` : sql``}
       GROUP BY p.id
@@ -3764,7 +3794,7 @@ const definitions: ReportDefinition[] = [
       text('suspected', 'مستندات مشتبهة'),
     ],
     totals: ['difference'],
-    grandTotal: [{ key: 'difference', labelAr: '💰 مجموع الفروق (المتوقّع 0)' }],
+    grandTotal: [{ key: 'difference', labelAr: 'مجموع الفروق (المتوقّع 0)' }],
     build: (tenantId) => subledgerReconciliationSql(tenantId),
   },
   {

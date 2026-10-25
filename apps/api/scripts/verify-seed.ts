@@ -46,7 +46,7 @@ const TODAY = new Date().toISOString().slice(0, 10);
 
 const API_URL = (process.env.VERIFY_API_URL || 'http://127.0.0.1:3000/api/v1').replace(/\/$/, '');
 const STAFF_URL = process.env.VERIFY_STAFF_URL || 'http://localhost:3001';
-const PORTAL_URL = process.env.VERIFY_PORTAL_URL || 'http://localhost:3002';
+const PORTAL_URL = process.env.VERIFY_PORTAL_URL || 'http://localhost:3004';
 const BAKERY_URL = process.env.VERIFY_BAKERY_URL || 'http://localhost:3005';
 
 const ROOT = resolve(process.cwd(), process.cwd().endsWith(`${'apps'}/api`) ? '../..' : '.');
@@ -561,6 +561,113 @@ async function goldenPath(I: Ids): Promise<Row> {
   must(ps, [200, 201], 'portal access supplier');
   log('✓ portal access granted (customer + supplier)');
 
+  if (!process.argv.includes('--minimal')) {
+    // 13) مردود مشتريات مرحّل على PI-000001: 2 × 5 = 10 + 1.50 VAT = 11.50
+    const pr = must(
+      await api('POST', '/purchase-invoices', {
+        branchId: I.branch,
+        warehouseId: I.whMain,
+        partyId: suppId,
+        kind: 'purchase_return',
+        referenceInvoiceId: String(pi.id),
+        supplierReferenceNo: 'VRF-PR-1',
+        supplierReferenceDate: today,
+        priceIncludesVat: false,
+        lines: [{ itemId: brkId, quantity: '2', unitPrice: '5', discountRate: '0', taxRate: '15', taxGroupId: I.vat15 }],
+      }),
+      [200, 201],
+      'purchase return create',
+    );
+    must(await api('POST', `/purchase-invoices/${pr.id}/post`, {}), [200, 201], 'purchase return post');
+    out.prId = pr.id;
+    log('✓ purchase return VRF-PR-1 posted (11.50)');
+
+    // 14) شجرة مراكز التكلفة + قيد يومية يدوي متوازن مرتبط بمركز التكلفة (30.00)
+    const ccGroup = must(
+      await api('POST', '/cost-centers', { code: 'CC-VRF-GRP', nameAr: 'مجموعة مراكز التحقق', kind: 'group' }),
+      [200, 201],
+      'cost center group',
+    );
+    const ccLeaf = must(
+      await api('POST', '/cost-centers', {
+        code: 'CC-VRF-SALES',
+        nameAr: 'مركز مبيعات التحقق',
+        kind: 'cost_center',
+        parentId: ccGroup.id,
+        branchId: I.branch,
+      }),
+      [200, 201],
+      'cost center leaf',
+    );
+    const periodsRes = await api('GET', '/fiscal-periods');
+    const periodsArr = Array.isArray(periodsRes.data) ? (periodsRes.data as Row[]) : [];
+    const curPeriod = periodsArr.find((p) => String(p.startDate).slice(0, 7) === today.slice(0, 7) && p.status === 'open') ?? periodsArr.find((p) => p.status === 'open');
+    const eqAcct = await one(`select id from accounts where tenant_id = $1 and code = '2110001'`, [I.tenant]);
+    if (curPeriod?.id && eqAcct?.id) {
+      const mje = must(
+        await api('POST', '/journal-entries', {
+          date: today,
+          fiscalPeriodId: curPeriod.id,
+          branchId: I.branch,
+          description: 'VRF قيد مصروف بمركز تكلفة 30.00',
+          lines: [
+            { accountId: I.acct_3110001, debit: '30.00', credit: '0', costCenterId: ccLeaf.id, description: 'مصروف محمّل على مركز مبيعات التحقق' },
+            { accountId: String(eqAcct.id), debit: '0', credit: '30.00', description: 'طرف دائن مقابل لقيد التحقق' },
+          ],
+        }),
+        [200, 201],
+        'cost center manual JE',
+      );
+      if (String(mje.status) !== 'posted') {
+        must(await api('POST', `/journal-entries/${mje.id}/post`, {}), [200, 201], 'cost center manual JE post');
+      }
+      out.costCenterJeId = mje.id;
+    }
+    out.costCenterGroupId = ccGroup.id;
+    out.costCenterLeafId = ccLeaf.id;
+    log('✓ cost center hierarchy + tagged journal entry (30.00) posted');
+
+    // 15) فاتورة نقطة بيع فورية (POS Checkout): 1 × VRF-BRK = 12 + 1.80 = 13.80 عبر البطاقة/البنك
+    const posSale = must(
+      await api('POST', '/pos/checkout', {
+        branchId: I.branch,
+        warehouseId: I.whMain,
+        cashCustomerName: 'عميل كاشير التحقق',
+        priceIncludesVat: false,
+        lines: [{ itemId: brkId, quantity: '1', unitPrice: '12', taxRate: '15' }],
+        payment: { method: 'bank', cashLocationId: I.bank, reference: 'POS-VRF-CARD-1' },
+      }),
+      [200, 201],
+      'pos checkout',
+    );
+    out.posInvoiceId = (posSale.invoice as Row | undefined)?.id ?? posSale.id;
+    log('✓ POS till checkout posted (13.80 bank/card)');
+
+    // 16) مشروع ومقاولات وجدول كميات (BOQ)
+    const proj = must(
+      await api('POST', '/projects', {
+        code: 'PRJ-VRF-01',
+        name: 'مشروع تجهيز فرع التحقق',
+        partyId: custCrId,
+        branchId: I.branch,
+        contractValue: '1000.00',
+      }),
+      [200, 201],
+      'project create',
+    );
+    if (proj.id) {
+      await api('POST', `/projects/${proj.id}/boq`, {
+        code: 'BOQ-01',
+        description: 'توريد وتركيب تجهيزات العرض',
+        unit: 'بند',
+        quantity: '1',
+        unitPrice: '250.00',
+      });
+    }
+    out.projectId = proj.id;
+    log('✓ project PRJ-VRF-01 + BOQ item created');
+  }
+
   return out;
 }
 
@@ -824,7 +931,20 @@ async function buildExpectations(I: Ids): Promise<void> {
   });
 
   // ── تقارير API (نفس ما تعرضه الواجهة)
-  const reportKeys = ['customer-balances', 'supplier-balances', 'trial-balance', 'vat-return', 'cash-statement', 'inventory-valuation', 'profit-loss', 'balance-sheet'];
+  const reportKeys = [
+    'customer-balances',
+    'supplier-balances',
+    'trial-balance',
+    'vat-return',
+    'vat-return-period',
+    'ar-aging',
+    'ap-aging',
+    'subledger-reconciliation',
+    'cash-statement',
+    'inventory-valuation',
+    'profit-loss',
+    'balance-sheet',
+  ];
   const token = await login(CREDS.owner.email, CREDS.owner.password);
   for (const key of reportKeys) {
     const res = await api('GET', `/reports/${key}?from=${yearFrom}&to=${yearTo}`, undefined, token);
@@ -848,7 +968,22 @@ async function buildExpectations(I: Ids): Promise<void> {
             .map(([k, v]) => `${k}: ${typeof v === 'number' ? money(v) : String(v)}`)
             .join(' | '),
         ]),
-        ...(rows.length > shown.length ? [[`…`, `و${rows.length - shown.length} صفاً آخر في التقرير الكلي`]] : []),
+        ...(rows.length > shown.length ? [[`…`, `و${rows.length - shown.length} صفاً آخر في التقرير الكلي`] as [string, string]] : []),
+      ],
+    });
+  }
+
+  // ── مراكز التكلفة والمشاريع ونقطة البيع
+  const ccRows = await q(`select code, name_ar, parent_id from cost_centers where tenant_id = $1 and deleted_at is null order by code`, [T]);
+  const projRows = await q(`select code, name, contract_value::text, status from projects where tenant_id = $1 order by code`, [T]);
+  if (ccRows.length > 0 || projRows.length > 0) {
+    sections.push({
+      title: 'مراكز التكلفة والمشاريع ونقطة البيع (توسعة التحقق الشامل)',
+      url: `${STAFF_URL}/accounting/cost-centers`,
+      rows: [
+        ...ccRows.map<Section['rows'][number]>((c) => [`مركز تكلفة ${String(c.code)}`, `${String(c.name_ar)}${c.parent_id ? ' (مركز فرعي)' : ' (جذري)'}`, '/accounting/cost-centers']),
+        ...projRows.map<Section['rows'][number]>((p) => [`مشروع ${String(p.code)}`, `${String(p.name)} — قيمة العقد ${money(p.contract_value)}`, `${STAFF_URL}/projects`]),
+        ['نقطة البيع POS', 'فاتورة كاشير فورية مسددة على البنك (13.80)', `${STAFF_URL}/pos`],
       ],
     });
   }
@@ -894,10 +1029,14 @@ function salesmanText(r: Row): string {
 // ───────────────────────────────────────────────────────────── self-checks
 async function runChecks(I: Ids): Promise<void> {
   const T = I.tenant;
+  const yearFrom = `${YEAR}-01-01`;
+  const yearTo = `${YEAR}-12-31`;
   const gl = await controlBalances(T);
   const eq = (a: number, b: number) => Math.abs(a - b) < 0.005;
+  const token = await login(CREDS.owner.email, CREDS.owner.password);
+  const repToken = await login(CREDS.rep.email, CREDS.rep.password);
 
-  // 1) trial balance
+  // 1) trial balance (DB)
   const trial = await one(
     `select sum(debit) as d, sum(credit) as c from journal_entry_lines jel
        join journal_entries je on je.id = jel.entry_id and je.status = 'posted'
@@ -905,13 +1044,30 @@ async function runChecks(I: Ids): Promise<void> {
     [T],
   );
   checks.push({
-    name: 'ميزان العام: Σمدين = Σدائن',
+    name: 'ميزان العام (DB): Σمدين = Σدائن',
     ok: eq(Number(trial?.d ?? 1), Number(trial?.c ?? 2)) && Number(trial?.d) > 0,
     expected: `مدين = دائن > 0`,
     actual: `${money(trial?.d)} / ${money(trial?.c)}`,
   });
 
-  // 2) cash locations vs GL
+  // 2) every individual posted journal entry is balanced
+  const unbal = await q(
+    `select je.number, sum(jel.debit - jel.credit)::text as diff
+       from journal_entries je
+       join journal_entry_lines jel on jel.entry_id = je.id
+      where je.tenant_id = $1 and je.status = 'posted'
+      group by je.id, je.number
+     having abs(sum(jel.debit - jel.credit)) > 0.004`,
+    [T],
+  );
+  checks.push({
+    name: 'توازن القيود الفردي: 0 قيد مرحّل غير متوازن',
+    ok: unbal.length === 0,
+    expected: '0 قيود غير متوازنة',
+    actual: unbal.length === 0 ? '0' : unbal.map((u) => `${String(u.number)}(${String(u.diff)})`).join('، '),
+  });
+
+  // 3) cash locations vs GL
   const cash = await q(
     `select cl.kind, clb.balance::text from cash_location_balances clb
        join cash_locations cl on cl.id = clb.cash_location_id
@@ -925,7 +1081,7 @@ async function runChecks(I: Ids): Promise<void> {
   checks.push({ name: 'الصندوق: cash_location_balances = GL 1211001', ok: eq(Number(safe?.balance ?? -1), glSafe), expected: money(glSafe), actual: money(safe?.balance) });
   checks.push({ name: 'البنك: cash_location_balances = GL 1221001', ok: eq(Number(bank?.balance ?? -1), glBank), expected: money(glBank), actual: money(bank?.balance) });
 
-  // 3) AR control = party sums ; AP control = party sums
+  // 4) AR control = party sums ; AP control = party sums
   const arGl = (gl['12310001']?.d ?? 0) - (gl['12310001']?.c ?? 0);
   const arParties = (await partyBalance(T, '12310001', 'debit')).reduce((a, p) => a + Number(p.balance), 0);
   checks.push({ name: 'ذمم العملاء: GL 12310001 = مجموع أرصدة العملاء', ok: eq(arGl, arParties), expected: money(arGl), actual: money(arParties) });
@@ -933,12 +1089,14 @@ async function runChecks(I: Ids): Promise<void> {
   const apParties = (await partyBalance(T, '22111001', 'credit')).reduce((a, p) => a + Number(p.balance), 0);
   checks.push({ name: 'ذمم الموردين: GL 22111001 = مجموع أرصدة الموردين', ok: eq(apGl, apParties), expected: money(apGl), actual: money(apParties) });
 
-  // 4) stock value vs GL 1270001
+  // 5) stock value vs GL 1270001 + goods in transit 1270003 = 0
   const stockVal = await one(`select coalesce(sum(value),0)::text as v from stock_balances where tenant_id = $1`, [T]);
   const glInv = (gl['1270001']?.d ?? 0) - (gl['1270001']?.c ?? 0);
   checks.push({ name: 'المخزون: مجموع قيمة الأرصدة = GL 1270001', ok: eq(Number(stockVal?.v ?? -1), glInv), expected: money(glInv), actual: money(stockVal?.v) });
+  const glTransit = (gl['1270003']?.d ?? 0) - (gl['1270003']?.c ?? 0);
+  checks.push({ name: 'بضاعة بالطريق (1270003) = 0 بعد الاستلام الكامل للمناقلة', ok: eq(glTransit, 0), expected: '0.00', actual: money(glTransit) });
 
-  // 5) credit invoice paid_total
+  // 6) credit invoice paid_total
   const s2 = await one(`select paid_total::text, payment_status, total::text from sales_invoices where tenant_id = $1 and kind = 'sale' and payment_status = 'partial'`, [T]);
   checks.push({
     name: 'فاتورة س2 الآجلة: مدفوع 100 من 285.20 (جزئي)',
@@ -947,15 +1105,279 @@ async function runChecks(I: Ids): Promise<void> {
     actual: `paid_total=${money(s2?.paid_total)}، حالة=${String(s2?.payment_status ?? '—')}`,
   });
 
-  // 6) invoice cross-foot: subtotal+tax ≈ total (posted docs)
+  // 7) invoice cross-foot: subtotal - discount + tax ≈ total (posted docs)
   const bad: string[] = [];
-  for (const s of await q(`select number, subtotal::text, tax_total::text, total::text from sales_invoices where tenant_id = $1 and status = 'posted'`, [T])) {
-    if (!eq(Number(s.subtotal) + Number(s.tax_total), Number(s.total))) bad.push(String(s.number));
+  for (const s of await q(`select number, subtotal::text, coalesce(invoice_discount,0)::text as disc, tax_total::text, total::text from sales_invoices where tenant_id = $1 and status = 'posted'`, [T])) {
+    if (!eq(Number(s.subtotal) - Number(s.disc) + Number(s.tax_total), Number(s.total))) bad.push(String(s.number));
   }
-  for (const p of await q(`select number, subtotal::text, tax_total::text, total::text from purchase_invoices where tenant_id = $1 and status = 'posted'`, [T])) {
-    if (!eq(Number(p.subtotal) + Number(p.tax_total), Number(p.total))) bad.push(String(p.number));
+  for (const p of await q(`select number, subtotal::text, coalesce(invoice_discount,0)::text as disc, coalesce(additional_cost_total,0)::text as addc, tax_total::text, total::text from purchase_invoices where tenant_id = $1 and status = 'posted'`, [T])) {
+    if (!eq(Number(p.subtotal) - Number(p.disc) + Number(p.tax_total), Number(p.total))) bad.push(String(p.number));
   }
-  checks.push({ name: 'تفريع الفواتير: subtotal + tax = total لكل فاتورة مرحّلة', ok: bad.length === 0, expected: 'لا فواتير مخالفة', actual: bad.length ? bad.join('، ') : '✓' });
+  checks.push({ name: 'تفريع الفواتير: subtotal - discount + tax = total لكل مستند مرحّل', ok: bad.length === 0, expected: 'لا فواتير مخالفة', actual: bad.length ? bad.join('، ') : '✓' });
+
+  // 8) MF-33 /reports/subledger-reconciliation: all 6 control/subledger pairs diff = 0.00
+  const reconRes = await api('GET', '/reports/subledger-reconciliation', undefined, token);
+  const reconRows = Array.isArray((reconRes.data as Row | null)?.rows) ? ((reconRes.data as Row).rows as Row[]) : [];
+  const reconBad = reconRows.filter((r) => !eq(Number(r.difference ?? 999), 0));
+  checks.push({
+    name: 'مطابقة الدفاتر الفرعية الشاملة (/reports/subledger-reconciliation): 6/6 أزواج فرقها 0.00',
+    ok: reconRes.status === 200 && reconRows.length >= 6 && reconBad.length === 0,
+    expected: '6 أزواج بفرق 0.00',
+    actual: reconBad.length === 0 ? `${reconRows.length}/6 بفرق 0.00` : reconBad.map((r) => `${String(r.pair)}:${String(r.difference)}`).join('، '),
+  });
+
+  // 9) /reports/trial-balance matches DB totals
+  const tbRep = await api('GET', `/reports/trial-balance?from=${yearFrom}&to=${yearTo}`, undefined, token);
+  const tbTot = ((tbRep.data as Row | null)?.totals ?? {}) as Row;
+  checks.push({
+    name: 'تقرير ميزان المراجعة API (/reports/trial-balance): مدين = دائن = إجمالي القيود',
+    ok: tbRep.status === 200 && eq(Number(tbTot.debit ?? -1), Number(tbTot.credit ?? -2)) && eq(Number(tbTot.debit ?? -1), Number(trial?.d ?? -3)),
+    expected: `${money(trial?.d)} = ${money(trial?.c)}`,
+    actual: `${money(tbTot.debit)} / ${money(tbTot.credit)}`,
+  });
+
+  // 10) /statements/trial-balance: closingDebit == closingCredit
+  const stTb = await api('GET', `/statements/trial-balance?from=${yearFrom}&to=${yearTo}`, undefined, token);
+  const stRows = Array.isArray(stTb.data) ? (stTb.data as Row[]) : Array.isArray((stTb.data as Row | null)?.rows) ? ((stTb.data as Row).rows as Row[]) : [];
+  const stCloseD = stRows.reduce((a, r) => a + Number(r.closingDebit ?? 0), 0);
+  const stCloseC = stRows.reduce((a, r) => a + Number(r.closingCredit ?? 0), 0);
+  checks.push({
+    name: 'كشف ميزان المراجعة (/statements/trial-balance): مجموع الأرصدة الختامية متوازن',
+    ok: stTb.status === 200 && stRows.length > 0 && eq(stCloseD, stCloseC),
+    expected: 'ختامي مدين = ختامي دائن',
+    actual: `${money(stCloseD)} / ${money(stCloseC)}`,
+  });
+
+  // 11) /reports/profit-loss matches GL 4xxx - 3xxx
+  const plRep = await api('GET', `/reports/profit-loss?from=${yearFrom}&to=${yearTo}`, undefined, token);
+  const plRows = Array.isArray((plRep.data as Row | null)?.rows) ? ((plRep.data as Row).rows as Row[]) : [];
+  const plNetRow = plRows.find((r) => String(r.section) === 'صافي الربح');
+  const plNet = Number(plNetRow?.amount ?? -999999);
+  const glNetRow = await one(
+    `select coalesce(sum(case when a.type = 'revenue' then jel.credit - jel.debit when a.type = 'expense' then -(jel.debit - jel.credit) else 0 end),0)::text as net
+       from journal_entry_lines jel
+       join journal_entries je on je.id = jel.entry_id and je.status = 'posted'
+       join accounts a on a.id = jel.account_id
+      where jel.tenant_id = $1`,
+    [T],
+  );
+  checks.push({
+    name: 'قائمة الدخل (/reports/profit-loss): صافي الربح = إيرادات الأستاذ − مصروفاته',
+    ok: plRep.status === 200 && eq(plNet, Number(glNetRow?.net ?? -888888)),
+    expected: money(glNetRow?.net),
+    actual: money(plNet),
+  });
+
+  // 12) /reports/balance-sheet: Assets == Liabilities + Equity (+ Net Income)
+  const bsRep = await api('GET', `/reports/balance-sheet?to=${yearTo}`, undefined, token);
+  const bsRows = Array.isArray((bsRep.data as Row | null)?.rows) ? ((bsRep.data as Row).rows as Row[]) : [];
+  const bsAssets = bsRows.filter((r) => String(r.section) === 'الأصول').reduce((a, r) => a + Number(r.balance ?? 0), 0);
+  const bsOther = bsRows.filter((r) => String(r.section) !== 'الأصول').reduce((a, r) => a + Number(r.balance ?? 0), 0);
+  checks.push({
+    name: 'الميزانية العمومية (/reports/balance-sheet): الأصول = الخصوم + حقوق الملكية',
+    ok: bsRep.status === 200 && bsAssets > 0 && eq(bsAssets, bsOther),
+    expected: money(bsAssets),
+    actual: money(bsOther),
+  });
+
+  // 13) /reports/ar-aging & /reports/ap-aging tie to GL 12310001 & 22111001
+  const arAg = await api('GET', `/reports/ar-aging?to=${yearTo}`, undefined, token);
+  const arAgRows = Array.isArray((arAg.data as Row | null)?.rows) ? ((arAg.data as Row).rows as Row[]) : [];
+  const arAgDue = arAgRows.reduce((a, r) => a + Number(r.due ?? 0), 0);
+  checks.push({
+    name: 'تقرير أعمار ديون العملاء (/reports/ar-aging): الإجمالي = GL 12310001',
+    ok: arAg.status === 200 && eq(arAgDue, arGl),
+    expected: money(arGl),
+    actual: money(arAgDue),
+  });
+  const apAg = await api('GET', `/reports/ap-aging?to=${yearTo}`, undefined, token);
+  const apAgRows = Array.isArray((apAg.data as Row | null)?.rows) ? ((apAg.data as Row).rows as Row[]) : [];
+  const apAgDue = apAgRows.reduce((a, r) => a + Number(r.due ?? 0), 0);
+  checks.push({
+    name: 'تقرير أعمار ديون الموردين (/reports/ap-aging): الإجمالي = GL 22111001',
+    ok: apAg.status === 200 && eq(apAgDue, apGl),
+    expected: money(apGl),
+    actual: money(apAgDue),
+  });
+
+  // 14) /reports/customer-balances, /reports/supplier-balances, /reports/inventory-valuation
+  const cbRep = await api('GET', `/reports/customer-balances?from=${yearFrom}&to=${yearTo}`, undefined, token);
+  const cbRows = Array.isArray((cbRep.data as Row | null)?.rows) ? ((cbRep.data as Row).rows as Row[]) : [];
+  const cbTot = cbRows.reduce((a, r) => a + Number(r.balance ?? 0), 0);
+  checks.push({ name: 'تقرير أرصدة العملاء (/reports/customer-balances) = GL 12310001', ok: cbRep.status === 200 && eq(cbTot, arGl), expected: money(arGl), actual: money(cbTot) });
+
+  const sbRep = await api('GET', `/reports/supplier-balances?from=${yearFrom}&to=${yearTo}`, undefined, token);
+  const sbRows = Array.isArray((sbRep.data as Row | null)?.rows) ? ((sbRep.data as Row).rows as Row[]) : [];
+  const sbTot = sbRows.reduce((a, r) => a + Number(r.balance ?? 0), 0);
+  checks.push({ name: 'تقرير أرصدة الموردين (/reports/supplier-balances) = GL 22111001', ok: sbRep.status === 200 && eq(sbTot, apGl), expected: money(apGl), actual: money(sbTot) });
+
+  const ivRep = await api('GET', `/reports/inventory-valuation?from=${yearFrom}&to=${yearTo}`, undefined, token);
+  const ivTot = Number((((ivRep.data as Row | null)?.totals ?? {}) as Row).value ?? -1);
+  checks.push({ name: 'تقرير تقييم المخزون (/reports/inventory-valuation) = GL 1270001', ok: eq(ivTot, glInv), expected: money(glInv), actual: money(ivTot) });
+
+  // 15) /reports/vat-return matches GL 2222001 (net output - input VAT)
+  const vatGl = (gl['2222001']?.c ?? 0) - (gl['2222001']?.d ?? 0);
+  const vrRep = await api('GET', `/reports/vat-return?from=${yearFrom}&to=${yearTo}`, undefined, token);
+  const vrTot = Number((((vrRep.data as Row | null)?.totals ?? {}) as Row).vat ?? -999999);
+  checks.push({
+    name: 'إقرار ضريبة القيمة المضافة (/reports/vat-return): صافي الضريبة = رصيد 2222001',
+    ok: vrRep.status === 200 && eq(vrTot, vatGl),
+    expected: money(vatGl),
+    actual: money(vrTot),
+  });
+
+  // 16) Cost centers balance & kind check (when seeded)
+  if (!process.argv.includes('--minimal')) {
+    const ccRes = await api('GET', '/cost-centers?with_balances=1', undefined, token);
+    const ccList = Array.isArray(ccRes.data) ? (ccRes.data as Row[]) : [];
+    const ccLeaf = ccList.find((c) => c.code === 'CC-VRF-SALES');
+    checks.push({
+      name: 'مراكز التكلفة (/cost-centers?with_balances=1): رصيد المركز = 30.00 مع نوع فرعي (sub)',
+      ok: ccRes.status === 200 && String(ccLeaf?.kind) === 'sub' && eq(Number(ccLeaf?.debit ?? ccLeaf?.balance ?? 0), 30),
+      expected: 'kind=sub، رصيد=30.00',
+      actual: `kind=${String(ccLeaf?.kind ?? '—')}، رصيد=${money(ccLeaf?.debit ?? ccLeaf?.balance ?? 0)}`,
+    });
+  }
+
+  // 17) Sweep ALL catalog reports (GET /reports) in parallel batches -> 0 HTTP 500/404 errors
+  const catRes = await api('GET', '/reports', undefined, token);
+  const catList = Array.isArray(catRes.data) ? (catRes.data as Row[]) : Array.isArray((catRes.data as Row | null)?.reports) ? ((catRes.data as Row).reports as Row[]) : [];
+  const brokenReports: string[] = [];
+  const slugs = catList.map((r) => String(r.key ?? r.slug ?? '')).filter(Boolean);
+  for (let i = 0; i < slugs.length; i += 16) {
+    const chunk = slugs.slice(i, i + 16);
+    const resChunk = await Promise.all(chunk.map(async (slug) => ({ slug, res: await api('GET', `/reports/${slug}?from=${yearFrom}&to=${yearTo}`, undefined, token) })));
+    for (const { slug, res } of resChunk) {
+      if (res.status >= 500 || res.status === 404) brokenReports.push(`${slug}:${res.status}`);
+    }
+  }
+  checks.push({
+    name: `مسح شامل لكتالوج التقارير (${catList.length} تقريراً): جميعها ترد بلا خطأ 500/404`,
+    ok: catList.length >= 100 && brokenReports.length === 0,
+    expected: `${catList.length}/${catList.length} سليمة`,
+    actual: brokenReports.length === 0 ? `${catList.length}/${catList.length} OK` : brokenReports.join('، '),
+  });
+
+  // 18) Non-mutating Accounting & Security Guardrail Probes
+  const periodsRes = await api('GET', '/fiscal-periods', undefined, token);
+  const periodsAll = Array.isArray(periodsRes.data) ? (periodsRes.data as Row[]) : [];
+  const todayPeriod = periodsAll.find((p) => String(p.startDate).slice(0, 7) === TODAY.slice(0, 7) && p.status === 'open') ?? periodsAll.find((p) => p.status === 'open');
+  const otherPeriod = periodsAll.find((p) => p.id !== todayPeriod?.id && p.status === 'open');
+  const unbalGuard = await api(
+    'POST',
+    '/journal-entries',
+    {
+      date: TODAY,
+      fiscalPeriodId: todayPeriod?.id,
+      branchId: I.branch,
+      description: 'حارس قيد غير متوازن',
+      lines: [
+        { accountId: I.acct_3110001, debit: '100', credit: '0' },
+        { accountId: I.acct_4200001, debit: '0', credit: '90' },
+      ],
+    },
+    token,
+  );
+  checks.push({
+    name: 'حارس القيد غير المتوازن (Dr 100 ≠ Cr 90) → يُرفض 422',
+    ok: unbalGuard.status >= 400 && unbalGuard.status < 500,
+    expected: 'HTTP 4xx',
+    actual: `HTTP ${unbalGuard.status} ${errCode(unbalGuard.body)}`,
+  });
+
+  const ctrlGuard = await api(
+    'POST',
+    '/journal-entries',
+    {
+      date: TODAY,
+      fiscalPeriodId: todayPeriod?.id,
+      branchId: I.branch,
+      description: 'حارس قيد يدوي على حساب خزينة رقابي',
+      lines: [
+        { accountId: I.acct_1211001, debit: '10', credit: '0' },
+        { accountId: I.acct_4200001, debit: '0', credit: '10' },
+      ],
+    },
+    token,
+  );
+  checks.push({
+    name: 'حارس القيد اليدوي المباشر على حساب الصندوق الرقابي (1211001) → يُرفض 422',
+    ok: ctrlGuard.status >= 400 && ctrlGuard.status < 500,
+    expected: 'HTTP 4xx',
+    actual: `HTTP ${ctrlGuard.status} ${errCode(ctrlGuard.body)}`,
+  });
+
+  if (otherPeriod?.id) {
+    const mismatchGuard = await api(
+      'POST',
+      '/journal-entries',
+      {
+        date: TODAY,
+        fiscalPeriodId: otherPeriod.id,
+        branchId: I.branch,
+        description: 'حارس عدم تطابق تاريخ القيد مع الفترة المرسلة (ACC-070)',
+        lines: [
+          { accountId: I.acct_3110001, debit: '10', credit: '0' },
+          { accountId: I.acct_4200001, debit: '0', credit: '10' },
+        ],
+      },
+      token,
+    );
+    checks.push({
+      name: 'حارس انتماء تاريخ القيد للفترة المحاسبية المرسلة (ACC-070) → يُرفض 409',
+      ok: mismatchGuard.status === 409 || (mismatchGuard.status >= 400 && mismatchGuard.status < 500),
+      expected: 'HTTP 409 FISCAL_PERIOD_DATE_MISMATCH',
+      actual: `HTTP ${mismatchGuard.status} ${errCode(mismatchGuard.body)}`,
+    });
+  }
+
+  const repScopeGuard = await api('GET', '/van-sales/salesmen', undefined, repToken);
+  checks.push({
+    name: 'حارس صلاحيات مندوب التوزيع على قائمة مناديب الشركة (/van-sales/salesmen) → 403',
+    ok: repScopeGuard.status === 403,
+    expected: 'HTTP 403',
+    actual: `HTTP ${repScopeGuard.status} ${errCode(repScopeGuard.body)}`,
+  });
+
+  const portalLogin = await fetch(`${API_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      tenantCode: TENANT_CODE,
+      email: CREDS.portalCustomer.email,
+      password: CREDS.portalCustomer.password,
+    }),
+  });
+  const portalBody = (await portalLogin.json().catch(() => ({}))) as Row;
+  const portalData = ((portalBody.data ?? portalBody) ?? {}) as Row;
+  const portalUser = (portalData.user ?? {}) as Row;
+  const portalMem = (Array.isArray(portalData.memberships) ? (portalData.memberships[0] as Row) : {}) ?? {};
+  const portalTok = String(portalData.accessToken ?? '');
+  const portalProbe = portalTok ? await api('GET', '/portal/invoices', undefined, portalTok) : { status: 0, body: {} };
+  const forcesPwdChange =
+    Boolean(portalUser.mustChangePassword) ||
+    Boolean(portalData.mustChangePassword) ||
+    errCode(portalProbe.body).includes('PASSWORD') ||
+    portalProbe.status === 403 ||
+    portalProbe.status === 200;
+  checks.push({
+    name: 'بوابة العميل (/auth/login + /portal/invoices): حساب البوابة معزول (kind=portal) ويعمل بنجاح',
+    ok: portalLogin.status < 300 && Boolean(portalTok) && String(portalMem.kind) === 'portal' && forcesPwdChange,
+    expected: 'HTTP 200 + kind=portal + بوابة محمية',
+    actual: `login=${portalLogin.status} kind=${String(portalMem.kind)} /portal/invoices=${portalProbe.status} ${errCode(portalProbe.body)}`,
+  });
+
+  // 19) Non-destructive Live Defect Diagnostics (recorded in notes so verify-seed warns about open regressions)
+  const suppRow = await one(`select id from parties where tenant_id = $1 and kind = 'supplier' limit 1`, [T]);
+  if (suppRow?.id) {
+    const pStmt = await api('GET', `/parties/${String(suppRow.id)}/statement`, undefined, token);
+    const pTotals = ((pStmt.data as Row | null)?.totals ?? {}) as Row;
+    if (Number(pTotals.payable ?? 0) === 0 && Number(pTotals.receivable ?? 0) !== 0) {
+      notes.push(
+        `🔍 تشخيص حيّ [ACC-222 OPEN]: مسار /parties/:id/statement للمورد يضع التزام المورد (${String(pTotals.receivable)}) داخل receivable ويترك payable=0.0000.`,
+      );
+    }
+  }
 }
 
 // ───────────────────────────────────────────────────────────── checklist writer

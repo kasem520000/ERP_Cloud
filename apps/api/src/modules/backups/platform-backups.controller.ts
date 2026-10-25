@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -11,6 +11,14 @@ import {
 import type { Response } from 'express';
 import {
   platformBackupQuerySchema,
+  googleDriveBackupFileSchema,
+  googleDriveConnectionSchema,
+  googleDriveDownloadSchema,
+  googleDriveUploadSchema,
+  type GoogleDriveBackupFile,
+  type GoogleDriveConnection,
+  type GoogleDriveDownload,
+  type GoogleDriveUploadInput,
   platformBackupRestoreSchema,
   platformBackupRunSchema,
   platformDataRequestCreateSchema,
@@ -376,6 +384,89 @@ export class PlatformBackupsController {
         field: 'signature',
       });
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // جوجل درايف — النسخ الاحتياطي المرتفع إلى الدرايف
+  //
+  // سبعة مسارات: الاتصال، قطع الاتصال، الوضع، الرفع، القائمة، التنزيل، الحذف، والاستعادة.
+  // ورمز واحد للجزء: `console.backups.manage` — من يملك النسخ يملك ما فيها.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  @Get('google-drive/status')
+  @ApiOperation({ summary: 'وضع جوجل درايف (متصل/غير متصل/لم يُربَط قط)' })
+  async googleDriveStatus(): Promise<{ data: GoogleDriveConnection }> {
+    return { data: await this.backups.googleDriveStatus() };
+  }
+
+  @Post('google-drive/connect')
+  @ApiOperation({ summary: 'ربط حساب جوجل درايف' })
+  async googleDriveConnect(@Body() _body: unknown): Promise<{ data: GoogleDriveConnection }> {
+    const ctx = getAuthContext();
+    return { data: await this.backups.googleDriveConnect(ctx.userId) };
+  }
+
+  @Post('google-drive/disconnect')
+  @ApiOperation({ summary: 'قطع اتصال جوجل درايف (يمحو الملفات المرفوعة)' })
+  async googleDriveDisconnect(): Promise<{ data: { disconnected: true } }> {
+    const ctx = getAuthContext();
+    await this.backups.googleDriveDisconnect(ctx.userId);
+    return { data: { disconnected: true } };
+  }
+
+  @Post('google-drive/upload')
+  @ApiOperation({ summary: 'رفع نسخة إلى جوجل درايف' })
+  async googleDriveUpload(
+    @Body(new ZodValidationPipe(googleDriveUploadSchema)) body: GoogleDriveUploadInput,
+  ): Promise<{ data: GoogleDriveBackupFile }> {
+    const ctx = getAuthContext();
+    return { data: await this.backups.googleDriveUpload(body, ctx.userId) };
+  }
+
+  @Get('google-drive/files')
+  @ApiOperation({ summary: 'قائمة الملفات المرفوعة إلى جوجل درايف' })
+  async googleDriveListFiles(
+    @Query('scope') scope?: string,
+    @Query('tenantId') tenantId?: string,
+  ): Promise<{ data: GoogleDriveBackupFile[] }> {
+    const data = await this.backups.googleDriveListFiles({
+      scope: scope as 'platform' | 'tenant' | undefined,
+      tenantId,
+    });
+    return { data };
+  }
+
+  @Get('google-drive/files/:id/download')
+  @ApiOperation({ summary: 'تنزيل ملف من جوجل درايف (JSON)' })
+  async googleDriveDownload(@Param('id') id: string): Promise<{ data: GoogleDriveDownload }> {
+    const ctx = getAuthContext();
+    const result = await this.backups.googleDriveDownload(id, ctx.userId);
+    return {
+      data: {
+        content: result.content.toString('utf8'),
+        name: result.name,
+        checksum: result.checksum,
+        sizeBytes: result.sizeBytes,
+      },
+    };
+  }
+
+  @Delete('google-drive/files/:id')
+  @ApiOperation({ summary: 'حذف ملف من جوجل درايف' })
+  async googleDriveDeleteFile(@Param('id') id: string): Promise<{ data: { deleted: boolean } }> {
+    const ctx = getAuthContext();
+    const deleted = await this.backups.googleDriveDeleteFile(id, ctx.userId);
+    return { data: { deleted } };
+  }
+
+  @Post('google-drive/files/:id/restore')
+  @ApiOperation({ summary: 'استعادة البيانات من ملف جوجل درايف' })
+  async googleDriveRestore(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(platformBackupRestoreSchema)) body: PlatformBackupRestoreInput,
+  ): Promise<{ data: PlatformBackupRestoreRow }> {
+    const ctx = getAuthContext();
+    return { data: await this.backups.googleDriveRestore(id, body.mode, ctx.userId) };
   }
 }
 

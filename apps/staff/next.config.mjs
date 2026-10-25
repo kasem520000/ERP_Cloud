@@ -40,10 +40,6 @@ const nextConfig = {
   // in sync between the three surfaces (ADR-030).
   transpilePackages: ['@erp/ui', '@erp/web-core', '@erp/web-van'],
   poweredByHeader: false,
-  // ACC-209 (R33): دَينُ lint قائم (violations في treasury/vouchers + مكوّن react-hooks
-  // غير مُهيّأ في eslint.config.mjs) يُفشل `next build` — كما رأى المستخدم في بيئته.
-  // البناء يستمرّ والدَين مُوثَّق للإصلاح المتأخر كما طُلب؛ إزالة هذا السطر تستعيد الفشل.
-  eslint: { ignoreDuringBuilds: true },
   allowedDevOrigins,
   env: {
     // Exposed to the browser. Empty means "same origin" — requests go to /api/v1/* on

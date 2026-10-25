@@ -1,4 +1,4 @@
-probe-d9 — 2026-10-24T20:32:00.181Z
+probe-d9 — 2026-10-25T04:59:05.965Z
 API=http://127.0.0.1:3000/api/v1
 
 PASS L01 — login → 200
@@ -9,7 +9,7 @@ PASS F04 — معاينة → 201 ، أسطر=1، قسط=200.0000 (200 عند ا
 PASS F05 — تشغيل=preview → ترحيل=201، مصروف+200.0000 مُهلك-200.0000، تكرار ترحيل→409 DEPRECIATION_RUN_ALREADY_POSTED
 PASS F06 — تشغيل مكرر → 409 DEPRECIATION_PERIOD_RUN_EXISTS، المصروف ثابت=true
 PASS F07 — بيع → 201، gainLoss=-1800.0000 (المطلوب−1,800 خسارة)، حساب الأصل=0.0000 (الفارق−12,000)، الخسارة+1800.0000، الربح=0.0000، السجل=disposed
-PASS T01 — ميزان كليّ: مدين=303266.2000 دائن=303266.2000
+PASS T01 — ميزان كليّ: مدين=303384.9400 دائن=303384.9400
 PASS S01 — GET staff /accounting/fixed-assets → 200
 PASS S02 — GET staff /accounting/asset-categories → 200
 

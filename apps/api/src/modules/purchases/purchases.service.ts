@@ -715,7 +715,16 @@ export class PurchasesService {
         const allocated = byLine.get(line.id);
         await tx.update(purchaseInvoiceLines).set({ allocatedCost: allocated?.allocatedCost ?? '0', landedTotal: allocated?.landedTotal ?? line.net, unitCostAtPost: allocated?.effectiveUnitCost ?? line.unitPrice, updatedAt: new Date() }).where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.id, line.id)));
       }
-      const numbered = await this.sequences.next({ tenantId, branchId: locked.branchId, docType }, tx, { prefix: isReturn ? 'PR-' : 'PI-', padding: 6 });
+      const numberingPolicy = await readTenantMoneyPolicy(tx, tenantId);
+      const numbered = await this.sequences.next(
+        { tenantId, branchId: locked.branchId, docType },
+        tx,
+        {
+          prefix: isReturn ? 'PR-' : numberingPolicy.purchasePrefix,
+          padding: numberingPolicy.purchasePadding,
+          startAt: isReturn ? undefined : numberingPolicy.purchaseStartAt,
+        },
+      );
       const additionalCostTotal = costs.reduce((sum, cost) => sum.plus(cost.amount), new Decimal(0)).toFixed(4);
       const postedTotal = money(locked.total).plus(additionalCostTotal).toFixed(4);
       let journalEntryId: string | null = null;
@@ -804,12 +813,13 @@ export class PurchasesService {
   }
 
   /**
-   * The desktop `BindToEntry` purchase mirror (supplier Cr / purchases Dr /
-   * discount-received Cr / VAT-input Dr / cash legs), adapted to the cloud's
-   * perpetual inventory: stocked value debits the inventory account at landed
-   * cost (gross method — the earned discount keeps its contra leg), services
-   * debit the purchases account, expense costs hit their own accounts, and
-   * returns relieve at average with the price-vs-average drift in COGS.
+   * Perpetual-inventory purchase journal using the **Net Method** (`طريقة الصافي` — ACC-061):
+   * stored line `net` and `landedTotal` already carry each line's pro-rata share of any
+   * header `invoiceDiscount`, so stocked items debit `inventoryAccountId` at the exact
+   * net landed cost recorded in `inventory_transactions` (`GL 1270001 === stock_balances`),
+   * services debit `purchasesAccountId` at net cost, expense costs hit their own accounts,
+   * and `discountReceivedAccountId` (`3200003`) is not used. Returns relieve inventory at
+   * current moving average with any price-vs-average drift landing in COGS.
    */
   private buildAutoJournal(
     locked: { kind: string; invoiceDiscount: string | null; taxTotal: string; extraTax: string | null; withholding: string | null; total: string; partyId: string | null; costCenterId?: string | null },
@@ -839,18 +849,10 @@ export class PurchasesService {
       journal.push({ accountId, debit: debit.toFixed(4), credit: credit.toFixed(4), partyId: extra?.partyId ?? undefined, costCenterId: extra?.costCenterId ?? undefined, description: extra?.description });
     };
 
-    // Stored line nets already carry the header-discount share (pro-rata by gross,
-    // the desktop rule). The gross method restores it so the earned discount keeps
-    // its contra leg; the stocked/non-stock split follows the same gross weights.
-    const discount = money(locked.invoiceDiscount ?? '0');
-    const grossOf = (line: { quantity: string; unitPrice: string }): Decimal => money(line.quantity).mul(line.unitPrice);
-    const totalGross = lines.reduce((sum, line) => sum.plus(grossOf(line)), new Decimal(0));
-    const stockedGross = lines.filter((line) => line.stocked).reduce((sum, line) => sum.plus(grossOf(line)), new Decimal(0));
-    const stockedDiscount = totalGross.gt(0) ? discount.mul(stockedGross).div(totalGross).toDecimalPlaces(4) : new Decimal(0);
-    const nonstockDiscount = discount.minus(stockedDiscount);
+    // Stored `line.net` and `line.landedTotal` already reflect line + header discounts (Net Method).
     const stockedNet = lines.filter((line) => line.stocked).reduce((sum, line) => sum.plus(line.net), new Decimal(0));
     const stockedLanded = lines.filter((line) => line.stocked).reduce((sum, line) => sum.plus(line.landedTotal), new Decimal(0));
-    const nonstockNet = lines.filter((line) => !line.stocked).reduce((sum, line) => sum.plus(line.net), new Decimal(0));
+    const nonstockLanded = lines.filter((line) => !line.stocked).reduce((sum, line) => sum.plus(line.landedTotal), new Decimal(0));
     const tax = money(locked.taxTotal);
     const extra = money(locked.extraTax ?? '0');
     const total = money(locked.total);
@@ -896,35 +898,31 @@ export class PurchasesService {
       }
       for (const share of shares) leg(accountId, new Decimal(0), share.amount, { partyId, costCenterId: share.costCenterId });
     };
-    /** أوزان البنود المخزنية: قيمتها المحمَّلة + نصيبها من خصم الفاتورة. */
+    /** أوزان البنود المخزنية وغير المخزنية بصافي قيمتها المحمَّلة بعد الخصم (طريقة الصافي ACC-061). */
     const stockedRows = lines
       .filter((line) => line.stocked && money(line.landedTotal).abs().gt(0))
       .map((line) => ({
-        amount: money(line.landedTotal).abs().plus(stockedGross.gt(0) ? stockedDiscount.mul(grossOf(line)).div(stockedGross) : new Decimal(0)),
+        amount: money(line.landedTotal).abs(),
         costCenterId: centerOf(line),
       }));
     const nonstockRows = lines
-      .filter((line) => !line.stocked && money(line.net).abs().gt(0))
-      .map((line) => ({ amount: money(line.net).abs(), costCenterId: centerOf(line) }));
+      .filter((line) => !line.stocked && money(line.landedTotal).abs().gt(0))
+      .map((line) => ({ amount: money(line.landedTotal).abs(), costCenterId: centerOf(line) }));
 
     if (!isReturn) {
-      legByCenter(need('inventoryAccountId'), stockedLanded.plus(stockedDiscount), stockedRows, null);
-      // الرجل غير المخزنية تتبع وزن بواقي البنود بلا خصمٍ محمَّل عليه (الخصم غير المخزني
-      // يُبنى على `nonstockNet` نفسه).
-      legByCenter(need('purchasesAccountId'), nonstockNet.plus(nonstockDiscount), nonstockRows, null);
+      legByCenter(need('inventoryAccountId'), stockedLanded, stockedRows, null);
+      legByCenter(need('purchasesAccountId'), nonstockLanded, nonstockRows, null);
       if (tax.abs().gt(0)) leg(need('vatInputAccountId'), tax, new Decimal(0));
       if (extra.abs().gt(0)) leg(need('exciseTaxAccountId'), extra, new Decimal(0));
       for (const cost of expenseCosts) leg(cost.accountId!, money(cost.amount), new Decimal(0), { costCenterId: cost.costCenterId, description: cost.name });
-      if (discount.gt(0)) leg(need('discountReceivedAccountId'), new Decimal(0), discount);
       leg(settlementAccount, new Decimal(0), total, { partyId: settlementParty });
     } else {
       // Stocked goods go straight against inventory at the relieved (average)
-      // value — no contra leg; only services use the purchase-return account.
+      // value — no contra leg; only services use the purchase-return account at net.
       // The price-vs-average drift is a COGS gain/loss, skipped when zero.
       leg(settlementAccount, total, new Decimal(0), { partyId: settlementParty });
       creditByCenter(need('inventoryAccountId'), relievedValue, stockedRows, null);
-      creditByCenter(need('purchaseReturnAccountId'), nonstockNet.plus(nonstockDiscount), nonstockRows, null);
-      if (nonstockDiscount.gt(0)) leg(need('discountReceivedAccountId'), nonstockDiscount, new Decimal(0));
+      creditByCenter(need('purchaseReturnAccountId'), nonstockLanded, nonstockRows, null);
       if (tax.abs().gt(0)) leg(need('vatInputAccountId'), new Decimal(0), tax);
       if (extra.abs().gt(0)) leg(need('exciseTaxAccountId'), new Decimal(0), extra);
       for (const cost of expenseCosts) leg(cost.accountId!, new Decimal(0), money(cost.amount), { costCenterId: cost.costCenterId, description: cost.name });

@@ -55,6 +55,7 @@ describe('purchase posting engine', () => {
         'accounting.period.close',
         'accounting.account.view',
         'accounting.reports.view',
+        'reporting.view',
         'organization.postingprofile.view',
       ],
     });
@@ -199,19 +200,21 @@ describe('purchase posting engine', () => {
     const stored = (data(reread.body) as { lines: Array<{ allocatedCost: string; landedTotal: string; unitCostAtPost: string }> }).lines;
     expect(stored[0]).toMatchObject({ allocatedCost: '100.0000', landedTotal: '1080.0000', unitCostAtPost: '108.0000' });
 
-    // Gross method: Dr inventory 1080 + 20 / Dr VAT 147 / Dr expense 50 /
-    // Cr discount-received 20 / Cr payable 1277.
+    // Net method (ACC-061): Dr inventory 1080 (exact match with stock_balances) /
+    // Dr VAT 147 / Dr expense 50 / Cr payable 1277 — no 3200003 discount-received leg.
     const journal = await journalOf(`Purchase invoice ${invoice.number}`);
     const byAccount = new Map(journal.lines.map((line) => [line.accountId, line]));
     const resolved = await api(ctx.server, 'get', `/api/v1/branch-posting-profiles/resolve?branchId=${branchId}&docType=purchase_invoice`, {
       token: actor.token,
     });
     const mapping = data(resolved.body).mapping as Record<string, string>;
-    expect(byAccount.get(mapping.inventoryAccountId)?.debit).toBe('1100.0000');
+    expect(byAccount.get(mapping.inventoryAccountId)?.debit).toBe('1080.0000');
     expect(byAccount.get(mapping.vatInputAccountId)?.debit).toBe('147.0000');
     expect(byAccount.get(expenseAccountId)?.debit).toBe('50.0000');
-    expect(byAccount.get(mapping.discountReceivedAccountId)?.credit).toBe('20.0000');
+    expect(byAccount.get(mapping.discountReceivedAccountId)).toBeUndefined();
     expect(byAccount.get(mapping.payableAccountId)?.credit).toBe('1277.0000');
+    const bal = await balanceOf();
+    expect(bal.value).toBe('1080.0000');
     const debit = journal.lines.reduce((sum, line) => sum + Number(line.debit), 0);
     const credit = journal.lines.reduce((sum, line) => sum + Number(line.credit), 0);
     expect(debit.toFixed(4)).toBe(credit.toFixed(4));
@@ -507,4 +510,45 @@ describe('purchase posting engine', () => {
     expect(payments[0]?.amount).toBe('50.0000');
     expect((data(reread.body) as { paymentStatus: string }).paymentStatus).toBe('partial');
   }, 120_000);
+
+  it('ACC-061: line discount + header invoiceDiscount posts at net cost and keeps subledger-reconciliation at 0.0000 diff', async () => {
+    const created = await api(ctx.server, 'post', '/api/v1/purchase-invoices', {
+      token: actor.token,
+      body: {
+        branchId,
+        warehouseId,
+        partyId: supplierId,
+        invoiceDiscount: '1',
+        lines: [{ itemId, quantity: '4', unitPrice: '10', discountRate: '10', taxRate: '15' }],
+      },
+    });
+    expect(created.status).toBe(201);
+    const draft = data(created.body) as { id: string; subtotal: string; taxTotal: string; total: string };
+    expect(draft.subtotal).toBe('35.0000');
+    expect(draft.taxTotal).toBe('5.2500');
+    expect(draft.total).toBe('40.2500');
+
+    const posted = await api(ctx.server, 'post', `/api/v1/purchase-invoices/${draft.id}/post`, { token: actor.token, body: {} });
+    expect(posted.status).toBe(201);
+    const inv = data(posted.body) as { number: string };
+
+    const journal = await journalOf(`Purchase invoice ${inv.number}`);
+    const resolved = await api(ctx.server, 'get', `/api/v1/branch-posting-profiles/resolve?branchId=${branchId}&docType=purchase_invoice`, {
+      token: actor.token,
+    });
+    const mapping = data(resolved.body).mapping as Record<string, string>;
+    const byAccount = new Map(journal.lines.map((line) => [line.accountId, line]));
+    expect(byAccount.get(mapping.inventoryAccountId)?.debit).toBe('35.0000');
+    expect(byAccount.get(mapping.vatInputAccountId)?.debit).toBe('5.2500');
+    expect(byAccount.get(mapping.payableAccountId)?.credit).toBe('40.2500');
+    expect(byAccount.get(mapping.discountReceivedAccountId)).toBeUndefined();
+
+    const recon = await api(ctx.server, 'get', '/api/v1/reports/subledger-reconciliation', { token: actor.token });
+    expect(recon.status).toBe(200);
+    const reconRows = ((data(recon.body) as { rows?: Array<Record<string, unknown>> }).rows ?? []) as Array<Record<string, unknown>>;
+    const invRow = reconRows.find((r) => String(r.pair ?? '').includes('1270001'));
+    expect(invRow, JSON.stringify(reconRows)).toBeDefined();
+    expect(Number(invRow?.difference ?? 999).toFixed(4)).toBe('0.0000');
+    expect(invRow?.status).toBe('مطابق');
+  });
 });

@@ -35,9 +35,9 @@ function nextPeriodOf(row: Schedule): string {
   const parts = row.startDate.split('-').map(Number);
   const year = parts[0] ?? 0;
   const month = parts[1] ?? 1;
-  const total = year * 12 + (month - 1) + (row.generatedCount ?? 0);
-  const y = Math.floor(total / 12);
-  const m = (total % 12) + 1;
+  const elapsedMonths = year * 12 + (month - 1) + (row.generatedCount ?? 0);
+  const y = Math.floor(elapsedMonths / 12);
+  const m = (elapsedMonths % 12) + 1;
   return `${y}-${String(m).padStart(2, '0')}`;
 }
 

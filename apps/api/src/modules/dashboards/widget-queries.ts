@@ -45,18 +45,18 @@ export async function queryWidget(tx: DrizzleTx, tenantId: string, key: string):
   switch (key) {
     case 'sales-today':
       return kpi(
-        await one(tx, sql`select coalesce(sum(total), 0)::text as value from sales_invoices where tenant_id = ${tenantId}::uuid and kind = 'sale' and status = 'posted' and posted_at >= date_trunc('day', now())`),
-        await one(tx, sql`select coalesce(sum(total), 0)::text as value from sales_invoices where tenant_id = ${tenantId}::uuid and kind = 'sale' and status = 'posted' and posted_at >= date_trunc('day', now()) - interval '1 day' and posted_at < date_trunc('day', now())`),
+        await one(tx, sql`select coalesce(sum(case when kind in ('sale_return', 'credit_note') then -total else total end), 0)::text as value from sales_invoices where tenant_id = ${tenantId}::uuid and kind in ('sale', 'sale_return', 'debit_note', 'credit_note') and status = 'posted' and posted_at >= date_trunc('day', now())`),
+        await one(tx, sql`select coalesce(sum(case when kind in ('sale_return', 'credit_note') then -total else total end), 0)::text as value from sales_invoices where tenant_id = ${tenantId}::uuid and kind in ('sale', 'sale_return', 'debit_note', 'credit_note') and status = 'posted' and posted_at >= date_trunc('day', now()) - interval '1 day' and posted_at < date_trunc('day', now())`),
       );
     case 'sales-month':
       return kpi(
-        await one(tx, sql`select coalesce(sum(total), 0)::text as value from sales_invoices where tenant_id = ${tenantId}::uuid and kind = 'sale' and status = 'posted' and posted_at >= date_trunc('month', now())`),
-        await one(tx, sql`select coalesce(sum(total), 0)::text as value from sales_invoices where tenant_id = ${tenantId}::uuid and kind = 'sale' and status = 'posted' and posted_at >= date_trunc('month', now()) - interval '1 month' and posted_at < date_trunc('month', now())`),
+        await one(tx, sql`select coalesce(sum(case when kind in ('sale_return', 'credit_note') then -total else total end), 0)::text as value from sales_invoices where tenant_id = ${tenantId}::uuid and kind in ('sale', 'sale_return', 'debit_note', 'credit_note') and status = 'posted' and posted_at >= date_trunc('month', now())`),
+        await one(tx, sql`select coalesce(sum(case when kind in ('sale_return', 'credit_note') then -total else total end), 0)::text as value from sales_invoices where tenant_id = ${tenantId}::uuid and kind in ('sale', 'sale_return', 'debit_note', 'credit_note') and status = 'posted' and posted_at >= date_trunc('month', now()) - interval '1 month' and posted_at < date_trunc('month', now())`),
       );
     case 'purchases-today':
       return kpi(
-        await one(tx, sql`select coalesce(sum(total), 0)::text as value from purchase_invoices where tenant_id = ${tenantId}::uuid and kind = 'purchase' and status = 'posted' and posted_at >= date_trunc('day', now())`),
-        await one(tx, sql`select coalesce(sum(total), 0)::text as value from purchase_invoices where tenant_id = ${tenantId}::uuid and kind = 'purchase' and status = 'posted' and posted_at >= date_trunc('day', now()) - interval '1 day' and posted_at < date_trunc('day', now())`),
+        await one(tx, sql`select coalesce(sum(case when kind = 'purchase_return' then -total else total end), 0)::text as value from purchase_invoices where tenant_id = ${tenantId}::uuid and kind in ('purchase', 'purchase_return') and status = 'posted' and posted_at >= date_trunc('day', now())`),
+        await one(tx, sql`select coalesce(sum(case when kind = 'purchase_return' then -total else total end), 0)::text as value from purchase_invoices where tenant_id = ${tenantId}::uuid and kind in ('purchase', 'purchase_return') and status = 'posted' and posted_at >= date_trunc('day', now()) - interval '1 day' and posted_at < date_trunc('day', now())`),
       );
     case 'receipts-today':
       return kpi(
@@ -69,7 +69,7 @@ export async function queryWidget(tx: DrizzleTx, tenantId: string, key: string):
         await one(tx, sql`select coalesce(sum(amount), 0)::text as value from vouchers where tenant_id = ${tenantId}::uuid and kind = 'payment' and status = 'posted' and date = current_date - 1`),
       );
     case 'receivable':
-      return kpi(await one(tx, sql`select coalesce(sum(total - paid_total), 0)::text as value from sales_invoices where tenant_id = ${tenantId}::uuid and kind = 'sale' and status = 'posted' and payment_status <> 'paid'`));
+      return kpi(await one(tx, sql`select greatest(coalesce(sum(case when kind in ('sale_return', 'credit_note') then -(total - paid_total) else (total - paid_total) end), 0), 0)::text as value from sales_invoices where tenant_id = ${tenantId}::uuid and kind in ('sale', 'sale_return', 'debit_note', 'credit_note') and status = 'posted'`));
     case 'cash-position':
       return kpi(await one(tx, sql`select coalesce(sum(balance), 0)::text as value from cash_location_balances where tenant_id = ${tenantId}::uuid`));
     case 'expense-month':

@@ -353,16 +353,23 @@ function Nodes({
               <span className="tree-balance num" dir="ltr">
                 {money(Number(node.balance?.balance ?? 0).toFixed(2))}
               </span>
-              <Link className="btn sm" href={`/accounting/cost-center-statement?center=${node.id}`}></Link>
+              <Link
+                className="btn sm"
+                style={{ flexShrink: 0 }}
+                href={`/accounting/cost-center-statement?center=${node.id}`}
+              >
+                كشف الحساب
+              </Link>
               {manage && (
                 <button
                   className="btn sm danger"
+                  style={{ flexShrink: 0 }}
                   type="button"
                   onClick={() => onRemove(node)}
                   aria-label="حذف"
                 >
                   <Trash2 size={13} />
-                  كشف الحساب
+                  حذف
                 </button>
               )}
             </div>

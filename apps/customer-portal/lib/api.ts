@@ -10,7 +10,7 @@
  */
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1';
 
-const TOKEN_COOKIE = 'erp_access_token';
+const TOKEN_COOKIE = 'erp_portal_token';
 
 export function readToken(): string | undefined {
   if (typeof globalThis.document === 'undefined') return undefined;
@@ -43,6 +43,7 @@ const MESSAGES: Record<string, string> = {
 export async function portalFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = readToken();
   const response = await fetch(`${baseUrl}${path}`, {
+    credentials: 'include',
     ...init,
     headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...(init?.headers ?? {}) },
   });
@@ -64,7 +65,12 @@ export async function portalFetch<T>(path: string, init?: RequestInit): Promise<
 export type Session = { mustChangePassword: boolean; fullName: string; email: string };
 
 export async function login(input: { tenantCode: string; email: string; password: string }): Promise<Session> {
-  const response = await fetch(`${baseUrl}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input) });
+  const response = await fetch(`${baseUrl}/auth/login`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
   if (!response.ok) {
     throw new PortalError(response.status === 401 ? 'بيانات الدخول غير صحيحة' : response.status === 429 ? 'محاولات كثيرة، انتظر قليلاً' : 'تعذّر تسجيل الدخول', response.status);
   }

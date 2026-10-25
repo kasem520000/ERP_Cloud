@@ -244,8 +244,7 @@ describe('Remediation Phase 17 — Cost centers 409 & balances, TB balanced flag
     expect(Number(ccCamel.debit)).toBeGreaterThanOrEqual(100);
   });
 
-  it('ACC-139: trial balance flags balanced: false when one-sided opening balance mismatches', async () => {
-    // Create an asset account with 1500 opening balance without contra entry
+  it('ACC-139: account openingBalance automatically posts a balanced opening entry keeping trial balance balanced', async () => {
     const accRes = await req('post', '/api/v1/accounts', {
       code: '1160099',
       nameAr: 'P17 حساب أثاث مع رصيد افتتاحي',
@@ -255,14 +254,18 @@ describe('Remediation Phase 17 — Cost centers 409 & balances, TB balanced flag
     });
     expect(accRes.status).toBe(201);
 
-    // Request trial balance
     const tbRes = await req('get', '/api/v1/statements/trial-balance');
     expect(tbRes.status).toBe(200);
+    const tbRows = ((tbRes.body as any).data ?? (tbRes.body as any).rows ?? []) as Array<Record<string, unknown>>;
+    const assetRow = tbRows.find((r) => r.code === '1160099');
+    const contraRow = tbRows.find((r) => r.code === '2190001');
+    expect(Number(assetRow?.openingDebit ?? 0)).toBe(1500);
+    expect(Number(contraRow?.openingCredit ?? 0)).toBeGreaterThanOrEqual(1500);
+
     const totals = (tbRes.body as any).totals;
     expect(totals).toBeDefined();
-    expect(Number(totals.balance)).toBeGreaterThanOrEqual(1500);
-    // ACC-139: balanced flag must be false when totals balance is non-zero
-    expect(totals.balanced).toBe(false);
+    expect(Number(totals.balance)).toBe(0);
+    expect(totals.balanced).toBe(true);
   });
 
   it('ACC-142: purchase auto-journal stamps partyId ONLY on payable account, not VAT or inventory', async () => {

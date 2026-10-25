@@ -120,6 +120,42 @@ describe('document sequences (PHASE_04 §5.6)', () => {
     expect(next.display).toBe('QT-00000003');
   });
 
+  it('honours startAt on a fresh sequence (R-47 numbering presets)', async () => {
+    // A customer migrating from another system sets `start_at` to the number after
+    // their last invoice — the first document issued must carry exactly that number.
+    const first = await sequences.next(
+      { tenantId: alpha.tenantId, docType: 'migrated_invoice' },
+      undefined,
+      { prefix: 'INV-', padding: 6, startAt: 1001 },
+    );
+    expect(first.value).toBe(1001);
+    expect(first.display).toBe('INV-001001');
+
+    const second = await sequences.next({ tenantId: alpha.tenantId, docType: 'migrated_invoice' });
+    expect(second.value).toBe(1002);
+  });
+
+  it('bumps an existing sequence forward to startAt, never backward', async () => {
+    await sequences.next({ tenantId: alpha.tenantId, docType: 'bump_probe' });
+    await sequences.next({ tenantId: alpha.tenantId, docType: 'bump_probe' });
+    // Counter is at 2. A startAt of 500 must jump forward, not rewind.
+    // (Prefix/padding were stored at creation — startAt only moves the counter.)
+    const bumped = await sequences.next(
+      { tenantId: alpha.tenantId, docType: 'bump_probe' },
+      undefined,
+      { startAt: 500 },
+    );
+    expect(bumped.value).toBe(500);
+
+    // And a startAt below the current counter is ignored (GREATEST protects issued numbers).
+    const after = await sequences.next(
+      { tenantId: alpha.tenantId, docType: 'bump_probe' },
+      undefined,
+      { startAt: 10 },
+    );
+    expect(after.value).toBe(501);
+  });
+
   it('formats numbers wider than the padding without truncating them', () => {
     expect(formatSequenceNumber(7, 'INV-', 4)).toBe('INV-0007');
     expect(formatSequenceNumber(123_456, 'INV-', 4)).toBe('INV-123456');

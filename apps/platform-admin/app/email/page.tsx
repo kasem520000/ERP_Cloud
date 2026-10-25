@@ -615,6 +615,10 @@ function SettingsTab() {
         fromEmail: value('fromEmail'),
         replyTo: value('replyTo') || null,
         sendingDomain: value('sendingDomain') || null,
+        dkimSelector: value('dkimSelector') || null,
+        dkimPublicKey: value('dkimPublicKey') || null,
+        spfRecord: value('spfRecord') || null,
+        perRecipientRateLimit: value('perRecipientRateLimit') ?? null,
         dailyLimit: value('dailyLimit') ?? null,
         monthlyLimit: value('monthlyLimit') ?? null,
         ...(reason.trim().length >= 3 ? { reason } : {}),
@@ -726,6 +730,50 @@ function SettingsTab() {
               value={value('sendingDomain') ?? ''}
               placeholder="mail.example.com"
               onChange={(change) => setDraft({ ...draft, sendingDomain: change.target.value })}
+            />
+          </label>
+          <label>
+            سجل DKIM — الـSelector
+            <input
+              className="input"
+              value={value('dkimSelector') ?? ''}
+              placeholder="google"
+              onChange={(change) => setDraft({ ...draft, dkimSelector: change.target.value })}
+            />
+          </label>
+          <label>
+            سجل DKIM — المفتاح العام
+            <input
+              className="input"
+              value={value('dkimPublicKey') ?? ''}
+              placeholder="v=DKIM1; k=rsa; p=MIGfMA0G..."
+              onChange={(change) => setDraft({ ...draft, dkimPublicKey: change.target.value })}
+            />
+          </label>
+          <label>
+            سجل SPF
+            <input
+              className="input"
+              value={value('spfRecord') ?? ''}
+              placeholder="v=spf1 include:_spf.example.com ~all"
+              onChange={(change) => setDraft({ ...draft, spfRecord: change.target.value })}
+            />
+          </label>
+          <label>
+            سقف لكل عنوان (كل 24 ساعة)
+            <input
+              className="input"
+              type="number"
+              min={1}
+              max={10000}
+              value={value('perRecipientRateLimit') ?? ''}
+              placeholder="10"
+              onChange={(change) =>
+                setDraft({
+                  ...draft,
+                  perRecipientRateLimit: change.target.value === '' ? null : Number(change.target.value),
+                })
+              }
             />
           </label>
           <label>

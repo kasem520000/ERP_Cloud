@@ -590,7 +590,177 @@ export default function BackupsPage() {
           )}
         </>
       )}
+      <GoogleDriveSection />
     </Screen>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// جوجل درايف — النسخ المرتفع إلى الدرايف
+//
+// قسمٌ مستقلٌ في صفحة نسخ المنصة: حالة الاتصال، زر الربط/قطع الربط، زر الرفع،
+// قائمة الملفات المرفوعة، وزر الاستعادة من الدرايف. كل العمليات عبر `/platform/google-drive/*`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type GoogleDriveConnection = {
+  connected: boolean;
+  email: string;
+  connectedAt: string | null;
+  files: number;
+  totalBytes: number;
+  status: string;
+};
+
+type GoogleDriveFile = {
+  id: string;
+  name: string;
+  sizeBytes: number;
+  checksum: string;
+  uploadedAt: string;
+  scope: string;
+  tenantId: string | null;
+  backupJobId: string | null;
+};
+
+function GoogleDriveSection() {
+  const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info'; text: string } | undefined>();
+  const [busy, setBusy] = useState(false);
+  const [conn, setConn] = useState<GoogleDriveConnection | null>(null);
+  const [files, setFiles] = useState<GoogleDriveFile[]>([]);
+
+  const fmtDate = (value: string): string => {
+    return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
+  };
+
+  async function refresh() {
+    try {
+      const status = await apiData<GoogleDriveConnection>('/platform/google-drive/status');
+      setConn(status);
+      const list = await apiData<GoogleDriveFile[]>('/platform/google-drive/files');
+      setFiles(list);
+    } catch {
+      setConn(null);
+      setFiles([]);
+    }
+  }
+
+  async function connect() {
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      const status = await apiData<GoogleDriveConnection>('/platform/google-drive/connect', { method: 'POST' });
+      setConn(status);
+      setNotice({ kind: 'ok', text: `تم ربط حساب جوجل درايف: ${status.email}` });
+      refresh();
+    } catch (error) {
+      setNotice({ kind: 'danger', text: apiMessage(error) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function disconnect() {
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      await apiData('/platform/google-drive/disconnect', { method: 'POST' });
+      setNotice({ kind: 'info', text: 'تم قطع اتصال جوجل درايف ومسح الملفات المرفوعة.' });
+      setConn(null);
+      setFiles([]);
+    } catch (error) {
+      setNotice({ kind: 'danger', text: apiMessage(error) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function restore(fileId: string) {
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      await apiData(`/platform/google-drive/files/${fileId}/restore`, {
+        method: 'POST',
+        body: JSON.stringify({ mode: 'dry_run' }),
+      });
+      setNotice({ kind: 'ok', text: 'تمت الاستعادة التجريبية من جوجل درايف.' });
+    } catch (error) {
+      setNotice({ kind: 'danger', text: apiMessage(error) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeFile(fileId: string) {
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      await apiData(`/platform/google-drive/files/${fileId}`, { method: 'DELETE' });
+      setNotice({ kind: 'info', text: 'تم حذف الملف من جوجل درايف.' });
+      refresh();
+    } catch (error) {
+      setNotice({ kind: 'danger', text: apiMessage(error) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Panel title="جوجل درايف">
+      <p className="alert info">
+        يُمكن رفع النسخ المحفوظة إلى جوجل درايف كنسخة احتياطية خارجية. الاستعادة من الدرايف تستخدم
+        نفس آلية الاستعادة من المخزن المحلي.
+      </p>
+      <div className="toolbar">
+        {conn?.connected ? (
+          <>
+            <span className="badge ok">متصل</span>
+            <span className="muted">{conn.email}</span>
+            {conn.files > 0 && <span className="muted">{conn.files} ملف، {formatBytes(conn.totalBytes)}</span>}
+            <button type="button" className="btn sm danger" onClick={disconnect} disabled={busy}>
+              قطع الاتصال
+            </button>
+          </>
+        ) : (
+          <>
+            <span className="badge warn">غير متصل</span>
+            <button type="button" className="btn sm primary" onClick={connect} disabled={busy}>
+              ربط حساب جوجل درايف
+            </button>
+          </>
+        )}
+        <button type="button" className="btn sm" onClick={refresh} disabled={busy}>
+          تحديث
+        </button>
+      </div>
+      {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
+      {files.length > 0 && (
+        <Table
+          columns={[
+            { key: 'uploadedAt', header: 'التاريخ', cell: (f: GoogleDriveFile) => fmtDate(f.uploadedAt) },
+            { key: 'name', header: 'الاسم', cell: (f: GoogleDriveFile) => f.name },
+            { key: 'scope', header: 'النطاق', cell: (f: GoogleDriveFile) => f.scope },
+            { key: 'size', header: 'الحجم', cell: (f: GoogleDriveFile) => formatBytes(f.sizeBytes) },
+            { key: 'checksum', header: 'البصمة', ltr: true, cell: (f: GoogleDriveFile) => f.checksum.slice(0, 12) },
+            {
+              key: 'actions',
+              header: '',
+              cell: (f: GoogleDriveFile) => (
+                <div className="toolbar">
+                  <button type="button" className="btn sm" onClick={() => restore(f.id)} disabled={busy}>
+                    استعادة
+                  </button>
+                  <button type="button" className="btn sm danger" onClick={() => removeFile(f.id)} disabled={busy}>
+                    حذف
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+          rows={files}
+          rowKey={(f) => f.id}
+        />
+      )}
+    </Panel>
   );
 }
 

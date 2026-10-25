@@ -110,6 +110,12 @@ export class EmailService {
     const body = renderEmailTemplate(template.body, variables, input.event);
 
     const isTest = input.isTest ?? false;
+
+    // تحديد معدل لكل مرسل: لا نرسل رسائل متعددة إلى نفس العنوان في 24 ساعة.
+    if (!isTest) {
+      await this.assertPerRecipientRate(input.tenantId, input.to);
+    }
+
     return this.queueMessage({
       tenantId: input.tenantId,
       event: input.event,
@@ -604,6 +610,41 @@ export class EmailService {
         `بلغ المُرسِل سقفه الشهري (${counts.month} من ${caps.monthly})`,
         429,
         { scope: 'email_monthly', used: counts.month, limit: caps.monthly },
+      );
+    }
+  }
+
+  /**
+   * تحديد معدل لكل مرسل: رسالةٌ واحدة لنفس العنوان في نافذةٍ قصيرة = شبهةٌ  spam.
+   * يُفحص قبل الإدراج ويُقيّد بالسقف المُرسَل من الإعدادات (`perRecipientRateLimit`).
+   */
+  private async assertPerRecipientRate(
+    tenantId: string | null,
+    to: string,
+  ): Promise<void> {
+    const settings = await this.settings.effective(tenantId);
+    const limit = settings.perRecipientRateLimit;
+    if (!limit || limit <= 0) return;
+
+    // نافذة 24 ساعة: أكثر من السقف لنفس العنوان = تحديد معدل.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const count = await withPlatformAdminTx(this.database.db, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT count(*)::int AS cnt FROM email_messages
+        WHERE to_email = ${to.toLowerCase()}
+          AND status IN ('sent', 'bounced') AND is_test = false
+          AND sent_at >= ${since}
+          AND tenant_id IS NOT DISTINCT FROM ${tenantId}
+      `);
+      return Number(rows.rows[0]?.cnt ?? 0);
+    });
+
+    if (count >= limit) {
+      throw new DomainError(
+        errorCodes.RATE_LIMITED,
+        `بلغ العنوان ${to} سقف الرسائل في 24 ساعة (${count} من ${limit})`,
+        429,
+        { scope: 'email_per_recipient', used: count, limit },
       );
     }
   }

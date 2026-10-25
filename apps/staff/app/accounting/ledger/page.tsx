@@ -506,7 +506,9 @@ export default function AccountStatementPage() {
                       <td>
                         {/* — يفتح القيد في شاشته (R10)، حيث متنقّل وطباعته. */}
                         {row.entryId ? (
-                          <Link className="btn sm" href={`/accounting/journal-entries/${row.entryId}`}></Link>
+                          <Link className="btn sm" href={`/accounting/journal-entries/${row.entryId}`}>
+                            عرض القيد
+                          </Link>
                         ) : (
                           '—'
                         )}

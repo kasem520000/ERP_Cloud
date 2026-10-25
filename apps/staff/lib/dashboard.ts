@@ -89,15 +89,23 @@ export type DashboardStats = {
 const WEEKDAY_AR = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
 export function computeStats(data: DashboardData, now = new Date()): DashboardStats {
-  const postedSales = data.invoices.filter((row) => row.kind === 'sale' && row.status === 'posted');
+  const postedDocs = data.invoices.filter(
+    (row) =>
+      row.status === 'posted' &&
+      (row.kind === 'sale' || row.kind === 'sale_return' || row.kind === 'debit_note' || row.kind === 'credit_note'),
+  );
+  const postedSales = postedDocs.filter((row) => row.kind === 'sale' || row.kind === 'debit_note');
+  const signedTotal = (row: DashboardInvoice) =>
+    row.kind === 'sale_return' || row.kind === 'credit_note' ? -num(row.total) : num(row.total);
+  const round2 = (v: number) => Math.round(v * 100) / 100;
 
   const byDay = new Map<string, { total: number; count: number }>();
-  for (const row of postedSales) {
+  for (const row of postedDocs) {
     const date = row.postedAt ?? row.createdAt;
     const day = new Date(date).toISOString().slice(0, 10);
     const entry = byDay.get(day) ?? { total: 0, count: 0 };
-    entry.total += num(row.total);
-    entry.count += 1;
+    entry.total += signedTotal(row);
+    if (row.kind === 'sale' || row.kind === 'debit_note') entry.count += 1;
     byDay.set(day, entry);
   }
 
@@ -110,7 +118,7 @@ export function computeStats(data: DashboardData, now = new Date()): DashboardSt
     week.push({
       key,
       label: i === 0 ? 'اليوم' : i === 1 ? 'أمس' : (WEEKDAY_AR[d.getUTCDay()] ?? '—'),
-      total: Math.round(entry.total),
+      total: round2(entry.total),
       count: entry.count,
     });
   }
@@ -122,39 +130,45 @@ export function computeStats(data: DashboardData, now = new Date()): DashboardSt
   let monthSales = 0;
   let monthCount = 0;
   let lastMonthSales = 0;
-  for (const row of postedSales) {
+  for (const row of postedDocs) {
     const date = row.postedAt ?? row.createdAt;
     const key = date.slice(0, 7);
     if (key === monthKey) {
-      monthSales += num(row.total);
-      monthCount += 1;
+      monthSales += signedTotal(row);
+      if (row.kind === 'sale' || row.kind === 'debit_note') monthCount += 1;
     } else if (key === lastMonthKey) {
-      lastMonthSales += num(row.total);
+      lastMonthSales += signedTotal(row);
     }
   }
 
   const unpaid = postedSales.filter((row) => num(row.total) > num(row.paidTotal));
-  const receivable = unpaid.reduce((sum, row) => sum + (num(row.total) - num(row.paidTotal)), 0);
+  const receivable = Math.max(
+    0,
+    postedDocs.reduce((sum, row) => {
+      const rem = num(row.total) - num(row.paidTotal);
+      return row.kind === 'sale_return' || row.kind === 'credit_note' ? sum - rem : sum + rem;
+    }, 0),
+  );
   const overduePartyIds = new Set(unpaid.map((row) => row.partyId).filter(Boolean));
 
   const branchMap = new Map<string, { label: string; total: number; count: number }>();
   for (const branch of data.branches) branchMap.set(branch.id, { label: branch.nameAr ?? branch.nameEn ?? branch.code ?? branch.id, total: 0, count: 0 });
-  for (const row of postedSales) {
+  for (const row of postedDocs) {
     if (!row.branchId) continue;
     const entry = branchMap.get(row.branchId) ?? { label: '—', total: 0, count: 0 };
-    entry.total += num(row.total);
-    entry.count += 1;
+    entry.total += signedTotal(row);
+    if (row.kind === 'sale' || row.kind === 'debit_note') entry.count += 1;
     branchMap.set(row.branchId, entry);
   }
 
   return {
-    todaySales: Math.round(byDay.get(todayKey)?.total ?? 0),
+    todaySales: round2(byDay.get(todayKey)?.total ?? 0),
     todayCount: byDay.get(todayKey)?.count ?? 0,
-    yesterdaySales: Math.round(byDay.get(new Date(now.getTime() - DAY_MS).toISOString().slice(0, 10))?.total ?? 0),
-    monthSales: Math.round(monthSales),
+    yesterdaySales: round2(byDay.get(new Date(now.getTime() - DAY_MS).toISOString().slice(0, 10))?.total ?? 0),
+    monthSales: round2(monthSales),
     monthCount,
-    lastMonthSales: Math.round(lastMonthSales),
-    receivable: Math.round(receivable),
+    lastMonthSales: round2(lastMonthSales),
+    receivable: round2(receivable),
     overdueInvoices: unpaid.length,
     overdueCustomers: overduePartyIds.size,
     unpaidInvoices: unpaid.length,
@@ -163,10 +177,10 @@ export function computeStats(data: DashboardData, now = new Date()): DashboardSt
     week,
     weekSpark: week.map((entry) => entry.total),
     branchTotals: [...branchMap.entries()]
-      .map(([branchId, entry]) => ({ branchId, ...entry, total: Math.round(entry.total) }))
+      .map(([branchId, entry]) => ({ branchId, ...entry, total: round2(entry.total) }))
       .filter((entry) => entry.total > 0)
       .sort((a, b) => b.total - a.total),
-    lastInvoices: [...postedSales]
+    lastInvoices: [...postedDocs]
       .sort((a, b) => (b.postedAt ?? b.createdAt).localeCompare(a.postedAt ?? a.createdAt))
       .slice(0, 5),
   };

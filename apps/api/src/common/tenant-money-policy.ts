@@ -23,6 +23,13 @@ export type TenantMoneyPolicy = {
   defaultVatRate: string;
   invoicePrefix: string | null;
   invoicePadding: number | null;
+  invoiceStartAt: number | null;
+  posPrefix: string;
+  posPadding: number;
+  posStartAt: number;
+  purchasePrefix: string;
+  purchasePadding: number;
+  purchaseStartAt: number;
 };
 
 export const DEFAULT_MONEY_POLICY: TenantMoneyPolicy = {
@@ -31,6 +38,13 @@ export const DEFAULT_MONEY_POLICY: TenantMoneyPolicy = {
   defaultVatRate: '15',
   invoicePrefix: null,
   invoicePadding: null,
+  invoiceStartAt: null,
+  posPrefix: 'POS-',
+  posPadding: 4,
+  posStartAt: 1,
+  purchasePrefix: 'PI-',
+  purchasePadding: 6,
+  purchaseStartAt: 1,
 };
 
 const KEYS = [
@@ -39,6 +53,13 @@ const KEYS = [
   'vat.default_rate_percent',
   'invoice.number_prefix',
   'invoice.padding',
+  'invoice.start_at',
+  'pos.number_prefix',
+  'pos.padding',
+  'pos.start_at',
+  'purchases.number_prefix',
+  'purchases.padding',
+  'purchases.start_at',
 ];
 
 function asBoolean(value: unknown): boolean | null {
@@ -78,5 +99,15 @@ export async function readTenantMoneyPolicy(tx: DrizzleTx, tenantId: string): Pr
     defaultVatRate: asRate(map.get('vat.default_rate_percent')) ?? DEFAULT_MONEY_POLICY.defaultVatRate,
     invoicePrefix: typeof prefix === 'string' && prefix.trim() ? prefix.trim().slice(0, 12) : null,
     invoicePadding: asInt(map.get('invoice.padding'), 1, 18),
+    invoiceStartAt: asInt(map.get('invoice.start_at'), 1, 999999999),
+    posPrefix: (map.get('pos.number_prefix') as string | null)?.slice(0, 12) ?? DEFAULT_MONEY_POLICY.posPrefix,
+    posPadding: asInt(map.get('pos.padding'), 1, 20) ?? DEFAULT_MONEY_POLICY.posPadding,
+    posStartAt: asInt(map.get('pos.start_at'), 1, 999999999) ?? DEFAULT_MONEY_POLICY.posStartAt,
+    purchasePrefix:
+      (map.get('purchases.number_prefix') as string | null)?.slice(0, 12) ??
+      DEFAULT_MONEY_POLICY.purchasePrefix,
+    purchasePadding: asInt(map.get('purchases.padding'), 1, 20) ?? DEFAULT_MONEY_POLICY.purchasePadding,
+    purchaseStartAt:
+      asInt(map.get('purchases.start_at'), 1, 999999999) ?? DEFAULT_MONEY_POLICY.purchaseStartAt,
   };
 }

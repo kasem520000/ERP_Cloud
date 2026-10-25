@@ -152,12 +152,12 @@ export default function FixedAssetsPage() {
       }
       footer={(assetRows) => {
         const active = assetRows.filter((row) => row.status === 'active');
-        const cost = active.reduce((sum, row) => sum + Number(row.cost ?? 0), 0);
-        const accumulated = active.reduce((sum, row) => sum + Number(row.accumulated ?? 0), 0);
-        const book = active.reduce((sum, row) => sum + Number(row.bookValue ?? 0), 0);
+        const acqSum = active.reduce((sum, row) => sum + Number(row.cost ?? 0), 0);
+        const accSum = active.reduce((sum, row) => sum + Number(row.accumulated ?? 0), 0);
+        const netSum = active.reduce((sum, row) => sum + Number(row.bookValue ?? 0), 0);
         return [
           <span key="cost">الأصول النشطة: {active.length}</span>,
-          <span key="totals">التكلفة {cost.toFixed(2)} · المُهلك {accumulated.toFixed(2)} · الصافي {book.toFixed(2)}</span>,
+          <span key="totals">التكلفة {acqSum.toFixed(2)} · المُهلك {accSum.toFixed(2)} · الصافي {netSum.toFixed(2)}</span>,
         ];
       }}
       rowLabel={(row) => `الأصل ${row.code} ${row.name}`}

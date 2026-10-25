@@ -51,8 +51,10 @@ export type AccountInput = {
   isPostable?: boolean;
   /** 📅 تاريخ فتح الحساب — `frmAccountsTree`. */
   openedAt?: string | null;
-  /** 💰 الرصيد الافتتاحي — `frmAccountsTree`. */
+  /** 💰 الرصيد الافتتاحي — `frmAccountsTree` (generates a balanced `kind='opening'` journal entry — ACC-139). */
   openingBalance?: string | null;
+  /** حساب مقابل اختياري للقيد الافتتاحي؛ الافتراضي `2190001` (حساب الأرصدة الافتتاحية الوسيط). */
+  openingContraAccountId?: string | null;
   /** 📊 مركز التكلفة — the card's default centre (`frmAccountsTree`). */
   costCenterId?: string | null;
 };
@@ -350,6 +352,8 @@ const statementKindScope = (kind?: string) => {
       return sql`${vouchers.kind} = 'payment'`;
     case 'manual':
       return sql`${journalEntries.sourceType} IS NULL AND ${journalEntries.kind} = 'manual'`;
+    case 'opening':
+      return sql`COALESCE(${journalEntries.sourceType}, '') = 'account_opening'`;
     case 'reversal':
       return sql`${journalEntries.kind} = 'reversal'`;
     default:
@@ -365,6 +369,7 @@ function entryTypeOf(row: {
   voucherKind: string | null;
 }): string {
   if (row.kind === 'reversal') return 'قيد عكسي';
+  if (row.sourceType === 'account_opening') return 'قيد افتتاحي';
   if (row.voucherKind === 'receipt') return 'سند قبض';
   if (row.voucherKind === 'payment') return 'سند صرف';
   return ENTRY_TYPE_LABELS[row.sourceType ?? ''] ?? 'قيد اليومية';
@@ -545,7 +550,10 @@ export class AccountingService {
           ),
         )
         .orderBy(asc(accounts.code));
-      if (!query.withBalances) return rows;
+      const openingByAccount = await this.readAccountOpeningMapInTx(tx, tenantId, rows);
+      if (!query.withBalances) {
+        return rows.map((row) => ({ ...row, openingBalance: openingByAccount.get(row.id) ?? row.openingBalance }));
+      }
 
       const movements = await tx
         .select({
@@ -584,8 +592,8 @@ export class AccountingService {
         }
       }
       /**
-       * 💰 الرصيد الافتتاحي (`frmAccountsTree`) belongs to the account before any entry
-       * was written, so it is added to the account's own row and rolls up from there.
+       * 💰 الرصيد الافتتاحي (`frmAccountsTree`) — legacy rows with non-zero `accounts.opening_balance`
+       * (new opening balances post balanced `kind='opening'` journal entries and keep `opening_balance = '0'`).
        */
       for (const row of rows) {
         const opening = money(row.openingBalance ?? '0');
@@ -612,12 +620,54 @@ export class AccountingService {
           balance: subtree.debit.minus(subtree.credit).toFixed(4),
           descendants: subtree.descendants,
         };
-        return { ...row, parentName: row.parentId ? (byId.get(row.parentId)?.nameAr ?? null) : null, balance: totals };
+        return {
+          ...row,
+          openingBalance: openingByAccount.get(row.id) ?? row.openingBalance,
+          parentName: row.parentId ? (byId.get(row.parentId)?.nameAr ?? null) : null,
+          balance: totals,
+        };
       });
     });
   }
 
   async createAccount(tenantId: string, input: AccountInput) {
+    const validTypes = new Set(['asset', 'liability', 'equity', 'revenue', 'expense']);
+    if (!input.type || !validTypes.has(input.type)) {
+      throw new DomainError(
+        'INVALID_ACCOUNT_TYPE',
+        'Account type must be one of asset, liability, equity, revenue, expense',
+        422,
+        { field: 'type' },
+      );
+    }
+    if (input.normalBalance !== undefined && input.normalBalance !== 'debit' && input.normalBalance !== 'credit') {
+      throw new DomainError('INVALID_NORMAL_BALANCE', 'Normal balance must be debit or credit', 422, {
+        field: 'normalBalance',
+      });
+    }
+    let openingAmount = new Decimal(0);
+    try {
+      openingAmount = new Decimal((input.openingBalance ?? '0').trim() || '0');
+    } catch {
+      throw new DomainError('INVALID_OPENING_BALANCE', 'Opening balance must be a valid decimal amount', 422, {
+        field: 'openingBalance',
+      });
+    }
+    if (!openingAmount.isFinite()) {
+      throw new DomainError('INVALID_OPENING_BALANCE', 'Opening balance must be a valid decimal amount', 422, {
+        field: 'openingBalance',
+      });
+    }
+    const isPostable = input.isPostable ?? true;
+    if (!openingAmount.isZero() && !isPostable) {
+      throw new DomainError(
+        'OPENING_BALANCE_NOT_POSTABLE',
+        'لا يمكن تسجيل رصيد افتتاحي على حساب رئيسي غير قابل للترحيل',
+        422,
+        { field: 'openingBalance' },
+      );
+    }
+    const resolvedNormalBalance = input.normalBalance ?? defaultNormalBalance(input.type);
     const id = newId();
     await withTenantTx(this.database.db, tenantId, async (tx) => {
       // `accounts.path` is an ltree of account ids, root first. A child hangs off its
@@ -629,6 +679,8 @@ export class AccountingService {
         throw new DomainError('NOT_FOUND', 'Parent account not found', 404);
       }
 
+      // ACC-139 / MF-01: Never store a unilateral `accounts.opening_balance` — keep column at '0'
+      // and post a balanced `kind='opening'` journal entry against the opening contra account.
       await tx.insert(accounts).values({
         id,
         tenantId,
@@ -637,15 +689,33 @@ export class AccountingService {
         nameEn: input.nameEn ?? null,
         type: input.type,
         subtype: input.subtype ?? null,
-        normalBalance: input.normalBalance ?? defaultNormalBalance(input.type),
+        normalBalance: resolvedNormalBalance,
         parentId: input.parentId ?? null,
         level: parent ? parent.level + 1 : 0,
         path: parent ? `${parent.path}.${id}` : id,
-        isPostable: input.isPostable ?? true,
+        isPostable,
         openedAt: input.openedAt ?? null,
-        openingBalance: input.openingBalance ?? '0',
+        openingBalance: '0',
         costCenterId: input.costCenterId ?? null,
       });
+
+      if (!openingAmount.isZero()) {
+        await this.syncAccountOpeningEntryInTx(
+          tx,
+          tenantId,
+          {
+            id,
+            code: input.code,
+            nameAr: input.nameAr,
+            type: input.type,
+            normalBalance: resolvedNormalBalance,
+            openedAt: input.openedAt ?? null,
+            costCenterId: input.costCenterId ?? null,
+          },
+          openingAmount,
+          input.openingContraAccountId ?? null,
+        );
+      }
     });
     return this.readAccount(tenantId, id);
   }
@@ -657,10 +727,24 @@ export class AccountingService {
    * read, so changing them would retroactively re-state closed periods.
    */
   async updateAccount(tenantId: string, id: string, patch: AccountPatch) {
+    if (patch.type !== undefined && !['asset', 'liability', 'equity', 'revenue', 'expense'].includes(patch.type)) {
+      throw new DomainError(
+        'INVALID_ACCOUNT_TYPE',
+        'Account type must be one of asset, liability, equity, revenue, expense',
+        422,
+        { field: 'type' },
+      );
+    }
+    if (patch.normalBalance !== undefined && patch.normalBalance !== 'debit' && patch.normalBalance !== 'credit') {
+      throw new DomainError('INVALID_NORMAL_BALANCE', 'Normal balance must be debit or credit', 422, {
+        field: 'normalBalance',
+      });
+    }
     await withTenantTx(this.database.db, tenantId, async (tx) => {
       const [current] = await tx.select().from(accounts).where(and(eq(accounts.id, id), eq(accounts.tenantId, tenantId), isNull(accounts.deletedAt)));
       if (!current) throw new DomainError('NOT_FOUND', 'Account not found', 404);
 
+      const hasOperationalLines = await this.accountHasNonOpeningLines(tx, tenantId, id);
       const posted = await this.accountHasLines(tx, tenantId, id);
       const changesIdentity =
         (patch.code !== undefined && patch.code !== current.code) ||
@@ -677,6 +761,41 @@ export class AccountingService {
         throw new DomainError('ACCOUNT_HAS_CHILDREN', 'A parent account cannot be a posting account', 422);
       }
       const isPostable = patch.isPostable ?? current.isPostable;
+
+      const currentOpeningMap = await this.readAccountOpeningMapInTx(tx, tenantId, [current]);
+      const currentOpening = money(currentOpeningMap.get(id) ?? current.openingBalance ?? '0');
+      let nextOpening: Decimal | undefined;
+      if (patch.openingBalance !== undefined) {
+        try {
+          nextOpening = new Decimal((patch.openingBalance ?? '0').trim() || '0');
+        } catch {
+          throw new DomainError('INVALID_OPENING_BALANCE', 'Opening balance must be a valid decimal amount', 422, {
+            field: 'openingBalance',
+          });
+        }
+        if (!nextOpening.isFinite()) {
+          throw new DomainError('INVALID_OPENING_BALANCE', 'Opening balance must be a valid decimal amount', 422, {
+            field: 'openingBalance',
+          });
+        }
+        if (nextOpening.cmp(currentOpening) !== 0) {
+          if (hasOperationalLines) {
+            throw new DomainError(
+              'ACCOUNT_POSTED',
+              'This account already carries journal entries; its opening balance can no longer be changed',
+              409,
+            );
+          }
+          if (!isPostable && !nextOpening.isZero()) {
+            throw new DomainError(
+              'OPENING_BALANCE_NOT_POSTABLE',
+              'لا يمكن تسجيل رصيد افتتاحي على حساب رئيسي غير قابل للترحيل',
+              422,
+              { field: 'openingBalance' },
+            );
+          }
+        }
+      }
 
       let { level, path, parentId } = current;
       const reparent = patch.parentId !== undefined && (patch.parentId ?? null) !== current.parentId;
@@ -704,43 +823,52 @@ export class AccountingService {
         `);
       }
 
+      const nextCode = patch.code ?? current.code;
+      const nextNameAr = patch.nameAr ?? current.nameAr;
+      const nextType = (patch.type ?? current.type) as AccountType;
+      const nextNormalBalance = (patch.normalBalance ?? current.normalBalance ?? defaultNormalBalance(nextType)) as 'debit' | 'credit';
+      const nextOpenedAt = patch.openedAt === undefined ? current.openedAt : patch.openedAt;
+      const nextCostCenterId = patch.costCenterId === undefined ? current.costCenterId : patch.costCenterId;
+      const openingChanged = nextOpening !== undefined && nextOpening.cmp(currentOpening) !== 0;
+
       await tx
         .update(accounts)
         .set({
-          code: patch.code ?? current.code,
-          nameAr: patch.nameAr ?? current.nameAr,
+          code: nextCode,
+          nameAr: nextNameAr,
           nameEn: patch.nameEn === undefined ? current.nameEn : patch.nameEn,
-          type: patch.type ?? current.type,
+          type: nextType,
           subtype: patch.subtype === undefined ? current.subtype : patch.subtype,
-          normalBalance: patch.normalBalance ?? current.normalBalance,
+          normalBalance: nextNormalBalance,
           isPostable,
           allowManual: patch.allowManual ?? current.allowManual,
-          /**
-           * 📅 تاريخ فتح الحساب · 💰 الرصيد الافتتاحي · 📊 مركز التكلفة —
-           * `frmAccountsTree`. The opening balance is editable only while the account
-           * carries no posted line: it is the balance *before* the ledger starts, so
-           * changing it after the fact re-states every period that already closed.
-           */
-          openedAt: patch.openedAt === undefined ? current.openedAt : patch.openedAt,
-          openingBalance:
-            patch.openingBalance === undefined
-              ? current.openingBalance
-              : (() => {
-                  if (posted && money(patch.openingBalance).cmp(money(current.openingBalance)) !== 0)
-                    throw new DomainError(
-                      'ACCOUNT_POSTED',
-                      'This account already carries journal entries; its opening balance can no longer be changed',
-                      409,
-                    );
-                  return money(patch.openingBalance).toFixed(4);
-                })(),
-          costCenterId: patch.costCenterId === undefined ? current.costCenterId : patch.costCenterId,
+          openedAt: nextOpenedAt,
+          openingBalance: openingChanged ? '0' : current.openingBalance,
+          costCenterId: nextCostCenterId,
           parentId,
           level,
           path,
           updatedAt: new Date(),
         })
         .where(and(eq(accounts.id, id), eq(accounts.tenantId, tenantId)));
+
+      if (openingChanged && nextOpening !== undefined) {
+        await this.syncAccountOpeningEntryInTx(
+          tx,
+          tenantId,
+          {
+            id,
+            code: nextCode,
+            nameAr: nextNameAr,
+            type: nextType,
+            normalBalance: nextNormalBalance,
+            openedAt: nextOpenedAt ? String(nextOpenedAt).slice(0, 10) : null,
+            costCenterId: nextCostCenterId ?? null,
+          },
+          nextOpening,
+          patch.openingContraAccountId ?? null,
+        );
+      }
     });
     return this.readAccount(tenantId, id);
   }
@@ -773,6 +901,278 @@ export class AccountingService {
     return Boolean((result.rows[0] as { used: boolean }).used);
   }
 
+  private async accountHasNonOpeningLines(tx: DrizzleTx, tenantId: string, id: string) {
+    const result = await tx.execute(sql`
+      SELECT EXISTS (
+        SELECT 1
+          FROM journal_entry_lines jel
+          JOIN journal_entries je ON je.id = jel.entry_id
+         WHERE jel.tenant_id = ${tenantId}
+           AND jel.account_id = ${id}
+           AND NOT (COALESCE(je.source_type, '') = 'account_opening' AND je.source_id = ${id}::uuid)
+      ) OR EXISTS (
+        SELECT 1 FROM opening_balances WHERE tenant_id = ${tenantId} AND account_id = ${id}
+      ) AS used
+    `);
+    return Boolean((result.rows[0] as { used: boolean }).used);
+  }
+
+  /**
+   * ACC-139 / MF-01: Compute each account's net opening balance from its balanced
+   * `source_type = 'account_opening'` journal entries (falling back to legacy `accounts.opening_balance`).
+   */
+  private async readAccountOpeningMapInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    rows: Array<{ id: string; type: string; normalBalance: string | null; openingBalance: string | null }>,
+  ): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    if (!rows.length) return map;
+    const result = await tx.execute(sql`
+      SELECT je.source_id::text AS account_id,
+             COALESCE(SUM(jel.debit - jel.credit), 0)::text AS net_debit
+        FROM journal_entries je
+        JOIN journal_entry_lines jel ON jel.entry_id = je.id AND jel.account_id = je.source_id
+       WHERE je.tenant_id = ${tenantId}
+         AND je.status = 'posted'
+         AND je.source_type = 'account_opening'
+       GROUP BY je.source_id
+    `);
+    const byAccount = new Map<string, Decimal>();
+    for (const r of result.rows as Array<{ account_id: string; net_debit: string }>) {
+      byAccount.set(r.account_id, money(r.net_debit));
+    }
+    for (const row of rows) {
+      const legacy = money(row.openingBalance ?? '0');
+      const netDebit = byAccount.get(row.id) ?? new Decimal(0);
+      if (legacy.isZero() && netDebit.isZero()) continue;
+      const debitNature = (row.normalBalance ?? defaultNormalBalance(row.type as AccountType)) !== 'credit';
+      const signed = (debitNature ? netDebit : netDebit.negated()).plus(legacy);
+      map.set(row.id, signed.toFixed(4));
+    }
+    return map;
+  }
+
+  /**
+   * Resolve or auto-create the tenant's Opening Balances Clearing equity account (`2190001` —
+   * `حساب الأرصدة الافتتاحية الوسيط`), or validate an explicit `openingContraAccountId`.
+   */
+  private async ensureOpeningContraAccountInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    targetAccountId: string,
+    explicitContraId: string | null,
+  ): Promise<string> {
+    if (explicitContraId) {
+      const [explicit] = await tx
+        .select({ id: accounts.id, isPostable: accounts.isPostable })
+        .from(accounts)
+        .where(and(eq(accounts.id, explicitContraId), eq(accounts.tenantId, tenantId), isNull(accounts.deletedAt)));
+      if (!explicit) throw new DomainError('OPENING_CONTRA_NOT_FOUND', 'Opening contra account not found', 404, { field: 'openingContraAccountId' });
+      if (!explicit.isPostable) throw new DomainError('OPENING_CONTRA_NOT_POSTABLE', 'Opening contra account must be postable', 422, { field: 'openingContraAccountId' });
+      if (explicit.id === targetAccountId) throw new DomainError('OPENING_CONTRA_SAME_ACCOUNT', 'Opening contra account must differ from the target account', 422, { field: 'openingContraAccountId' });
+      return explicit.id;
+    }
+
+    const [existing] = await tx
+      .select({ id: accounts.id, isPostable: accounts.isPostable })
+      .from(accounts)
+      .where(and(eq(accounts.tenantId, tenantId), eq(accounts.code, '2190001'), isNull(accounts.deletedAt)))
+      .limit(1);
+    if (existing) {
+      if (existing.id === targetAccountId) {
+        throw new DomainError(
+          'OPENING_CONTRA_ACCOUNT_REQUIRED',
+          'يرجى تحديد حساب مقابل مختلف عند تسجيل رصيد افتتاحي على حساب 2190001 نفسه',
+          422,
+          { field: 'openingContraAccountId' },
+        );
+      }
+      if (!existing.isPostable) {
+        throw new DomainError('OPENING_CONTRA_NOT_POSTABLE', 'Account 2190001 is not postable', 422);
+      }
+      return existing.id;
+    }
+
+    const equityParents = await tx
+      .select({ id: accounts.id, code: accounts.code, path: accounts.path, level: accounts.level })
+      .from(accounts)
+      .where(
+        and(
+          eq(accounts.tenantId, tenantId),
+          inArray(accounts.code, ['21', '2']),
+          eq(accounts.isPostable, false),
+          isNull(accounts.deletedAt),
+        ),
+      );
+    const parent = equityParents.find((p) => p.code === '21') ?? equityParents.find((p) => p.code === '2');
+    const contraId = newId();
+    await tx.insert(accounts).values({
+      id: contraId,
+      tenantId,
+      code: '2190001',
+      nameAr: 'حساب الأرصدة الافتتاحية الوسيط',
+      nameEn: 'Opening Balances Clearing',
+      type: 'equity',
+      normalBalance: 'credit',
+      parentId: parent ? parent.id : null,
+      level: parent ? parent.level + 1 : 0,
+      path: parent ? `${parent.path}.${contraId}` : contraId,
+      isPostable: true,
+      openingBalance: '0',
+    });
+    return contraId;
+  }
+
+  /**
+   * ACC-139 / MF-01: Reverse any previous `account_opening` entry for `account.id` and post a
+   * balanced `kind = 'opening'` journal entry (`Dr = Cr`) against the opening contra account.
+   */
+  private async syncAccountOpeningEntryInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    account: {
+      id: string;
+      code: string;
+      nameAr: string;
+      type: AccountType;
+      normalBalance: 'debit' | 'credit';
+      openedAt: string | null;
+      costCenterId: string | null;
+    },
+    targetAmount: Decimal,
+    explicitContraId: string | null,
+  ): Promise<void> {
+    const [branch] = await tx
+      .select({ id: branches.id })
+      .from(branches)
+      .where(and(eq(branches.tenantId, tenantId), isNull(branches.deletedAt)))
+      .orderBy(desc(branches.isDefault), asc(branches.createdAt))
+      .limit(1);
+    if (!branch) {
+      throw new DomainError(
+        'OPENING_BALANCE_BRANCH_REQUIRED',
+        'يلزم وجود فرع نشط لتوليد القيد الافتتاحي المتوازن',
+        422,
+        { field: 'openingBalance' },
+      );
+    }
+
+    let chosenPeriod: { id: string; startDate: string } | undefined;
+    let entryDate = '';
+    const candidateDate = account.openedAt ? String(account.openedAt).slice(0, 10) : '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(candidateDate)) {
+      const [matching] = await tx
+        .select({ id: fiscalPeriods.id, startDate: fiscalPeriods.startDate })
+        .from(fiscalPeriods)
+        .where(
+          and(
+            eq(fiscalPeriods.tenantId, tenantId),
+            eq(fiscalPeriods.status, 'open'),
+            lte(fiscalPeriods.startDate, candidateDate),
+            gte(fiscalPeriods.endDate, candidateDate),
+          ),
+        )
+        .limit(1);
+      if (matching) {
+        chosenPeriod = { id: matching.id, startDate: String(matching.startDate).slice(0, 10) };
+        entryDate = candidateDate;
+      }
+    }
+    if (!chosenPeriod) {
+      const [earliest] = await tx
+        .select({ id: fiscalPeriods.id, startDate: fiscalPeriods.startDate })
+        .from(fiscalPeriods)
+        .where(and(eq(fiscalPeriods.tenantId, tenantId), eq(fiscalPeriods.status, 'open')))
+        .orderBy(asc(fiscalPeriods.startDate))
+        .limit(1);
+      if (!earliest) {
+        throw new DomainError(
+          'OPENING_BALANCE_PERIOD_REQUIRED',
+          'يلزم وجود فترة محاسبية مفتوحة لتوليد القيد الافتتاحي المتوازن',
+          422,
+          { field: 'openingBalance' },
+        );
+      }
+      chosenPeriod = { id: earliest.id, startDate: String(earliest.startDate).slice(0, 10) };
+      entryDate = chosenPeriod.startDate;
+    }
+
+    // Reverse any prior active `account_opening` entries on this account before posting the updated balance.
+    const activeEntries = await tx.execute(sql`
+      SELECT je.id, je.branch_id, je.fiscal_period_id, je.date::text AS date, je.number
+        FROM journal_entries je
+       WHERE je.tenant_id = ${tenantId}
+         AND je.status = 'posted'
+         AND je.source_type = 'account_opening'
+         AND je.source_id = ${account.id}::uuid
+         AND je.reversal_of IS NULL
+         AND NOT EXISTS (
+           SELECT 1 FROM journal_entries rev
+            WHERE rev.tenant_id = ${tenantId}
+              AND rev.reversal_of = je.id
+              AND rev.status = 'posted'
+         )
+    `);
+    for (const prior of activeEntries.rows as Array<{ id: string; branch_id: string; fiscal_period_id: string; date: string; number: string | null }>) {
+      const priorLines = await tx
+        .select()
+        .from(journalEntryLines)
+        .where(and(eq(journalEntryLines.tenantId, tenantId), eq(journalEntryLines.entryId, prior.id)))
+        .orderBy(asc(journalEntryLines.lineNo));
+      await this.postJournalInTx(tx, tenantId, {
+        branchId: branch.id,
+        fiscalPeriodId: chosenPeriod.id,
+        date: entryDate,
+        kind: 'reversal',
+        reversalOf: prior.id,
+        sourceType: 'account_opening',
+        sourceId: account.id,
+        description: `عكس رصيد افتتاحي — ${account.code} ${account.nameAr}`,
+        lines: priorLines.map((l) => ({
+          accountId: l.accountId,
+          debit: l.credit,
+          credit: l.debit,
+          costCenterId: l.costCenterId ?? undefined,
+          description: `عكس رصيد افتتاحي — ${account.code} ${account.nameAr}`,
+        })),
+      });
+    }
+
+    if (targetAmount.isZero()) return;
+
+    const contraAccountId = await this.ensureOpeningContraAccountInTx(tx, tenantId, account.id, explicitContraId);
+    const absAmount = targetAmount.abs().toFixed(4);
+    const debitFirst =
+      account.normalBalance === 'debit' ? targetAmount.isPositive() : targetAmount.isNegative();
+    const note = `رصيد افتتاحي — ${account.code} ${account.nameAr}`;
+
+    await this.postJournalInTx(tx, tenantId, {
+      branchId: branch.id,
+      fiscalPeriodId: chosenPeriod.id,
+      date: entryDate,
+      kind: 'auto',
+      sourceType: 'account_opening',
+      sourceId: account.id,
+      description: note,
+      lines: [
+        {
+          accountId: account.id,
+          debit: debitFirst ? absAmount : '0.0000',
+          credit: debitFirst ? '0.0000' : absAmount,
+          costCenterId: account.costCenterId ?? undefined,
+          description: note,
+        },
+        {
+          accountId: contraAccountId,
+          debit: debitFirst ? '0.0000' : absAmount,
+          credit: debitFirst ? absAmount : '0.0000',
+          description: note,
+        },
+      ],
+    });
+  }
+
   private async countAccountChildren(tx: DrizzleTx, tenantId: string, id: string) {
     const result = await tx.execute(sql`SELECT count(*)::int AS total FROM accounts WHERE tenant_id = ${tenantId} AND parent_id = ${id} AND deleted_at IS NULL`);
     return (result.rows[0] as { total: number }).total;
@@ -791,7 +1191,8 @@ export class AccountingService {
       const [row] = await tx.select().from(accounts).where(and(eq(accounts.id, id), eq(accounts.tenantId, tenantId), isNull(accounts.deletedAt)));
       // 🔑 R6: كان `Error` عادياً ⇒ 500 «خطأ غير متوقّع» لحسابٍ غير موجود. الغياب ليس عطلاً.
       if (!row) throw new DomainError('ACCOUNT_NOT_FOUND', 'Account was not found', 404);
-      return row;
+      const openingMap = await this.readAccountOpeningMapInTx(tx, tenantId, [row]);
+      return { ...row, openingBalance: openingMap.get(row.id) ?? row.openingBalance };
     });
   }
 
@@ -1473,10 +1874,10 @@ export class AccountingService {
       const movement = await tx
         .select({
           accountId: journalEntryLines.accountId,
-          openingDebit: sql<string>`COALESCE(SUM(CASE WHEN ${journalEntries.date} < ${from} THEN ${journalEntryLines.debit} ELSE 0 END), 0)::text`,
-          openingCredit: sql<string>`COALESCE(SUM(CASE WHEN ${journalEntries.date} < ${from} THEN ${journalEntryLines.credit} ELSE 0 END), 0)::text`,
-          debit: sql<string>`COALESCE(SUM(CASE WHEN ${journalEntries.date} >= ${from} AND ${journalEntries.date} <= ${to} THEN ${journalEntryLines.debit} ELSE 0 END), 0)::text`,
-          credit: sql<string>`COALESCE(SUM(CASE WHEN ${journalEntries.date} >= ${from} AND ${journalEntries.date} <= ${to} THEN ${journalEntryLines.credit} ELSE 0 END), 0)::text`,
+          openingDebit: sql<string>`COALESCE(SUM(CASE WHEN (COALESCE(${journalEntries.sourceType}, '') = 'account_opening' AND ${journalEntries.date} <= ${to}) OR ${journalEntries.date} < ${from} THEN ${journalEntryLines.debit} ELSE 0 END), 0)::text`,
+          openingCredit: sql<string>`COALESCE(SUM(CASE WHEN (COALESCE(${journalEntries.sourceType}, '') = 'account_opening' AND ${journalEntries.date} <= ${to}) OR ${journalEntries.date} < ${from} THEN ${journalEntryLines.credit} ELSE 0 END), 0)::text`,
+          debit: sql<string>`COALESCE(SUM(CASE WHEN COALESCE(${journalEntries.sourceType}, '') <> 'account_opening' AND ${journalEntries.date} >= ${from} AND ${journalEntries.date} <= ${to} THEN ${journalEntryLines.debit} ELSE 0 END), 0)::text`,
+          credit: sql<string>`COALESCE(SUM(CASE WHEN COALESCE(${journalEntries.sourceType}, '') <> 'account_opening' AND ${journalEntries.date} >= ${from} AND ${journalEntries.date} <= ${to} THEN ${journalEntryLines.credit} ELSE 0 END), 0)::text`,
         })
         .from(journalEntryLines)
         .innerJoin(journalEntries, eq(journalEntries.id, journalEntryLines.entryId))
@@ -1910,17 +2311,20 @@ export class AccountingService {
         inBranch,
         query.branchId ? eq(journalEntries.branchId, query.branchId) : undefined,
         kindScope,
+        fromDay && query.kind !== 'opening' && query.kind !== 'account_opening'
+          ? sql`COALESCE(${journalEntries.sourceType}, '') <> 'account_opening'`
+          : undefined,
         ...period,
       );
 
-      // ── 1. الرصيد السابق — everything posted before `from`, plus 💰 الرصيد الافتتاحي
-      //      (migration 0045), which is money on the books before any entry at all.
+      // ── 1. الرصيد السابق — everything posted before `from` (including `source_type='account_opening'`
+      //      entries), plus any legacy `accounts.opening_balance`.
       /**
        * With no `from` there is no "before" — `فترة كاملة (من البداية)` starts at zero,
        * and counting the whole ledger as an opening would count it twice: once here and
        * once again as the period's movements.
        */
-      const before = query.from
+      const before = fromDay
         ? await tx
             .select({
               debit: sql<string>`COALESCE(SUM(${journalEntryLines.debit}), 0)::text`,
@@ -1937,9 +2341,9 @@ export class AccountingService {
                 inBranch,
                 query.branchId ? eq(journalEntries.branchId, query.branchId) : undefined,
                 kindScope,
-                // The same clock the period uses: a قيد posted at nine is *before* a
-                // period that opens at noon, even on the very same day.
-                sql`${at} < ${startAt}`,
+                query.kind === 'opening' || query.kind === 'account_opening'
+                  ? sql`${at} < ${startAt}`
+                  : sql`((COALESCE(${journalEntries.sourceType}, '') = 'account_opening' AND (${toDay ? sql`${at} <= ${endAt}` : sql`true`})) OR ${at} < ${startAt})`,
               ),
             )
             .then((rows) => rows[0])
@@ -2206,7 +2610,7 @@ export class AccountingService {
     return period.id;
   }
 
-  async postJournalInTx(tx: DrizzleTx, tenantId: string, input: { branchId: string; fiscalPeriodId: string; date: string; description?: string; lines: JournalLineInput[]; sourceType?: string; sourceId?: string; idempotencyKey?: string } & JournalCardInput) {
+  async postJournalInTx(tx: DrizzleTx, tenantId: string, input: { branchId: string; fiscalPeriodId: string; date: string; description?: string; lines: JournalLineInput[]; sourceType?: string; sourceId?: string; idempotencyKey?: string; kind?: string; reversalOf?: string } & JournalCardInput) {
     if (input.lines.length < 2) throw new DomainError('JOURNAL_LINES_REQUIRED', 'A journal entry needs at least two lines', 422);
     const debit = input.lines.reduce((sum, line) => sum.plus(line.debit ?? '0'), new Decimal(0));
     const credit = input.lines.reduce((sum, line) => sum.plus(line.credit ?? '0'), new Decimal(0));
@@ -2307,11 +2711,12 @@ export class AccountingService {
       entryTime: input.time ?? null,
       isVat: input.isVat ?? false,
       number: allocated.display,
-      kind: 'manual',
+      kind: input.kind ?? 'manual',
       status: 'posted',
       description: input.description?.trim() || defaultNote,
       sourceType: input.sourceType ?? null,
       sourceId: input.sourceId ?? null,
+      reversalOf: input.reversalOf ?? null,
       idempotencyKey: input.idempotencyKey ?? null,
       postedAt: new Date(),
     });
@@ -2427,14 +2832,37 @@ export class AccountingService {
           and(
             eq(costCenters.tenantId, tenantId),
             isNull(costCenters.deletedAt),
-            query.branchId ? eq(costCenters.branchId, query.branchId) : undefined,
+            query.branchId ? or(eq(costCenters.branchId, query.branchId), isNull(costCenters.branchId)) : undefined,
             query.q
               ? or(ilike(costCenters.code, `%${query.q}%`), ilike(costCenters.nameAr, `%${query.q}%`))
               : undefined,
           ),
         )
         .orderBy(asc(costCenters.code));
-      if (!query.withBalances) return rows;
+
+      const byId = new Map(rows.map((row) => [row.id, row]));
+      const levelOf = (row: (typeof rows)[number]): number => {
+        let level = 0;
+        let parentId = row.parentId ?? null;
+        const seen = new Set<string>([row.id]);
+        while (parentId && !seen.has(parentId)) {
+          seen.add(parentId);
+          const parent = byId.get(parentId);
+          if (!parent) break;
+          level += 1;
+          parentId = parent.parentId ?? null;
+        }
+        return level;
+      };
+
+      if (!query.withBalances) {
+        return rows.map((row) => ({
+          ...row,
+          parentName: row.parentId ? (byId.get(row.parentId)?.nameAr ?? null) : null,
+          level: levelOf(row),
+          kind: row.parentId ? 'sub' : 'main',
+        }));
+      }
 
       const movements = await tx
         .select({
@@ -2448,6 +2876,7 @@ export class AccountingService {
           and(
             eq(journalEntryLines.tenantId, tenantId),
             eq(journalEntries.status, 'posted'),
+            query.branchId ? eq(journalEntries.branchId, query.branchId) : undefined,
             sql`${journalEntryLines.costCenterId} IS NOT NULL`,
           ),
         )
@@ -2481,21 +2910,6 @@ export class AccountingService {
           parentId = parentOf.get(parentId) ?? null;
         }
       }
-
-      const byId = new Map(rows.map((row) => [row.id, row]));
-      const levelOf = (row: (typeof rows)[number]): number => {
-        let level = 0;
-        let parentId = row.parentId ?? null;
-        const seen = new Set<string>([row.id]);
-        while (parentId && !seen.has(parentId)) {
-          seen.add(parentId);
-          const parent = byId.get(parentId);
-          if (!parent) break;
-          level += 1;
-          parentId = parent.parentId ?? null;
-        }
-        return level;
-      };
 
       return rows.map((row) => {
         const self = own.get(row.id) ?? { debit: new Decimal(0), credit: new Decimal(0) };

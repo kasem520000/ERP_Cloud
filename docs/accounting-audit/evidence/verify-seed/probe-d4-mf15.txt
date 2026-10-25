@@ -1,11 +1,11 @@
-probe-d4-mf15 — 2026-10-24T09:30:00.619Z
+probe-d4-mf15 — 2026-10-25T04:58:31.482Z
 API=http://127.0.0.1:3000/api/v1
 
 PASS L01 — login owner → 200
-PASS P01 — فترات مفتوحة: 24؛ تاريخ الأسطر=2026-10-01
-PASS F01 — POST /treasury/bank-accounts → 201 id=01a16d3e-a761-720f-9094-0e54d4a25b61
+PASS P01 — فترات مفتوحة: 12؛ تاريخ الأسطر=2026-10-01
+PASS F01 — POST /treasury/bank-accounts → 201 id=01a1716c-7683-744c-8875-fec39cb3e89c
 PASS F01b — POST /expense-types → 201
-PASS F02 — import → 201 statement=01a16d3e-b3b2-75a9-a97c-06320523a489
+PASS F02 — import → 201 statement=01a1716c-8277-721f-932e-86d9d20a086c
 PASS F02b — أسطر: 2 (رسوم=نعم)
 PASS F03 — expense → 201؛ سند=PV-000003 status=posted amount=13.3700؛ السطر=matched ثقة=1.0000
 PASS F04a — إعادة استخدام السطر → 409 BANK_EXPENSE_LINE_NOT_PENDING

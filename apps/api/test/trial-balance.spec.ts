@@ -158,13 +158,13 @@ describe('ميزان المراجعة — frmRptBalances', () => {
     const totals = body.totals as Record<string, string | boolean>;
     expect(amt(totals.debit)).toBe('1570.0000');
     expect(amt(totals.credit)).toBe('1570.0000');
-    // Every entry is balanced, so the gross movement balances (1570 / 1570) — but ACC-139 (R28):
-    // the ميزان is declared balanced only when the closing columns agree too. The fixture's
-    // one-sided opening balance (البنك 500 with no counterpart) leaves closing 1700 / 1200, so the
-    // window must print «الرصيد: 500 مدين» and NOT the ✅ — a silent ✅ here was the defect.
-    expect(totals.balanced, JSON.stringify(totals)).toBe(false);
-    expect(amt(totals.balance)).toBe('500.0000');
-    expect(totals.status).toBe('مدين');
+    // ACC-139 (MF-01): `bankId` openingBalance=500 automatically generates a balanced `kind='opening'`
+    // entry against `2190001` (`حساب الأرصدة الافتتاحية الوسيط`), so the full ledger stays balanced!
+    expect(amt(totals.openingDebit)).toBe('500.0000');
+    expect(amt(totals.openingCredit)).toBe('500.0000');
+    expect(totals.balanced, JSON.stringify(totals)).toBe(true);
+    expect(amt(totals.balance)).toBe('0.0000');
+    expect(totals.status).toBe('');
   });
 
   it('2. «من تاريخ» — رصيد افتتاحي وحركة ورصيد ختامي', async () => {
@@ -187,24 +187,26 @@ describe('ميزان المراجعة — frmRptBalances', () => {
     expect(amt(row(revenueId).closingCredit)).toBe('1200.0000');
     expect(row(revenueId).status).toBe('دائن');
 
-    // 💰 الرصيد الافتتاحي وحده يكفي لظهور الحساب — ميزان يخفيه لا يتوازن.
+    // 💰 الرصيد الافتتاحي يظهر في عمود الافتتاحي ومقابله المتوازن على 2190001.
     expect(amt(row(bankId).openingDebit)).toBe('500.0000');
     expect(amt(row(bankId).debit)).toBe('0.0000');
     expect(amt(row(bankId).closingDebit)).toBe('500.0000');
+    const contra = listed.find((item) => item.code === '2190001') as Record<string, unknown>;
+    expect(contra).toBeDefined();
+    expect(amt(contra.openingCredit)).toBe('500.0000');
+    expect(amt(contra.closingCredit)).toBe('500.0000');
 
     const totals = body.totals as Record<string, string | boolean>;
     expect(amt(totals.openingDebit)).toBe('1500.0000'); // 1000 + 500 رصيد افتتاحي
-    expect(amt(totals.openingCredit)).toBe('1000.0000');
+    expect(amt(totals.openingCredit)).toBe('1500.0000'); // 1000 إيرادات قبل الفترة + 500 مقابل افتتاحي 2190001
     expect(amt(totals.debit)).toBe('570.0000');
     expect(amt(totals.credit)).toBe('570.0000');
-    // ACC-139: opening 1500 / 1000 is one-sided ⇒ the balance is NOT declared ✅ (see test 1).
-    expect(totals.balanced).toBe(false);
-    // الرصيد / الحالة — the number the window prints under the grid.
-    // 830 نقدية + 370 مصروفات + 500 البنك = 1700 مدين، مقابل 1200 إيرادات دائن.
+    expect(totals.balanced).toBe(true);
+    // 830 نقدية + 370 مصروفات + 500 البنك = 1700 مدين، مقابل 1200 إيرادات + 500 مقابل افتتاحي = 1700 دائن.
     expect(amt(totals.closingDebit)).toBe('1700.0000');
-    expect(amt(totals.closingCredit)).toBe('1200.0000');
-    expect(amt(totals.balance)).toBe('500.0000');
-    expect(totals.status).toBe('مدين');
+    expect(amt(totals.closingCredit)).toBe('1700.0000');
+    expect(amt(totals.balance)).toBe('0.0000');
+    expect(totals.status).toBe('');
   });
 
   it('3. الفرع — «كل الفروع» مقابل فرعٍ واحد', async () => {
@@ -214,15 +216,15 @@ describe('ميزان المراجعة — frmRptBalances', () => {
     expect(amt((all.totals as Record<string, string>).debit)).toBe('1570.0000');
     expect(amt((one.totals as Record<string, string>).debit)).toBe('200.0000');
     expect(amt((one.totals as Record<string, string>).credit)).toBe('200.0000');
-    // 💰 الرصيد الافتتاحي على البطاقة ليس حركة، فهو يظهر مع كل فرع.
-    expect(rows(one).map((row) => row.code).sort()).toEqual(['1100', '1200', '4100']);
+    // القيد الافتتاحي المولَّد تلقائياً مرتبط بالفرع الرئيسي (BR1)، فلا يظهر تحت الفرع الثاني (BR2).
+    expect(rows(one).map((row) => row.code).sort()).toEqual(['1100', '4100']);
   });
 
   it('4. المندوب — حركة الخطوط المنسوبة إليه وحدها', async () => {
     const body = (await trial(`salesman_id=${salesmanId}`)).body as Record<string, unknown>;
     const listed = rows(body);
-    // المندوب سمة سطر: السطر المنسوب إليه وحده يُحصى، والرصيد الافتتاحي يبقى.
-    expect(listed.map((row) => row.code).sort()).toEqual(['1100', '1200', '5100']);
+    // المندوب سمة سطر: السطر المنسوب إليه وحده يُحصى.
+    expect(listed.map((row) => row.code).sort()).toEqual(['1100', '5100']);
     expect(amt((body.totals as Record<string, string>).debit)).toBe('70.0000');
     expect(amt((body.totals as Record<string, string>).credit)).toBe('70.0000');
   });
@@ -233,6 +235,8 @@ describe('ميزان المراجعة — frmRptBalances', () => {
     expect(codes).toEqual(['1100', '1200']);
     expect(amt((body.totals as Record<string, string>).debit)).toBe('1200.0000');
     expect(amt((body.totals as Record<string, string>).credit)).toBe('370.0000');
+    // عرض فرع الأصول وحده (دون الطرف الدائن المقابل) يعيد `balanced: false`.
+    expect((body.totals as Record<string, boolean>).balanced).toBe(false);
   });
 
   it('6. إلى تاريخ — الفترة مغلقة من الطرفين', async () => {
@@ -261,5 +265,35 @@ describe('ميزان المراجعة — frmRptBalances', () => {
     const foreign = await api(ctx.server, 'get', '/api/v1/statements/trial-balance', { token: stranger.token });
     expect(rows(foreign.body).length).toBe(0);
     expect(amt((foreign.body as { totals?: Record<string, string> }).totals?.debit)).toBe('0.0000');
+  });
+
+  it('9. ACC-139: يرفض رصيداً افتتاحياً على حساب رئيسي غير قابل للترحيل ويوازن تعديل الرصيد الافتتاحي قبل الحركة', async () => {
+    const nonPostable = await api(ctx.server, 'post', '/api/v1/accounts', {
+      token: actor.token,
+      body: { code: '1900', nameAr: 'مجموعة غير قابلة للترحيل', type: 'asset', isPostable: false, openingBalance: '300' },
+    });
+    expect(nonPostable.status).toBe(422);
+
+    const editable = await api(ctx.server, 'post', '/api/v1/accounts', {
+      token: actor.token,
+      body: { code: '1250', nameAr: 'حساب عهدة افتتاحي', type: 'asset', parentId, openingBalance: '400' },
+    });
+    expect(editable.status).toBe(201);
+    const editableId = data(editable.body).id as string;
+    expect(amt(data(editable.body).openingBalance)).toBe('400.0000');
+
+    const patched = await api(ctx.server, 'patch', `/api/v1/accounts/${editableId}`, {
+      token: actor.token,
+      body: { openingBalance: '650' },
+    });
+    expect(patched.status).toBe(200);
+    expect(amt(data(patched.body).openingBalance)).toBe('650.0000');
+
+    const tb = (await trial()).body as Record<string, unknown>;
+    const tbTotals = tb.totals as Record<string, string | boolean>;
+    expect(tbTotals.balanced).toBe(true);
+    expect(amt(tbTotals.balance)).toBe('0.0000');
+    const row1250 = rows(tb).find((r) => r.accountId === editableId) as Record<string, unknown>;
+    expect(amt(row1250.closingDebit)).toBe('650.0000');
   });
 });

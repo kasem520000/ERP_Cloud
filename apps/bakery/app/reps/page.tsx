@@ -179,7 +179,7 @@ export default function RepsPage() {
           <p className="ui-page-sub">
             بطاقةُ المندوب الرسمية بما ينقصها قبل أن يعمل: موظفٌ وحسابُ دخولٍ نشط ومستودعُ سيارة وصلاحياتُ
             الخطّ. والكتابةُ الوحيدة هنا ربطُ حساب الدخول عبر كتّاب المنصّة — أمّا البطاقة نفسها فتُنشأ
-            وتُعدَّل في <span dir="ltr">apps/staff</span> على .
+            وتُعدَّل في <span dir="ltr">apps/staff</span> على المسار <code dir="ltr">/sales/salesmen</code>.
           </p>
         </div>
         <div className="ui-page-actions">

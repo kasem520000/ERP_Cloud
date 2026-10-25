@@ -1,4 +1,4 @@
-probe-d6-cash-flow — 2026-10-24T14:11:31.784Z
+probe-d6-cash-flow — 2026-10-25T04:57:59.207Z
 API=http://127.0.0.1:3000/api/v1
 
 PASS L01 — login owner → 200

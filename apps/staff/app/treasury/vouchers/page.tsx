@@ -150,7 +150,7 @@ function VouchersScreen() {
   const prefill = useMemo(() => {
     if (searchParams.get('open') !== '1') return null;
     const subtype = searchParams.get('subtype') ?? '';
-    const amount = searchParams.get('amount') ?? '';
+    const rawValue = searchParams.get('amount') ?? '';
     return {
       ...BLANK,
       subtype: subtype || BLANK.subtype,
@@ -158,11 +158,10 @@ function VouchersScreen() {
       description: searchParams.get('description') ?? '',
       method: searchParams.get('method') || BLANK.method,
       cashLocationId: searchParams.get('cashLocationId') ?? '',
-      amountText: amount && Number.isFinite(Number(amount)) ? Math.abs(Number(amount)).toFixed(2) : '',
+      amountText: rawValue && Number.isFinite(Number(rawValue)) ? Math.abs(Number(rawValue)).toFixed(2) : '',
       referenceNo: searchParams.get('reference') ?? '',
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
   const [open, setOpen] = useState(prefill !== null);
   const [form, setForm] = useState(prefill ?? BLANK);
   const [busy, setBusy] = useState(false);

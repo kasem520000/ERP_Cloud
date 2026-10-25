@@ -83,6 +83,7 @@ export class EmailSettingsService {
   private async effectiveInTx(tx: DrizzleTx, tenantId: string | null): Promise<EmailSettings> {
     const platform = (await tx.execute(sql`
       SELECT id, tenant_id, provider, from_name, from_email, reply_to, sending_domain,
+             dkim_selector, dkim_public_key, spf_record, per_recipient_rate_limit,
              daily_limit, monthly_limit, api_key_enc, api_endpoint,
              smtp_host, smtp_port, smtp_user, smtp_password_enc, smtp_secure,
              updated_at, updated_by
@@ -91,6 +92,7 @@ export class EmailSettingsService {
     const tenant = tenantId
       ? (await tx.execute(sql`
           SELECT id, tenant_id, provider, from_name, from_email, reply_to, sending_domain,
+                 dkim_selector, dkim_public_key, spf_record, per_recipient_rate_limit,
                  daily_limit, monthly_limit, api_key_enc, api_endpoint,
                  smtp_host, smtp_port, smtp_user, smtp_password_enc, smtp_secure,
                  updated_at, updated_by
@@ -122,8 +124,12 @@ export class EmailSettingsService {
       fromEmail: pick<string>('from_email', env.MAIL_FROM),
       replyTo: pick<string | null>('reply_to', null),
       sendingDomain: pick<string | null>('sending_domain', null),
+      dkimSelector: pick<string | null>('dkim_selector', null),
+      dkimPublicKey: pick<string | null>('dkim_public_key', null),
+      spfRecord: pick<string | null>('spf_record', null),
       dailyLimit: pick<number | null>('daily_limit', null),
       monthlyLimit: pick<number | null>('monthly_limit', null),
+      perRecipientRateLimit: pick<number | null>('per_recipient_rate_limit', null),
       smtpHost,
       smtpPort,
       smtpUser,
@@ -172,8 +178,12 @@ export class EmailSettingsService {
             from_email        = COALESCE(${input.fromEmail ?? null}, from_email),
             reply_to          = CASE WHEN ${input.replyTo === undefined} THEN reply_to ELSE ${input.replyTo ?? null} END,
             sending_domain    = CASE WHEN ${input.sendingDomain === undefined} THEN sending_domain ELSE ${input.sendingDomain ?? null} END,
+            dkim_selector     = CASE WHEN ${input.dkimSelector === undefined} THEN dkim_selector ELSE ${input.dkimSelector ?? null} END,
+            dkim_public_key   = CASE WHEN ${input.dkimPublicKey === undefined} THEN dkim_public_key ELSE ${input.dkimPublicKey ?? null} END,
+            spf_record        = CASE WHEN ${input.spfRecord === undefined} THEN spf_record ELSE ${input.spfRecord ?? null} END,
             daily_limit       = CASE WHEN ${input.dailyLimit === undefined} THEN daily_limit ELSE ${input.dailyLimit ?? null} END,
             monthly_limit     = CASE WHEN ${input.monthlyLimit === undefined} THEN monthly_limit ELSE ${input.monthlyLimit ?? null} END,
+            per_recipient_rate_limit = CASE WHEN ${input.perRecipientRateLimit === undefined} THEN per_recipient_rate_limit ELSE ${input.perRecipientRateLimit ?? null} END,
             api_key_enc       = CASE WHEN ${sealedApiKey === undefined} THEN api_key_enc ELSE ${sealedApiKey ?? null} END,
             api_endpoint      = CASE WHEN ${input.apiEndpoint === undefined} THEN api_endpoint ELSE ${input.apiEndpoint ?? null} END,
             smtp_host         = CASE WHEN ${input.smtpHost === undefined} THEN smtp_host ELSE ${input.smtpHost ?? null} END,
@@ -189,6 +199,7 @@ export class EmailSettingsService {
         await tx.execute(sql`
           INSERT INTO email_settings
             (id, tenant_id, provider, from_name, from_email, reply_to, sending_domain,
+             dkim_selector, dkim_public_key, spf_record, per_recipient_rate_limit,
              daily_limit, monthly_limit, api_key_enc, api_endpoint,
              smtp_host, smtp_port, smtp_user, smtp_password_enc, smtp_secure, updated_by)
           VALUES (
@@ -198,6 +209,10 @@ export class EmailSettingsService {
             ${(input.fromEmail ?? before.fromEmail) as string},
             ${input.replyTo === undefined ? null : input.replyTo},
             ${input.sendingDomain === undefined ? null : input.sendingDomain},
+            ${input.dkimSelector ?? null},
+            ${input.dkimPublicKey ?? null},
+            ${input.spfRecord ?? null},
+            ${input.perRecipientRateLimit ?? null},
             ${input.dailyLimit === undefined ? null : input.dailyLimit},
             ${input.monthlyLimit === undefined ? null : input.monthlyLimit},
             ${sealedApiKey ?? null},
