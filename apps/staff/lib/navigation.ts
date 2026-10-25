@@ -1771,6 +1771,11 @@ const settings: ModuleNode = {
           permission: 'organization.branch.view',
           endpoint: '/branches',
         }),
+        screen('currencies', 'العملات وأسعار الصرف', 'Currencies & FX rates', '/organization/currencies', 'ready', {
+          permission: 'organization.currency.view',
+          endpoint: '/currencies',
+          description: 'تفعيل العملات وتسجيل الأسعار النافذة + إعادة تقييم نهاية الفترة.',
+        }),
         screen(
           'posting-profiles',
           'الربط المحاسبي',

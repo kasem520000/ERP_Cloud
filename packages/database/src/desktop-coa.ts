@@ -235,6 +235,13 @@ export const DESKTOP_DEFAULT_COA: DesktopSeedAccount[] = [
     "postable": false
   },
   {
+    "code": "1290001",
+    "nameAr": "فرق إعادة تقييم العملات (غير محقّق)",
+    "parent": "12",
+    "type": "asset",
+    "normalBalance": "debit"
+  },
+  {
     "code": "211",
     "nameAr": "رأس المال",
     "parent": "21",
@@ -822,6 +829,13 @@ export const DESKTOP_DEFAULT_COA: DesktopSeedAccount[] = [
   {
     "code": "4200003",
     "nameAr": "إيرادات عامة",
+    "parent": "42",
+    "type": "revenue",
+    "normalBalance": "credit"
+  },
+  {
+    "code": "4200004",
+    "nameAr": "إيراد فرق العملة",
     "parent": "42",
     "type": "revenue",
     "normalBalance": "credit"

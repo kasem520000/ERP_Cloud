@@ -4095,6 +4095,26 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     "source": "navigation"
   },
   {
+    "id": "nav:currencies",
+    "title": "العملات وأسعار الصرف",
+    "href": "/organization/currencies",
+    "keywords": [
+      "العملات",
+      "وأسعار",
+      "الصرف",
+      "Currencies",
+      "FX",
+      "rates",
+      "organization",
+      "currencies"
+    ],
+    "steps": [
+      "افتح «العملات وأسعار الصرف» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
     "id": "nav:posting-profiles",
     "title": "الربط المحاسبي",
     "href": "/settings/posting-profiles",

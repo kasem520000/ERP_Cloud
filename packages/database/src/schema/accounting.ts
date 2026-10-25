@@ -268,8 +268,37 @@ export const vatFilings = pgTable(
   }),
 );
 
+/**
+ * MF-28 / D12 — تشغيل إعادة تقييم العملات: قيد غير محقَّق (وإن كان صفراً بلا قيد) +
+ * عكسه الآلي المرتبط. فريد (مستأجر، يوم) ⇐ تكرار التشغيل = 409 على التطبيق.
+ */
+export const fxRevaluationRuns = pgTable(
+  'fx_revaluation_runs',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    runDate: date('run_date').notNull(),
+    journalEntryId: uuid('journal_entry_id').references(() => journalEntries.id),
+    reversalEntryId: uuid('reversal_entry_id').references(() => journalEntries.id),
+    /** `posted` = قيد موجود أو صفر بلا قيد · `reversal` يدوي لاحق ⇐ `reversed`. */
+    status: text('status').notNull().default('posted'),
+    gainLoss: numeric('gain_loss', money).notNull().default('0'),
+    /** لقطة الأرصدة المقيَّمة والأسعار والعملات المستبعدة (لإعادة التحقق). */
+    detail: jsonb('detail').notNull().default({}),
+    createdBy: uuid('created_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    tenantDateKey: uniqueIndex('fx_revaluation_runs_tenant_date_key').on(table.tenantId, table.runDate),
+    tenantDateIdx: index('fx_revaluation_runs_tenant_date_idx').on(table.tenantId, table.runDate),
+  }),
+);
+
 export type Account = typeof accounts.$inferSelect;
 export type JournalEntry = typeof journalEntries.$inferSelect;
 export type JournalEntryLine = typeof journalEntryLines.$inferSelect;
 export type FiscalPeriod = typeof fiscalPeriods.$inferSelect;
 export type VatFiling = typeof vatFilings.$inferSelect;
+export type FxRevaluationRun = typeof fxRevaluationRuns.$inferSelect;

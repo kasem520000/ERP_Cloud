@@ -57,6 +57,12 @@ export const salesInvoices = pgTable(
     status: text('status').notNull().default('draft'),
     number: text('number'),
     currency: text('currency').notNull().default('SAR'),
+    /**
+     * MF-28 / D12 — سعر فاتورة أجنبية (أساس مقابل عملة الفاتورة) لحظة التسعير.
+     * NULL = بالعملة الأساسية (السلوك القائم) · التحصيل يقفل الذمة بهذا السعر
+     * ويفصل الفرق المحقَّق عن سعر اليوم.
+     */
+    fxRate: numeric('fx_rate', { precision: 20, scale: 10 }),
     priceIncludesVat: boolean('price_includes_vat').notNull().default(false),
     cashCustomerName: text('cash_customer_name'),
     cashCustomerMobile: text('cash_customer_mobile'),

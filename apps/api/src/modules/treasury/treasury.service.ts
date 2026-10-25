@@ -2,7 +2,7 @@
 import { Inject, Injectable, Optional, type OnModuleInit } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { alias } from 'drizzle-orm/pg-core';
-import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import { DomainError, isUuid, newId } from '@erp/contracts';
 import {
   accounts,
@@ -467,13 +467,19 @@ export class TreasuryService implements OnModuleInit {
       // 💱 سعر الصرف = المبلغ بالأساس ÷ المبلغ بالعملة الأجنبية — كما في `Receipts.ExchangePrice`
       // عند الديسكتوب (يُحسب من `val1 × exchange_price` في `frmInvBySalesMen` L254).
       fxRate = amount.div(foreign).toFixed(6);
-      // ACC-072 follow-up (R33 — P-M16): a foreign voucher is priced by the client (amount ÷ foreignAmount);
-      // when the tenant keeps a rate table for that currency the implied rate must stay within ±5 % of
-      // the latest rate effective on the voucher date, otherwise the voucher is refused. A currency with
-      // no table rate is still accepted (there is nothing to check against) — documented limit.
-      if (currency !== 'SAR') {
-        await this.assertFxRateWithinToleranceInTx(tx, tenantId, currency, input.date ?? new Date().toISOString().slice(0, 10), amount.div(foreign));
-      }
+    }
+    // MF-28 / AC3 (يُغلق ثغرة P-M16): أي سند بعملة أجنبية يلزم سعر جدول نافذ ≤ تاريخه —
+    // سعرٌ حر (أو عملة بلا جدول إطلاقاً) لا يُقبَّل بعد اليوم؛ ومع سعرٍ ضمني (foreignAmount)
+    // يبقى الهامش ±5% كما كان.
+    if (currency !== 'SAR') {
+      const implied = fxRate === null ? null : new Decimal(fxRate);
+      await this.assertFxRateWithinToleranceInTx(
+        tx,
+        tenantId,
+        currency,
+        input.date ?? new Date().toISOString().slice(0, 10),
+        implied,
+      );
     }
     if (input.salesmanId) await this.assertSalesmanInTx(tx, tenantId, input.salesmanId);
     const id = newId();
@@ -3083,7 +3089,7 @@ export class TreasuryService implements OnModuleInit {
   }
 
   /** P-M16: compare the voucher's implied rate with the tenant's `fx_rates` table (±5 %). */
-  private async assertFxRateWithinToleranceInTx(tx: DrizzleTx, tenantId: string, currency: string, date: string, implied: Decimal) {
+  private async assertFxRateWithinToleranceInTx(tx: DrizzleTx, tenantId: string, currency: string, date: string, implied: Decimal | null) {
     const rows = (await tx.execute(sql`
       SELECT from_code, to_code, rate::text AS rate FROM fx_rates
       WHERE tenant_id = ${tenantId}::uuid
@@ -3096,9 +3102,23 @@ export class TreasuryService implements OnModuleInit {
       ? (rows as Array<{ from_code: string; to_code: string; rate: string }>)
       : (((rows as { rows?: Array<{ from_code: string; to_code: string; rate: string }> }).rows ?? []) as Array<{ from_code: string; to_code: string; rate: string }>);
     const row = list[0];
-    if (!row) return;
+    // MF-28 / AC3 — لا سعر حر: أجنبية بلا جدول نافذ تُرفض (كانت تُقبَّل — ثغرة P-M16).
+    if (!row)
+      throw new DomainError(
+        'FX_RATE_MISSING',
+        `لا يوجد سعر صرف نافذ للعملة ${currency} حتى ${date} — سجّل سعر الجدول قبل القيد`,
+        422,
+        { field: 'currency', currency, date },
+      );
     const tableRate = row.from_code === currency ? new Decimal(row.rate) : new Decimal(1).div(row.rate);
-    if (!tableRate.isFinite() || tableRate.lte(0)) return;
+    if (!tableRate.isFinite() || tableRate.lte(0))
+      throw new DomainError(
+        'FX_RATE_MISSING',
+        `سعر الجدول للعملة ${currency} غير صالح (${row.rate})`,
+        422,
+        { field: 'currency', currency, date },
+      );
+    if (!implied) return; // بلا foreignAmount لا سعرٌ ضمني يُقاس — وجود الجدول وحده يكفي
     const TOLERANCE_PERCENT = 5;
     const deviation = implied.minus(tableRate).abs().div(tableRate).mul(100);
     if (deviation.gt(TOLERANCE_PERCENT)) {

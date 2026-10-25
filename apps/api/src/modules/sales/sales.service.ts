@@ -18,7 +18,6 @@ import {
   journalEntryLines,
   offers,
   offerItems,
-  offerParties,
   parties,
   paymentAllocations,
   paymentMethods,
@@ -112,6 +111,12 @@ export type SalesInvoiceInput = {
   dueDate?: string;
   kind?: 'sale' | 'sale_return' | 'credit_note' | 'debit_note' | 'quotation';
   currency?: string;
+  /**
+   * MF-28 / D12 — سعر صريح لفاتورة أجنبية (أساس مقابل عملتها): يلزم أن يكون ضمن ±5%
+   * من سعر الجدول النافذ (لا سعر حر)؛ وبلا سعر صريح يُؤخذ سعر الجدول؛ وبلا جدول نافذ
+   * تُرفض بـ422 `FX_RATE_MISSING`. الفواتير بالريال تتجاهل الحقل (`fx_rate = null`).
+   */
+  fxRate?: string;
   priceIncludesVat?: boolean;
   invoiceDiscount?: string;
   extraTax?: string;
@@ -133,10 +138,17 @@ export type SalesInvoiceInput = {
 };
 export type PaymentInput = {
   method: 'cash' | 'card' | 'bank' | 'credit' | 'split';
+  /** **مبلغ بعملة الفاتورة** (كما كان: `remaining = netTotal − paidTotal` بعملة المستند). */
   amount: string;
   idempotencyKey: string;
   cashLocationId?: string;
   reference?: string;
+  /**
+   * MF-28 / D12 — سعر التحصيل الصريح (اختياري): بلاه يُحلَّ سعر الجدول لليوم؛
+   * والصريح يلزم أن يكون ضمن ±5% منه — وإلا 422. الفرق عن سعر الفاتورة =
+   * ربح/خسارة صرف محقَّقة تُقيَّد في الحسابين (4200004 / 3121003).
+   */
+  fxRate?: string;
 };
 export type PostingInput = {
   fiscalPeriodId?: string;
@@ -430,8 +442,8 @@ export class SalesService {
           { lineNo: i + 1, quantity: line.quantity },
         );
       }
-      const price = new Decimal(line.unitPrice ?? 0);
-      if (price.lt(0)) {
+      const priceValue = new Decimal(line.unitPrice ?? 0);
+      if (priceValue.lt(0)) {
         throw new DomainError(
           'SALES_LINE_PRICE_INVALID',
           `Line ${i + 1} unit price cannot be negative`,
@@ -440,8 +452,8 @@ export class SalesService {
         );
       }
       if (line.taxRate !== undefined && line.taxRate !== null && line.taxRate !== '') {
-        const rate = new Decimal(line.taxRate);
-        if (rate.lt(0) || rate.gt(100)) {
+        const taxPct = new Decimal(line.taxRate);
+        if (taxPct.lt(0) || taxPct.gt(100)) {
           throw new DomainError(
             'SALES_TAX_RATE_INVALID',
             `Line ${i + 1} tax rate must be between 0 and 100`,
@@ -572,6 +584,38 @@ export class SalesService {
         }
       }
     }
+    // MF-28 — تسعير الفاتورة الأجنبية (AC3): سعر الجدول النافذ أساساً؛ سعرٌ صريح يلزم
+    // أن يكون ضمن ±5% منه (لا سعر حر)؛ وبدون جدول نافذ تُرفض — «الأجنبية لا تُسعَّر
+    // بسعرٍ لم يُسجَّل».
+    const docCurrency = (input.currency ?? 'SAR').toUpperCase().trim();
+    let invoiceFxRate: string | null = null;
+    if (docCurrency !== 'SAR') {
+      const tableRate = await this.tableFxRateInTx(tx, tenantId, docCurrency, new Date().toISOString().slice(0, 10));
+      if (!tableRate)
+        throw new DomainError(
+          'FX_RATE_MISSING',
+          `لا يوجد سعر صرف نافذ للعملة ${docCurrency} — سجّل سعر الجدول قبل التسعير`,
+          422,
+          { field: 'currency', currency: docCurrency },
+        );
+      if (input.fxRate) {
+        const implied = money(input.fxRate);
+        if (!implied.isFinite() || implied.lte(0))
+          throw new DomainError('FX_RATE_INVALID', 'سعر الصرف غير صالح', 422, { field: 'fxRate' });
+        const deviation = implied.minus(tableRate).abs().div(tableRate).mul(100);
+        if (deviation.gt(5))
+          throw new DomainError(
+            'FX_RATE_OUT_OF_RANGE',
+            `سعر الصرف ${implied.toFixed(6)} يبتعد ${deviation.toFixed(2)} % عن سعر الجدول ${tableRate.toFixed(6)} (الحد 5 %)`,
+            422,
+            { field: 'fxRate', impliedRate: implied.toFixed(6), tableRate: tableRate.toFixed(6), deviationPercent: deviation.toFixed(2) },
+          );
+        invoiceFxRate = implied.toFixed(10);
+      } else {
+        invoiceFxRate = tableRate.toFixed(10);
+      }
+    }
+
     const id = newId();
     const actorUserId = tryGetAuthContext()?.userId;
     let resolvedShiftId = input.shiftId ?? null;
@@ -640,6 +684,7 @@ export class SalesService {
         validUntil,
         dueDate,
         currency: input.currency ?? 'SAR',
+        fxRate: invoiceFxRate,
         priceIncludesVat: input.priceIncludesVat ?? false,
         cashCustomerName: input.cashCustomerName,
         cashCustomerMobile: input.cashCustomerMobile,
@@ -1799,6 +1844,8 @@ export class SalesService {
       total: string;
       partyId: string | null;
       currency?: string | null;
+      /** MF-28 — سعر الفاتورة الأجنبية (NULL = سلوك القائم حرفياً). */
+      fxRate?: string | null;
       /** R9 — مركز الرأس: الافتراضي لكل سطرٍ لا يذكر مركزاً (`InvoiceOper.cs` L2461). */
       costCenterId?: string | null;
     },
@@ -1865,22 +1912,43 @@ export class SalesService {
      * مركزَ تكلفة، والضريبة في الديسكتوب كذلك بلا `CCcode`. والفحص على `undefined` لا على
      * القيمة: رجلٌ **بلا مركز** (`null`) تُكتب بلا وسم، ورجلٌ بمركزٍ تُوسم.
      */
+    /**
+     * MF-28 — رجل قيدٍ واحدة. الأرجل **المالية** (ذمة · إيراد · ضريبة · صرف) تُقيَّم بسعر
+     * الفاتورة: الأساس = مبلغ المستند × السعر، والأجنبي = مبلغ المستند. أرجل **التكلفة
+     * والمخزون** (`scope: 'base'`) تبقى أساسية لا تقييم لها (تكلفتُنا بالريال) وتُحوَّل
+     * للأجنبي قسراً فقط عند وجود سعر. بلا سعر (ريال) يبقى كل شيء كما كان بالحرف.
+     */
+    const fx = locked.fxRate ? new Decimal(locked.fxRate) : null;
     const leg = (
       accountId: string,
       debit: Decimal,
       credit: Decimal,
       partyId: string | null = null,
       costCenterId?: string | null,
+      scope: 'doc' | 'base' = 'doc',
     ): void => {
       if (debit.abs().lte(0) && credit.abs().lte(0)) return;
+      let baseDebit = debit;
+      let baseCredit = credit;
+      let foreign = debit.abs().gt(0) ? debit : credit;
+      if (fx) {
+        if (scope === 'doc') {
+          baseDebit = debit.times(fx).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+          baseCredit = credit.times(fx).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+        } else {
+          foreign = debit.abs().gt(0) ? debit : credit;
+          foreign = foreign.div(fx).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+        }
+      }
       lines.push({
         accountId,
-        debit: debit.toFixed(4),
-        credit: credit.toFixed(4),
+        debit: baseDebit.toFixed(4),
+        credit: baseCredit.toFixed(4),
         partyId: partyId ?? undefined,
         costCenterId: costCenterId ?? undefined,
         currencyCode: locked.currency ?? 'SAR',
-        currencyAmount: (debit.abs().gt(0) ? debit : credit).toFixed(4),
+        currencyAmount: foreign.toFixed(4),
+        fxRate: fx ? locked.fxRate ?? undefined : undefined,
       });
     };
     const effectiveCenter = (value: string | null): string | null => value ?? locked.costCenterId ?? null;
@@ -1952,30 +2020,50 @@ export class SalesService {
       // فكشف مركز الكلفة يقرأ التكلفة الحقيقية لا الإيراد وحده.
       if (!isReturn) {
         this.legByCostCenter(
-          (costCenterId, share) => leg(need('cogsAccountId'), share, new Decimal(0), null, costCenterId),
+          (costCenterId, share) => leg(need('cogsAccountId'), share, new Decimal(0), null, costCenterId, 'base'),
           cogsTotal,
           cogsRows,
-          () => leg(need('cogsAccountId'), cogsTotal, new Decimal(0), null),
+          () => leg(need('cogsAccountId'), cogsTotal, new Decimal(0), null, undefined, 'base'),
         );
         this.legByCostCenter(
-          (costCenterId, share) => leg(need('inventoryAccountId'), new Decimal(0), share, null, costCenterId),
+          (costCenterId, share) => leg(need('inventoryAccountId'), new Decimal(0), share, null, costCenterId, 'base'),
           cogsTotal,
           cogsRows,
-          () => leg(need('inventoryAccountId'), new Decimal(0), cogsTotal, null),
+          () => leg(need('inventoryAccountId'), new Decimal(0), cogsTotal, null, undefined, 'base'),
         );
       } else {
         this.legByCostCenter(
-          (costCenterId, share) => leg(need('inventoryAccountId'), share, new Decimal(0), null, costCenterId),
+          (costCenterId, share) => leg(need('inventoryAccountId'), share, new Decimal(0), null, costCenterId, 'base'),
           cogsTotal,
           cogsRows,
-          () => leg(need('inventoryAccountId'), cogsTotal, new Decimal(0), null),
+          () => leg(need('inventoryAccountId'), cogsTotal, new Decimal(0), null, undefined, 'base'),
         );
         this.legByCostCenter(
-          (costCenterId, share) => leg(need('cogsAccountId'), new Decimal(0), share, null, costCenterId),
+          (costCenterId, share) => leg(need('cogsAccountId'), new Decimal(0), share, null, costCenterId, 'base'),
           cogsTotal,
           cogsRows,
-          () => leg(need('cogsAccountId'), new Decimal(0), cogsTotal, null),
+          () => leg(need('cogsAccountId'), new Decimal(0), cogsTotal, null, undefined, 'base'),
         );
+      }
+    }
+    // MF-28 — تتبّع التقريب: تقييم كل رجل بسعرٍ له قد يترك هامشَ قرشٍ مفرَّق بين المدين
+    // والدائن (4 خانات عشرية). يُضبط الهَمْش على أكبر رجلٍ فيصِف القيد تماماً تحت حدّ
+    // `postJournalInTx` (0.00005) — بلا تقييم (ريال) لا هَمْش أصلاً كما كان.
+    if (fx && lines.length) {
+      const totalDr = lines.reduce((sum, line) => sum.plus(line.debit ?? '0'), new Decimal(0));
+      const totalCr = lines.reduce((sum, line) => sum.plus(line.credit ?? '0'), new Decimal(0));
+      const residual = totalDr.minus(totalCr);
+      if (residual.gt(0)) {
+        const target = lines.find((line) => new Decimal(line.debit ?? '0').gte(residual));
+        if (target) target.debit = new Decimal(target.debit ?? '0').minus(residual).toFixed(4);
+      } else if (residual.lt(0)) {
+        const abs = residual.abs();
+        const creditLine = lines.find((line) => new Decimal(line.credit ?? '0').gte(abs));
+        if (creditLine) creditLine.credit = new Decimal(creditLine.credit ?? '0').plus(abs).toFixed(4);
+        else {
+          const debitLine = lines.find((line) => new Decimal(line.debit ?? '0').gte(abs));
+          if (debitLine) debitLine.debit = new Decimal(debitLine.debit ?? '0').plus(abs).toFixed(4);
+        }
       }
     }
     return lines;
@@ -2173,6 +2261,101 @@ export class SalesService {
     return voided;
   }
 
+  /**
+   * MF-28 — سعر الجدول النافذ (أحدث سعر ≤ التاريخ) معبّراًً بـ«أساس مقابل وحدة العملة»:
+   * USD→SAR 3.75 ⇐ 1 دولار = 3.75 ريال · SAR→USD ⇐ المقلوب. `null` = لا سعر نافذ
+   * للأجنبية (لا سعر حر — الفاعل يقرر 422 `FX_RATE_MISSING`).
+   */
+  private async tableFxRateInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    currency: string,
+    date: string,
+  ): Promise<Decimal | null> {
+    const rows = (await tx.execute(sql`
+      SELECT from_code, to_code, rate::text AS rate FROM fx_rates
+       WHERE tenant_id = ${tenantId}::uuid
+         AND ((from_code = ${currency} AND to_code = 'SAR') OR (from_code = 'SAR' AND to_code = ${currency}))
+         AND effective_from <= ${date}::date
+       ORDER BY effective_from DESC, created_at DESC
+       LIMIT 1
+    `)) as unknown;
+    const list: Array<{ from_code: string; to_code: string; rate: string }> = Array.isArray(rows)
+      ? (rows as Array<{ from_code: string; to_code: string; rate: string }>)
+      : (((rows as { rows?: Array<{ from_code: string; to_code: string; rate: string }> }).rows ?? []) as Array<{
+          from_code: string;
+          to_code: string;
+          rate: string;
+        }>);
+    const row = list[0];
+    if (!row) return null;
+    const rowQuote = new Decimal(row.rate);
+    if (!rowQuote.isFinite() || rowQuote.lte(0)) return null;
+    const basePerUnit = row.from_code === currency ? rowQuote : new Decimal(1).div(rowQuote);
+    return basePerUnit.isFinite() ? basePerUnit : null;
+  }
+
+  /**
+   * MF-28 — حسابات فروق العملة تُؤمَّن عند أول استعمال (نمط `ensureSettlementAccount`
+   * D11 — بلا إدراج حسابات في الترحيل): ربح ⇐ 4200004 · خسارة ⇐ 3121003 · إعادة
+   * تقييم ⇐ 1290001. الفروق المحققة وغير المحققة تتشاركان الحسابين والوصف يميّز.
+   */
+  private async ensureFxAccountInTx(tx: DrizzleTx, tenantId: string, kind: 'gain' | 'loss' | 'revaluation') {
+    const preset =
+      kind === 'gain'
+        ? { code: '4200004', nameAr: 'إيراد فرق العملة', nameEn: 'FX gain', type: 'revenue' as const, normalBalance: 'credit' as const, parentCode: '42' }
+        : kind === 'loss'
+          ? { code: '3121003', nameAr: 'مصاريف فرق العملة', nameEn: 'FX loss', type: 'expense' as const, normalBalance: 'debit' as const, parentCode: '3121' }
+          : { code: '1290001', nameAr: 'فرق إعادة تقييم العملات (غير محقّق)', nameEn: 'FX revaluation', type: 'asset' as const, normalBalance: 'debit' as const, parentCode: '12' };
+
+    const existing = await tx
+      .select({ id: accounts.id })
+      .from(accounts)
+      .where(and(eq(accounts.tenantId, tenantId), eq(accounts.code, preset.code), isNull(accounts.deletedAt)))
+      .limit(1);
+    if (existing[0]) return existing[0].id;
+
+    const [parent] = await tx
+      .select({ id: accounts.id, level: accounts.level, path: accounts.path })
+      .from(accounts)
+      .where(and(eq(accounts.tenantId, tenantId), eq(accounts.code, preset.parentCode), isNull(accounts.deletedAt)))
+      .limit(1);
+    if (!parent)
+      throw new DomainError(
+        'FX_ACCOUNT_MISSING',
+        `لا يوجد حساب أب ${preset.parentCode} لإنشاء «${preset.nameAr}» — أنشئ الحساب أو مرّره`,
+        422,
+        { field: 'accountId', accountCode: preset.code },
+      );
+    try {
+      const id = newId();
+      await tx.insert(accounts).values({
+        id,
+        tenantId,
+        code: preset.code,
+        nameAr: preset.nameAr,
+        nameEn: preset.nameEn,
+        type: preset.type,
+        normalBalance: preset.normalBalance,
+        parentId: parent.id,
+        level: parent.level + 1,
+        path: `${parent.path}.${id}`,
+        isPostable: true,
+        openingBalance: '0',
+      });
+      return id;
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error;
+      const [raced] = await tx
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(and(eq(accounts.tenantId, tenantId), eq(accounts.code, preset.code), isNull(accounts.deletedAt)))
+        .limit(1);
+      if (!raced) throw error;
+      return raced.id;
+    }
+  }
+
   async addPayment(tenantId: string, invoiceId: string, input: PaymentInput) {
     const invoice = await this.get(tenantId, invoiceId);
     if (invoice.status !== 'posted')
@@ -2267,6 +2450,9 @@ export class SalesService {
         .returning();
 
       let cashAccountId: string | undefined;
+      // MF-28 — عملة الموقع الفعلية (NULL في الجدول = عملة الأساس): كانت القيمة القديمة
+      // ترث عملة الفاتورة حين ي Silence الموقعُ نفسه، فدفع فاتورة دولار من صندوقٍ ريال
+      // كان يحرّك صفّ الدولار. صارت العملة = عملة الموقع إن وُجد، وإلا عملة الفاتورة.
       let currencyCode = invoice.currency ?? 'SAR';
       if (input.cashLocationId) {
         const [loc] = await tx
@@ -2274,7 +2460,7 @@ export class SalesService {
           .from(cashLocations)
           .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.id, input.cashLocationId)));
         cashAccountId = loc?.accountId ?? undefined;
-        if (loc?.currencyCode) currencyCode = loc.currencyCode;
+        currencyCode = loc?.currencyCode ?? 'SAR';
       }
       const profile = await this.profiles.resolvePostProfileInTx(tx, tenantId, invoice.branchId, 'sales_invoice');
       const mapping = profile.mapping as unknown as Record<string, string | null | undefined>;
@@ -2285,31 +2471,111 @@ export class SalesService {
       }
       const receivableAccountId = mapping.receivableAccountId;
 
+      // MF-28 / AC1 — الفاتورة الأجنبية يقفلها التحصيل بسعرها ويحقن فرق سعر اليوم (ربح/خسارة).
+      const invCurrency = invoice.currency ?? 'SAR';
+      const invRate = invoice.fxRate ? money(invoice.fxRate) : null;
+      /** وحدات موقع النقد المقروضة — تحرّك صفّ رصيده. */
+      let bumpAmount = paymentValue;
+      let collRate: Decimal | null = null;
+      let arBase = paymentValue;
+      let cashBase = paymentValue;
+      if (invRate) {
+        const today = new Date().toISOString().slice(0, 10);
+        const tableRate = await this.tableFxRateInTx(tx, tenantId, invCurrency, today);
+        if (!tableRate)
+          throw new DomainError(
+            'FX_RATE_MISSING',
+            `لا يوجد سعر صرف نافذ للعملة ${invCurrency} لليوم ${today} — التحصيل لا يُسعَّر بسعرٍ حر`,
+            422,
+            { field: 'currency', currency: invCurrency },
+          );
+        collRate = tableRate;
+        if (input.fxRate) {
+          const implied = money(input.fxRate);
+          if (!implied.isFinite() || implied.lte(0))
+            throw new DomainError('FX_RATE_INVALID', 'سعر الصرف غير صالح', 422, { field: 'fxRate' });
+          const deviation = implied.minus(tableRate).abs().div(tableRate).mul(100);
+          if (deviation.gt(5))
+            throw new DomainError(
+              'FX_RATE_OUT_OF_RANGE',
+              `سعر التحصيل ${implied.toFixed(6)} يبتعد ${deviation.toFixed(2)} % عن سعر الجدول ${tableRate.toFixed(6)} (الحد 5 %)`,
+              422,
+              { field: 'fxRate', impliedRate: implied.toFixed(6), tableRate: tableRate.toFixed(6), deviationPercent: deviation.toFixed(2) },
+            );
+          collRate = implied;
+        }
+        arBase = paymentValue.times(invRate).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+        cashBase = paymentValue.times(collRate).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+        // وحدات الموقع: إن كانت عملته عملة الفاتورة تحرّك بمبلغ المستند نفسه، وإلا
+        // بالأساس المحاسبي لهذا اليوم (بلا تقريب ثانٍ عند عملة الأساس).
+        if (currencyCode === invCurrency) bumpAmount = paymentValue;
+        else if (currencyCode === 'SAR') bumpAmount = cashBase;
+        else {
+          const locRate = await this.tableFxRateInTx(tx, tenantId, currencyCode, today);
+          bumpAmount = locRate ? cashBase.div(locRate).toDecimalPlaces(4, Decimal.ROUND_HALF_UP) : cashBase;
+        }
+      }
+
       // ACC-031: إنشاء قيد GL محاسبي للتحصيل وتحديث رصيد الصندوق الفرعي
       if (cashAccountId && receivableAccountId && payment) {
         const today = new Date().toISOString().slice(0, 10);
+        const gain = invRate ? cashBase.minus(arBase) : new Decimal(0);
+        const lines: JournalLineInput[] = [
+          invRate
+            ? {
+                accountId: cashAccountId,
+                debit: cashBase.toFixed(4),
+                description: `تحصيل فاتورة ${invoice.number ?? ''}`,
+                currencyCode,
+                ...(currencyCode === invCurrency
+                  ? { currencyAmount: paymentValue.toFixed(4), fxRate: collRate!.toFixed(10) }
+                  : { currencyAmount: cashBase.toFixed(4) }),
+              }
+            : {
+                accountId: cashAccountId,
+                debit: input.amount,
+                description: `تحصيل فاتورة ${invoice.number ?? ''}`,
+                currencyCode,
+                currencyAmount: input.amount,
+              },
+          invRate
+            ? {
+                accountId: receivableAccountId,
+                credit: arBase.toFixed(4),
+                partyId: invoice.partyId ?? undefined,
+                description: `تحصيل فاتورة ${invoice.number ?? ''}`,
+                currencyCode: invCurrency,
+                currencyAmount: paymentValue.toFixed(4),
+                fxRate: invRate.toFixed(10),
+              }
+            : {
+                accountId: receivableAccountId,
+                credit: input.amount,
+                partyId: invoice.partyId ?? undefined,
+                description: `تحصيل فاتورة ${invoice.number ?? ''}`,
+                currencyCode,
+                currencyAmount: input.amount,
+              },
+        ];
+        // فرق محقَّق (AC1): موجب ⇐ ربح 4200004 · سالب ⇐ خسارة 3121003 — أقل من نصف
+        // سنت لا سطر له (الحساب يُؤمَّن عند أول حاجة فقط).
+        if (invRate && gain.abs().gte('0.005')) {
+          const gainAccountId = await this.ensureFxAccountInTx(tx, tenantId, gain.gt(0) ? 'gain' : 'loss');
+          lines.push({
+            accountId: gainAccountId,
+            ...(gain.gt(0) ? { credit: gain.toFixed(4) } : { debit: gain.abs().toFixed(4) }),
+            description: `فرق صرف محقَّق — فاتورة ${invoice.number ?? ''} @${invRate.toFixed(4)} مقابل @${collRate!.toFixed(4)}`,
+            currencyCode: invCurrency,
+            currencyAmount: paymentValue.toFixed(4),
+            fxRate: collRate!.toFixed(10),
+          });
+        }
         await this.accounting.postJournalInTx(tx, tenantId, {
           branchId: invoice.branchId,
           fiscalPeriodId: await this.accounting.openPeriodForDateInTx(tx, tenantId, today),
           date: today,
           description: `سداد دفعة فاتورة مبيعات ${invoice.number ?? invoice.id}`,
-          lines: [
-            {
-              accountId: cashAccountId,
-              debit: input.amount,
-              description: `تحصيل فاتورة ${invoice.number ?? ''}`,
-              currencyCode,
-              currencyAmount: input.amount,
-            },
-            {
-              accountId: receivableAccountId,
-              credit: input.amount,
-              partyId: invoice.partyId ?? undefined,
-              description: `تحصيل فاتورة ${invoice.number ?? ''}`,
-              currencyCode,
-              currencyAmount: input.amount,
-            },
-          ],
+          lines,
           sourceType: 'sales_payment',
           sourceId: payment.id,
           idempotencyKey: `sales-pay-je:${payment.id}`,
@@ -2322,7 +2588,7 @@ export class SalesService {
           tenantId,
           input.cashLocationId,
           currencyCode,
-          input.amount,
+          bumpAmount.toFixed(4),
         );
       }
 
