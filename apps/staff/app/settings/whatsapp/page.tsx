@@ -164,7 +164,7 @@ export default function WhatsappSettingsPage() {
               placeholder="109357128475620"
             />
             <small className="muted">
-              يأتي من لوحة Meta · وهو ما كان يعطيه مسح رمز QR في النسخة المكتبية.
+              يُنسخ من لوحة Meta (معرّف رقم الهاتف المرتبط بحساب الأعمال).
             </small>
           </label>
           <label className="field">
@@ -190,7 +190,7 @@ export default function WhatsappSettingsPage() {
               placeholder="966"
             />
             <small className="muted">
-              يُضاف إلى رقم العميل بعد حذف أصفاره الأولى — كان «966» ثابتاً في النسخة المكتبية.
+              يُضاف تلقائياً إلى رقم العميل بعد حذف الأصفار البادئة (مثال: 966).
             </small>
           </label>
           <label className="field wide">

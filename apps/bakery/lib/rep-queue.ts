@@ -29,6 +29,7 @@ import {
   SUBMISSION_KEY_MAX_LENGTH,
 } from '@erp/web-core/idempotency';
 import type { VanQueueOperation, VanQueueRecord, VanQueueStatus } from '@erp/web-core/offline-db';
+import { formatRequiredPermissionsAr } from './permissions-ar';
 
 /** رموزُ الصلاحية كما في `van-sales.controller.ts` — حرفًا، فإخفاءُ الزرّ ليس ضبطًا. */
 export const REP_PERMISSIONS = {
@@ -114,10 +115,10 @@ export const NOT_QUEUEABLE_OPERATIONS: Readonly<
   },
 };
 
-/** نصوصُ هذا الوجه. وما كان نصَّ الخادم يُنقل حرفًا ولا يُصاغ ألطف. */
+/** نصوصُ هذا الوجه بالعربية الواضحة دون إظهار رموز الصلاحيات التقنية. */
 export const REP_QUEUE_MESSAGES = {
-  /** نصُّ الـ٤٠٣ كما يكتبه الخادم (RFC-9457 `detail`). */
-  permissionRequired: (codes: readonly string[]) => `permission ${codes.join(', ')} required`,
+  /** نصُّ عدم توفّر الصلاحية بالعربية. */
+  permissionRequired: (codes: readonly string[]) => formatRequiredPermissionsAr(codes),
   storedOffline: (labelAr: string) =>
     `حُفظت النيّةُ محليًّا (${labelAr}) وستُرسل إلى مسارها الرسميّ لحظةَ عودة الشبكة بمفتاحِ عدم تكرارٍ واحد — فلا مستندَ مكرَّر ولو أُعيد الإرسال مرّات.`,
   offlineNumbersAreStale:

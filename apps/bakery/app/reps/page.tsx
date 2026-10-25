@@ -195,8 +195,7 @@ export default function RepsPage() {
               <p
                 className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}
               >
-                لا تملك صلاحيةَ هذا القسم — والخادم يرفض قراءة البطاقات (
-                <span dir="ltr">{REPS_MESSAGES.viewForbidden}</span>). ولم يُرسل هذا التطبيق طلبًا سيُرفض
+                لا تملك صلاحيةَ هذا القسم ({REPS_MESSAGES.viewForbidden}). ولم يُرسل هذا التطبيق طلبًا سيُرفض
                 حتمًا، ولا عرض بطاقاتٍ من المتصفّح بدلها.
               </p>
             </CardBody>
@@ -529,8 +528,7 @@ export default function RepsPage() {
                 <p
                   className={`m-0 mb-3 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}
                 >
-                  لا تملك صلاحيةَ هذا القسم — والخادم يرفض بـ
-                  <span dir="ltr">{REPS_MESSAGES.linkForbidden}</span>. وربطُ الحسابات عملُ مكتبٍ خلفيّ لا
+                  لا تملك صلاحيةَ هذا القسم ({REPS_MESSAGES.linkForbidden}). وربطُ الحسابات عملُ إدارة المنشأة لا
                   يملكه المندوب.
                 </p>
               ) : null}
@@ -711,8 +709,8 @@ export default function RepsPage() {
                   والمبيعات في <span dir="ltr">apps/staff</span> ولا يُحسب هنا.
                 </li>
                 <li>
-                  الأدوارُ وصلاحياتها تُمنح من شاشة الأدوار في <span dir="ltr">apps/staff</span>؛ وهذه الشاشة
-                  تقرأ ما اجتمع للعضوية من صلاحياتٍ (<span dir="ltr">permissions</span>) ولا تمنح شيئًا.
+                  الأدوارُ وصلاحياتها تُمنح من شاشة الأدوار في لوحة الإدارة؛ وهذه الشاشة
+                  تقرأ ما اجتمع للعضوية من صلاحياتٍ معتمدة ولا تمنح شيئًا.
                 </li>
               </ul>
             </CardBody>

@@ -306,7 +306,7 @@ export default function MarinaAdditionsPage() {
                   </button>
                 )}
               </div>
-              <p className="muted">القيمة الفارغة تُحفظ صفراً، كما يفعل «حفظ» عند الديسكتوب.</p>
+              <p className="muted">القيمة الفارغة تُحفظ صفراً تلقائياً عند الحفظ.</p>
             </div>
           </div>
         </div>

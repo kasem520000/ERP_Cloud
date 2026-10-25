@@ -1934,7 +1934,7 @@ const definitions: ReportDefinition[] = [
     titleAr: 'أرصدة حساب العملاء',
     group: 'sales',
     hintAr:
-      '`frmCustAccount` L221-L288: لكل عميلٍ حساب، وحركته في الفترة مديناً ودائناً، ورصيده (الفرق مطلقاً) وحالته — «مدين» إن زاد المدين، و«دائن» إن زاد الدائن. ولا يظهر في الجدول من لا حركة له.',
+      'كشف حركات حسابات العملاء في الفترة مديناً ودائناً مع الرصيد الصافي وحالة الحساب («مدين» أو «دائن»). يقتصر العرض على الحسابات التي شهدت حركة خلال الفترة.',
     params: [PARTY, PARTY_KIND, SALESMAN, PERIOD[0]!, PERIOD[1]!],
     columns: [
       int('seq', '#'),
@@ -1946,7 +1946,7 @@ const definitions: ReportDefinition[] = [
       text('status', '📌 الحالة'),
     ],
     totals: ['debit', 'credit'],
-    emptyAr: 'لا حركة لحسابات العملاء في هذه الفترة — و`frmCustAccount` لا يطبع إلا من تحرك حسابه',
+    emptyAr: 'لا توجد حركة لحسابات العملاء في هذه الفترة.',
     signature: true,
     build: (tenantId, f) => sql`
       WITH party_move AS (
@@ -1981,7 +1981,7 @@ const definitions: ReportDefinition[] = [
     titleAr: 'حركة آخر سداد للعملاء',
     group: 'sales',
     hintAr:
-      '`frmCustLastPay`: آخر قيدٍ حرّك حساب كل عميل — قيمته وتاريخه ونوع سنده — ورصيده الكامل مديناً أو دائناً. بلا فترة: النافذة لا مربّع تاريخ فيها.',
+      'آخر قيد حرّك حساب كل عميل — قيمته وتاريخه ونوع مستنده — مع رصيده الكلي مديناً أو دائناً حتى تاريخه.',
     params: [PARTY, PARTY_KIND],
     columns: [
       text('account_code', 'رقم الحساب'),
@@ -2103,7 +2103,7 @@ const definitions: ReportDefinition[] = [
     key: 'sales-chart',
     titleAr: 'مخطط المبيعات',
     group: 'sales',
-    hintAr: 'مخطط بياني لصافي المبيعات اليومي (المبيعات − المردودات) — `FrmRptSalesChart`.',
+    hintAr: 'مخطط بياني لصافي المبيعات اليومي (المبيعات − المردودات).',
     params: [...PERIOD, BRANCH],
     columns: [date('day', 'اليوم'), money('sales', 'المبيعات'), money('returns', 'المردودات'), money('net', 'الصافي')],
     totals: ['sales', 'returns', 'net'],
@@ -2136,7 +2136,7 @@ const definitions: ReportDefinition[] = [
     key: 'sales-movement-items',
     titleAr: 'حركة المبيعات — إجمالي المبيعات',
     group: 'sales',
-    hintAr: '«📊 إجمالي المبيعات» من `frmRptSalesInPeriod`: كل صنفٍ بكميّته الصافية وإجماليه الصافي (المبيعات − المرتجع)، وصنفٌ لم يُبع أصلاً لا يظهر.',
+    hintAr: 'إجمالي المبيعات حسب الصنف: الكمية الصافية والإجمالي الصافي (المبيعات − المرتجعات) للأصناف المتداولة خلال الفترة.',
     params: [PERIOD[0]!, TIME[0]!, PERIOD[1]!, TIME[1]!, INVOICE_KIND, BRANCH],
     columns: [text('item_code', 'رقم الصنف'), text('item_name', 'الصنف'), qty('quantity', 'الكمية'), money('total', 'الإجمالي')],
     // 💰 إجمالي المبيعات — `txtSumSale` = Σ(الإجمالي الصافي) كما يجمعها `CalcStock`.
@@ -2160,7 +2160,7 @@ const definitions: ReportDefinition[] = [
     key: 'sales-movement-invoices',
     titleAr: 'حركة المبيعات — عرض الفواتير',
     group: 'sales',
-    hintAr: '«🧾 عرض الفواتير» من `frmRptSalesInPeriod`: فاتورةٌ بيع أو مرتجع بسطر، بوقتها ونقدها وشبكتها ومجاميعها الأربعة؛ و«آجل» علامة `pay_type = -1`.',
+    hintAr: 'عرض فواتير المبيعات والمرتجعات خلال الفترة مع الوقت وطريقة التحصيل (نقدي، شبكة، آجل) والمجاميع التفصيلية.',
     params: [PERIOD[0]!, TIME[0]!, PERIOD[1]!, TIME[1]!, INVOICE_KIND, BRANCH],
     columns: [
       text('movement_no', 'رقم الحركة'),
@@ -2559,7 +2559,7 @@ const definitions: ReportDefinition[] = [
     key: 'pos-sales-invoices-details',
     titleAr: 'تقرير مبيعات الفواتير',
     group: 'sales',
-    hintAr: 'الشبكة نفسها مقيَّدة بـ`inv.inv_type=3`: فواتير نقطة البيع ومردوداتها وحدها.',
+    hintAr: 'تفصيل فواتير نقطة البيع ومرتجعاتها خلال الفترة المحددة.',
     // 🔍 خيارات البحث عند الديسكتوب: 🔄 نوع العملية · 💵 حالة الدفع · 🏭 المستودع ·
     // 👤 المستخدم · 📅 الفترة الزمنية (المستخدم مؤجَّل: لا مرشِّح عضوية بعد).
     params: [OPERATION_KIND, PAYMENT_STATE, WAREHOUSE, PERIOD[0]!, TIME_FROM_TO[0]!, PERIOD[1]!, TIME_FROM_TO[1]!],
@@ -3802,7 +3802,7 @@ const definitions: ReportDefinition[] = [
     titleAr: 'كشف حساب عميل',
     group: 'accounting',
     hintAr:
-      '`frmCustAccountGet`: حركة حساب العميل قيداً قيداً — مجموع مدينه ومجموع دائنه، ورصيده إلى أيّ الجانبين مال. و«🏷️ نوع الحساب» يجعله كشف المورد كذلك، وهي النافذة نفسها في الديسكتوب.',
+      'حركة حساب العميل أو المورد قيداً بقيد — إجمالي المدين وإجمالي الدائن والرصيد التراكمي واتجاهه.',
     params: [PARTY, PARTY_KIND, BRANCH, PERIOD[0]!, PERIOD[1]!],
     columns: [
       int('seq', 'م'),
@@ -3817,7 +3817,7 @@ const definitions: ReportDefinition[] = [
     ],
     totals: ['debit', 'credit'],
     grandTotal: [...statementGrandTotal, { key: 's_count', labelAr: 'عدد القيود' }],
-    emptyAr: 'لا حركة لهذا الحساب في هذه الفترة — و`frmCustAccountGet` يطلب العميل أولاً («اختر عميل»)',
+    emptyAr: 'لا توجد حركة لهذا الحساب في الفترة المحددة — اختر العميل أو المورد أولاً.',
     signature: true,
     build: (tenantId, f) => sql`
       SELECT row_number() OVER (ORDER BY je.date, je.number) AS seq,
@@ -4224,7 +4224,7 @@ const definitions: ReportDefinition[] = [
     key: 'inventory-documents',
     titleAr: 'تقرير مستندات المخزون',
     group: 'inventory',
-    hintAr: 'كل مستند مخزون بسطر: نوعه ورقمه وتاريخه ومستودعه وفرعه، وعدد أصنافه وكميته وتكلفته — «📋 الفواتير» في `frmRptInventory`.',
+    hintAr: 'ملخص مستندات المخزون: النوع والرقم والتاريخ والمستودع والفرع وعدد الأصناف وإجمالي الكمية والتكلفة.',
     // 📄 نوع العملية · 🏭 المستودع · 🏢 الفرع · 📅 من / إلى + ⏰ الوقت.
     params: [INVENTORY_OPERATION, WAREHOUSE, BRANCH, PERIOD[0]!, TIME_FROM_TO[0]!, PERIOD[1]!, TIME_FROM_TO[1]!],
     columns: [
@@ -4293,7 +4293,7 @@ const definitions: ReportDefinition[] = [
     key: 'item-movement-totals',
     titleAr: 'مادة باجمالي الحركات',
     group: 'inventory',
-    hintAr: 'كل صنف بسطر: رصيده ومتوسط تكلفته وإجمالي تكلفته، ثم حركته في الفترة مقسّمة على ثلاثة عشر نوعاً كما في `frmRptItemsActivity`.',
+    hintAr: 'ملخص حركة الأصناف: الرصيد الحالي ومتوسط التكلفة وإجمالي القيمة مع تفصيل الحركات المخزنية خلال الفترة.',
     // 🏢 الفرع · 📦 الصنف · 📅 من / إلى · 🏪 المستودع · 👥 العملاء / الموردون · 🗂️ المجموعة.
     params: [BRANCH, ITEM, PERIOD[0]!, PERIOD[1]!, WAREHOUSE, PARTY, CATEGORY],
     columns: [
@@ -4400,7 +4400,7 @@ const definitions: ReportDefinition[] = [
     key: 'item-movement-details',
     titleAr: 'حركة صنف تفصيلي',
     group: 'inventory',
-    hintAr: 'كل سطر حركة: نوع المستند ورقمه ومرجعه وتاريخه وحسابه، كميته الداخلة أو الخارجة ورصيده المتحرك بعدها — `frmRptItemsActivityDetailed`.',
+    hintAr: 'سجل الحركات التفصيلي للصنف: نوع المستند ورقمه ومرجعه وتاريخه وحسابه والكمية الداخلة أو الخارجة والرصيد المتحرك.',
     // 🏬 الفرع · 🏭 المستودع · 📦 الصنف · 📅 من / إلى · 👥 عميل / مورد · 🔄 نوع العملية · 📋 أنماط الفواتير.
     params: [BRANCH, WAREHOUSE, ITEM, PERIOD[0]!, PERIOD[1]!, PARTY, MOVEMENT_PROC_TYPE, INVOICE_PATTERN],
     columns: [
@@ -4465,7 +4465,7 @@ const definitions: ReportDefinition[] = [
     key: 'item-expiry',
     titleAr: 'صلاحية المواد',
     group: 'inventory',
-    hintAr: 'كل دفعة لها تاريخ انتهاء بسطر: رصيدها الحالي وما بقي من سنوات وأشهر وأيام — `dbo.ItemsExpirationStock()` خلف `frmRptItemsExpiration`.',
+    hintAr: 'الدفعات ذات تواريخ انتهاء الصلاحية: الرصيد الحالي والمدة المتبقية بالسنوات والأشهر والأيام.',
     // 🏪 المستودع · 🗂️ المجموعة · 📦 الصنف · 🏢 الفرع.
     params: [WAREHOUSE, CATEGORY, ITEM, BRANCH],
     columns: [
@@ -4529,7 +4529,7 @@ const definitions: ReportDefinition[] = [
     key: 'serial-movements',
     titleAr: 'حركة الأرقام التسلسلية',
     group: 'inventory',
-    hintAr: 'أين مرّ كل رقم تسلسلي: مستنداً بمستند مع نوعه ورقمه وتاريخه وفرعه — `frmRptSerialNo`.',
+    hintAr: 'تتبع حركة الأرقام التسلسلية مستنداً بمستند مع النوع والرقم والتاريخ والفرع.',
     // 🏬 الفرع · 📦 الصنف · 🔢 الرقم التسلسلي · 📅 من / إلى.
     params: [BRANCH, ITEM, SERIAL_NO, PERIOD[0]!, PERIOD[1]!],
     columns: [
@@ -4574,7 +4574,7 @@ const definitions: ReportDefinition[] = [
     key: 'serial-balances',
     titleAr: 'أرصدة الأرقام التسلسلية',
     group: 'inventory',
-    hintAr: 'كم وحدة ما زالت في المخزون لكل رقم تسلسلي — `dbo.funCalculateSerialNoSummary()` خلف `frmRptSerialNoSummary`.',
+    hintAr: 'ملخص الوحدات المتوفرة حالياً في المخزون لكل رقم تسلسلي.',
     // 🏬 الفرع · 📦 الصنف · 🔢 الرقم التسلسلي.
     params: [BRANCH, ITEM, SERIAL_NO],
     columns: [
@@ -4612,7 +4612,7 @@ const definitions: ReportDefinition[] = [
     key: 'produced-items',
     titleAr: 'تقرير مواد المنتجة',
     group: 'inventory',
-    hintAr: 'كل أمر إنتاج بسطر: المنتج ووحدته وكميته وتكلفته، مع إجمالي التكلفة وإجمالي البيع — «🏭 المواد المنتجة» في `frmRptProducedItems`.',
+    hintAr: 'المواد المنتجة من أوامر الإنتاج: الصنف والوحدة والكمية وتكلفة الوحدة وإجمالي التكلفة وسعر البيع.',
     // 📅 من تاريخ / إلى تاريخ.
     params: [...PERIOD],
     columns: [
@@ -4670,7 +4670,7 @@ const definitions: ReportDefinition[] = [
     key: 'produced-components',
     titleAr: 'مكونات المواد المنتجة',
     group: 'inventory',
-    hintAr: 'ما استهلكه كل أمر إنتاج: مكوّناً بمكوّن مع كميته وسعره وتكلفته — «🔧 المكونات» في `frmRptProducedItems`.',
+    hintAr: 'المكونات المستهلكة في أوامر الإنتاج: الصنف والكمية والسعر وإجمالي التكلفة.',
     // 📅 من تاريخ / إلى تاريخ.
     params: [...PERIOD],
     columns: [
@@ -4709,7 +4709,7 @@ const definitions: ReportDefinition[] = [
     key: 'account-balances',
     titleAr: 'أرصدة الحسابات',
     group: 'accounting',
-    hintAr: 'كل حساب تحت «الحساب الرئيسي» بسطر: رصيده الافتتاحي وحركته في الفترة ورصيده الختامي، على الوجهين المدين والدائن كما في `frmRptBalances`.',
+    hintAr: 'ميزان الحسابات الفرعية تحت الحساب الرئيسي: الرصيد الافتتاحي والحركة خلال الفترة والرصيد الختامي مديناً ودائناً.',
     // 📊 الحساب الرئيسي · 🏢 الفرع · 🧑‍💼 المندوب · 📅 من / إلى + ⏰ الوقت.
     params: [MAIN_ACCOUNT, BRANCH, SALESMAN, PERIOD[0]!, TIME_FROM_TO[0]!, PERIOD[1]!, TIME_FROM_TO[1]!],
     columns: [
@@ -4791,7 +4791,7 @@ const definitions: ReportDefinition[] = [
     key: 'journal-entries',
     titleAr: 'القيود اليومية',
     group: 'accounting',
-    hintAr: 'سجلّ القيود كما في «🔍 البحث» في `frmRptEntries`: رقم القيد ورقم المستند وتاريخه ونوعه وحالته وبيانه.',
+    hintAr: 'سجل قيود اليومية: رقم القيد ورقم المستند والتاريخ والنوع والحالة والبيان.',
     // 📅 من / إلى · 🏢 الفرع · 🧾 نوع القيد · 📋 حالة القيد · 🔢 رقم القيد · 📄 رقم المستند.
     params: [...PERIOD, BRANCH, ENTRY_TYPE, ENTRY_STATE, ENTRY_NO, DOC_NO],
     columns: [
@@ -4875,7 +4875,7 @@ const definitions: ReportDefinition[] = [
     key: 'income-statement-accounts',
     titleAr: 'أرباح وخسائر حسابات رئيسية',
     group: 'accounting',
-    hintAr: 'حسابات `FinalAcc = 2` (الإيرادات والمصروفات) مُجمَّعة على حساباتها الرئيسية، مع قيمة مخزون آخر المدة وصافي نتيجة العام — `frmRptIncomeStatement`.',
+    hintAr: 'حسابات الإيرادات والمصروفات مجمّعة على حساباتها الرئيسية، مع قيمة مخزون آخر المدة وصافي الربح أو الخسارة.',
     // 📅 من / إلى + ⏰ الوقت · 🏢 الفرع.
     params: [...PERIOD, BRANCH],
     columns: [
@@ -4928,7 +4928,7 @@ const definitions: ReportDefinition[] = [
     key: 'cost-center-statement',
     titleAr: 'تقرير مراكز التكلفة',
     group: 'accounting',
-    hintAr: 'مركز التكلفة وما تحته: الرصيد الافتتاحي والحركة والرصيد الختامي على الوجهين، «تجميعي» بسطر لكل حساب و«تفصيلي» بسطر لكل حركة — `frmRptCostCenter`.',
+    hintAr: 'مركز التكلفة ومراكزه الفرعية: الرصيد الافتتاحي والحركة والرصيد الختامي على الوجهين، «تجميعي» لكل حساب أو «تفصيلي» لكل حركة.',
     // 📂 مركز التكلفة · 📒 الحساب · 📋 نوع التقرير · 🏢 الفرع · 📅 من / إلى + ⏰ الوقت.
     params: [
       COST_CENTER,
@@ -5201,7 +5201,7 @@ const definitions: ReportDefinition[] = [
     key: 'cash-statement',
     titleAr: 'حركة الصندوق',
     group: 'accounting',
-    hintAr: 'كشفُ الصندوق كما في `frmRptKhzna`: سطر «رصيد سابق» يفتح الفترة، ثم حركةٌ بسطر مع رصيدٍ متحرك، ثم بطاقتا «الرصيد الإجمالي» و«رصيد الفترة المحددة».',
+    hintAr: 'كشف حركة الصندوق: سطر «رصيد سابق» في بداية الفترة، ثم الحركات مع رصيد متحرك، وبطاقتا «الرصيد الإجمالي» و«رصيد الفترة المحددة».',
     // 🏦 الصندوق · 📅 الفترة (من تاريخ · من وقت · إلى تاريخ · إلى وقت) — ☑ كل الفترة is the absence of both dates.
     params: [CASH_LOCATION, PERIOD[0]!, TIME_FROM_TO[0]!, PERIOD[1]!, TIME_FROM_TO[1]!],
     columns: [
@@ -5283,7 +5283,7 @@ const definitions: ReportDefinition[] = [
     key: 'salary-statement',
     titleAr: 'تقرير الرواتب',
     group: 'hrm',
-    hintAr: 'كل إذن صرف راتب بسطر: الراتب الأساسي وبدلاه والحوافز والإجمالي والخصومات والصافي — `frmRptSalary`.',
+    hintAr: 'تفصيل أذونات صرف الرواتب: الراتب الأساسي والبدلات والحوافز والإجمالي والخصومات وصافي المنصرف.',
     // 📅 الشهر · السنة (☑ كل الفترة when either is left empty) · 🏢 الفرع.
     params: [SALARY_MONTH, SALARY_YEAR, BRANCH],
     columns: [
@@ -5383,7 +5383,7 @@ const definitions: ReportDefinition[] = [
     key: 'salary-reserved',
     titleAr: 'تقرير الرواتب المستحقة',
     group: 'hrm',
-    hintAr: 'كل مسيّر رواتب مستحق بسطر: رقم سنده وتاريخه وفرعه وشهره وسنته وملاحظاته، مع عداد موظفيه ومستحقه — `frmRptReseved`.',
+    hintAr: 'مسيّرات الرواتب المستحقة: رقم السند والتاريخ والفرع والشهر والسنة والملاحظات وعدد الموظفين وإجمالي المستحق.',
     // 📅 من · إلى — the window's only two filters.
     params: [...PERIOD],
     columns: [
@@ -5436,7 +5436,7 @@ const definitions: ReportDefinition[] = [
     key: 'user-records',
     titleAr: 'سجلات المستخدمين',
     group: 'hrm',
-    hintAr: 'سجلّ عمليات المستخدمين كما في `frmrptUsersRecords`: التاريخ والجهاز والعملية والمستخدم، من `Log4NetLog` الذي يقابله سجلّ التدقيق.',
+    hintAr: 'سجل عمليات المستخدمين: التاريخ والجهاز والعملية والمستخدم من سجل التدقيق المعتمد.',
     // 👤 المستخدم (☑ الكل when it is left empty) · 📅 من/إلى.
     params: [ACTOR, ...PERIOD],
     columns: [
@@ -5467,7 +5467,7 @@ const definitions: ReportDefinition[] = [
     key: 'rent-invoices',
     titleAr: 'تقرير فواتير التأجير',
     group: 'marina',
-    hintAr: 'فواتير التأجير ببنودها كما في `frmRptRentInvoices`، و«حجوزات» ما لم يُصدر له فاتورة بعد، مع إيرادات الفترة ومرتجعها وصافيها.',
+    hintAr: 'فواتير التأجير ببنودها والحجوزات التي لم تُصدر لها فاتورة بعد، مع إيرادات الفترة ومرتجعاتها وصافيها.',
     // 👤 المستخدم · 📁 الفئة · 👥 العميل · 📅 من/إلى · 🔢 رقم الفاتورة · ⚙️ نوع العملية · 📋 الخطة.
     params: [...PERIOD, BRANCH, RENT_CUSTOMER, ACTOR, VESSEL_GROUP, RENT_INVOICE_NO, RENT_PROCESS, RENT_PLAN],
     columns: [

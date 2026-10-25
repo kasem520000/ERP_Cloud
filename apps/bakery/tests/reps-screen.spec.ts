@@ -232,8 +232,10 @@ describe('reps screen — الحمولة والحكم قبل الإرسال', ()
 
     const noPermission = linkVerdict({ ...emptyLinkDraft(), email: 'a@b.co' }, readyRep(), { canLink: false });
     expect(noPermission.blocked.join(' ')).toContain(REPS_MESSAGES.linkForbidden);
-    expect(REPS_MESSAGES.linkForbidden).toBe(`permission ${LINK_ACCOUNT_PERMISSION} required`);
-    expect(REPS_MESSAGES.viewForbidden).toBe(`permission ${REPS_VIEW_PERMISSION} required`);
+    expect(REPS_MESSAGES.linkForbidden).toContain('إدارة المناديب وربط حسابات الدخول');
+    expect(REPS_MESSAGES.viewForbidden).toContain('عرض التوزيع وحركة الخط');
+    expect(REPS_MESSAGES.linkForbidden).not.toMatch(/sales\./);
+    expect(REPS_MESSAGES.viewForbidden).not.toMatch(/van_sales\./);
     // الصلاحيةُ المفقودة لا تُخفيها بقيةُ الأحكام: فالخادم يرفض المسار كله.
     expect(noPermission.blocked.length).toBe(1);
   });

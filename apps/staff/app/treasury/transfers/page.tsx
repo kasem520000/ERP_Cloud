@@ -205,7 +205,7 @@ export default function CashTransfersPage() {
   return (
     <Screen
       title="مناقلة"
-      subtitle="مناقلة الخزن — إرسال من خزنة واستلام في أخرى، كما في frmSafesTransfer: مسودة ثم إرسال ثم استلام."
+      subtitle="مناقلة السيولة بين الخزن: مسودة ثم إرسال من الخزنة المصدِّرة واستلام في الخزنة المستقبِلة."
       crumbs={['الخزينة', 'العمليات']}
     >
       <StatTiles>

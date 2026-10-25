@@ -23,6 +23,7 @@
  * الشائعة — وهو من شؤون الهويّة في شاشة العضويات.
  */
 import Decimal from 'decimal.js';
+import { formatRequiredPermissionsAr } from './permissions-ar';
 
 /** القراءة محميّةٌ بصلاحية رؤية الخطّ، وربطُ الحساب بعملُ مكتبٍ خلفيّ لا يملكه المندوب. */
 export const REPS_VIEW_PERMISSION = 'van_sales.view';
@@ -34,16 +35,12 @@ export const STAFF_SALESMEN_PATH = '/sales/salesmen';
 /** اسمُ الدور الذي يبحثه الخادم باسمه (ويُنشئه مرّةً واحدة إن غاب). */
 export const REP_ROLE_NAME = 'مندوب توزيع';
 
-/**
- * نصوصُ رفض الخادم **حرفًا** — تُعرض كما هي فلا يقرأ المشرف جملةً ألطف من الجملة التي
- * رفضته. المصادر: `linkSalesmanAccount` (‏404 و422) و`permissions.guard.ts` (‏403 بصيغة
- * ‏`permission <code> required`، ومجموعُ الرموز بفاصلةٍ إن أعلن المسار أكثر من رمز).
- */
+/** نصوصُ التنبيه والرفض باللغة العربية دون إظهار أكواد الصلاحيات الإنجليزية. */
 export const REPS_MESSAGES = {
   salesmanNotFound: 'المندوب غير موجود',
   emailRequired: 'أدخل البريد الإلكتروني لحساب دخول المندوب',
-  linkForbidden: `permission ${LINK_ACCOUNT_PERMISSION} required`,
-  viewForbidden: `permission ${REPS_VIEW_PERMISSION} required`,
+  linkForbidden: formatRequiredPermissionsAr([LINK_ACCOUNT_PERMISSION]),
+  viewForbidden: formatRequiredPermissionsAr([REPS_VIEW_PERMISSION]),
 } as const;
 
 /**

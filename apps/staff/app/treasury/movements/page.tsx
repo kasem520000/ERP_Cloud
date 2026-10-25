@@ -136,7 +136,7 @@ export default function MovementsPage() {
   return (
     <Screen
       title="حركة الصندوق"
-      subtitle={`كشف حساب الصندوق من دفتر الأستاذ — كما في frmRptKhzna: كل ما حرّك الحساب، برصيد متحرك.${
+      subtitle={`كشف حساب الصندوق من دفتر الأستاذ: جميع الحركات المالية مع الرصيد المتحرك.${
         statement.data ? ` ${statement.data.cashLocation}` : ''
       }`}
       crumbs={['الخزينة', 'التقارير']}

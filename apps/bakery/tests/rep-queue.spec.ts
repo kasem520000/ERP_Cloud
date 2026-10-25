@@ -203,12 +203,18 @@ describe('طابور المندوب: ما يُحفظ، وما لا يُحفظ و
     ).toEqual([]);
     // ‏وبلا صلاحية الإقفال يُحظر ولو كان متّصلًا — فالطابورُ ليس سببَ الحظر الوحيد هنا.
     expect(queueVerdict({ online: true, operation: 'closing', can, targetId: 'load-1' }).blocked).toContain(
-      'permission van_sales.closing.submit required',
+      REP_QUEUE_MESSAGES.permissionRequired(['van_sales.closing.submit']),
+    );
+    expect(REP_QUEUE_MESSAGES.permissionRequired(['van_sales.closing.submit'])).toContain(
+      'تقديم جرد وإغلاق وردية المندوب',
     );
 
-    // ‏وبلا صلاحية: نصُّ الخادم حرفًا (`permission … required`) لا صياغةٌ ألطف.
+    // ‏وبلا صلاحية: رسالةٌ عربية واضحة بلا رموز إنجليزية خام.
     const noPermission = queueVerdict({ online: false, operation: 'collection', can });
-    expect(noPermission.blocked).toContain('permission van_sales.collection.create required');
+    expect(noPermission.blocked).toContain(
+      REP_QUEUE_MESSAGES.permissionRequired(['van_sales.collection.create']),
+    );
+    expect(REP_QUEUE_MESSAGES.permissionRequired(['van_sales.collection.create'])).not.toMatch(/van_sales\./);
 
     // ‏ومرتجعٌ بلا مستندٍ مصدر ⇒ حظرٌ (فالمسارُ يحتاجه).
     expect(queueVerdict({ online: false, operation: 'return', can }).blocked).toContain(

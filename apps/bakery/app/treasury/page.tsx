@@ -368,7 +368,7 @@ export default function TreasuryPage() {
         {capHit ? (
           <Card>
             <CardHeader
-              subtitle={`سقفُ الخادم ${VOUCHER_SERVER_LIMIT} صفٍّ في treasury.service.vouchers`}
+              subtitle={`سقفُ العرض ${VOUCHER_SERVER_LIMIT} صفٍّ في الاستعلام الواحد`}
               title="القائمةُ مقطوعة"
             />
             <CardBody>

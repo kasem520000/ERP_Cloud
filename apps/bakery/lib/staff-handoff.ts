@@ -113,6 +113,41 @@ export const STAFF_DESTINATIONS: readonly StaffDestination[] = [
     path: '/accounting/payment-methods',
     noteAr: 'الطرقُ وحساباتُها — فطريقةُ دفعٍ بلا حسابٍ مقابل تعني سندًا لا يُرحَّل.',
   },
+  {
+    key: 'collection',
+    group: 'accounting',
+    labelAr: 'تحصيلُ الذمم وتخصيصُ السندات',
+    path: '/accounting/collection',
+    noteAr: 'تخصيصُ سندات القبض والصرف على الفواتير المستحقة ومتابعةُ الذمم المفتوحة.',
+  },
+  {
+    key: 'fixed-assets',
+    group: 'accounting',
+    labelAr: 'الأصولُ الثابتة',
+    path: '/accounting/fixed-assets',
+    noteAr: 'سجلُّ الأصول الثابتة وإهلاكُها واستبعادُها — مثل مركبات التوزيع ومعدّات المخبز.',
+  },
+  {
+    key: 'asset-categories',
+    group: 'accounting',
+    labelAr: 'فئاتُ الأصول الثابتة',
+    path: '/accounting/asset-categories',
+    noteAr: 'تعريفُ فئات الأصول وعمرِها الإنتاجيّ وحسابات الإهلاك ومجمّع الإهلاك.',
+  },
+  {
+    key: 'amortization-schedules',
+    group: 'accounting',
+    labelAr: 'جداولُ الإطفاء والمصروفات المقدّمة',
+    path: '/accounting/amortization-schedules',
+    noteAr: 'توزيعُ المصروفات والإيرادات المؤجّلة على الفترات المحاسبية بقيودٍ دورية.',
+  },
+  {
+    key: 'tax-filings',
+    group: 'accounting',
+    labelAr: 'الإقراراتُ الضريبية',
+    path: '/accounting/tax-filings',
+    noteAr: 'إقرارُ ضريبة القيمة المضافة للفترة من واقع القيود والفواتير المرحّلة.',
+  },
   // ------------------------------------------------------------ الخزينة (ما يحتاج حكمًا)
   {
     key: 'vouchers',

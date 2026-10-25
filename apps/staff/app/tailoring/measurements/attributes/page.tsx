@@ -161,7 +161,7 @@ function TailoringMeasurementAttributes() {
         <>
           <Panel title="خصائص القياسات" hint={<>عدد السجلات: {rows.length}</>} flush>
             {rows.length === 0 ? (
-              <Empty bare title="لا توجد خصائص" detail="ابدأ بـ «إضافة» — «الطول» مثالاً كما في الديسكتوب." />
+              <Empty bare title="لا توجد خصائص" detail="ابدأ بـ «إضافة» — مثل «الطول» أو «عرض الكتف»." />
             ) : (
               <Table
                 bare

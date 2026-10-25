@@ -401,7 +401,7 @@ export default function NewSalesInvoicePage() {
                 </button>
               </span>
               <span className="muted small">
-                يُضيف الصنف بسطرٍ يحمل الرقم — تماماً كما في النافذة المكتبية.
+                يُضيف الصنف مباشرةً في سطر جديد مرتبط بالرقم التسلسلي.
               </span>
             </label>
             <label className="field">

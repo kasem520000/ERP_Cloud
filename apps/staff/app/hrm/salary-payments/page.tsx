@@ -136,7 +136,7 @@ export default function SalaryPaymentsPage() {
           required: true,
           ltr: true,
           placeholder: currentMonth(),
-          hint: 'الشهر والسنة بصيغة YYYY-MM — هما صندوقا «الشهر» و«السنة» في الديسكتوب.',
+          hint: 'الشهر والسنة بصيغة YYYY-MM (مثال: 2026-10).',
         },
         { name: 'paymentDate', label: 'تاريخ الإدخال', type: 'date', required: true },
         {

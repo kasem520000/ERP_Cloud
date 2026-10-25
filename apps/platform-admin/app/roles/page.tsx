@@ -50,6 +50,8 @@ const CONSOLE_PERM_AR: Record<string, string> = {
   'console.jobs.view': 'عرض صحة الطوابير والـ outbox',
   'console.jobs.manage': 'إدارة المهام والنسخ الاحتياطية ومدير الملفات',
   'console.backups.manage': 'تشغيل النسخ الاحتياطية وسياسة الاحتفاظ',
+  'console.releases.view': 'عرض سجل الإصدارات وملاحظات التحديث',
+  'console.releases.manage': 'إدارة الإصدارات ونشر التحديثات',
   'console.support.manage': 'مكتب الدعم الفني والدخول المؤقّت',
   'console.content.view': 'عرض محتوى الموقع والصفحات والقوائم',
   'console.content.manage': 'إدارة المحتوى والإعلانات والصفحات',
@@ -96,7 +98,7 @@ const GROUPS: Array<{ key: string; label: string; match: (code: string) => boole
   {
     key: 'ops',
     label: 'التشغيل والصحة والدعم',
-    match: (code) => /^console\.(health|jobs|backups|support)\./.test(code),
+    match: (code) => /^console\.(health|jobs|backups|releases|support)\./.test(code),
   },
   {
     key: 'growth',
@@ -223,9 +225,7 @@ export default function PlatformRolesPage() {
                           ) : null}
                         </span>
                         <span className="flex w-full items-center justify-between gap-2 text-[11.5px] text-muted">
-                          <span dir="ltr" className="truncate">
-                            {role.code}
-                          </span>
+                          <span>عدد الصلاحيات المفعّلة</span>
                           <span className="flex-none tabular-nums">
                             {role.permissions.length}/{codes.length}
                           </span>
@@ -250,9 +250,6 @@ export default function PlatformRolesPage() {
                   <div className="min-w-0">
                     <h2 className="m-0 flex flex-wrap items-center gap-2 text-[16px] font-bold">
                       {ROLE_NAME_AR[selected.code] ?? selected.nameAr}
-                      <span className="text-[12px] font-semibold text-muted" dir="ltr">
-                        {selected.code}
-                      </span>
                     </h2>
                     <p className="m-0 mt-1 max-w-2xl text-[12.5px] leading-relaxed text-muted">
                       {ROLE_DESC_AR[selected.code] ?? selected.description}
@@ -290,16 +287,13 @@ export default function PlatformRolesPage() {
                                   <span
                                     className={`min-w-0 flex-1 truncate text-[12.5px] ${on ? 'font-semibold text-[var(--text)]' : 'text-muted'}`}
                                   >
-                                    {CONSOLE_PERM_AR[code] ?? code.replace('console.', '')}
+                                    {CONSOLE_PERM_AR[code] ?? 'صلاحية تشغيلية'}
                                   </span>
                                   {override ? (
                                     <span className={`tag flex-none ${on ? 'tenant' : 'danger'}`}>
                                       {on ? '+ تجاوز' : '− عن الفهرس'}
                                     </span>
                                   ) : null}
-                                  <span className="flex-none text-[10.5px] text-muted" dir="ltr" title={code}>
-                                    {code.replace('console.', '')}
-                                  </span>
                                 </label>
                               </li>
                             );

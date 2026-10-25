@@ -91,10 +91,9 @@ export default function AccountingHandoffPage() {
             />
             <CardBody>
               <p className="m-0 text-[13px] leading-relaxed text-ink">
-                التسليمُ يعمل لأيّ عضوٍ نشط، لكنّ الوجهات أدناه تفرض أذوناتها في اللوحة: فبلا{' '}
-                <span dir="ltr">accounting.reports.view</span> أو{' '}
-                <span dir="ltr">accounting.account.view</span> أو{' '}
-                <span dir="ltr">accounting.period.view</span> لن ترى الأستاذَ ولا الميزانَ ولا الفترات هناك.
+                التسليمُ يعمل لأيّ عضوٍ نشط، لكنّ الوجهات أدناه تفرض أذوناتها في لوحة الإدارة: فبلا صلاحية{' '}
+                <strong>عرض التقارير المحاسبية</strong> أو <strong>عرض دليل الحسابات</strong> أو{' '}
+                <strong>عرض الفترات المالية</strong> لن ترى الأستاذَ ولا الميزانَ ولا الفترات هناك.
                 والضابطُ الخادمُ في الطرفَين — وهذه الشاشةُ لا تمنح شيئًا.
               </p>
             </CardBody>

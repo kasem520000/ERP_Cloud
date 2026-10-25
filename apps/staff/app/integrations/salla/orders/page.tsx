@@ -118,7 +118,7 @@ export default function SallaOrdersPage() {
   return (
     <Screen
       title="إدارة طلبات سلة"
-      subtitle="«جلب الطلبات» من `FrmSallah`: كل طلبٍ وارد يصبح فاتورة مبيعات — رقمه عند المتجر هو ما يمنع استيراده مرّتين."
+      subtitle="جلب طلبات متجر سلة وتحويل كل طلب وارد إلى فاتورة مبيعات مع منع تكرار الاستيراد تلقائياً."
       crumbs={['المستودعات', 'متجر سلة']}
       actions={
         canManage ? (

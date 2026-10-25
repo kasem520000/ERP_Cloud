@@ -52,7 +52,9 @@ export class ApiError extends Error {
  * ويُستثنى من ذلك أخطاء الخادم (5xx): تفصيلها قد يحمل رسالة داخلية لا شأن للمستخدم بها،
  * فيكفي العنوان العامّ.
  */
-export function apiErrorText(error: unknown, fallback = 'تعذر إكمال الطلب'): string {
+const DEFAULT_FALLBACK = 'تعذر إكمال الطلب';
+
+export function apiErrorText(error: unknown, fallback = DEFAULT_FALLBACK): string {
   /*
    * 🔌 ما ليس `ApiError` ليس جملةً للمستخدم: انقطاعُ الشبكة يصل `TypeError: Failed to fetch`
    * وفشلُ `fetch` في سفاري `Load failed` — وكانت الشاشات تطبعه كما هو. نُسمّي السبب
@@ -75,15 +77,23 @@ export function apiErrorText(error: unknown, fallback = 'تعذر إكمال ا�
   const detail = error.status < 500 ? (error.detail ?? '').trim() : '';
   /*
    * رمز آليّ لا جملة: بلا حرف عربيّ، وشكله شكل المفاتيح (`PERMISSION_DENIED`،
-   * `not_found`) أو كلمتان بلا مسافات داخلهما تنتهيان بـ required
-   * (`permission parties.view required`). الجملة الإنجليزيّة الكاملة تبقى كما هي.
+   * `not_found`) أو جملة الصلاحيات التقنية (`permission parties.view required` أو
+   * `permission a.b, c.d required`). لا يُعرض الرمز الإنجليزي في الواجهة مطلقاً.
    */
+  const isPermissionRequiredCode = /^(?:platform\s+)?permission\s+[\w.,\s-]+\s+required$/i.test(detail);
   const codeShape =
+    isPermissionRequiredCode ||
     (!/[\u0600-\u06FF]/.test(detail) && /^[\w.-]{1,60}$/.test(detail)) ||
     (/^[^\u0600-\u06FF]+$/.test(detail) &&
       /^[\w.]+(\s+[\w.]+)*\s+required$/i.test(detail) &&
-      detail.length <= 80);
-  if (codeShape) return fallback;
+      detail.length <= 160);
+  if (codeShape) {
+    if (fallback !== DEFAULT_FALLBACK) return fallback;
+    if (error.status === 403 || isPermissionRequiredCode) {
+      return 'لا تملك الصلاحية المطلوبة لتنفيذ هذا الإجراء';
+    }
+    return fallback;
+  }
   /*
    * العنوانُ العامّ في `application/problem+json` («Request failed» / «Not found»)
    * يقول إنّ شيئًا فشل ولا يقول ماذا — فالشاشة تقول ما تعذّر بلغتها بدل ترجمته.

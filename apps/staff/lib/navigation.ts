@@ -1910,7 +1910,7 @@ const settings: ModuleNode = {
           permission: 'tenant.file.upload',
           endpoint: 'GET /files · POST /files/presign · DELETE /files/:id',
           description:
-            'frmshowdocument.xaml («الوثائق» · «الوثائق المرفقة») — المخزن الكامل: بحثٌ وترشيحٌ بالحالة وبالمستند المرتبط، وتنزيلٌ برابطٍ موقّع قصير العمر، ورفعٌ مباشر إلى التخزين الكائني (بلا مرور البايتات بالـAPI)، وحذفٌ ناعم برمزه `tenant.file.manage`.',
+            'إدارة الوثائق والمرفقات: بحث وترشيح بالحالة والمستند المرتبط، وتنزيل بروابط موقّعة آمنة، ورفع مباشر إلى التخزين السحابي.',
         }),
         screen('backup', 'النسخ الإحتياطي', 'Backup', '/settings/backup', 'ready', {
           permission: 'settings.backup.manage',
@@ -2025,7 +2025,7 @@ const settings: ModuleNode = {
           permission: 'reporting.layout.manage',
           endpoint: 'GET·PUT·DELETE /reports/print-settings/:scope',
           description:
-            'frmSettings.xaml «خيارات الطباعة» · frmInvRptType.xaml · Class/Print.cs — رأس · تذييل · ختم · عدد النسخ · الطابعة',
+            'خيارات الطباعة المعتمدة للمنشأة — الترويسة والتذييل والختم وعدد النسخ وتوجيه الطابعات.',
         }),
         screen('language', 'اللغة', 'Language', '/settings/language', 'ready', {
           endpoint: 'client-side preference (localStorage)',
@@ -2227,7 +2227,7 @@ const treasury: ModuleNode = {
           permission: 'treasury.view',
           endpoint: '/vouchers?filter[method]=cheque',
           description:
-            'frmSandQ / frmPaymentVoucher — تحت التحصيل/محصّل/مرتجع مع تحصيل بقيد أوراق القبضصندوق وارتجاع بقيد عكسي',
+            'متابعة الشيكات تحت التحصيل والمحصّلة والمرتجعة مع إثبات قيود التحصيل والإرجاع تلقائياً.',
         }),
       ],
     },

@@ -276,7 +276,7 @@ export default function AccountStatementPage() {
               value={fromTime}
               onChange={(event) => setFromTime(event.target.value)}
               disabled={fullPeriod || !from}
-              title="الوقت — صندوق الوقت في frmAccountBalance L458-L463"
+              title="وقت البداية"
             />
           </label>
           <label className="field" style={{ margin: 0, width: 150 }}>
@@ -297,7 +297,7 @@ export default function AccountStatementPage() {
               value={toTime}
               onChange={(event) => setToTime(event.target.value)}
               disabled={fullPeriod || !to}
-              title="الوقت — صندوق الوقت في frmAccountBalance L458-L463"
+              title="وقت النهاية"
             />
           </label>
           <label className="field" style={{ margin: 0, minWidth: 180 }}>

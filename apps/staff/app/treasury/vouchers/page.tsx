@@ -319,8 +319,8 @@ function VouchersScreen() {
       title={kind === 'receipt' ? 'سند قبض' : 'سند صرف'}
       subtitle={
         kind === 'receipt'
-          ? 'سند قبض عميل — كما في frmSandQ: من، كم، وكيف، ثم التفاصيل.'
-          : 'سند صرف لمورد — كما في frmSandD: من، كم، وكيف، ثم التفاصيل.'
+          ? 'إصدار سند قبض من عميل مع تحديد المبلغ وطريقة التحصيل والتخصيص المحاسبي.'
+          : 'إصدار سند صرف لمورد مع تحديد المبلغ وطريقة السداد والتخصيص المحاسبي.'
       }
       crumbs={['الخزينة', 'العمليات']}
       actions={
@@ -924,7 +924,7 @@ function VouchersScreen() {
           </div>
           {voucherFiles.status === 'loading' && <p className="hint">جارٍ التحميل…</p>}
           {voucherFiles.status === 'success' && (voucherFiles.data?.data?.length ?? 0) === 0 && (
-            <p className="hint">لا توجد مرفقات — `frmshowdocument.xaml` «لا يوجد وثائق.»</p>
+            <p className="hint">لا توجد وثائق مرفقة بهذا السند.</p>
           )}
           {voucherFiles.status === 'success' && (voucherFiles.data?.data?.length ?? 0) > 0 && (
             <Table

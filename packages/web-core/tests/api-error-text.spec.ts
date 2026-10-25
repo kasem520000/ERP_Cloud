@@ -52,6 +52,16 @@ describe('api error text (📣 نصّ الرفض)', () => {
     expect(
       apiErrorText(new ApiError(403, 'FORBIDDEN', 'Forbidden', 'PERMISSION_DENIED'), 'تعذّر الحفظ'),
     ).toBe('تعذّر الحفظ');
+    expect(
+      apiErrorText(
+        new ApiError(
+          403,
+          'FORBIDDEN',
+          'Forbidden',
+          'permission van_sales.override.approve, sales.discount.override required',
+        ),
+      ),
+    ).toBe('لا تملك الصلاحية المطلوبة لتنفيذ هذا الإجراء');
   });
 
   it('keeps a real English sentence even when the screen has a fallback', () => {

@@ -144,7 +144,7 @@ export default function SallaProductsPage() {
   return (
     <Screen
       title="منتجات متجر سلة"
-      subtitle="«جلب المنتجات» و«إضافة منتج» من `FrmSallah`: ما في المتجر، وما يحتاج تصديراً من أصنافك."
+      subtitle="مزامنة منتجات متجر سلة وعرض المنتجات المستوردة وتصدير أصناف المخزون إلى المتجر."
       crumbs={['المستودعات', 'متجر سلة']}
       actions={
         <div className="row" style={{ gap: 6 }}>

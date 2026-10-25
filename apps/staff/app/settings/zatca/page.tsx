@@ -525,7 +525,7 @@ export default function ZatcaSettingsPage() {
                 rowKey={(row) => row.key}
                 columns={[
                   { key: 'labelAr', header: 'الوثيقة', cell: (row) => `${row.labelAr}` },
-                  { key: 'labelEn', header: 'الاسم في الديسكتوب', cell: (row) => row.labelEn },
+                  { key: 'labelEn', header: 'الاسم الإنجليزي', cell: (row) => row.labelEn },
                   { key: 'invoiceTypeCode', header: 'النوع', cell: (row) => row.invoiceTypeCode },
                   { key: 'typeName', header: 'الصنف', cell: (row) => row.typeName },
                   { key: 'status', header: 'الحالة', cell: (row) => row.status },

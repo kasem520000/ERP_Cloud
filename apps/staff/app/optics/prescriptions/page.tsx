@@ -455,8 +455,7 @@ function OpticsPrescriptions() {
                 />
               </label>
               <p className="muted" style={{ margin: 0 }}>
-                القيم نصوص كما في الديسكتوب: «PL» و«+1.25» و«-0.50 × 90» كلها مقبولة — لا يُحلَّل رقمٌ ولا
-                يُرفض.
+                القيم تُحفظ كنصوص قياس حرّة مثل: «PL» و«+1.25» و«-0.50 × 90» دون تقييد رقمي.
               </p>
             </div>
             <div className="modal-foot">

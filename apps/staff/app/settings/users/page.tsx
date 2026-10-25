@@ -55,6 +55,16 @@ const MEMBERSHIP_STATUS: Record<Membership['status'], string> = {
   suspended: 'موقوف',
 };
 
+const ROLE_NAME_AR: Record<string, string> = {
+  Owner: 'مالك الحساب',
+  Accountant: 'محاسب',
+  Cashier: 'أمين صندوق',
+};
+
+function roleNameAr(name: string): string {
+  return ROLE_NAME_AR[name] ?? name;
+}
+
 const scopeTypeLabel = (scopeType: Scope['scopeType']): string =>
   SCOPE_TYPES.find((item) => item.value === scopeType)?.label ??
   (scopeType === 'pos_terminal' ? 'طرفية نقاط البيع' : scopeType);
@@ -66,7 +76,8 @@ function scopeLabel(
   warehouses: Warehouse[],
   cashLocations: CashLocation[],
 ): string {
-  const role = roles.find((item) => item.id === scope.roleId)?.name ?? scope.roleId;
+  const rawRole = roles.find((item) => item.id === scope.roleId)?.name ?? scope.roleId;
+  const role = roleNameAr(rawRole);
   const type = scopeTypeLabel(scope.scopeType);
   if (scope.scopeId === TENANT_WIDE_SCOPE_ID) {
     return `${role} ${type}: كل المنشأة (وصول شامل صريح)`;
@@ -290,7 +301,7 @@ export default function TenantUsersPage() {
                     checked={inviteRoles.includes(role.id)}
                     onChange={() => setInviteRoles(toggle(inviteRoles, role.id))}
                   />
-                  {role.name}
+                  {roleNameAr(role.name)}
                 </label>
               ))}
             </fieldset>
@@ -382,7 +393,7 @@ export default function TenantUsersPage() {
                 {
                   key: 'roles',
                   header: 'الأدوار',
-                  cell: (row) => row.roles.map((role) => role.name).join('، ') || '—',
+                  cell: (row) => row.roles.map((role) => roleNameAr(role.name)).join('، ') || '—',
                 },
                 {
                   key: 'scope',
@@ -456,7 +467,7 @@ export default function TenantUsersPage() {
                     checked={editRoles.includes(role.id)}
                     onChange={() => setEditRoles(toggle(editRoles, role.id))}
                   />
-                  {role.name}
+                  {roleNameAr(role.name)}
                 </label>
               ))}
             </fieldset>
@@ -506,7 +517,7 @@ export default function TenantUsersPage() {
                     .filter((role) => editRoles.includes(role.id))
                     .map((role) => (
                       <option key={role.id} value={role.id}>
-                        {role.name}
+                        {roleNameAr(role.name)}
                       </option>
                     ))}
                 </select>

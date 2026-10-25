@@ -217,7 +217,7 @@ export function DesignGallery() {
       <Section title="البطاقات">
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
-            <CardHeader title="🧾 فاتورة مبيعات" subtitle="frmInvSale.xaml:347" action={<Badge status="posted">مرحّل</Badge>} />
+            <CardHeader title="🧾 فاتورة مبيعات" subtitle="فاتورة ضريبية معتمدة" action={<Badge status="posted">مرحّل</Badge>} />
             <CardBody>سطح أبيض في الفاتح، slate-900 في الداكن — نفس الصنف.</CardBody>
             <CardFooter>
               <span>تذييل البطاقة</span>

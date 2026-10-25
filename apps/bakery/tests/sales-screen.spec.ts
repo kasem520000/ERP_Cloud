@@ -379,11 +379,18 @@ describe('حكم ما قبل الإرسال: حظرٌ لما يطابق الخا
     );
   });
 
-  it('التجاوز بلا صلاحية: حظرٌ يذكر نصّ الـ403 والرمزين معًا', () => {
+  it('التجاوز بلا صلاحية: حظرٌ يذكر الصلاحيتين بالعربية دون رموز إنجليزية خام', () => {
     const draft = { ...base, allowPriceDiscountOverride: true };
     const { blocked } = documentVerdict(draft, { dashboard: dashboard(), canOverride: false });
     expect(blocked.some((line) => line.includes(SALES_MESSAGES.overrideForbidden))).toBe(true);
-    expect(blocked.some((line) => OVERRIDE_PERMISSIONS.every((code) => line.includes(code)))).toBe(true);
+    expect(
+      blocked.some(
+        (line) =>
+          line.includes('اعتماد التجاوزات وسياسة التوزيع') &&
+          line.includes('تجاوز سقف الخصم المعتمد') &&
+          !/van_sales\.|sales\./.test(line),
+      ),
+    ).toBe(true);
     expect(documentVerdict(draft, { dashboard: dashboard(), canOverride: true }).blocked).toEqual([]);
     expect(
       documentVerdict({ ...base, allowBonusOverride: true }, { dashboard: dashboard(), canOverride: false }).blocked

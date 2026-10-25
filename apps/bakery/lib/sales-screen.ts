@@ -202,11 +202,11 @@ export const SALES_MESSAGES = {
   bonusReasonRequired:
     'يجب تحديد سبب منح الكمية المجانية / البونص (ترويجي، عينات، تعويض تلف…)',
   internalDeliveryPolicyRequired:
-    'وضع إشعار التسليم الداخلي بدون ضريبة غير مفعل افتراضياً. يتطلب اعتماد السياسة الضريبية والمحاسبية في إعدادات المنشأة (van_sales.policy.allowInternalDeliveryWithoutTax) قبل الاستخدام.',
+    'وضع إشعار التسليم الداخلي بدون ضريبة غير مفعل افتراضياً. يتطلب اعتماد السياسة الضريبية والمحاسبية في إعدادات المنشأة قبل الاستخدام.',
   cashAccountRequired:
     'بيع نقدي يتطلّب صندوقًا مرتبطًا بحساب محاسبي — أنشئ صندوقًا من شاشة مواقع النقد أو حدّد حساب النقد في ملف الترحيل',
-  /** نصّ الـ403 كما يكتبه الخادم (RFC 9457 `detail`) — لا ترجمةَ له هنا. */
-  overrideForbidden: 'permission van_sales.override.approve required',
+  /** نصّ عدم توفّر صلاحية التجاوز بالعربية. */
+  overrideForbidden: 'الصلاحية المطلوبة غير متوفرة: اعتماد التجاوزات وسياسة التوزيع',
   returnDocumentRequired: 'حدد مستند البيع الأصلي للمرتجع',
   returnQtyPositive: 'كمية المرتجع يجب أن تكون أكبر من صفر',
   returnOfReturnRefused: 'لا يمكن إرجاع مرتجع — أنشئ مستند بيع جديد بدلًا من ذلك',
@@ -470,7 +470,7 @@ export function documentVerdict(draft: DocumentDraft, context: DocumentVerdictCo
   const asksOverride = draft.allowPriceDiscountOverride || draft.allowBonusOverride;
   if (asksOverride && !context.canOverride) {
     blocked.push(
-      `${SALES_MESSAGES.overrideForbidden} — التجاوز (سعر/خصم/بونص) يحتاج ${OVERRIDE_PERMISSIONS.join(' أو ')}.`,
+      `${SALES_MESSAGES.overrideForbidden} — يتطلب التجاوز (سعر أو خصم أو بونص) صلاحية «اعتماد التجاوزات وسياسة التوزيع» أو «تجاوز سقف الخصم المعتمد».`,
     );
   }
 

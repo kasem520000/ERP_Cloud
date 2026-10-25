@@ -541,7 +541,7 @@ export default function MarinaGroupCardsPage() {
               </div>
               {!card.id && (
                 <p className="muted">
-                  فترتا «ساعة» و«نصف ساعة» تُكتبان من هذين الصندوقين عند الحفظ، كما يكتبها `frmGroupM`.
+                  تُسجَّل فترتا «ساعة» و«نصف ساعة» تلقائياً من هذين الحقلين عند الحفظ.
                 </p>
               )}
             </div>

@@ -261,7 +261,7 @@ export default function PrintingSettingsPage() {
     try {
       const cleared = await resetPrintSettings(scope);
       setForm(cleared);
-      setNotice({ kind: 'info', text: 'عادت الإعدادات إلى إعدادات الديسكتوب الافتراضية.' });
+      setNotice({ kind: 'info', text: 'عادت الإعدادات إلى القيم الافتراضية المعتمدة.' });
       settings.reload();
     } catch (error) {
       setNotice({ kind: 'danger', text: apiErrorText(error) });
@@ -583,9 +583,7 @@ export default function PrintingSettingsPage() {
 
           <h3>الصور — الترويـسة · التـذيـيـل · الخـتـم</h3>
           <p className="small muted">
-            يحفظ الديسكتوب هذه الصور بايتاتٍ في <code>HeaderImage</code> · <code>FooterImage</code> ·{' '}
-            <code>StampImage</code>؛ السحابة لا تخزّن ملفات، فهي روابط <span dir="ltr">https://</span> تُدرج
-            في الورقة كما هي.
+            أدخل روابط صور الترويسة والتذييل والختم بصيغة <span dir="ltr">https://</span> ليتم إدراجها تلقائياً في المستند المطبوع.
           </p>
           <div className="form-grid">
             <label className="field">

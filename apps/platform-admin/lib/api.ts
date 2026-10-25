@@ -102,6 +102,60 @@ export function onSessionChange(listener: () => void): () => void {
 
 type Problem = { title?: string; detail?: string; code?: string; message?: string };
 
+const CONSOLE_PERMISSION_AR: Record<string, string> = {
+  'console.tenants.view': 'عرض العملاء والمنشآت',
+  'console.tenants.manage': 'إدارة العملاء والتعليق والتفعيل',
+  'console.plans.manage': 'إدارة الخطط والباقات',
+  'console.subscriptions.manage': 'إدارة الاشتراكات والتجديد والإلغاء',
+  'console.billing.manage': 'عمليات الفوترة والتحصيل والتذكير',
+  'console.activation.review': 'مراجعة طلبات التفعيل',
+  'console.users.view': 'عرض دليل المستخدمين والجلسات',
+  'console.users.manage': 'إدارة المستخدمين وأدوار المنصة',
+  'console.audit.view': 'عرض سجل التدقيق العابر للمنشآت',
+  'console.settings.manage': 'إدارة إعدادات المنصة والرايات والحدود',
+  'console.health.view': 'عرض صحة النظام والجاهزية',
+  'console.jobs.view': 'عرض صحة الطوابير والمهام',
+  'console.jobs.manage': 'إدارة المهام والنسخ الاحتياطية ومدير الملفات',
+  'console.backups.manage': 'تشغيل النسخ الاحتياطية وسياسة الاحتفاظ',
+  'console.releases.view': 'عرض سجل الإصدارات وملاحظات التحديث',
+  'console.releases.manage': 'إدارة الإصدارات ونشر التحديثات',
+  'console.support.manage': 'مكتب الدعم الفني والدخول المؤقّت',
+  'console.content.view': 'عرض محتوى الموقع والصفحات والقوائم',
+  'console.content.manage': 'إدارة المحتوى والإعلانات والصفحات',
+  'console.campaigns.manage': 'إدارة الحملات التسويقية وإرسالها',
+  'console.email.view': 'عرض سجل البريد الصادر',
+  'console.email.manage': 'إدارة البريد والقوالب والحملات',
+  'console.notifications.manage': 'إشعارات المنصة وإعلاناتها',
+  'console.leads.view': 'عرض العملاء المتوقّعين والمشتركين',
+  'console.leads.manage': 'إدارة العملاء المتوقّعين وتحويلهم',
+  'console.analytics.view': 'عرض تحليلات الإيرادات والتسرّب',
+  'console.apikeys.manage': 'إدارة مفاتيح API للمنشآت',
+  'console.webhooks.manage': 'إدارة الويب هوك وإعادة المحاولات',
+  'console.marketplace.manage': 'تسعير تطبيقات السوق وتفعيلها',
+};
+
+function localizePermissionDetail(raw?: string): string | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  const match = trimmed.match(/^(?:platform\s+)?permission\s+(.+?)\s+required$/i);
+  if (!match) return trimmed;
+  const codes = match[1]!
+    .split(/(?:,|\bor\b)/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const labels = codes.map((c) => CONSOLE_PERMISSION_AR[c] ?? 'صلاحية إدارية معتمدة');
+  return `لا تملك الصلاحية المطلوبة (${labels.join(' أو ')})`;
+}
+
+const GENERIC_EN_TITLE_AR: Record<string, string> = {
+  forbidden: 'لا تملك صلاحية تنفيذ هذا الإجراء',
+  unauthorized: 'انتهت الجلسة أو لم يتم تسجيل الدخول',
+  'not found': 'العنصر المطلوب غير موجود',
+  'bad request': 'الطلب غير صحيح',
+  'request failed': 'تعذر إكمال الطلب',
+  'internal server error': 'حدث خطأ داخلي في الخادم',
+};
+
 async function toError(response: Response): Promise<ApiError> {
   let problem: Problem = {};
   const text = await response.text();
@@ -113,8 +167,14 @@ async function toError(response: Response): Promise<ApiError> {
     }
   }
   const code = problem.code ?? (response.status === 401 ? 'UNAUTHENTICATED' : response.status === 403 ? 'FORBIDDEN' : 'HTTP_ERROR');
-  const message = problem.title ?? problem.message ?? problem.detail ?? `${response.status} ${response.statusText}`;
-  return new ApiError(response.status, code, message, problem.detail);
+  const localizedDetail = localizePermissionDetail(problem.detail);
+  const rawTitle = (problem.title ?? problem.message ?? '').trim();
+  const localizedTitle = GENERIC_EN_TITLE_AR[rawTitle.toLowerCase()] ?? rawTitle;
+  const message =
+    localizedDetail && response.status === 403
+      ? localizedDetail
+      : localizedTitle || localizedDetail || `${response.status} ${response.statusText}`;
+  return new ApiError(response.status, code, message, localizedDetail);
 }
 
 let refreshInFlight: Promise<StoredSession | undefined> | undefined;

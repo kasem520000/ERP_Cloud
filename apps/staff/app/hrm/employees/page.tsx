@@ -732,7 +732,7 @@ export default function EmployeesPage() {
               </label>
             </div>
 
-            <h3>صورة الموظف — frmEmployees.xaml L195 imgPersonal</h3>
+            <h3>صورة الموظف</h3>
             <div className="form-grid">
               <div className="field">
                 <span>الصورة الحالية</span>
@@ -748,7 +748,7 @@ export default function EmployeesPage() {
                     </button>
                   </div>
                 ) : (
-                  <span className="hint">لا توجد صورة — btnImgAdd / btnImgDelete</span>
+                  <span className="hint">لا توجد صورة مرفقة</span>
                 )}
               </div>
               <label className="field">
@@ -765,7 +765,7 @@ export default function EmployeesPage() {
               </label>
             </div>
 
-            <h3>فروع الموظف — frmEmployees.xaml L172 EmpBranches</h3>
+            <h3>فروع الموظف</h3>
             <div className="form-grid">
               <div className="field" style={{ gridColumn: '1 / -1' }}>
                 <span>الفروع الإضافية (بجانب الفرع الأساسي)</span>
@@ -789,8 +789,7 @@ export default function EmployeesPage() {
                   ))}
                 </div>
                 <p className="hint">
-                  الفرع الأساسي يُحدد في «بيانات الموظف الأساسية»؛ هذه الفروع الإضافية تُخزن في EmpBranches —
-                  employee_branches.
+                  الفرع الأساسي يُحدد في «بيانات الموظف الأساسية»، وتُستخدم الفروع الإضافية لتوسيع نطاق عمل الموظف.
                 </p>
               </div>
             </div>
@@ -822,7 +821,7 @@ export default function EmployeesPage() {
             </div>
             {editing && form.id ? <CommentsPanel entityType="employee" entityId={form.id} /> : null}
             <p className="hint">
-              اضغط Enter في خانة البحث للبحث عن موظف بالاسم — «اسم الموظف:» في نافذة الديسكتوب.
+              اضغط Enter في خانة البحث للبحث السريع عن موظف بالاسم.
             </p>
           </Panel>
         </form>
