@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { apiData, apiErrorText, apiPost, apiPut, apiDelete } from '../../../lib/api';
+import { apiData, apiErrorText, apiPost } from '../../../lib/api';
 import { dateTime } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
@@ -24,26 +24,6 @@ type BackupRun = {
 };
 
 const kb = (bytes: number) => `${(bytes / 1024).toFixed(1)} ك.ب`;
-
-type GoogleDriveConnection = {
-  connected: boolean;
-  email: string;
-  connectedAt: string | null;
-  files: number;
-  totalBytes: number;
-  status: string;
-};
-
-type GoogleDriveFile = {
-  id: string;
-  name: string;
-  sizeBytes: number;
-  checksum: string;
-  uploadedAt: string;
-  scope: string;
-  tenantId: string | null;
-  backupJobId: string | null;
-};
 
 /**
  * النسخ الإحتياطي.
@@ -174,167 +154,6 @@ export default function BackupPage() {
           </Panel>
         )}
       </QueryView>
-
-      <GoogleDriveSection backups={backups} />
     </Screen>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// جوجل درايف — النسخ المرتفع إلى الدرايف
-//
-// قسمٌ مستقلٌ يُظهر حالة الاتصال، زر الربط/قطع الربط، زر الرفع، قائمة الملفات المرفوعة،
-// وزر الاستعادة من الدرايف. كل العمليات تمر عبر API وتُسجّل في التدقيق.
-// ─────────────────────────────────────────────────────────────────────────────
-
-function GoogleDriveSection({ backups }: { backups: ReturnType<typeof useQuery<BackupRun[]>> }) {
-  const [gdNotice, setGdNotice] = useState<{ kind: 'ok' | 'danger' | 'info'; text: string } | undefined>();
-  const [gdBusy, setGdBusy] = useState(false);
-  const [conn, setConn] = useState<GoogleDriveConnection | null>(null);
-  const [files, setFiles] = useState<GoogleDriveFile[]>([]);
-
-  async function refresh() {
-    try {
-      const status = await apiData<GoogleDriveConnection>('/platform/google-drive/status');
-      setConn(status);
-      const list = await apiData<GoogleDriveFile[]>('/platform/google-drive/files');
-      setFiles(list);
-    } catch {
-      setConn(null);
-      setFiles([]);
-    }
-  }
-
-  async function connect() {
-    setGdBusy(true);
-    setGdNotice(undefined);
-    try {
-      const status = await apiPost<GoogleDriveConnection>('/platform/google-drive/connect', {});
-      setConn(status);
-      setGdNotice({ kind: 'ok', text: `تم ربط حساب جوجل درايف: ${status.email}` });
-      refresh();
-    } catch (error) {
-      setGdNotice({ kind: 'danger', text: apiErrorText(error) });
-    } finally {
-      setGdBusy(false);
-    }
-  }
-
-  async function disconnect() {
-    setGdBusy(true);
-    setGdNotice(undefined);
-    try {
-      await apiPost('/platform/google-drive/disconnect', {});
-      setGdNotice({ kind: 'info', text: 'تم قطع اتصال جوجل درايف ومسح الملفات المرفوعة.' });
-      setConn(null);
-      setFiles([]);
-    } catch (error) {
-      setGdNotice({ kind: 'danger', text: apiErrorText(error) });
-    } finally {
-      setGdBusy(false);
-    }
-  }
-
-  async function upload(jobId: string) {
-    setGdBusy(true);
-    setGdNotice(undefined);
-    try {
-      const file = await apiPost<GoogleDriveFile>('/platform/google-drive/upload', {
-        backupJobId: jobId,
-        scope: 'platform',
-      });
-      setGdNotice({ kind: 'ok', text: `تم رفع نسخة إلى جوجل درايف: ${file.name}` });
-      refresh();
-    } catch (error) {
-      setGdNotice({ kind: 'danger', text: apiErrorText(error) });
-    } finally {
-      setGdBusy(false);
-    }
-  }
-
-  async function restore(fileId: string) {
-    setGdBusy(true);
-    setGdNotice(undefined);
-    try {
-      await apiPost(`/platform/google-drive/files/${fileId}/restore`, { mode: 'dry_run' });
-      setGdNotice({ kind: 'ok', text: 'تمت الاستعادة التجريبية من جوجل درايف. انتقل إلى «إستعادة البيانات» للتنفيذ.' });
-    } catch (error) {
-      setGdNotice({ kind: 'danger', text: apiErrorText(error) });
-    } finally {
-      setGdBusy(false);
-    }
-  }
-
-  async function removeFile(fileId: string) {
-    setGdBusy(true);
-    setGdNotice(undefined);
-    try {
-      await apiDelete(`/platform/google-drive/files/${fileId}`);
-      setGdNotice({ kind: 'info', text: 'تم حذف الملف من جوجل درايف.' });
-      refresh();
-    } catch (error) {
-      setGdNotice({ kind: 'danger', text: apiErrorText(error) });
-    } finally {
-      setGdBusy(false);
-    }
-  }
-
-  return (
-    <Panel title="جوجل درايف">
-      <p className="alert info">
-        يُمكن رفع النسخ المحفوظة إلى جوجل درايف كنسخة احتياطية خارجية. الاستعادة من الدرايف
-        تستخدم نفس آلية الاستعادة من المخزن المحلي.
-      </p>
-      <div className="toolbar">
-        {conn?.connected ? (
-          <>
-            <span className="badge ok">متصل</span>
-            <span className="muted">{conn.email}</span>
-            {conn.files > 0 && <span className="muted">{conn.files} ملف، {kb(conn.totalBytes)}</span>}
-            <button type="button" className="btn sm danger" onClick={disconnect} disabled={gdBusy}>
-              قطع الاتصال
-            </button>
-          </>
-        ) : (
-          <>
-            <span className="badge warn">غير متصل</span>
-            <button type="button" className="btn sm primary" onClick={connect} disabled={gdBusy}>
-              ربط حساب جوجل درايف
-            </button>
-          </>
-        )}
-        <button type="button" className="btn sm" onClick={refresh} disabled={gdBusy}>
-          تحديث
-        </button>
-      </div>
-      <Notice notice={gdNotice} />
-      {files.length > 0 && (
-        <DataTable
-          columns={[
-            { key: 'uploadedAt', header: 'التاريخ', cell: (f: GoogleDriveFile) => dateTime(f.uploadedAt) },
-            { key: 'name', header: 'الاسم', cell: (f: GoogleDriveFile) => f.name },
-            { key: 'scope', header: 'النطاق', cell: (f: GoogleDriveFile) => f.scope },
-            { key: 'size', header: 'الحجم', align: 'num', cell: (f: GoogleDriveFile) => kb(f.sizeBytes) },
-            { key: 'checksum', header: 'البصمة', align: 'ltr', cell: (f: GoogleDriveFile) => f.checksum.slice(0, 12) },
-            {
-              key: 'actions',
-              header: '',
-              cell: (f: GoogleDriveFile) => (
-                <div className="toolbar">
-                  <button type="button" className="btn sm" onClick={() => restore(f.id)} disabled={gdBusy}>
-                    استعادة
-                  </button>
-                  <button type="button" className="btn sm danger" onClick={() => removeFile(f.id)} disabled={gdBusy}>
-                    حذف
-                  </button>
-                </div>
-              ),
-            },
-          ]}
-          rows={files}
-          rowKey={(f) => f.id}
-        />
-      )}
-    </Panel>
   );
 }

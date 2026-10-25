@@ -436,10 +436,6 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
         fromEmail: value('fromEmail'),
         replyTo: value('replyTo') || null,
         sendingDomain: value('sendingDomain') || null,
-        dkimSelector: value('dkimSelector') || null,
-        dkimPublicKey: value('dkimPublicKey') || null,
-        spfRecord: value('spfRecord') || null,
-        perRecipientRateLimit: value('perRecipientRateLimit') ?? null,
         ...(reason.trim().length >= 3 ? { reason } : {}),
       };
       if (apiKeyDraft !== undefined) {
@@ -584,55 +580,6 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
               dir="ltr"
               placeholder="mail.example.com"
               onChange={(change) => setDraft({ ...draft, sendingDomain: change.target.value })}
-            />
-          </label>
-          <label className="field">
-            <span>سجل DKIM — الـSelector</span>
-            <input
-              className="input"
-              value={value('dkimSelector') ?? ''}
-              disabled={!canEdit}
-              dir="ltr"
-              placeholder="google"
-              onChange={(change) => setDraft({ ...draft, dkimSelector: change.target.value })}
-            />
-          </label>
-          <label className="field">
-            <span>سجل DKIM — المفتاح العام</span>
-            <textarea
-              className="input"
-              rows={2}
-              value={value('dkimPublicKey') ?? ''}
-              disabled={!canEdit}
-              dir="ltr"
-              placeholder="v=DKIM1; k=rsa; p=MIGfMA0G..."
-              onChange={(change) => setDraft({ ...draft, dkimPublicKey: change.target.value })}
-            />
-          </label>
-          <label className="field">
-            <span>سجل SPF</span>
-            <input
-              className="input"
-              value={value('spfRecord') ?? ''}
-              disabled={!canEdit}
-              dir="ltr"
-              placeholder="v=spf1 include:_spf.example.com ~all"
-              onChange={(change) => setDraft({ ...draft, spfRecord: change.target.value })}
-            />
-          </label>
-          <label className="field">
-            <span>سقف الرسائل لكل عنوان (كل 24 ساعة)</span>
-            <input
-              className="input"
-              type="number"
-              min={1}
-              max={10000}
-              value={value('perRecipientRateLimit') ?? ''}
-              disabled={!canEdit}
-              placeholder="10"
-              onChange={(change) =>
-                setDraft({ ...draft, perRecipientRateLimit: change.target.value ? Number(change.target.value) : null })
-              }
             />
           </label>
         </div>
