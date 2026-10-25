@@ -1,5 +1,0 @@
-Accountant
-Cashier
-Owner
-R21 أمين صندوق مقيد
-مندوب توزيع
