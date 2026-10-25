@@ -146,6 +146,14 @@ export const platformSettingDefinitions: readonly PlatformSettingDefinition[] = 
     defaultValue: [],
   },
   {
+    key: 'platform.self_signup',
+    labelAr: 'التسجيل الذاتي للمشتركين الجدد',
+    labelEn: 'Self-service signup',
+    kind: 'boolean',
+    helpAr: 'يسمح للزوار بإنشاء منشأة جديدة وطلب تفعيلها مباشرة من الموقع التسويقي.',
+    defaultValue: true,
+  },
+  {
     key: 'limits.max_users',
     scopes: ['platform', 'tenant'],
     labelAr: 'حدّ المستخدمين الافتراضي',

@@ -142,9 +142,11 @@ describe('DEMO_TAX_GROUPS', () => {
     expect(vatOnSixHundred, 'ولو عاد الكسرُ لكان الناتج ٠٫٩٠').not.toBe(0.9);
   });
 
-  it('مجموعةُ الإعفاء صفرٌ — فلا ضريبةَ على المعفى باسمٍ يقول «معفاة»', () => {
-    const exempt = DEMO_TAX_GROUPS.find((group) => (group.nameAr ?? '').includes('معفاة'));
-    expect(exempt?.rate).toBe('0.0000');
-    expect(exempt?.vatAccountCode, 'ومعفاةٌ بلا حساب ضريبة').toBeUndefined();
+  it('المجموعةُ الصفرية صفرٌ — فلا ضريبةَ على الضريبة الصفرية', () => {
+    const zero = DEMO_TAX_GROUPS.find(
+      (group) => (group.nameAr ?? '').includes('صفرية') || (group.nameAr ?? '').includes('معفاة'),
+    );
+    expect(zero?.rate).toBe('0.0000');
+    expect(zero?.vatAccountCode, 'والضريبة الصفرية بلا حساب ضريبة مفروض').toBeUndefined();
   });
 });

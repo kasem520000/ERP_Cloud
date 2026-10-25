@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, lte, gte, sql } from 'drizzle-orm';
+import { tenantSettingsRegistry } from '@erp/config';
 import {
   accounts,
   branches,
@@ -9,14 +10,20 @@ import {
   currencies,
   DEMO_CHART_OF_ACCOUNTS,
   DEMO_POSTING_PROFILE,
+  fiscalPeriods,
+  fiscalYears,
+  itemCategories,
   newId,
   parties,
+  paymentMethods,
   priceLists,
   salaryAdjustmentTypes,
   tailoringGarmentTypes,
   tailoringMeasurementAttributes,
   tailoringOrderStatuses,
+  taxGroups,
   tenants,
+  unitsOfMeasure,
   warehouses,
   withTenantTx,
   type DatabaseHandle,
@@ -58,6 +65,14 @@ export type ProvisionOptions = {
   code?: string;
   nameAr?: string;
   nameEn?: string;
+  /**
+   * When true (new customer/tenant account creation via Platform Console, Self-Signup,
+   * Lead Conversion, or Company File creation), also seeds the starter Fiscal Year & 12
+   * monthly periods, single `مجموعة عامة` category, `15%` + `0%` tax groups, basic
+   * measurement units, baseline payment methods, and default tenant settings so the
+   * tenant can transact immediately on first login.
+   */
+  seedStarterData?: boolean;
 };
 
 const DEFAULT_CODE = 'MAIN';
@@ -133,7 +148,7 @@ export class OrgProvisioningService {
         tenantId,
         branchId,
         code,
-        name: nameEn,
+        name: options.nameEn ? nameEn : 'المستودع الرئيسي',
         isDefault: true,
         isActive: true,
         createdAt: now,
@@ -163,7 +178,7 @@ export class OrgProvisioningService {
         tenantId,
         branchId,
         kind: 'safe',
-        name: 'Main safe',
+        name: 'الصندوق الرئيسي',
         // The desktop chart is seeded above, so the safe posts to 1211001 from day one.
         accountId: mainCashAccountId,
         currencyCode: null,
@@ -199,7 +214,7 @@ export class OrgProvisioningService {
       await tx.insert(priceLists).values({
         id: priceListId,
         tenantId,
-        name: 'Default price list',
+        name: 'قائمة الأسعار الافتراضية',
         currencyCode,
         isDefault: true,
         isActive: true,
@@ -269,14 +284,291 @@ export class OrgProvisioningService {
         .onConflictDoNothing();
     }
 
+    if (options.seedStarterData) {
+      if (await this.ensureFiscalCalendar(tx, tenantId, actorUserId, now)) created = true;
+      if (await this.ensureDefaultCategory(tx, tenantId, actorUserId, now)) created = true;
+      if (await this.ensureDefaultTaxGroups(tx, tenantId, actorUserId, now)) created = true;
+      if (await this.ensureDefaultUnits(tx, tenantId, actorUserId, now)) created = true;
+      if (await this.ensureDefaultPaymentMethods(tx, tenantId, cashLocationId, actorUserId, now)) created = true;
+      if (await this.ensureDefaultTenantSettings(tx, tenantId)) created = true;
+    }
+
     if (created) {
       this.logger.log(
-        { tenantId, branchId, warehouseId, cashLocationId },
+        { tenantId, branchId, warehouseId, cashLocationId, starter: Boolean(options.seedStarterData) },
         'organization defaults provisioned',
       );
     }
 
     return { tenantId, branchId, warehouseId, cashLocationId, priceListId, currencyCode, created };
+  }
+
+  private async ensureFiscalCalendar(
+    tx: DrizzleTx,
+    tenantId: string,
+    actorUserId: string | null,
+    now: Date,
+  ): Promise<boolean> {
+    const today = now.toISOString().slice(0, 10);
+    const currentYear = now.getUTCFullYear();
+    const currentMonthLabel = `${currentYear}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+
+    const [coveringYear] = await tx
+      .select({ id: fiscalYears.id })
+      .from(fiscalYears)
+      .where(
+        and(
+          eq(fiscalYears.tenantId, tenantId),
+          lte(fiscalYears.startDate, today),
+          gte(fiscalYears.endDate, today),
+        ),
+      )
+      .limit(1);
+
+    let fiscalYearId = coveringYear?.id;
+    let changed = false;
+    if (!fiscalYearId) {
+      fiscalYearId = newId();
+      await tx.insert(fiscalYears).values({
+        id: fiscalYearId,
+        tenantId,
+        name: String(currentYear),
+        startDate: `${currentYear}-01-01`,
+        endDate: `${currentYear}-12-31`,
+        status: 'open',
+        createdAt: now,
+        createdBy: actorUserId,
+      });
+      changed = true;
+    }
+
+    const existingPeriods = await tx
+      .select({ name: fiscalPeriods.name, isActive: fiscalPeriods.isActive })
+      .from(fiscalPeriods)
+      .where(and(eq(fiscalPeriods.tenantId, tenantId), eq(fiscalPeriods.fiscalYearId, fiscalYearId)));
+    const presentNames = new Set(existingPeriods.map((row) => row.name));
+    const [anyActive] = await tx
+      .select({ id: fiscalPeriods.id })
+      .from(fiscalPeriods)
+      .where(and(eq(fiscalPeriods.tenantId, tenantId), eq(fiscalPeriods.isActive, true)))
+      .limit(1);
+
+    let activeAssigned = Boolean(anyActive);
+    for (let month = 1; month <= 12; month += 1) {
+      const label = `${currentYear}-${String(month).padStart(2, '0')}`;
+      if (presentNames.has(label)) continue;
+      const startDate = `${label}-01`;
+      const endDate = new Date(Date.UTC(currentYear, month, 0)).toISOString().slice(0, 10);
+      const isActive = !activeAssigned && label === currentMonthLabel;
+      if (isActive) activeAssigned = true;
+      await tx.insert(fiscalPeriods).values({
+        id: newId(),
+        tenantId,
+        fiscalYearId,
+        name: label,
+        startDate,
+        endDate,
+        status: 'open',
+        isActive,
+        createdAt: now,
+        createdBy: actorUserId,
+      });
+      changed = true;
+    }
+    return changed;
+  }
+
+  /**
+   * عند إنشاء منشأة جديدة يُولَّد تصنيف افتراضي واحد فقط باسم «مجموعة عامة».
+   */
+  private async ensureDefaultCategory(
+    tx: DrizzleTx,
+    tenantId: string,
+    actorUserId: string | null,
+    now: Date,
+  ): Promise<boolean> {
+    const existing = await tx
+      .select({ id: itemCategories.id })
+      .from(itemCategories)
+      .where(and(eq(itemCategories.tenantId, tenantId), isNull(itemCategories.deletedAt)))
+      .limit(1);
+    if (existing.length > 0) return false;
+    await tx.insert(itemCategories).values({
+      id: newId(),
+      tenantId,
+      code: 'GEN',
+      nameAr: 'مجموعة عامة',
+      nameEn: 'General Group',
+      sortOrder: 1,
+      showInPos: true,
+      showInSale: true,
+      showInPurch: true,
+      createdAt: now,
+      createdBy: actorUserId,
+    });
+    return true;
+  }
+
+  /**
+   * المجموعات الضريبية الافتراضية للمنشآت الجديدة:
+   * 1) ضريبة القيمة المضافة = 15% (مربوطة بحساب 2222001)
+   * 2) ضريبة صفرية = 0%
+   */
+  private async ensureDefaultTaxGroups(
+    tx: DrizzleTx,
+    tenantId: string,
+    actorUserId: string | null,
+    now: Date,
+  ): Promise<boolean> {
+    const existing = await tx
+      .select({ nameAr: taxGroups.nameAr, rate: taxGroups.rate })
+      .from(taxGroups)
+      .where(and(eq(taxGroups.tenantId, tenantId), isNull(taxGroups.deletedAt)));
+
+    const [vatAccount] = await tx
+      .select({ id: accounts.id })
+      .from(accounts)
+      .where(and(eq(accounts.tenantId, tenantId), eq(accounts.code, '2222001'), isNull(accounts.deletedAt)))
+      .limit(1);
+
+    const has15 = existing.some(
+      (row) => Number(row.rate) === 15 || row.nameAr.includes('القيمة المضافة'),
+    );
+    const has0 = existing.some(
+      (row) => Number(row.rate) === 0 || row.nameAr.includes('صفرية'),
+    );
+
+    let changed = false;
+    if (!has15) {
+      await tx.insert(taxGroups).values({
+        id: newId(),
+        tenantId,
+        nameAr: 'ضريبة القيمة المضافة',
+        nameEn: 'VAT 15%',
+        rate: '15.0000',
+        vatAccountId: vatAccount?.id ?? null,
+        isInclusiveDefault: false,
+        createdAt: now,
+        createdBy: actorUserId,
+      });
+      changed = true;
+    }
+    if (!has0) {
+      await tx.insert(taxGroups).values({
+        id: newId(),
+        tenantId,
+        nameAr: 'ضريبة صفرية',
+        nameEn: 'Zero VAT 0%',
+        rate: '0.0000',
+        vatAccountId: null,
+        isInclusiveDefault: false,
+        createdAt: now,
+        createdBy: actorUserId,
+      });
+      changed = true;
+    }
+    return changed;
+  }
+
+  /**
+   * الوحدات الأساسية للمنشآت الجديدة.
+   */
+  private async ensureDefaultUnits(
+    tx: DrizzleTx,
+    tenantId: string,
+    actorUserId: string | null,
+    now: Date,
+  ): Promise<boolean> {
+    const seed: Array<{ code: string; nameAr: string; nameEn: string }> = [
+      { code: 'PCS', nameAr: 'حبة', nameEn: 'Piece' },
+      { code: 'CTN', nameAr: 'كرتون', nameEn: 'Carton' },
+      { code: 'BOX', nameAr: 'علبة', nameEn: 'Box' },
+      { code: 'KG', nameAr: 'كيلوجرام', nameEn: 'Kilogram' },
+      { code: 'LTR', nameAr: 'لتر', nameEn: 'Litre' },
+      { code: 'MTR', nameAr: 'متر', nameEn: 'Meter' },
+    ];
+    const existing = await tx
+      .select({ code: unitsOfMeasure.code })
+      .from(unitsOfMeasure)
+      .where(and(eq(unitsOfMeasure.tenantId, tenantId), isNull(unitsOfMeasure.deletedAt)));
+    const present = new Set(existing.map((row) => row.code.trim().toUpperCase()));
+    const missing = seed.filter((row) => !present.has(row.code));
+    if (!missing.length) return false;
+    await tx.insert(unitsOfMeasure).values(
+      missing.map((row) => ({
+        id: newId(),
+        tenantId,
+        code: row.code,
+        nameAr: row.nameAr,
+        nameEn: row.nameEn,
+        createdAt: now,
+        createdBy: actorUserId,
+      })),
+    );
+    return true;
+  }
+
+  private async ensureDefaultPaymentMethods(
+    tx: DrizzleTx,
+    tenantId: string,
+    cashLocationId: string,
+    actorUserId: string | null,
+    now: Date,
+  ): Promise<boolean> {
+    const existing = await tx
+      .select({ code: paymentMethods.code, isDefault: paymentMethods.isDefault })
+      .from(paymentMethods)
+      .where(and(eq(paymentMethods.tenantId, tenantId), isNull(paymentMethods.deletedAt)));
+    const present = new Set(existing.map((row) => row.code.trim().toUpperCase()));
+    const hasDefault = existing.some((row) => row.isDefault);
+
+    const seed: Array<{
+      code: string;
+      nameAr: string;
+      nameEn: string;
+      kind: string;
+      dueDays: number;
+      useCashLocation?: boolean;
+      defaultCandidate?: boolean;
+    }> = [
+      { code: 'CASH', nameAr: 'نقدي', nameEn: 'Cash', kind: 'cash', dueDays: 0, useCashLocation: true, defaultCandidate: true },
+      { code: 'CARD', nameAr: 'بطاقة / شبكة', nameEn: 'Card / Network', kind: 'card', dueDays: 0 },
+      { code: 'TRANSFER', nameAr: 'تحويل بنكي', nameEn: 'Bank transfer', kind: 'transfer', dueDays: 0 },
+      { code: 'CREDIT', nameAr: 'آجل', nameEn: 'Credit', kind: 'credit', dueDays: 30 },
+    ];
+    const missing = seed.filter((row) => !present.has(row.code));
+    if (!missing.length) return false;
+    await tx.insert(paymentMethods).values(
+      missing.map((row) => ({
+        id: newId(),
+        tenantId,
+        code: row.code,
+        nameAr: row.nameAr,
+        nameEn: row.nameEn,
+        kind: row.kind,
+        dueDays: row.dueDays,
+        cashLocationId: row.useCashLocation ? cashLocationId : null,
+        isActive: true,
+        isDefault: Boolean(row.defaultCandidate && !hasDefault),
+        createdAt: now,
+        createdBy: actorUserId,
+      })),
+    );
+    return true;
+  }
+
+  private async ensureDefaultTenantSettings(tx: DrizzleTx, tenantId: string): Promise<boolean> {
+    let inserted = 0;
+    for (const definition of tenantSettingsRegistry) {
+      if (definition.key.startsWith('feature.')) continue;
+      const result = await tx.execute(sql`
+        INSERT INTO tenant_settings (tenant_id, key, value)
+        VALUES (${tenantId}, ${definition.key}, ${JSON.stringify(definition.defaultValue)}::jsonb)
+        ON CONFLICT (tenant_id, key) DO NOTHING
+      `);
+      inserted += result.rowCount ?? 0;
+    }
+    return inserted > 0;
   }
 
   /**

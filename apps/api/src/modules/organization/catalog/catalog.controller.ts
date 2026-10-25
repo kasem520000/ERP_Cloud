@@ -248,4 +248,9 @@ export class CatalogController {
   ) {
     return this.catalog.updateTaxGroup(getTenantContext().tenantId, id, taxGroupPatchSchema.parse(body));
   }
+  @Delete('tax-groups/:id') @RequiresPermission('catalog.taxgroup.manage') removeTaxGroup(
+    @Param('id') id: string,
+  ) {
+    return this.catalog.removeTaxGroup(getTenantContext().tenantId, id);
+  }
 }

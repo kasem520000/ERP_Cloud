@@ -93,12 +93,17 @@ export class CompanyFilesService {
     const sets = (input.copy ?? []).filter((set): set is CopySet => set in COPY_SETS);
     const copied = sets.length
       ? await this.copyMasters(tenantId, created.tenantId, sets)
-      : await this.provisioning.provisionOrgDefaults(created.tenantId, { actorUserId: created.ownerUserId }).then(() => ({}));
+      : await this.provisioning
+          .provisionOrgDefaults(created.tenantId, { actorUserId: created.ownerUserId, seedStarterData: true })
+          .then(() => ({}));
 
     // A copied structure already carries branches/warehouses; anything else still needs the
     // baseline so the new file is usable on first login.
     if (sets.length && !sets.includes('structure')) {
-      await this.provisioning.provisionOrgDefaults(created.tenantId, { actorUserId: created.ownerUserId });
+      await this.provisioning.provisionOrgDefaults(created.tenantId, {
+        actorUserId: created.ownerUserId,
+        seedStarterData: !sets.includes('catalog'),
+      });
     }
 
     const id = newId();

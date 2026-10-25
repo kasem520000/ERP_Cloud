@@ -237,4 +237,166 @@ describe('organization provisioning and default flags (PHASE_05 §5.7, §11)', (
       { kind: 'safe', count: '1' },
     ]);
   });
+
+  it('provisions a brand-new console tenant with starter COA, single مجموعة عامة, 15%/0% tax groups, basic units, and open fiscal periods so transactions succeed immediately', async () => {
+    const operator = await createActor(ctx, {
+      tenantCode: 'prov-ops',
+      email: 'ops@prov-ops.test',
+      isPlatformAdmin: true,
+      platformRoles: ['platform_owner'],
+    });
+
+    const created = await api(ctx.server, 'post', '/api/v1/platform/tenants', {
+      token: operator.token,
+      body: {
+        code: 'fresh-co-2026',
+        name: 'شركة سحاب الجديدة',
+        ownerEmail: 'owner@fresh-co-2026.test',
+        ownerFullName: 'مالك الشركة الجديدة',
+        ownerPassword: 'Strong-Pass-2026!Aa',
+        baseCurrency: 'SAR',
+        countryCode: 'SA',
+        timezone: 'Asia/Riyadh',
+      },
+    });
+    expect(created.status).toBe(201);
+
+    const loginRes = await api(ctx.server, 'post', '/api/v1/auth/login', {
+      body: {
+        tenantCode: 'fresh-co-2026',
+        email: 'owner@fresh-co-2026.test',
+        password: 'Strong-Pass-2026!Aa',
+      },
+    });
+    expect(loginRes.status).toBe(200);
+    const ownerToken = (loginRes.body.data as { accessToken: string }).accessToken;
+
+    const unwrap = <T>(res: { body: Record<string, unknown> }): T =>
+      ((res.body.data ?? res.body) as T);
+
+    // 1) Chart of Accounts
+    const accountsRes = await api(ctx.server, 'get', '/api/v1/accounts', { token: ownerToken });
+    expect(accountsRes.status).toBe(200);
+    const accountsList = unwrap<Array<{ id: string; code: string }>>(accountsRes);
+    expect(accountsList.length).toBeGreaterThanOrEqual(118);
+
+    // 2) Single default category: مجموعة عامة
+    const categoriesRes = await api(ctx.server, 'get', '/api/v1/organization/catalog/categories', {
+      token: ownerToken,
+    });
+    expect(categoriesRes.status).toBe(200);
+    const categoriesList = unwrap<Array<{ id: string; code: string; nameAr: string }>>(categoriesRes);
+    expect(categoriesList).toHaveLength(1);
+    expect(categoriesList[0]).toMatchObject({ code: 'GEN', nameAr: 'مجموعة عامة' });
+
+    // 3) Default Tax Groups: ضريبة القيمة المضافة = 15%, ضريبة صفرية = 0%
+    const taxGroupsRes = await api(ctx.server, 'get', '/api/v1/organization/catalog/tax-groups', {
+      token: ownerToken,
+    });
+    expect(taxGroupsRes.status).toBe(200);
+    const taxGroupsList = unwrap<Array<{ id: string; nameAr: string; rate: string }>>(taxGroupsRes);
+    expect(taxGroupsList).toHaveLength(2);
+    const vat15 = taxGroupsList.find((g) => g.nameAr === 'ضريبة القيمة المضافة');
+    const vat0 = taxGroupsList.find((g) => g.nameAr === 'ضريبة صفرية');
+    expect(Number(vat15?.rate)).toBe(15);
+    expect(Number(vat0?.rate)).toBe(0);
+
+    // 4) Basic measurement units
+    const unitsRes = await api(ctx.server, 'get', '/api/v1/organization/catalog/units', {
+      token: ownerToken,
+    });
+    expect(unitsRes.status).toBe(200);
+    const unitsList = unwrap<Array<{ id: string; code: string; nameAr: string }>>(unitsRes);
+    expect(unitsList.map((u) => u.code)).toEqual(
+      expect.arrayContaining(['PCS', 'CTN', 'BOX', 'KG', 'LTR', 'MTR']),
+    );
+    const pcsUnit = unitsList.find((u) => u.code === 'PCS')!;
+
+    // 5) Immediately create an item + post purchase invoice + post sales invoice without 400 FISCAL_PERIOD_NOT_FOUND
+    const itemRes = await api(ctx.server, 'post', '/api/v1/organization/catalog/items', {
+      token: ownerToken,
+      body: {
+        sku: 'NEW-001',
+        nameAr: 'صنف اختبار المنشأة الجديدة',
+        categoryId: categoriesList[0]!.id,
+        baseUnitId: pcsUnit.id,
+        taxGroupId: vat15!.id,
+        purchasePrice: '50.0000',
+        salePrice: '100.0000',
+      },
+    });
+    expect(itemRes.status).toBe(201);
+    const createdItem = unwrap<{ id: string }>(itemRes);
+
+    const warehousesRes = await api(ctx.server, 'get', '/api/v1/warehouses', { token: ownerToken });
+    const whId = unwrap<Array<{ id: string }>>(warehousesRes)[0]!.id;
+    const branchesRes = await api(ctx.server, 'get', '/api/v1/branches', { token: ownerToken });
+    const brId = unwrap<Array<{ id: string }>>(branchesRes)[0]!.id;
+    const partiesRes = await api(ctx.server, 'get', '/api/v1/parties', { token: ownerToken });
+    const partiesList = unwrap<Array<{ id: string; kind: string }>>(partiesRes);
+    const supplierId = partiesList.find((p) => p.kind === 'supplier')!.id;
+    const customerId = partiesList.find((p) => p.kind === 'customer')!.id;
+
+    const piDraft = await api(ctx.server, 'post', '/api/v1/purchase-invoices', {
+      token: ownerToken,
+      body: {
+        kind: 'purchase',
+        branchId: brId,
+        warehouseId: whId,
+        partyId: supplierId,
+        paymentType: 'credit',
+        lines: [{ itemId: createdItem.id, quantity: '10', unitPrice: '50', taxRate: '15' }],
+      },
+    });
+    expect(piDraft.status).toBe(201);
+    const piPosted = await api(
+      ctx.server,
+      'post',
+      `/api/v1/purchase-invoices/${unwrap<{ id: string }>(piDraft).id}/post`,
+      { token: ownerToken, body: {} },
+    );
+    expect(piPosted.status).toBe(201);
+
+    const siDraft = await api(ctx.server, 'post', '/api/v1/sales/invoices', {
+      token: ownerToken,
+      body: {
+        kind: 'sale',
+        branchId: brId,
+        warehouseId: whId,
+        partyId: customerId,
+        paymentType: 'credit',
+        lines: [{ itemId: createdItem.id, quantity: '2', unitPrice: '100', taxGroupId: vat15!.id }],
+      },
+    });
+    expect(siDraft.status).toBe(201);
+    const siPosted = await api(
+      ctx.server,
+      'post',
+      `/api/v1/sales/invoices/${unwrap<{ id: string }>(siDraft).id}/post`,
+      { token: ownerToken, body: {} },
+    );
+    expect(siPosted.status).toBe(201);
+
+    // 6) Tax group delete guard: used group returns 409 TAX_GROUP_IN_USE; temporary unused group deletes cleanly
+    const usedDelete = await api(
+      ctx.server,
+      'delete',
+      `/api/v1/organization/catalog/tax-groups/${vat15!.id}`,
+      { token: ownerToken },
+    );
+    expect(usedDelete.status).toBe(409);
+
+    const tempGroup = await api(ctx.server, 'post', '/api/v1/organization/catalog/tax-groups', {
+      token: ownerToken,
+      body: { nameAr: 'ضريبة مؤقتة', rate: '5' },
+    });
+    expect(tempGroup.status).toBe(201);
+    const deletedTemp = await api(
+      ctx.server,
+      'delete',
+      `/api/v1/organization/catalog/tax-groups/${unwrap<{ id: string }>(tempGroup).id}`,
+      { token: ownerToken },
+    );
+    expect(deletedTemp.status).toBe(200);
+  });
 });

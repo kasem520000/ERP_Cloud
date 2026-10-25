@@ -73,6 +73,7 @@ export class PlatformAdminController {
     // defaults are provisioned right away (idempotent).
     const defaults = await this.provisioning.provisionOrgDefaults(created.tenantId, {
       actorUserId: created.ownerUserId,
+      seedStarterData: true,
     });
     return { data: { ...created, defaults } };
   }

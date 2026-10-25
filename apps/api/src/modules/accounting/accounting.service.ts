@@ -2605,7 +2605,7 @@ export class AccountingService {
         ),
       )
       .limit(1);
-    if (!period) throw new DomainError('FISCAL_PERIOD_NOT_FOUND', `No fiscal period exists covering date ${date}`, 400);
+    if (!period) throw new DomainError('FISCAL_PERIOD_NOT_FOUND', `لا توجد فترة محاسبية تغطي التاريخ ${date} — راجع شاشة «الفترات المحاسبية»`, 400);
     if (period.status !== 'open') throw new DomainError('FISCAL_PERIOD_CLOSED', `No open fiscal period contains ${date}`, 409);
     return period.id;
   }

@@ -217,8 +217,8 @@ const DEMO_CATEGORIES = [
  * بالإمكان تصحيحُها من المنتج، وأمّا الجديدةُ فتُصحَّح ببذرةٍ صحيحة (بندُ ب٢٢).
  */
 export const DEMO_TAX_GROUPS = [
-  { nameAr: 'ضريبة القيمة المضافة 15%', nameEn: 'VAT 15%', rate: '15.0000', vatAccountCode: '2222001' },
-  { nameAr: 'معفاة من الضريبة', nameEn: 'Exempt', rate: '0.0000', vatAccountCode: undefined },
+  { nameAr: 'ضريبة القيمة المضافة', nameEn: 'VAT 15%', rate: '15.0000', vatAccountCode: '2222001' },
+  { nameAr: 'ضريبة صفرية', nameEn: 'Zero VAT 0%', rate: '0.0000', vatAccountCode: undefined },
 ];
 
 /**

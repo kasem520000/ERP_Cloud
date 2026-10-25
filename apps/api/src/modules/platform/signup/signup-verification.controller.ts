@@ -74,7 +74,8 @@ export class SignupVerificationController {
   @ApiResponse({ status: 422, description: 'بياناتٌ غير صالحة أو باقةٌ غير معروضة' })
   @ApiResponse({ status: 403, description: 'التسجيل الذاتي معطّل على هذا الخادم' })
   async start(@Body(new ZodValidationPipe(signupRequestSchema)) body: SignupRequest) {
-    if (env.SIGNUP_ENABLED === false) {
+    const enabled = await this.signup.isSelfSignupEnabled(env.SIGNUP_ENABLED !== false);
+    if (!enabled) {
       throw new DomainError(
         errorCodes.FORBIDDEN,
         'التسجيل الذاتي معطّل على هذا الخادم. تواصل مع إدارة المنصة.',

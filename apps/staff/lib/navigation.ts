@@ -367,6 +367,17 @@ const inventory: ModuleNode = {
           endpoint: '/organization/catalog/units',
         }),
         screen(
+          'tax-group-card',
+          'بطاقة مجموعة ضريبية',
+          'Tax group card',
+          '/inventory/tax-groups',
+          'ready',
+          {
+            permission: 'catalog.taxgroup.view',
+            endpoint: '/organization/catalog/tax-groups',
+          },
+        ),
+        screen(
           'item-units',
           'وحدات الصنف والباركود',
           'Item units and barcodes',

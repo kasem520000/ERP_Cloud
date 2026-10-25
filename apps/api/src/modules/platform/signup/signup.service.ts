@@ -88,6 +88,7 @@ export class SignupService {
     const created = await this.admin.signup({ ...input, ownerEmail: email });
     await this.provisioning.provisionOrgDefaults(created.tenantId, {
       actorUserId: created.ownerUserId,
+      seedStarterData: true,
     });
 
     const token = randomBytes(24).toString('hex');
@@ -443,6 +444,31 @@ export class SignupService {
       amount: plan.amount,
       currency: plan.currency,
     };
+  }
+
+  /**
+   * التحقق من تفعيل التسجيل الذاتي: إعداد المنصة `platform.self_signup` في قاعدة البيانات
+   * له الأولوية إن ضُبط صراحةً من لوحة المنصة، وإلا نرجع إلى متغير البيئة `SIGNUP_ENABLED`.
+   */
+  async isSelfSignupEnabled(envDefault: boolean): Promise<boolean> {
+    const row = await withPlatformAdminTx(this.database.db, (tx) =>
+      tx.execute(sql`
+        SELECT value::text AS raw FROM platform_settings
+         WHERE key = 'platform.self_signup' AND tenant_id IS NULL LIMIT 1
+      `),
+    );
+    const raw = (row.rows[0] as { raw?: string } | undefined)?.raw;
+    if (raw !== undefined) {
+      try {
+        const parsed = JSON.parse(raw) as unknown;
+        if (typeof parsed === 'boolean') return parsed;
+        if (parsed === 'true' || parsed === 1) return true;
+        if (parsed === 'false' || parsed === 0) return false;
+      } catch {
+        // fall through to env default
+      }
+    }
+    return envDefault;
   }
 
   /** الفترة التجريبية من إعدادات المنصة (`billing.trial_days`) — لا من رقمٍ في الكود. */

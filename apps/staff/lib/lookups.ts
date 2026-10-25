@@ -98,8 +98,12 @@ export type TaxGroup = {
   nameAr?: string;
   name_ar?: string;
   nameEn?: string | null;
+  name_en?: string | null;
   rate: string;
+  vatAccountId?: string | null;
+  vat_account_id?: string | null;
   isInclusiveDefault?: boolean;
+  is_inclusive_default?: boolean;
 };
 export type Salesman = { id: string; name: string; active?: boolean };
 export type VesselGroup = { id: string; name: string; code?: string | null; number?: number | null };

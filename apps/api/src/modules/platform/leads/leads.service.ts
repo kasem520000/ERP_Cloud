@@ -539,6 +539,7 @@ export class LeadsService {
 
     await this.provisioning.provisionOrgDefaults(created.tenantId, {
       actorUserId: created.ownerUserId,
+      seedStarterData: true,
     });
 
     const granted = await this.billing.grantSubscription({

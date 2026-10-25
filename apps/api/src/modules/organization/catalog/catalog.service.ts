@@ -896,7 +896,7 @@ export class CatalogService {
         if ((used.rows[0] as { used: boolean }).used) {
           throw new DomainError(
             'TAX_GROUP_RATE_LOCKED',
-            'This tax group has already been used on invoices; create a new group for the new rate',
+            'لا يمكن تعديل نسبة ضريبة مستخدمة في فواتير سابقة — أنشئ مجموعة ضريبية جديدة بالنسبة المطلوبة',
             409,
           );
         }
@@ -914,6 +914,35 @@ export class CatalogService {
         .where(and(eq(taxGroups.tenantId, tenantId), eq(taxGroups.id, id)))
         .returning();
       return row;
+    });
+  }
+
+  async removeTaxGroup(tenantId: string, id: string) {
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const [current] = await tx
+        .select({ id: taxGroups.id })
+        .from(taxGroups)
+        .where(and(eq(taxGroups.tenantId, tenantId), eq(taxGroups.id, id), isNull(taxGroups.deletedAt)));
+      if (!current) throw new DomainError(errorCodes.NOT_FOUND, 'المجموعة الضريبية غير موجودة', 404);
+      const usage = await tx.execute(sql`
+        SELECT (
+          EXISTS (SELECT 1 FROM items WHERE tenant_id = ${tenantId} AND tax_group_id = ${id} AND deleted_at IS NULL)
+          OR EXISTS (SELECT 1 FROM sales_invoice_lines WHERE tenant_id = ${tenantId} AND tax_group_id = ${id})
+          OR EXISTS (SELECT 1 FROM purchase_invoice_lines WHERE tenant_id = ${tenantId} AND tax_group_id = ${id})
+        ) AS used
+      `);
+      if ((usage.rows[0] as { used?: boolean } | undefined)?.used) {
+        throw new DomainError(
+          'TAX_GROUP_IN_USE',
+          'لا يمكن حذف مجموعة ضريبية مرتبطة بأصناف أو فواتير مسجّلة',
+          409,
+        );
+      }
+      await tx
+        .update(taxGroups)
+        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(taxGroups.tenantId, tenantId), eq(taxGroups.id, id)));
+      return { id, deleted: true };
     });
   }
 }
