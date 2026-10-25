@@ -1,4 +1,4 @@
-# قائمة تحقق واجهات — مستأجر verify2026 (أُنشئت 2026-10-24T20:29:07.451Z)
+# قائمة تحقق واجهات — مستأجر verify2026 (أُنشئت 2026-10-25T00:40:33.541Z)
 
 > وُلِّدت آلياً بواسطة `pnpm verify-seed` (apps/api/scripts/verify-seed.ts).
 > القيم أدناه مأخوذة من قاعدة البيانات وردود تقارير API **بعد** توليد الحركات.
@@ -205,12 +205,12 @@
 | إجماليات التقرير (totals) | income=230430.00، outcome=440.00 | افتح الرابط بحساب المالك |
 | صف 1 | seq: 1 | operation: رصيد سابق | doc_no: — | day: 2025-12-31 | income: 0.00 | outcome: 0.00 | balance: 0.00 | note:  | s_all: 229990.00 | s_period: 229990.00 | s_count: 1 |  |
 | صف 2 | seq: 2 | operation: قيد اليومية | doc_no: JE-000001 | day: 2026-01-01 | income: 230000.00 | outcome: 0.00 | balance: 230000.00 | note: قيد افتتاحي — رأس المال | s_all: 0 | s_period: 0 | s_count: 1 |  |
-| صف 3 | seq: 3 | operation: قيد مبيعات | doc_no: JE-000003 | day: 2026-10-24 | income: 115.00 | outcome: 0.00 | balance: 230115.00 | note: Sales invoice SI-000001 | s_all: 0 | s_period: 0 | s_count: 1 |  |
-| صف 4 | seq: 4 | operation: قيد اليومية | doc_no: JE-000006 | day: 2026-10-24 | income: 100.00 | outcome: 0.00 | balance: 230215.00 | note: سداد دفعة فاتورة مبيعات SI-000002 | s_all: 0 | s_period: 0 | s_count: 1 |  |
-| صف 5 | seq: 5 | operation: سند صرف | doc_no: JE-000007 | day: 2026-10-24 | income: 0.00 | outcome: 300.00 | balance: 229915.00 | note: سداد فاتورة مشتريات PI-000001 | s_all: 0 | s_period: 0 | s_count: 1 |  |
-| صف 6 | seq: 6 | operation: سند صرف | doc_no: JE-000008 | day: 2026-10-24 | income: 0.00 | outcome: 40.00 | balance: 229875.00 | note: VRF مصروف رسوم بنكية 40 | s_all: 0 | s_period: 0 | s_count: 1 |  |
-| صف 7 | seq: 7 | operation: سند قبض | doc_no: JE-000009 | day: 2026-10-24 | income: 115.00 | outcome: 0.00 | balance: 229990.00 | note: VRF قبض إيراد بضريبة 115 | s_all: 0 | s_period: 0 | s_count: 1 |  |
-| صف 8 | seq: 8 | operation: قيد اليومية | doc_no: JE-000010 | day: 2026-10-24 | income: 0.00 | outcome: 100.00 | balance: 229890.00 | note: ارسال مناقلة CT-000001 | s_all: 0 | s_period: 0 | s_count: 1 |  |
+| صف 3 | seq: 3 | operation: قيد مبيعات | doc_no: JE-000003 | day: 2026-10-25 | income: 115.00 | outcome: 0.00 | balance: 230115.00 | note: Sales invoice SI-000001 | s_all: 0 | s_period: 0 | s_count: 1 |  |
+| صف 4 | seq: 4 | operation: قيد اليومية | doc_no: JE-000006 | day: 2026-10-25 | income: 100.00 | outcome: 0.00 | balance: 230215.00 | note: سداد دفعة فاتورة مبيعات SI-000002 | s_all: 0 | s_period: 0 | s_count: 1 |  |
+| صف 5 | seq: 5 | operation: سند صرف | doc_no: JE-000007 | day: 2026-10-25 | income: 0.00 | outcome: 300.00 | balance: 229915.00 | note: سداد فاتورة مشتريات PI-000001 | s_all: 0 | s_period: 0 | s_count: 1 |  |
+| صف 6 | seq: 6 | operation: سند صرف | doc_no: JE-000008 | day: 2026-10-25 | income: 0.00 | outcome: 40.00 | balance: 229875.00 | note: VRF مصروف رسوم بنكية 40 | s_all: 0 | s_period: 0 | s_count: 1 |  |
+| صف 7 | seq: 7 | operation: سند قبض | doc_no: JE-000009 | day: 2026-10-25 | income: 115.00 | outcome: 0.00 | balance: 229990.00 | note: VRF قبض إيراد بضريبة 115 | s_all: 0 | s_period: 0 | s_count: 1 |  |
+| صف 8 | seq: 8 | operation: قيد اليومية | doc_no: JE-000010 | day: 2026-10-25 | income: 0.00 | outcome: 100.00 | balance: 229890.00 | note: ارسال مناقلة CT-000001 | s_all: 0 | s_period: 0 | s_count: 1 |  |
 | … | و1 صفاً آخر في التقرير الكلي |  |
 
 ### 13. تقرير inventory-valuation
@@ -286,6 +286,12 @@
 - `pnpm --dir apps/api exec vitest run r44-payroll-eosb eosb-math audit-payroll` → **r44 9/9 · eosb-math 4/4 · audit-payroll 6/6**: (1) سياسة افتراض 0.5/1 ثم تهيئة الحسابين؛ (2) **AC1**: `journalLines` → 422 `PAYROLL_JOURNAL_LINES_FORBIDDEN` والمسير draft ثم ترحيل خادمي متوازن بسطور ذمة؛ (3) **AC2**: تكرار صرف → 409 `SALARY_ALREADY_PAID` وسند واحد؛ (4) معاينة بلا كتابة + الأرقام بالصيغة المستقلة؛ (5) **AC3**: قيد = Δ · سطور posted · التقرير = GL · تكرار → 409؛ (6) فترة ثانية Δ تراكمي؛ (7) عكس بلا سبب 422 ثم عكس وإعادة ترحيل؛ (8) Δ سالب ⇐ قيد مختلط (مخصص مدين)؛ (9) TB.
 - `node docs/accounting-audit/scripts/probe-d11-payroll-eosb.mjs` → **19/19 حيّاً** (`evidence/verify-seed/probe-d11-payroll-eosb.txt`): P01 AC1 422 · P02 ذمة مميّزة2 · P03 صرف/تكرار409/سندات≥2 · P04 عكس `reversal_of` + سندات `voided` · P05 تناسب 2322.58<4000 · E02 معاينة بلا كتابة · E03 ترحيلان+Δ=القيد · **E04/E05a/E05c/E06b التقرير = GL بعد كل مرحلة** (31,259.20 · 30,601.60 · 31,259.20 · 23,934.05) · E05b عكس422/201/201 · E06 قيد مختلط4 (مخصص مدين 7,664.35/دائن 339.20) · TB **547,401.55 = 547,401.55** · شاشتان 200.
 - رجوع كامل بعد التنفيذ: ******263/263 ملفاً · 2115/2115 اختباراً PASS****** (اللقطة تجدّد رسمياً 280→281 — عدّادها فعلياً **281**)؛ typecheck + lint (ملفات الدفقة: صفر خطاً — ديون lint سابقة174 خارج النطاق) + بناء database (ترحيل 150/150) + api + **staff مع إعادة إشعاله بالبناء الحامل للشاشة** + restart api ✓ — وأختبارا AC1 المتأثران (`employee-statement` **11/11** · `remediation-phase4` **9/9**) أُعيد بناؤهما على واقع الحَصْم ضمن الجولة نفسها. لا لقطات (لا متصفح) — لم تُدَّعَ صور.
+
+### 28. الإقرار الضريبي — سجل تقديم وقفل الفترة وقيد تسوية (MF-18) — تحقّق آلي (R45)
+- `pnpm --dir apps/api exec vitest run r45-tax-filings` → **7/7 GREEN**: (1) التقرير يقرأ ويجمّد ثم `POST /tax/filings` → 201 مع `netVat` + `journalEntryId` + `closedPeriodIds`؛ (2) نص الشهرين «الفترة حُوِّلت إلى 24/05» بدل «صمت 23/04..24/05» (سحب ممتد فتّش من 01/05)؛ (3) تداخل نطاق → 409 مع منحى `FISCAL_PERIOD_NOT_FOUND` على الشهرين؛ (4) صفر مطلق → 201 بلا قيد `journalEntryId:null` مع إقفال كامل؛ (5) سالب (مردود يفوق البيع بالـ150) → قيد Dr 1280001/Cr 2222001 (قرض ضريبي)؛ (6) clerk → 403 على العرض والتقديم؛ (7) العرض `accounting.period.view` بلا close والتقديم يتطلب `accounting.period.close`.
+- التقدّم: **RED صادق** (فشل `GET` تُرجَع 404 وPOST بلا جدول و403 بلا perm و«صمت» وnull) محفوظ في `logs/r45-red.txt`؛ ثم 0151 (أقواس `vat_filings` + UNIQUE بـCOALESCE)، `TaxFilingsService/Controller`، حراس `FISCAL_PERIOD_NOT_FOUND/FISCAL_PERIOD_NOT_OPEN/FISCAL_PERIOD_OVERLAP`، سند `journalEntryId` على قيود `vat_return`، `reporting.view` على التقارير موسَّعة لتشمل `accounting.period.view`، عدّاد الشاشات 281→282.
+- `node docs/accounting-audit/scripts/probe-d12-tax-filing.mjs` → **15/15 حيّاً** (`evidence/verify-seed/probe-d12-tax-filing.txt`) على بذرة verify2026 بعد `pnpm verify-seed -- --reset`: AC3a صافي التقرير = رصيد 2222001 لحظة التقديم (−13.80 = −13.80 · فرق 0.0000) · AC3b بعد التسويق: 2222001 = 0 · ذمة 1280001 = |الصافي| · قيد سطرين `is_vat=false` · AC1 التقرير المعاد = اللقطة حرفاً بحرف + الفترة `closed` + قيد وفاتورة autoPost لاحقان اليوم → 409 `FISCAL_PERIOD_CLOSED` · تكرار/تداخل → 409 `VAT_FILING_ALREADY_FILED` · reopen → 409 `VAT_FILING_EXISTS` · السجل والتفاصيل 200 + snapshot 13 بنداً · `vat-return` 200 (بلا انحدار) · TB **252,080 = 252,080** · شاشتا `/accounting/tax-filings` و`/reports/vat-return-period` 200 + `nav:tax-filings` في اللقطة.
+- ⚠ فحص أحادي التشغيل (الإقرار لا يُلغى عبر API — قفل مقصود): إعادة التشغيل تتطلب `pnpm verify-seed -- --reset`، وهو نفسه ما يُنفَّذ تعويضاً بعد الفحص (يُعيد بذرة 2026-10-25). **وينبغي بعد كل reset إعادة إدراج §26–§28 من git لأن السكربت يولّد الملف كاملاً.**
 
 ## قالب الإبلاغ عن فرق
 
