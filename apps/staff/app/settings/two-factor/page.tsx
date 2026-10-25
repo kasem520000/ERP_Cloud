@@ -112,7 +112,7 @@ export default function TwoFactorPage() {
   return (
     <Screen
       title="التحقق بخطوتين"
-      subtitle="Two-factor authentication (TOTP)"
+      subtitle="التحقق بخطوتين (رمز واحد لمرة واحدة)"
       crumbs={['الإعدادات', 'المستخدمون']}
     >
       {status.status === 'loading' ? <Loading rows={4} /> : null}
