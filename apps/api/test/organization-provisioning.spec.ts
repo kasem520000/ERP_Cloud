@@ -93,7 +93,9 @@ describe('organization provisioning and default flags (PHASE_05 §5.7, §11)', (
     // desktop chart (113) plus the two leaves Phase 05 added to it: 1270003
     // (بضاعة تحت التحويل) and 3121004 (تسويات المخزون), plus the one Phase 13 added:
     // 1211003 (نقد تحت التحويل) for the cash-transfer journal.
-    expect(rows.chart.rows[0]).toMatchObject({ total: '116', roots: '4', cashbox: '1211001' });
+    // MF-28 / r46 (D12) — دليل العملات ازداد حسابين: 4200004 (إيراد فرق العملة) +
+    // 1290001 (فرق إعادة تقييم العملات غير المحقَّق) — 116 → 118.
+    expect(rows.chart.rows[0]).toMatchObject({ total: '118', roots: '4', cashbox: '1211001' });
     const linked = await withClient(async (client) => {
       const byId = await client.query<{ code: string }>('SELECT code FROM accounts WHERE id = $1', [
         rows.cash.rows[0]?.account_id,

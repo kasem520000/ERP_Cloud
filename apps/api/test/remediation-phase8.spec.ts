@@ -329,6 +329,14 @@ describe('Remediation Phase 8 — Multi-Currency Vouchers, Module Locks, Allocat
       isBase: false,
       minorUnits: 2,
     });
+    // MF-28 / AC3 (r46) — لا سعر حر بعد: أجنبية بلا سعر جدول نافذ تُrejected بـ422
+    // FX_RATE_MISSING، فيُسجَّل سعر 3.75 لليوم أولاً (ثم السند بسعرٍ مطابق له).
+    await req('post', '/api/v1/fx-rates', {
+      fromCode: 'USD',
+      toCode: 'SAR',
+      rate: '3.75',
+      effectiveFrom: today,
+    });
 
     // 2. Create and post USD receipt voucher (10 USD @ 3.75 = 37.50 SAR)
     const vRes = await req('post', '/api/v1/vouchers', {
