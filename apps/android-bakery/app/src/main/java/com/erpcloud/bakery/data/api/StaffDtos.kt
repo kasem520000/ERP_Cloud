@@ -124,17 +124,106 @@ data class MembershipPageDto(val data: List<MembershipDto> = emptyList())
 @Serializable
 data class RolePageDto(val data: List<RoleDto> = emptyList())
 
-/** صفُّ خزينة — `GET /cash-locations`. */
+/** بياناتُ البنك داخل الصندوق البنكي — `CashLocationDto.bank`. */
+@Serializable
+data class CashBankDetailsDto(
+    val bankName: String? = null,
+    val iban: String? = null,
+    val swift: String? = null,
+    val accountNo: String? = null,
+    val country: String? = null,
+    val city: String? = null,
+    val region: String? = null,
+    val phone: String? = null,
+    val mobile: String? = null,
+    val deductionPct: String? = null,
+)
+
+/** صفُّ خزينة / صندوق / حساب بنكي — `GET /cash-locations`. */
 @Serializable
 data class CashLocationDto(
     val id: String = "",
     val name: String = "",
-    val kind: String = "cash",
+    val kind: String = "safe",
     val branchId: String? = null,
     val accountId: String? = null,
+    val currencyCode: String? = null,
+    val bank: CashBankDetailsDto? = null,
+    val notes: String? = null,
+    val custodianIds: List<String> = emptyList(),
+    val version: Int? = null,
     val isActive: Boolean = true,
     val isDefault: Boolean = false,
     val changeInPos: Boolean = false,
+) {
+    /** اسمٌ مقروءٌ بالعربية — يترجمُ الاسم الافتراضيّ المبدئيّ عند التجهيز إن بقي بالإنجليزية. */
+    val displayName: String
+        get() = when (name.trim().lowercase()) {
+            "main safe" -> "الصندوق الرئيسي"
+            "main bank", "main bank account" -> "الحساب البنكي الرئيسي"
+            else -> name.ifBlank { if (kind == "bank") "حساب بنكي" else "صندوق نقدي" }
+        }
+}
+
+/** رصيدُ موضع نقديّ بعملةٍ محدّدة — `GET /cash-locations/{id}/balances`. */
+@Serializable
+data class CashLocationBalanceDto(
+    val cashLocationId: String = "",
+    val currencyCode: String = "SAR",
+    val balance: String = "0",
+    val updatedAt: String? = null,
+)
+
+/** سطرٌ من كشف حركة الصندوق — `GET /cash-locations/{id}/movements`. */
+@Serializable
+data class CashMovementRowDto(
+    val seq: Int = 0,
+    val processType: String = "",
+    val number: String = "",
+    val date: String = "",
+    val income: String = "0",
+    val outcome: String = "0",
+    val balance: String = "0",
+    val note: String = "",
+    val isOpening: Boolean = false,
+)
+
+/** كشفُ حركة الصندوق من دفتر الأستاذ — `GET /cash-locations/{id}/movements`. */
+@Serializable
+data class CashMovementStatementDto(
+    val cashLocationId: String = "",
+    val cashLocation: String = "",
+    val currencyCode: String = "SAR",
+    val accountId: String? = null,
+    val from: String? = null,
+    val to: String? = null,
+    val fromTime: String? = null,
+    val toTime: String? = null,
+    val all: Boolean = true,
+    val openingBalance: String = "0",
+    val totalAll: String = "0",
+    val totalPeriod: String = "0",
+    val rows: List<CashMovementRowDto> = emptyList(),
+)
+
+/** مناقلةٌ نقديّةٌ بين الصناديق والبنوك — `GET /cash-transfers`. */
+@Serializable
+data class CashTransferDto(
+    val id: String = "",
+    val branchId: String? = null,
+    val fromCashLocationId: String = "",
+    val toCashLocationId: String = "",
+    val fromName: String? = null,
+    val toName: String? = null,
+    val number: String? = null,
+    val amount: String = "0",
+    val currency: String = "SAR",
+    val status: String = "draft",
+    val sentJournalEntryId: String? = null,
+    val receivedJournalEntryId: String? = null,
+    val sentAt: String? = null,
+    val receivedAt: String? = null,
+    val createdAt: String? = null,
 )
 
 // ------------------------------------------------------------ المشتريات

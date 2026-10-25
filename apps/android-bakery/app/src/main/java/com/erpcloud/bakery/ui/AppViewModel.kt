@@ -1745,6 +1745,54 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun aiChat(message: String, conversationId: String?): com.erpcloud.bakery.data.api.AiChatResultDto =
         repo.aiChat(message, conversationId)
 
+    // ----------------------------------------- الصناديق والبنوك والأرصدة وحركة الصندوق
+
+    suspend fun cashLocationsList(): List<CashLocationDto> = repo.cashLocations()
+
+    suspend fun cashLocationDetail(id: String): CashLocationDto = repo.cashLocationDetail(id)
+
+    suspend fun cashLocationBalances(id: String): List<com.erpcloud.bakery.data.api.CashLocationBalanceDto> =
+        repo.cashLocationBalances(id)
+
+    suspend fun cashLocationMovements(
+        id: String,
+        all: Boolean = true,
+        from: String? = null,
+        to: String? = null,
+    ): com.erpcloud.bakery.data.api.CashMovementStatementDto =
+        repo.cashLocationMovements(id = id, all = all, from = from, to = to)
+
+    suspend fun recalcCashLocationBalance(id: String): ActionResult =
+        repo.recalcCashLocationBalance(id)
+
+    suspend fun createCashLocationSuspend(body: JsonObject): ActionResult =
+        repo.createCashLocation(body)
+
+    suspend fun updateCashLocationSuspend(id: String, body: JsonObject): ActionResult =
+        repo.updateCashLocation(id, body)
+
+    suspend fun deleteCashLocationSuspend(id: String): ActionResult =
+        repo.deleteCashLocation(id)
+
+    suspend fun cashTransfers(
+        status: String? = null,
+        from: String? = null,
+        to: String? = null,
+    ): List<com.erpcloud.bakery.data.api.CashTransferDto> =
+        repo.cashTransfers(status = status, from = from, to = to)
+
+    suspend fun createCashTransfer(body: JsonObject): com.erpcloud.bakery.data.api.CashTransferDto =
+        repo.createCashTransfer(body)
+
+    suspend fun sendCashTransfer(id: String): ActionResult =
+        repo.sendCashTransfer(id)
+
+    suspend fun receiveCashTransfer(id: String): ActionResult =
+        repo.receiveCashTransfer(id)
+
+    suspend fun cancelCashTransfer(id: String): ActionResult =
+        repo.cancelCashTransfer(id)
+
     fun friendlyError(error: Exception): String = friendly(error)
 
     private fun friendly(error: Exception): String = when (error) {

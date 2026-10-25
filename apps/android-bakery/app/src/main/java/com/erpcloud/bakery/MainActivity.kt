@@ -112,6 +112,7 @@ import com.erpcloud.bakery.ui.screens.AdjustmentsScreen
 import com.erpcloud.bakery.ui.screens.AiAssistantScreen
 import com.erpcloud.bakery.ui.screens.BAKERY_EDITION_LABEL
 import com.erpcloud.bakery.ui.screens.BrandCrestLogo
+import com.erpcloud.bakery.ui.screens.CashBoxesScreen
 import com.erpcloud.bakery.ui.screens.CountAdjustmentsScreen
 import com.erpcloud.bakery.ui.screens.CategoriesScreen
 import com.erpcloud.bakery.ui.screens.ItemsScreen
@@ -215,6 +216,7 @@ internal object Routes {
     const val SYSTEM_REPORTS = "system-reports"
     // الفجواتُ التشغيليّة اليوميّة: الخزينة والمخزون والجرد والأطراف
     const val TREASURY = "treasury"
+    const val CASH_BOXES = "cash-boxes"
     const val INVENTORY = "inventory"
     const val COUNTS = "counts"
     const val PARTIES = "parties"
@@ -237,6 +239,7 @@ private data class DrawerEntry(
     val titleAr: String,
     val permission: String? = null,
     val icon: ImageVector? = null,
+    val permissionsAny: List<String> = emptyList(),
 )
 
 /**
@@ -245,7 +248,13 @@ private data class DrawerEntry(
  */
 private data class DrawerGroup(val titleAr: String, val entries: List<DrawerEntry>) {
     fun visible(can: (String) -> Boolean): List<DrawerEntry> =
-        entries.filter { it.permission == null || can(it.permission) }
+        entries.filter { entry ->
+            when {
+                entry.permissionsAny.isNotEmpty() -> entry.permissionsAny.any(can)
+                entry.permission != null -> can(entry.permission)
+                else -> true
+            }
+        }
 }
 
 @Composable
@@ -412,6 +421,7 @@ fun AppRoot(vm: AppViewModel) {
                     onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                     onAiAssistant = { navController.navigate(Routes.AI_ASSISTANT) },
                     onTaxFilings = { navController.navigate(Routes.TAX_FILINGS) },
+                    onCashBoxes = { navController.navigate(Routes.CASH_BOXES) },
                     onSupport = { navController.navigate(Routes.SUPPORT) },
                     onLogout = { vm.logout() },
                 )
@@ -453,7 +463,24 @@ fun AppRoot(vm: AppViewModel) {
             composable(Routes.SYSTEM_REPORTS) {
                 SystemReportsScreen(vm, onBack = popOrHome)
             }
-            composable(Routes.TREASURY) { TreasuryScreen(vm, onBack = popOrHome) }
+            composable(Routes.TREASURY) {
+                TreasuryScreen(
+                    vm = vm,
+                    onBack = popOrHome,
+                    onOpenCashBoxes = {
+                        navController.navigate(Routes.CASH_BOXES) { launchSingleTop = true }
+                    },
+                )
+            }
+            composable(Routes.CASH_BOXES) {
+                CashBoxesScreen(
+                    vm = vm,
+                    onBack = popOrHome,
+                    onOpenVouchers = {
+                        navController.navigate(Routes.TREASURY) { launchSingleTop = true }
+                    },
+                )
+            }
             composable(Routes.INVENTORY) { InventoryScreen(vm, onBack = popOrHome) }
             composable(Routes.COUNTS) { CountAdjustmentsScreen(vm, onBack = popOrHome) }
             composable(Routes.PARTIES) { PartiesScreen(vm, onBack = popOrHome) }
@@ -667,7 +694,15 @@ private fun drawerGroups(can: (String) -> Boolean): List<Pair<String, List<Drawe
         ),
         DrawerGroup(
             "المحاسبة والمصروفات",
-            listOf(DrawerEntry(Routes.TREASURY, "الخزينة والمصروفات", "treasury.view", Icons.Filled.AccountBalance)),
+            listOf(
+                DrawerEntry(
+                    route = Routes.CASH_BOXES,
+                    titleAr = "الصناديق والأرصدة",
+                    icon = Icons.Filled.AccountBalanceWallet,
+                    permissionsAny = listOf("organization.cashlocation.view", "treasury.view"),
+                ),
+                DrawerEntry(Routes.TREASURY, "الخزينة والمصروفات", "treasury.view", Icons.Filled.AccountBalance),
+            ),
         ),
         DrawerGroup(
             "الكتالوج",

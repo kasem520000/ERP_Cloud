@@ -91,7 +91,11 @@ import kotlinx.serialization.json.put
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TreasuryScreen(vm: AppViewModel, onBack: () -> Unit) {
+fun TreasuryScreen(
+    vm: AppViewModel,
+    onBack: () -> Unit,
+    onOpenCashBoxes: (() -> Unit)? = null,
+) {
     val state by vm.uiState.collectAsState()
     var showCreate by remember { mutableStateOf(false) }
     var postTarget by remember { mutableStateOf<String?>(null) }
@@ -151,6 +155,13 @@ fun TreasuryScreen(vm: AppViewModel, onBack: () -> Unit) {
                             }
                         },
                     ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "رجوع") }
+                },
+                actions = {
+                    if (!inSubView && onOpenCashBoxes != null) {
+                        TextButton(onClick = onOpenCashBoxes) {
+                            Text("الصناديق والأرصدة", fontWeight = FontWeight.Bold)
+                        }
+                    }
                 },
             )
         },

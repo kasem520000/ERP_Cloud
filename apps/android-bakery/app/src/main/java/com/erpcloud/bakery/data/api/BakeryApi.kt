@@ -238,9 +238,57 @@ interface BakeryApi {
     @GET("branches")
     suspend fun branches(): Response<BranchPageDto>
 
-    /** الخزائن — إذنُ قراءة الخزائن (غلافُ صفحةٍ). */
+    /** الخزائن والصناديق والحسابات البنكية — إذن `organization.cashlocation.view` (غلافُ صفحةٍ). */
     @GET("cash-locations")
-    suspend fun cashLocations(): Response<CashLocationPageDto>
+    suspend fun cashLocations(@Query("limit") limit: Int = 200): Response<CashLocationPageDto>
+
+    /** قراءةُ خزينة/حساب بنكي بكامل بيانات البنك والآيبان — إذن `organization.cashlocation.view`. */
+    @GET("cash-locations/{id}")
+    suspend fun cashLocationDetail(@Path("id") id: String): Response<JsonElement>
+
+    /** أرصدةُ الصندوق/البنك حسب العملة — إذن `organization.cashlocation.view`. */
+    @GET("cash-locations/{id}/balances")
+    suspend fun cashLocationBalances(@Path("id") id: String): Response<JsonElement>
+
+    /** كشفُ حركة الصندوق/البنك والرصيد المتحرّك من دفتر الأستاذ — إذن `treasury.view`. */
+    @GET("cash-locations/{id}/movements")
+    suspend fun cashLocationMovements(
+        @Path("id") id: String,
+        @Query("all") all: String? = null,
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null,
+    ): Response<JsonElement>
+
+    /** مطابقةُ الرصيد الفرعي للصندوق/البنك مع دفتر الأستاذ — إذن `treasury.transfer.manage`. */
+    @POST("cash-locations/{id}/recalc-balance")
+    suspend fun recalcCashLocationBalance(
+        @Path("id") id: String,
+        @Body body: JsonObject,
+    ): Response<JsonElement>
+
+    /** المناقلاتُ النقديّة بين الصناديق والبنوك — إذن `treasury.view`. */
+    @GET("cash-transfers")
+    suspend fun cashTransfers(
+        @Query("status") status: String? = null,
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null,
+    ): Response<JsonElement>
+
+    /** إنشاءُ مناقلةٍ نقديّة (مسودّة) — إذن `treasury.transfer.manage`. */
+    @POST("cash-transfers")
+    suspend fun createCashTransfer(@Body body: JsonObject): Response<JsonElement>
+
+    /** اعتمادُ إرسال المناقلة من الصندوق المصدر — إذن `treasury.transfer.manage`. */
+    @POST("cash-transfers/{id}/send")
+    suspend fun sendCashTransfer(@Path("id") id: String, @Body body: JsonObject): Response<JsonElement>
+
+    /** تأكيدُ استلام المناقلة في الصندوق المستلم — إذن `treasury.transfer.manage`. */
+    @POST("cash-transfers/{id}/receive")
+    suspend fun receiveCashTransfer(@Path("id") id: String, @Body body: JsonObject): Response<JsonElement>
+
+    /** إلغاءُ مناقلة — إذن `treasury.transfer.manage`. */
+    @POST("cash-transfers/{id}/cancel")
+    suspend fun cancelCashTransfer(@Path("id") id: String, @Body body: JsonObject): Response<JsonElement>
 
     // ------------------------------------------------------------- المشتريات
 
@@ -528,6 +576,10 @@ interface BakeryApi {
     /** تعديلُ خزينة — إذن `organization.cashlocation.manage` (المرحلة 2). */
     @PATCH("cash-locations/{id}")
     suspend fun updateCashLocation(@Path("id") id: String, @Body body: JsonObject): Response<JsonElement>
+
+    /** حذفُ خزينة غير افتراضيّة — إذن `organization.cashlocation.manage`. */
+    @retrofit2.http.DELETE("cash-locations/{id}")
+    suspend fun deleteCashLocation(@Path("id") id: String): Response<Unit>
 
     // ------------------------------------------------------------ الأطراف
 

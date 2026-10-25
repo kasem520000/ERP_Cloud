@@ -934,4 +934,91 @@ class BakeryRepository(
             val resp = api.aiChat(payload)
             unwrapEnvelope(resp) ?: throw ApiException(ProblemDto(title = "Empty AI chat response"), resp.code())
         }
+
+    // ----------------------------------------- الصناديق والبنوك والأرصدة وحركة الصندوق
+
+    suspend fun cashLocationDetail(id: String): CashLocationDto = withContext(Dispatchers.IO) {
+        val resp = api.cashLocationDetail(id)
+        if (!resp.isSuccessful) throw resp.toApiException()
+        val body = resp.body() ?: throw ApiException(ProblemDto(title = "Empty cash location"), resp.code())
+        val inner = (body as? JsonObject)?.get("data") ?: body
+        AppJson.decodeFromJsonElement(CashLocationDto.serializer(), inner)
+    }
+
+    suspend fun cashLocationBalances(id: String): List<com.erpcloud.bakery.data.api.CashLocationBalanceDto> =
+        rawList { api.cashLocationBalances(id) }
+
+    suspend fun cashLocationMovements(
+        id: String,
+        all: Boolean = true,
+        from: String? = null,
+        to: String? = null,
+    ): com.erpcloud.bakery.data.api.CashMovementStatementDto = withContext(Dispatchers.IO) {
+        val resp = api.cashLocationMovements(
+            id = id,
+            all = if (all) "1" else null,
+            from = if (all) null else from?.takeIf { it.isNotBlank() },
+            to = if (all) null else to?.takeIf { it.isNotBlank() },
+        )
+        if (!resp.isSuccessful) throw resp.toApiException()
+        val body = resp.body() ?: throw ApiException(ProblemDto(title = "Empty movement statement"), resp.code())
+        val inner = (body as? JsonObject)?.get("data") ?: body
+        AppJson.decodeFromJsonElement(com.erpcloud.bakery.data.api.CashMovementStatementDto.serializer(), inner)
+    }
+
+    suspend fun recalcCashLocationBalance(id: String): ActionResult =
+        submitDirect("مطابقة رصيد الصندوق") {
+            api.recalcCashLocationBalance(id, kotlinx.serialization.json.buildJsonObject {})
+        }
+
+    suspend fun deleteCashLocation(id: String): ActionResult = withContext(Dispatchers.IO) {
+        try {
+            val resp = api.deleteCashLocation(id)
+            if (resp.isSuccessful) ActionResult.Synced("تم حذف الخزينة بنجاح.")
+            else ActionResult.Refused(resp.toApiException().userMessage)
+        } catch (e: ApiException) {
+            ActionResult.Refused(e.userMessage)
+        } catch (e: java.io.IOException) {
+            ActionResult.Offline("تعذّر الاتصال بالخدمة السحابية — تحقّق من اتصال الإنترنت.")
+        }
+    }
+
+    suspend fun cashTransfers(
+        status: String? = null,
+        from: String? = null,
+        to: String? = null,
+    ): List<com.erpcloud.bakery.data.api.CashTransferDto> =
+        rawList {
+            api.cashTransfers(
+                status = status?.takeIf { it.isNotBlank() },
+                from = from?.takeIf { it.isNotBlank() },
+                to = to?.takeIf { it.isNotBlank() },
+            )
+        }
+
+    suspend fun createCashTransfer(body: JsonObject): com.erpcloud.bakery.data.api.CashTransferDto =
+        withContext(Dispatchers.IO) {
+            val resp = api.createCashTransfer(body)
+            if (!resp.isSuccessful) throw resp.toApiException()
+            val elem = resp.body() ?: return@withContext com.erpcloud.bakery.data.api.CashTransferDto()
+            val inner = (elem as? JsonObject)?.get("data") ?: elem
+            runCatching {
+                AppJson.decodeFromJsonElement(com.erpcloud.bakery.data.api.CashTransferDto.serializer(), inner)
+            }.getOrDefault(com.erpcloud.bakery.data.api.CashTransferDto())
+        }
+
+    suspend fun sendCashTransfer(id: String): ActionResult =
+        submitDirect("اعتماد إرسال المناقلة") {
+            api.sendCashTransfer(id, kotlinx.serialization.json.buildJsonObject {})
+        }
+
+    suspend fun receiveCashTransfer(id: String): ActionResult =
+        submitDirect("تأكيد استلام المناقلة") {
+            api.receiveCashTransfer(id, kotlinx.serialization.json.buildJsonObject {})
+        }
+
+    suspend fun cancelCashTransfer(id: String): ActionResult =
+        submitDirect("إلغاء المناقلة") {
+            api.cancelCashTransfer(id, kotlinx.serialization.json.buildJsonObject {})
+        }
 }

@@ -211,7 +211,7 @@ fun OrgScreen(vm: AppViewModel, onBack: () -> Unit) {
                 item { EmptyState(error ?: "لا خزائنَ بعد — سنداتُ القبض والصرف تحتاجُها.") }
             } else {
                 items(state.staff.cashLocations, key = { it.id }) { cash ->
-                    SectionCard(title = cash.name) {
+                    SectionCard(title = cash.displayName) {
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             StatusChip(
                                 when (cash.kind) {
@@ -222,6 +222,9 @@ fun OrgScreen(vm: AppViewModel, onBack: () -> Unit) {
                             )
                             if (cash.isDefault) StatusChip("افتراضيّ", ChipTone.OK)
                             if (!cash.isActive) StatusChip("موقوف", ChipTone.DANGER)
+                        }
+                        cash.bank?.bankName?.takeIf { it.isNotBlank() }?.let {
+                            KeyValue("البنك", it)
                         }
                         state.staff.branches.firstOrNull { it.id == cash.branchId }?.let {
                             KeyValue("الفرع", it.nameAr)
@@ -476,6 +479,7 @@ private fun WarehouseForm(vm: AppViewModel, onDone: () -> Unit) {
 private fun CashForm(vm: AppViewModel, onDone: () -> Unit) {
     val state by vm.uiState.collectAsState()
     var name by remember { mutableStateOf("") }
+    var bankName by remember { mutableStateOf("") }
     var kind by remember { mutableStateOf("safe") }
     var kindLabel by remember { mutableStateOf("صندوق نقديّ") }
     var branchId by remember { mutableStateOf("") }
@@ -506,7 +510,11 @@ private fun CashForm(vm: AppViewModel, onDone: () -> Unit) {
             trailingIcon = { PickerTrigger(onClick = { pickKind = true }) },
         )
         Spacer(Modifier.height(8.dp))
-        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("الاسم * (مثال: صندوق الفرع الرئيسيّ)") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("الاسم * (مثال: الصندوق الرئيسيّ)") }, modifier = Modifier.fillMaxWidth())
+        if (kind == "bank") {
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(value = bankName, onValueChange = { bankName = it }, label = { Text("اسم البنك * (مثال: مصرف الراجحي)") }, modifier = Modifier.fillMaxWidth())
+        }
         if (error != null) {
             Spacer(Modifier.height(8.dp))
             StatusChip(error ?: "", ChipTone.DANGER)
@@ -519,6 +527,7 @@ private fun CashForm(vm: AppViewModel, onDone: () -> Unit) {
                     error = when {
                         branchId.isBlank() -> "اختر الفرع."
                         name.isBlank() -> "اسمُ الخزينة إلزاميّ."
+                        kind == "bank" && bankName.isBlank() -> "اسمُ البنك إلزاميّ."
                         else -> null
                     }
                     if (error != null) return@ActionButton
@@ -528,6 +537,12 @@ private fun CashForm(vm: AppViewModel, onDone: () -> Unit) {
                             put("branchId", branchId)
                             put("kind", kind)
                             put("name", name.trim())
+                            if (kind == "bank") {
+                                put(
+                                    "bank",
+                                    buildJsonObject { put("bankName", bankName.trim()) },
+                                )
+                            }
                         },
                     ) { result ->
                         sending = false

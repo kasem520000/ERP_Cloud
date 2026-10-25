@@ -57,11 +57,11 @@ jobs:
           echo "${KEYSTORE_BASE64}" | base64 --decode > "$RUNNER_TEMP/bakery-release.keystore"
           echo "KEYSTORE_FILE=$RUNNER_TEMP/bakery-release.keystore" >> "$GITHUB_ENV"
 
-      - name: Build Debug & Release APKs (android-bakery)
+      - name: Build Release APK (android-bakery)
         shell: bash
         run: |
           set -o pipefail
-          (./gradlew assembleDebug assembleRelease --stacktrace --no-daemon) 2>&1 | tee bakery-build.log
+          (./gradlew assembleRelease --stacktrace --no-daemon) 2>&1 | tee bakery-build.log
 
       - name: Surface compiler errors as annotations on failure
         if: failure()
@@ -71,13 +71,12 @@ jobs:
             grep -E '(^e: |FAILURE:|> Task .* FAILED|\* What went wrong:|Error:)' bakery-build.log | head -n 40 | awk '{printf "%s%s", (NR%5==1 ? "::error title=BakeryBuild::" : " || "), $0; if (NR%5==0) print ""} END {if (NR%5!=0) print ""}'
           fi
 
-      - name: Upload Bakery APKs
+      - name: Upload Bakery Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: bakery-app-apks
+          name: bakery-app-release-apk
           retention-days: 14
           path: |
-            apps/android-bakery/app/build/outputs/apk/debug/*.apk
             apps/android-bakery/app/build/outputs/apk/release/*.apk
 
       - name: Upload Bakery build log on failure
@@ -126,29 +125,26 @@ jobs:
           echo "${KEYSTORE_BASE64}" | base64 --decode > "$RUNNER_TEMP/rep-release.keystore"
           echo "KEYSTORE_FILE=$RUNNER_TEMP/rep-release.keystore" >> "$GITHUB_ENV"
 
-      - name: Build Debug & Release APKs (android-rep)
+      - name: Build Release APK (android-rep)
         shell: bash
         run: |
           set -o pipefail
-          (./gradlew assembleDebug assembleRelease --stacktrace --no-daemon) 2>&1 | tee rep-build.log
+          (./gradlew assembleRelease --stacktrace --no-daemon) 2>&1 | tee rep-build.log
 
       - name: Surface compiler errors as annotations on failure
         if: failure()
         shell: bash
         run: |
           if [ -f rep-build.log ]; then
-            grep -E '(^e: |FAILURE:|> Task .* FAILED|\* What went wrong:|Error:)' rep-build.log | head -n 30 | while IFS= read -r line; do
-              echo "::error title=RepBuild::${line}"
-            done
+            grep -E '(^e: |FAILURE:|> Task .* FAILED|\* What went wrong:|Error:)' rep-build.log | head -n 40 | awk '{printf "%s%s", (NR%5==1 ? "::error title=RepBuild::" : " || "), $0; if (NR%5==0) print ""} END {if (NR%5!=0) print ""}'
           fi
 
-      - name: Upload Rep APKs
+      - name: Upload Rep Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: rep-app-apks
+          name: rep-app-release-apk
           retention-days: 14
           path: |
-            apps/android-rep/app/build/outputs/apk/debug/*.apk
             apps/android-rep/app/build/outputs/apk/release/*.apk
 
       - name: Upload Rep build log on failure

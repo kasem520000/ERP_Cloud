@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.BakeryDining
 import androidx.compose.material.icons.outlined.CloudDone
@@ -109,6 +110,7 @@ fun DashboardScreen(
     onChangePassword: () -> Unit,
     onAiAssistant: () -> Unit = {},
     onTaxFilings: () -> Unit = {},
+    onCashBoxes: () -> Unit = {},
     onSupport: () -> Unit = {},
     onLogout: () -> Unit,
 ) {
@@ -400,6 +402,9 @@ fun DashboardScreen(
 
                 val canView = state.can("van_sales.view")
                 val tiles = buildList {
+                    if (state.can("organization.cashlocation.view") || state.can("treasury.view")) {
+                        add(Tile("الصناديق والأرصدة", Icons.Outlined.AccountBalanceWallet, onCashBoxes))
+                    }
                     if (state.can("ai.assistant.use")) {
                         add(Tile("المساعد الذكي AI", Icons.Outlined.AutoAwesome, onAiAssistant))
                     }
