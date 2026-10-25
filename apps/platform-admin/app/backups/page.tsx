@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
@@ -120,7 +120,7 @@ const VERDICT_LABEL: Record<string, string> = {
 const WINDOWS: Array<{ key: keyof RetentionPolicy; label: string; hint: string }> = [
   { key: 'auditArchiveDays', label: 'أرشفة التدقيق (يوم)', hint: 'يُؤرشَف ولا يُمحى — 90..3650' },
   { key: 'artifactRetentionDays', label: 'ملفات النسخ (يوم)', hint: 'ثم تُحذف البايتات ويبقى الصفّ' },
-  { key: 'idempotencyPurgeDays', label: 'مفاتيح idempotency (يوم)', hint: '7..365' },
+  { key: 'idempotencyPurgeDays', label: 'مفاتيح عدم التكرار (يوم)', hint: '7..365' },
   { key: 'outboxPurgeDays', label: 'مهامّ الطابور المنتهية (يوم)', hint: '7..365' },
   { key: 'fileOrphanPurgeDays', label: 'الملفات اليتيمة (يوم)', hint: '1..90' },
 ];
@@ -139,6 +139,9 @@ export default function BackupsPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [restoreJob, setRestoreJob] = useState<BackupRow | undefined>(undefined);
   const [historyKey, setHistoryKey] = useState(0);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importNote, setImportNote] = useState('');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const runs = useQuery<BackupPage>(() => apiData<BackupPage>('/platform/backups?limit=50'), []);
   const retention = useQuery<Retention>(() => apiData<Retention>('/platform/retention'), []);
@@ -167,6 +170,44 @@ export default function BackupsPage() {
           : { kind: 'danger', text: `فشلت النسخة: ${created.failureReason ?? 'بلا سبب مسجَّل'}` },
       );
       runs.reload();
+    } catch (error) {
+      setNotice({ kind: 'danger', text: apiMessage(error) });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function importBackupFile(openRestoreAfter: boolean) {
+    if (!importFile) {
+      setNotice({ kind: 'danger', text: 'اختر ملف نسخة احتياطية أولاً (.ndjson أو .gz أو .enc).' });
+      return;
+    }
+    setBusy('import');
+    setNotice(undefined);
+    try {
+      const buffer = await importFile.arrayBuffer();
+      const params = new URLSearchParams({ fileName: importFile.name });
+      if (importNote.trim().length >= 3) {
+        params.set('note', importNote.trim());
+      }
+      const imported = await apiData<BackupRow>(`/platform/backups/import?${params.toString()}`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/octet-stream',
+        },
+        body: buffer,
+      });
+      setImportFile(null);
+      setImportNote('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      setNotice({
+        kind: 'ok',
+        text: `تم استيراد النسخة والتحقّق منها بنجاح (${imported.tables} جدولاً · ${imported.rows} صفاً · ${formatBytes(imported.bytes ?? 0)}) — جاهزة للاستعادة.`,
+      });
+      runs.reload();
+      if (openRestoreAfter) {
+        setRestoreJob(imported);
+      }
     } catch (error) {
       setNotice({ kind: 'danger', text: apiMessage(error) });
     } finally {
@@ -427,9 +468,52 @@ export default function BackupsPage() {
               </button>
             </div>
             <p className="muted small" style={{ margin: '6px 0 0' }}>
-              الجداول تُقرأ من كتالوج القاعدة لا من قائمةٍ في الكود: جداول المستأجرين داخل سياق كل مستأجر
-              (`app.tenant_id`)، وجداول المنصّة في سياق المنصّة. والملف NDJSON مشفّر بـAES-256-GCM ومكتوبٌ مع
+              الجداول تُقرأ من كتالوج القاعدة لا من قائمةٍ في الكود: جداول المستأجرين داخل سياق كل مستأجر،
+              وجداول المنصّة في سياق المنصّة. والملف NDJSON مشفّر بـAES-256-GCM ومكتوبٌ مع
               ترويسته، والصفّ يسجّل حجمه وبصمته بعد قراءتهما من المخزن.
+            </p>
+          </Panel>
+
+          <Panel title="رفع واستيراد نسخة احتياطية" className="tight no-print">
+            <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end', gap: 10 }}>
+              <label className="field" style={{ minWidth: 260, flex: 1 }}>
+                <span>ملف النسخة الاحتياطية (.ndjson · .gz · .enc)</span>
+                <input
+                  ref={fileInputRef}
+                  className="input"
+                  type="file"
+                  accept=".ndjson,.jsonl,.json,.gz,.enc,application/x-ndjson,application/gzip,application/octet-stream"
+                  onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
+                />
+              </label>
+              <label className="field" style={{ minWidth: 220, flex: 1 }}>
+                <span>ملاحظة الاستيراد (اختياري)</span>
+                <input
+                  className="input"
+                  value={importNote}
+                  onChange={(event) => setImportNote(event.target.value)}
+                  placeholder="مثال: نسخة منقولة من الخادم القديم"
+                />
+              </label>
+              <button
+                className="btn"
+                type="button"
+                disabled={!importFile || busy === 'import'}
+                onClick={() => void importBackupFile(false)}
+              >
+                {busy === 'import' ? 'جارٍ الرفع والتحقّق…' : 'رفع واستيراد للمخزن'}
+              </button>
+              <button
+                className="btn primary"
+                type="button"
+                disabled={!importFile || busy === 'import'}
+                onClick={() => void importBackupFile(true)}
+              >
+                {busy === 'import' ? 'جارٍ الرفع…' : 'رفع ومعاينة الاستعادة فوراً'}
+              </button>
+            </div>
+            <p className="muted small" style={{ margin: '6px 0 0' }}>
+              يمكنك رفع أي ملف نسخة تم تنزيله سابقاً من هذه الشاشة (<code>.ndjson</code>) أو مضغوطاً (<code>.gz</code>) أو مشفّراً من مجلد النسخ (<code>.enc</code>). يتحقّق الخادم من سلامة الترويسة والذيل وتطابق الصفوف قبل تسجيلها في مخزن النسخ المشفّر.
             </p>
           </Panel>
 
@@ -590,21 +674,20 @@ export default function BackupsPage() {
           )}
         </>
       )}
-      <GoogleDriveSection />
+      {canManage ? <GoogleDriveSection localBackups={rows} onRestored={runs.reload} /> : null}
     </Screen>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// جوجل درايف — النسخ المرتفع إلى الدرايف
-//
-// قسمٌ مستقلٌ في صفحة نسخ المنصة: حالة الاتصال، زر الربط/قطع الربط، زر الرفع،
-// قائمة الملفات المرفوعة، وزر الاستعادة من الدرايف. كل العمليات عبر `/platform/google-drive/*`.
+// جوجل درايف — النسخ المرتفع إلى الدرايف (ربط OAuth2 حقيقي عبر Google Drive API v3)
 // ─────────────────────────────────────────────────────────────────────────────
 
 type GoogleDriveConnection = {
+  configured?: boolean;
   connected: boolean;
   email: string;
+  folderId?: string | null;
   connectedAt: string | null;
   files: number;
   totalBytes: number;
@@ -622,11 +705,23 @@ type GoogleDriveFile = {
   backupJobId: string | null;
 };
 
-function GoogleDriveSection() {
+function GoogleDriveSection({
+  localBackups,
+  onRestored,
+}: {
+  localBackups: BackupRow[];
+  onRestored: () => void;
+}) {
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info'; text: string } | undefined>();
   const [busy, setBusy] = useState(false);
   const [conn, setConn] = useState<GoogleDriveConnection | null>(null);
   const [files, setFiles] = useState<GoogleDriveFile[]>([]);
+  const [showConfigForm, setShowConfigForm] = useState(false);
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+  const [refreshToken, setRefreshToken] = useState('');
+  const [folderId, setFolderId] = useState('');
+  const [selectedJobId, setSelectedJobId] = useState('');
 
   const fmtDate = (value: string): string => {
     return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
@@ -636,22 +731,42 @@ function GoogleDriveSection() {
     try {
       const status = await apiData<GoogleDriveConnection>('/platform/google-drive/status');
       setConn(status);
-      const list = await apiData<GoogleDriveFile[]>('/platform/google-drive/files');
-      setFiles(list);
+      if (status.connected) {
+        const list = await apiData<GoogleDriveFile[]>('/platform/google-drive/files');
+        setFiles(list);
+      } else {
+        setFiles([]);
+      }
     } catch {
       setConn(null);
       setFiles([]);
     }
   }
 
-  async function connect() {
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  async function connectWithCredentials() {
     setBusy(true);
     setNotice(undefined);
     try {
-      const status = await apiData<GoogleDriveConnection>('/platform/google-drive/connect', { method: 'POST' });
+      const payload: Record<string, string> = {};
+      if (clientId.trim()) payload.clientId = clientId.trim();
+      if (clientSecret.trim()) payload.clientSecret = clientSecret.trim();
+      if (refreshToken.trim()) payload.refreshToken = refreshToken.trim();
+      if (folderId.trim()) payload.folderId = folderId.trim();
+
+      const status = await apiData<GoogleDriveConnection>('/platform/google-drive/connect', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
       setConn(status);
-      setNotice({ kind: 'ok', text: `تم ربط حساب جوجل درايف: ${status.email}` });
-      refresh();
+      setShowConfigForm(false);
+      setClientSecret('');
+      setRefreshToken('');
+      setNotice({ kind: 'ok', text: `تم التحقق وربط حساب جوجل درايف فعلياً: ${status.email}` });
+      await refresh();
     } catch (error) {
       setNotice({ kind: 'danger', text: apiMessage(error) });
     } finally {
@@ -664,9 +779,8 @@ function GoogleDriveSection() {
     setNotice(undefined);
     try {
       await apiData('/platform/google-drive/disconnect', { method: 'POST' });
-      setNotice({ kind: 'info', text: 'تم قطع اتصال جوجل درايف ومسح الملفات المرفوعة.' });
-      setConn(null);
-      setFiles([]);
+      setNotice({ kind: 'info', text: 'تم فصل اتصال جوجل درايف عن المنصّة (مع بقاء ملفاتك في حسابك على درايف).' });
+      await refresh();
     } catch (error) {
       setNotice({ kind: 'danger', text: apiMessage(error) });
     } finally {
@@ -674,15 +788,49 @@ function GoogleDriveSection() {
     }
   }
 
-  async function restore(fileId: string) {
+  async function uploadToDrive() {
+    if (!selectedJobId) return;
     setBusy(true);
     setNotice(undefined);
     try {
-      await apiData(`/platform/google-drive/files/${fileId}/restore`, {
+      const uploaded = await apiData<GoogleDriveFile>('/platform/google-drive/upload', {
         method: 'POST',
-        body: JSON.stringify({ mode: 'dry_run' }),
+        body: JSON.stringify({ backupJobId: selectedJobId }),
       });
-      setNotice({ kind: 'ok', text: 'تمت الاستعادة التجريبية من جوجل درايف.' });
+      setNotice({
+        kind: 'ok',
+        text: `تم رفع النسخة «${uploaded.name}» (${formatBytes(uploaded.sizeBytes)}) إلى جوجل درايف بنجاح.`,
+      });
+      await refresh();
+    } catch (error) {
+      setNotice({ kind: 'danger', text: apiMessage(error) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function restore(fileId: string, mode: 'dry_run' | 'apply') {
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      const res = await apiData<{ totals?: { inserted?: number; wouldInsert?: number } }>(
+        `/platform/google-drive/files/${fileId}/restore`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            mode,
+            reason: 'استعادة نسخة احتياطية محفوظة في جوجل درايف',
+          }),
+        },
+      );
+      setNotice({
+        kind: 'ok',
+        text:
+          mode === 'apply'
+            ? `تم استيراد النسخة من جوجل درايف وتطبيق الاستعادة بنجاح (${res.totals?.inserted ?? 0} صف مُدرج).`
+            : `تم استيراد النسخة من جوجل درايف وفحصها تجريبياً بنجاح (${res.totals?.wouldInsert ?? 0} صف قابل للإدراج).`,
+      });
+      onRestored();
     } catch (error) {
       setNotice({ kind: 'danger', text: apiMessage(error) });
     } finally {
@@ -696,7 +844,7 @@ function GoogleDriveSection() {
     try {
       await apiData(`/platform/google-drive/files/${fileId}`, { method: 'DELETE' });
       setNotice({ kind: 'info', text: 'تم حذف الملف من جوجل درايف.' });
-      refresh();
+      await refresh();
     } catch (error) {
       setNotice({ kind: 'danger', text: apiMessage(error) });
     } finally {
@@ -704,52 +852,208 @@ function GoogleDriveSection() {
     }
   }
 
+  const succeededLocals = localBackups.filter(
+    (b) => b.status === 'succeeded' && b.artifactId && !b.prunedAt,
+  );
+
   return (
-    <Panel title="جوجل درايف">
+    <Panel title="النسخ الخارجي على جوجل درايف (Google Drive)">
       <p className="alert info">
-        يُمكن رفع النسخ المحفوظة إلى جوجل درايف كنسخة احتياطية خارجية. الاستعادة من الدرايف تستخدم
-        نفس آلية الاستعادة من المخزن المحلي.
+        يتصل هذا القسم فعلياً بواجهة Google Drive API v3 عبر اعتماد OAuth2 مشفّر لحفظ نسخ احتياطية خارج الخادم واستعادتها عند الحاجة.
       </p>
-      <div className="toolbar">
+      <div className="row" style={{ flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         {conn?.connected ? (
           <>
-            <span className="badge ok">متصل</span>
-            <span className="muted">{conn.email}</span>
-            {conn.files > 0 && <span className="muted">{conn.files} ملف، {formatBytes(conn.totalBytes)}</span>}
-            <button type="button" className="btn sm danger" onClick={disconnect} disabled={busy}>
+            <span className="badge active">متصل فعلياً</span>
+            <span className="small">{conn.email}</span>
+            {conn.files > 0 && (
+              <span className="muted small">
+                ({conn.files} ملف · {formatBytes(conn.totalBytes)})
+              </span>
+            )}
+            <button type="button" className="btn small" onClick={() => setShowConfigForm((v) => !v)} disabled={busy}>
+              تحديث بيانات الاعتماد
+            </button>
+            <button type="button" className="btn small danger" onClick={() => void disconnect()} disabled={busy}>
               قطع الاتصال
             </button>
           </>
         ) : (
           <>
-            <span className="badge warn">غير متصل</span>
-            <button type="button" className="btn sm primary" onClick={connect} disabled={busy}>
-              ربط حساب جوجل درايف
+            <span className="badge pending">
+              {conn?.status === 'not_configured' ? 'غير مهيّأ بعد' : 'غير متصل'}
+            </span>
+            {conn?.configured ? (
+              <button
+                type="button"
+                className="btn small primary"
+                onClick={() => void connectWithCredentials()}
+                disabled={busy}
+              >
+                {busy ? 'جارٍ الاتصال…' : 'إعادة ربط الحساب المحفوظ'}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className={conn?.configured ? 'btn small' : 'btn small primary'}
+              onClick={() => setShowConfigForm((v) => !v)}
+              disabled={busy}
+            >
+              {showConfigForm ? 'إخفاء نموذج الربط' : 'إعداد وربط حساب جوجل درايف'}
             </button>
           </>
         )}
-        <button type="button" className="btn sm" onClick={refresh} disabled={busy}>
-          تحديث
+        <button type="button" className="btn small" onClick={() => void refresh()} disabled={busy}>
+          تحديث الحالة
         </button>
       </div>
-      {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
+
+      {showConfigForm ? (
+        <div
+          style={{
+            border: '1px solid var(--line, #e2e8f0)',
+            borderRadius: 10,
+            padding: 14,
+            marginBottom: 12,
+          }}
+        >
+          <div className="row" style={{ flexWrap: 'wrap', gap: 10 }}>
+            <label className="field" style={{ minWidth: 240, flex: 1 }}>
+              <span>معرّف عميل OAuth2 (Client ID)</span>
+              <input
+                className="input"
+                dir="ltr"
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                placeholder="1234567890-abc.apps.googleusercontent.com"
+              />
+            </label>
+            <label className="field" style={{ minWidth: 220, flex: 1 }}>
+              <span>سرّ العميل (Client Secret)</span>
+              <input
+                className="input"
+                type="password"
+                dir="ltr"
+                value={clientSecret}
+                onChange={(e) => setClientSecret(e.target.value)}
+                placeholder="GOCSPX-..."
+              />
+            </label>
+          </div>
+          <div className="row" style={{ flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
+            <label className="field" style={{ minWidth: 260, flex: 2 }}>
+              <span>رمز التحديث الدائم (Refresh Token — نطاق drive.file)</span>
+              <input
+                className="input"
+                type="password"
+                dir="ltr"
+                value={refreshToken}
+                onChange={(e) => setRefreshToken(e.target.value)}
+                placeholder="1//04..."
+              />
+            </label>
+            <label className="field" style={{ minWidth: 200, flex: 1 }}>
+              <span>معرّف مجلد درايف (Folder ID — اختياري)</span>
+              <input
+                className="input"
+                dir="ltr"
+                value={folderId}
+                onChange={(e) => setFolderId(e.target.value)}
+                placeholder="اتركه فارغاً للحفظ في الجذر"
+              />
+            </label>
+          </div>
+          <div className="row" style={{ gap: 8, marginTop: 10, alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn small primary"
+              disabled={busy || (!conn?.configured && (!clientId.trim() || !clientSecret.trim() || !refreshToken.trim()))}
+              onClick={() => void connectWithCredentials()}
+            >
+              {busy ? 'جارٍ التحقّق من جوجل…' : 'حفظ مشفّر وربط الحساب'}
+            </button>
+            <span className="muted small">
+              تُحفظ الأسرار مشفّرة بـAES-256-GCM في إعدادات المنصّة، كما يمكن ضبطها عبر متغيّرات <code>GOOGLE_DRIVE_*</code> في ملف البيئة.
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      {conn?.connected && succeededLocals.length > 0 ? (
+        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end', gap: 8, marginBottom: 12 }}>
+          <label className="field" style={{ minWidth: 280, flex: 1 }}>
+            <span>اختر نسخة محلية لرفعها إلى جوجل درايف</span>
+            <select
+              className="input"
+              value={selectedJobId}
+              onChange={(e) => setSelectedJobId(e.target.value)}
+            >
+              <option value="">— اختر نسخة ناجحة —</option>
+              {succeededLocals.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {new Date(b.startedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')} ·{' '}
+                  {b.scope === 'platform' ? 'المنصّة كاملة' : `مستأجر ${b.tenantCode ?? ''}`} ·{' '}
+                  {formatBytes(b.bytes ?? 0)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="btn small primary"
+            disabled={!selectedJobId || busy}
+            onClick={() => void uploadToDrive()}
+          >
+            {busy ? 'جارٍ الرفع…' : 'رفع إلى جوجل درايف'}
+          </button>
+        </div>
+      ) : null}
+
+      {notice && <p className={`alert ${notice.kind === 'ok' ? '' : notice.kind}`}>{notice.text}</p>}
       {files.length > 0 && (
         <Table
           columns={[
             { key: 'uploadedAt', header: 'التاريخ', cell: (f: GoogleDriveFile) => fmtDate(f.uploadedAt) },
             { key: 'name', header: 'الاسم', cell: (f: GoogleDriveFile) => f.name },
-            { key: 'scope', header: 'النطاق', cell: (f: GoogleDriveFile) => f.scope },
+            {
+              key: 'scope',
+              header: 'النطاق',
+              cell: (f: GoogleDriveFile) => (f.scope === 'tenant' ? 'مستأجر' : 'المنصّة كاملة'),
+            },
             { key: 'size', header: 'الحجم', cell: (f: GoogleDriveFile) => formatBytes(f.sizeBytes) },
-            { key: 'checksum', header: 'البصمة', ltr: true, cell: (f: GoogleDriveFile) => f.checksum.slice(0, 12) },
+            {
+              key: 'checksum',
+              header: 'البصمة',
+              ltr: true,
+              cell: (f: GoogleDriveFile) => (f.checksum ? `${f.checksum.slice(0, 12)}…` : '—'),
+            },
             {
               key: 'actions',
               header: '',
               cell: (f: GoogleDriveFile) => (
-                <div className="toolbar">
-                  <button type="button" className="btn sm" onClick={() => restore(f.id)} disabled={busy}>
-                    استعادة
+                <div className="row" style={{ gap: 6 }}>
+                  <button
+                    type="button"
+                    className="btn small"
+                    onClick={() => void restore(f.id, 'dry_run')}
+                    disabled={busy}
+                  >
+                    فحص تجريبي
                   </button>
-                  <button type="button" className="btn sm danger" onClick={() => removeFile(f.id)} disabled={busy}>
+                  <button
+                    type="button"
+                    className="btn small primary"
+                    onClick={() => void restore(f.id, 'apply')}
+                    disabled={busy}
+                  >
+                    استعادة للمنصّة
+                  </button>
+                  <button
+                    type="button"
+                    className="btn small danger"
+                    onClick={() => void removeFile(f.id)}
+                    disabled={busy}
+                  >
                     حذف
                   </button>
                 </div>

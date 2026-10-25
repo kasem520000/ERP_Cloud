@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { and, asc, desc, eq, isNull, sql, type SQL } from 'drizzle-orm';
 import {
   buildMeta,
@@ -31,11 +31,13 @@ import {
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { MetricsService } from '../../ops/metrics.service.js';
 import { PasswordBreachChecker } from '../platform/auth/password-breach.js';
+import { openSecret } from '../platform/auth/secret-box.js';
 import { RateLimiterService } from '../platform/rate-limit/rate-limiter.service.js';
 import { AuditService } from '../platform-services/audit/audit.service.js';
 import { OBJECT_STORAGE, type ObjectStoragePort } from '../platform-services/files/object-storage.js';
 import { VIRUS_SCANNER, type VirusScannerPort } from '../platform-services/files/virus-scanner.js';
 import { QUEUE_PORT, type QueuePort } from '../platform-services/jobs/queue.service.js';
+import { WorkerRunner } from '../platform-services/jobs/worker.runner.js';
 
 /** `filter[status]` — ثلاث حالات، كما في الجدول؛ وأي شيء غيرها 400 لا صفرُ نتائج. */
 const JOB_STATUSES = ['pending', 'published', 'dead'] as const;
@@ -74,6 +76,7 @@ export class PlatformOperationsService {
     private readonly audit: AuditService,
     private readonly breach: PasswordBreachChecker,
     private readonly limiter: RateLimiterService,
+    @Optional() private readonly workerRunner?: WorkerRunner,
   ) {}
 
   // ─────────────────────────────────────────────────────────── الطابور
@@ -275,10 +278,28 @@ export class PlatformOperationsService {
         })
         .from(outboxJobs)
         .where(eq(outboxJobs.status, 'pending'));
+      const [hbRow] = await tx
+        .select({ raw: sql<string>`${platformSettings.value}::text` })
+        .from(platformSettings)
+        .where(and(isNull(platformSettings.tenantId), eq(platformSettings.key, 'worker.heartbeat')))
+        .limit(1);
+      let externalFresh = false;
+      if (hbRow?.raw) {
+        try {
+          const parsed = JSON.parse(hbRow.raw) as { at?: string };
+          if (parsed?.at) {
+            const ageMs = Date.now() - new Date(parsed.at).getTime();
+            externalFresh = Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= env.WORKER_HEALTH_LOG_INTERVAL_MS * 3;
+          }
+        } catch {
+          externalFresh = false;
+        }
+      }
+      const running = Boolean(env.WORKER || this.workerRunner?.isRunning() || externalFresh);
       const oldest = row?.oldest ? new Date(this.iso(row.oldest)) : null;
       return {
-        running: env.WORKER,
-        enabled: this.queue.isEnabled(),
+        running,
+        enabled: this.queue.isEnabled() || running,
         oldestPendingAgeSeconds: oldest
           ? Math.max(0, Math.floor((Date.now() - oldest.getTime()) / 1000))
           : null,
@@ -419,32 +440,130 @@ export class PlatformOperationsService {
     };
   }
 
-  /** البريد: المزوّد والإعداد الفعّال — «هل يوجد من يتكلّم؟» يُجاب من الحالة لا من الظنّ. */
+  /** البريد: المزوّد والإعداد الفعّال — يُقرأ من جدول `email_settings` الفعلي مع الاحتياط للبيئة. */
   private async probeEmail(): Promise<HealthProbe> {
+    const started = performance.now();
     try {
-      const [row] = await withPlatformAdminTx(this.database.db, async (tx) =>
-        tx
+      const { emailRow, legacyRow } = await withPlatformAdminTx(this.database.db, async (tx) => {
+        const settingsRes = await tx.execute(sql`
+          SELECT provider, from_name, from_email, sending_domain,
+                 smtp_host, smtp_port, smtp_password_enc,
+                 api_key_enc, api_endpoint
+            FROM email_settings
+           WHERE tenant_id IS NULL
+           LIMIT 1
+        `);
+        const [legacy] = await tx
           .select({ raw: sql<string>`${platformSettings.value}::text` })
           .from(platformSettings)
           .where(and(isNull(platformSettings.tenantId), eq(platformSettings.key, 'email.provider')))
-          .limit(1),
-      );
-      const provider = row?.raw ? (JSON.parse(row.raw) as string) : 'console';
+          .limit(1);
+        return {
+          emailRow: settingsRes.rows[0] as
+            | {
+                provider: string | null;
+                from_name: string | null;
+                from_email: string | null;
+                sending_domain: string | null;
+                smtp_host: string | null;
+                smtp_port: number | null;
+                smtp_password_enc: string | null;
+                api_key_enc: string | null;
+                api_endpoint: string | null;
+              }
+            | undefined,
+          legacyRow: legacy,
+        };
+      });
+
+      const legacyProvider = legacyRow?.raw ? (JSON.parse(legacyRow.raw) as string) : null;
+      const envProvider = (process.env.EMAIL_PROVIDER ?? '').trim().toLowerCase();
+      const rawProvider = (
+        emailRow?.provider ??
+        legacyProvider ??
+        (envProvider || (process.env.RESEND_API_KEY ? 'resend' : process.env.SMTP_HOST ? 'smtp' : 'console'))
+      )
+        .toString()
+        .trim()
+        .toLowerCase();
+
+      const fromEmail = emailRow?.from_email ?? process.env.EMAIL_FROM ?? 'no-reply@erp.local';
+      const domain = emailRow?.sending_domain?.trim() || null;
+      const apiKey =
+        (emailRow?.api_key_enc ? openSecret(emailRow.api_key_enc).toString('utf8').trim() : null) ||
+        (process.env.RESEND_API_KEY?.trim() || null);
+      const smtpHost = emailRow?.smtp_host?.trim() || process.env.SMTP_HOST?.trim() || null;
+      const smtpPort = emailRow?.smtp_port ?? (Number(process.env.SMTP_PORT) || 587);
+      const apiEndpoint =
+        emailRow?.api_endpoint?.trim() || process.env.EMAIL_HTTP_ENDPOINT?.trim() || null;
+      const latencyMs = round2(performance.now() - started);
+
+      if (rawProvider === 'resend') {
+        if (!apiKey) {
+          return {
+            name: 'email',
+            status: 'degraded',
+            detail: 'المزوّد Resend مختار لكن مفتاح API غير محفوظ بعد في إعدادات البريد',
+            latencyMs,
+          };
+        }
+        return {
+          name: 'email',
+          status: 'up',
+          detail: `المزوّد Resend مفعّل (${fromEmail}${domain ? ` · النطاق ${domain}` : ''}) — الرسائل تخرج فعلاً`,
+          latencyMs,
+        };
+      }
+
+      if (rawProvider === 'smtp') {
+        if (!smtpHost) {
+          return {
+            name: 'email',
+            status: 'degraded',
+            detail: 'المزوّد SMTP مختار لكن خادم البريد (Host) غير مضبوط بعد',
+            latencyMs,
+          };
+        }
+        return {
+          name: 'email',
+          status: 'up',
+          detail: `المزوّد SMTP مفعّل (${smtpHost}:${smtpPort} · ${fromEmail}) — الرسائل تخرج فعلاً`,
+          latencyMs,
+        };
+      }
+
+      if (rawProvider === 'http') {
+        if (!apiEndpoint) {
+          return {
+            name: 'email',
+            status: 'degraded',
+            detail: 'مزوّد HTTP مختار لكن رابط نقطة الإرسال غير مضبوط بعد',
+            latencyMs,
+          };
+        }
+        return {
+          name: 'email',
+          status: 'up',
+          detail: `مزوّد HTTP مفعّل (${fromEmail}) — الرسائل جاهزة للإرسال`,
+          latencyMs,
+        };
+      }
+
+      const isProd = env.NODE_ENV === 'production';
       return {
         name: 'email',
-        status: provider === 'smtp' ? 'up' : 'degraded',
-        detail:
-          provider === 'smtp'
-            ? 'المزوّد SMTP — الرسائل تخرج فعلاً'
-            : 'المزوّد console — الرسائل تُسجَّل ولا تُرسل (مقصود في التطوير)',
-        latencyMs: null,
+        status: isProd ? 'degraded' : 'not_configured',
+        detail: isProd
+          ? 'المزوّد console — الرسائل تُسجَّل محلياً ولا تُرسل خارجياً؛ اضبط Resend أو SMTP من شاشة البريد'
+          : 'المزوّد console (بيئة محلية) — اضبط Resend أو SMTP من شاشة البريد لتفعيل الإرسال الخارجي',
+        latencyMs,
       };
     } catch (error) {
       return {
         name: 'email',
         status: 'degraded',
         detail: error instanceof Error ? error.message : String(error),
-        latencyMs: null,
+        latencyMs: round2(performance.now() - started),
       };
     }
   }

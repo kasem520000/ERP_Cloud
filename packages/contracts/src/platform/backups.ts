@@ -486,6 +486,7 @@ export type PlatformDataRequestEraseResult = z.infer<typeof platformDataRequestE
 /** أفعال P-C10 في مسار التدقيق — كلٌّ منها إمّا يمسح بايتات أو يُخفي هوية. */
 export const backupAuditActions = {
   run: 'platform.backup.run',
+  import: 'platform.backup.import',
   verify: 'platform.backup.verify',
   download: 'platform.backup.download',
   restore: 'platform.backup.restore',
@@ -512,12 +513,15 @@ export const googleDriveBackupStatuses = [
   'connected',
   'disconnected',
   'never_connected',
+  'not_configured',
 ] as const;
 export type GoogleDriveBackupStatus = (typeof googleDriveBackupStatuses)[number];
 
 export const googleDriveConnectionSchema = z.object({
+  configured: z.boolean().optional(),
   connected: z.boolean(),
   email: z.string(),
+  folderId: z.string().nullable().optional(),
   connectedAt: z.string().nullable(),
   files: z.number().int().min(0),
   totalBytes: z.number().int().min(0),
@@ -537,7 +541,15 @@ export const googleDriveBackupFileSchema = z.object({
 });
 export type GoogleDriveBackupFile = z.infer<typeof googleDriveBackupFileSchema>;
 
-export const googleDriveConnectSchema = z.object({}).passthrough();
+export const googleDriveConnectSchema = z
+  .object({
+    clientId: z.string().trim().min(1).optional(),
+    clientSecret: z.string().trim().min(1).optional(),
+    refreshToken: z.string().trim().min(1).optional(),
+    folderId: z.string().trim().optional(),
+  })
+  .passthrough();
+export type GoogleDriveConnectInput = z.infer<typeof googleDriveConnectSchema>;
 export const googleDriveUploadSchema = z.object({
   backupJobId: z.string().nullable().optional(),
   scope: z.enum(googleDriveBackupScopes).default('platform'),

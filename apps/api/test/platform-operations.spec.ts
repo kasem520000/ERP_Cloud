@@ -451,6 +451,27 @@ describe('platform operations (P-C9)', () => {
     );
   });
 
+  it('يقرأ إعدادات Resend المحفوظة في email_settings ويُظهر البريد والعامل بحالة سليم (up)', async () => {
+    const saveEmail = await platform('put', '/platform/email/settings', {
+      provider: 'resend',
+      fromName: 'منصة ERP السحابية',
+      fromEmail: 'no-reply@sahabaccounting.com',
+      sendingDomain: 'sahabaccounting.com',
+      dkimSelector: 'google',
+      apiKey: 're_test_live_FkHH',
+      apiEndpoint: 'https://api.resend.com/emails',
+    });
+    expect(saveEmail.status).toBe(200);
+
+    const healthRes = await platform('get', '/platform/health/detailed');
+    expect(healthRes.status).toBe(200);
+    const health = (healthRes.body as { data: PlatformHealth }).data;
+    const emailProbe = health.probes.find((p) => p.name === 'email');
+    expect(emailProbe?.status).toBe('up');
+    expect(emailProbe?.detail).toContain('Resend');
+    expect(emailProbe?.detail).toContain('sahabaccounting.com');
+  });
+
   it('يُبقي تذاكر الدعم خارج هذا السطح — جزءٌ واحد لا يلمس جزءاً آخر', async () => {
     // وجود تذكرةٍ في القاعدة لا يمنع شيئاً هنا، وغياب كود الدعم لا يعطّل العمليات.
     const listed = await platform('get', `/platform/tickets?filter[tenantId]=${supportTicketTenantId}`);

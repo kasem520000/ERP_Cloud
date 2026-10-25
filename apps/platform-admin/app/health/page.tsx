@@ -94,7 +94,7 @@ export default function HealthPage() {
         </div>
       ) : health.status === 'forbidden' ? (
         <div className="rounded-[10px] border border-line bg-surface p-4 shadow-1">
-          لا تملك console.health.view.
+          لا تملك صلاحية عرض صحة النظام.
         </div>
       ) : health.status === 'error' ? (
         <EmptyState
@@ -118,7 +118,7 @@ export default function HealthPage() {
                   حادثة معلَنة: {data.incident.message ?? 'صيانة جارية'}
                 </p>
                 <p className="m-0 mt-1 text-[12px] text-danger">
-                  اللافتة من platform.maintenance* في إعدادات المنصة — لا نصٌّ في هذه الشاشة.
+                  اللافتة تُقرأ من إعدادات وضع الصيانة العام ورسالة الصيانة — لا نصٌّ ثابت في هذه الشاشة.
                 </p>
               </div>
             </div>
@@ -162,6 +162,7 @@ export default function HealthPage() {
             {data.probes.map((probe, _index) => {
               const up = probe.status === 'up';
               const down = probe.status === 'down';
+              const notConfigured = probe.status === 'not_configured';
               return (
                 <div key={probe.name} className="ui-kpi-cell">
                   <div className="flex items-center gap-2.5">
@@ -171,7 +172,9 @@ export default function HealthPage() {
                           ? 'bg-ok-soft text-ok'
                           : down
                             ? 'bg-danger-soft text-danger'
-                            : 'bg-warn-soft text-warn'
+                            : notConfigured
+                              ? 'bg-surface-2 text-muted'
+                              : 'bg-warn-soft text-warn'
                       }`}
                     >
                       {PROBE_ICON[probe.name] ?? <Gauge size={16} />}
@@ -182,7 +185,7 @@ export default function HealthPage() {
                       </span>
                       <span
                         className={`inline-flex items-center gap-1.5 text-[11.5px] font-bold ${
-                          up ? 'text-ok' : down ? 'text-danger' : 'text-warn'
+                          up ? 'text-ok' : down ? 'text-danger' : notConfigured ? 'text-muted' : 'text-warn'
                         }`}
                       >
                         {up || down ? (
@@ -195,7 +198,7 @@ export default function HealthPage() {
                             />
                           </span>
                         ) : (
-                          <span className="size-1.5 rounded-full bg-warn" />
+                          <span className={`size-1.5 rounded-full ${notConfigured ? 'bg-muted' : 'bg-warn'}`} />
                         )}
                         {STATUS_LABEL[probe.status] ?? probe.status}
                       </span>

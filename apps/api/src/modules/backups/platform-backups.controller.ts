@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -8,14 +8,16 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import {
   platformBackupQuerySchema,
   googleDriveBackupFileSchema,
+  googleDriveConnectSchema,
   googleDriveConnectionSchema,
   googleDriveDownloadSchema,
   googleDriveUploadSchema,
   type GoogleDriveBackupFile,
+  type GoogleDriveConnectInput,
   type GoogleDriveConnection,
   type GoogleDriveDownload,
   type GoogleDriveUploadInput,
@@ -57,6 +59,7 @@ import { RequiresPlatformRole } from '../platform/decorators/requires-platform-r
 import { PlatformAdminGuard } from '../platform/guards/platform-admin.guard.js';
 import { isExpired, verifyDownloadToken } from '../platform-services/files/download-token.js';
 
+import { MAX_DUMP_BYTES } from './backup-dump.js';
 import { PlatformBackupsService } from './platform-backups.service.js';
 
 /**
@@ -116,6 +119,57 @@ export class PlatformBackupsController {
     @Body(new ZodValidationPipe(platformBackupRunSchema)) body: PlatformBackupRunInput,
   ): Promise<{ data: PlatformBackupRow }> {
     return { data: await this.backups.runBackup(body, getAuthContext().userId) };
+  }
+
+  /**
+   * `POST /platform/backups/import` — رفع واستيراد ملف نسخة احتياطية خارجية (`.ndjson` / `.gz` / `.enc`).
+   *
+   * يقبل التدفق الثنائي المباشر (`application/octet-stream` أو `application/x-ndjson` أو `application/gzip`)
+   * حتى سقف `MAX_DUMP_BYTES` دون المرور بحدّ 1MB الخاص بمحلل JSON، كما يقبل JSON في الاختبارات.
+   */
+  @Post('backups/import')
+  @RequiresPlatformRole('console.backups.manage')
+  @ApiQuery({ name: 'fileName', required: false })
+  @ApiQuery({ name: 'note', required: false })
+  @ApiOperation({ summary: 'Upload and import an external backup dump (.ndjson, .gz, or encrypted .enc)' })
+  @ApiOkResponse({ description: 'Imported and verified backup row ready for restore' })
+  async importBackup(
+    @Req() req: Request,
+    @Query('fileName') queryFileName?: string,
+    @Query('note') queryNote?: string,
+  ): Promise<{ data: PlatformBackupRow }> {
+    const actorUserId = getAuthContext().userId;
+    let rawBytes: Buffer;
+    let fileName = queryFileName ?? (req.headers['x-backup-filename'] as string | undefined) ?? null;
+    let note = queryNote ?? null;
+
+    if (Buffer.isBuffer(req.body)) {
+      rawBytes = req.body;
+    } else if (
+      req.body &&
+      typeof req.body === 'object' &&
+      ('content' in (req.body as Record<string, unknown>) ||
+        'contentBase64' in (req.body as Record<string, unknown>))
+    ) {
+      const parsedBody = req.body as {
+        fileName?: string;
+        note?: string;
+        content?: string;
+        contentBase64?: string;
+      };
+      fileName = parsedBody.fileName ?? fileName;
+      note = parsedBody.note ?? note;
+      rawBytes =
+        typeof parsedBody.contentBase64 === 'string'
+          ? Buffer.from(parsedBody.contentBase64, 'base64')
+          : Buffer.from(String(parsedBody.content ?? ''), 'utf8');
+    } else {
+      rawBytes = await readRawRequestStream(req, MAX_DUMP_BYTES);
+    }
+
+    return {
+      data: await this.backups.importBackup(rawBytes, { fileName, note }, actorUserId),
+    };
   }
 
   /**
@@ -394,20 +448,25 @@ export class PlatformBackupsController {
   // ─────────────────────────────────────────────────────────────────────────────
 
   @Get('google-drive/status')
+  @RequiresPlatformRole('console.backups.manage')
   @ApiOperation({ summary: 'وضع جوجل درايف (متصل/غير متصل/لم يُربَط قط)' })
   async googleDriveStatus(): Promise<{ data: GoogleDriveConnection }> {
     return { data: await this.backups.googleDriveStatus() };
   }
 
   @Post('google-drive/connect')
-  @ApiOperation({ summary: 'ربط حساب جوجل درايف' })
-  async googleDriveConnect(@Body() _body: unknown): Promise<{ data: GoogleDriveConnection }> {
+  @RequiresPlatformRole('console.backups.manage')
+  @ApiOperation({ summary: 'ربط حساب جوجل درايف عبر OAuth2' })
+  async googleDriveConnect(
+    @Body(new ZodValidationPipe(googleDriveConnectSchema)) body: GoogleDriveConnectInput,
+  ): Promise<{ data: GoogleDriveConnection }> {
     const ctx = getAuthContext();
-    return { data: await this.backups.googleDriveConnect(ctx.userId) };
+    return { data: await this.backups.googleDriveConnect(ctx.userId, body) };
   }
 
   @Post('google-drive/disconnect')
-  @ApiOperation({ summary: 'قطع اتصال جوجل درايف (يمحو الملفات المرفوعة)' })
+  @RequiresPlatformRole('console.backups.manage')
+  @ApiOperation({ summary: 'قطع اتصال جوجل درايف' })
   async googleDriveDisconnect(): Promise<{ data: { disconnected: true } }> {
     const ctx = getAuthContext();
     await this.backups.googleDriveDisconnect(ctx.userId);
@@ -415,6 +474,7 @@ export class PlatformBackupsController {
   }
 
   @Post('google-drive/upload')
+  @RequiresPlatformRole('console.backups.manage')
   @ApiOperation({ summary: 'رفع نسخة إلى جوجل درايف' })
   async googleDriveUpload(
     @Body(new ZodValidationPipe(googleDriveUploadSchema)) body: GoogleDriveUploadInput,
@@ -424,6 +484,7 @@ export class PlatformBackupsController {
   }
 
   @Get('google-drive/files')
+  @RequiresPlatformRole('console.backups.manage')
   @ApiOperation({ summary: 'قائمة الملفات المرفوعة إلى جوجل درايف' })
   async googleDriveListFiles(
     @Query('scope') scope?: string,
@@ -437,6 +498,7 @@ export class PlatformBackupsController {
   }
 
   @Get('google-drive/files/:id/download')
+  @RequiresPlatformRole('console.backups.manage')
   @ApiOperation({ summary: 'تنزيل ملف من جوجل درايف (JSON)' })
   async googleDriveDownload(@Param('id') id: string): Promise<{ data: GoogleDriveDownload }> {
     const ctx = getAuthContext();
@@ -452,6 +514,7 @@ export class PlatformBackupsController {
   }
 
   @Delete('google-drive/files/:id')
+  @RequiresPlatformRole('console.backups.manage')
   @ApiOperation({ summary: 'حذف ملف من جوجل درايف' })
   async googleDriveDeleteFile(@Param('id') id: string): Promise<{ data: { deleted: boolean } }> {
     const ctx = getAuthContext();
@@ -460,14 +523,40 @@ export class PlatformBackupsController {
   }
 
   @Post('google-drive/files/:id/restore')
+  @RequiresPlatformRole('console.backups.manage')
   @ApiOperation({ summary: 'استعادة البيانات من ملف جوجل درايف' })
   async googleDriveRestore(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(platformBackupRestoreSchema)) body: PlatformBackupRestoreInput,
   ): Promise<{ data: PlatformBackupRestoreRow }> {
     const ctx = getAuthContext();
-    return { data: await this.backups.googleDriveRestore(id, body.mode, ctx.userId) };
+    return { data: await this.backups.googleDriveRestore(id, body.mode, ctx.userId, body.reason) };
   }
+}
+
+async function readRawRequestStream(req: Request, maxBytes: number): Promise<Buffer> {
+  return new Promise<Buffer>((resolvePromise, rejectPromise) => {
+    const chunks: Buffer[] = [];
+    let total = 0;
+    req.on('data', (chunk: Buffer | string) => {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      total += buf.byteLength;
+      if (total > maxBytes) {
+        req.destroy();
+        rejectPromise(
+          new DomainError(
+            'BACKUP_TOO_LARGE',
+            `حجم الملف المرفوع يتجاوز الحد المسموح (${Math.round(maxBytes / 1024 / 1024)} م.ب).`,
+            422,
+          ),
+        );
+        return;
+      }
+      chunks.push(buf);
+    });
+    req.on('end', () => resolvePromise(Buffer.concat(chunks)));
+    req.on('error', (err) => rejectPromise(err));
+  });
 }
 
 /** نتيجة التنفيذ: إمّا تصديرٌ أو محو — لا الاثنان معاً. */

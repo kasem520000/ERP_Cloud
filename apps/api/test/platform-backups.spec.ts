@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { gzipSync } from 'node:zlib';
 
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { sql } from 'drizzle-orm';
@@ -804,6 +805,71 @@ describe('platform backups and data requests (P-C10)', () => {
   });
 
   // ─────────────────────────────────────────────────────────── العقود
+
+  describe('استيراد النسخ الاحتياطية وجوجل درايف الفعلي', () => {
+    it('يرفع ملف نسخة احتياطية خارجي (.ndjson و.gz) عبر التدفق الثنائي ويتحقّق منه ويهيّئه للاستعادة', async () => {
+      const created = await platform('post', '/platform/backups/run', {
+        scope: 'tenant',
+        tenantId,
+        note: 'نسخة للتنزيل ثم الاستيراد',
+      });
+      expect(created.status).toBe(201);
+      const sourceJob = (created.body as { data: PlatformBackupRow }).data;
+
+      const dlMeta = await platform('get', `/platform/backups/${sourceJob.id}/download`);
+      expect(dlMeta.status).toBe(200);
+      const dlUrl = (dlMeta.body as { data: { url: string } }).data.url;
+      const contentRes = await request(ctx.server).get(dlUrl);
+      expect(contentRes.status).toBe(200);
+      const ndjsonText = contentRes.text;
+
+      // 1) رفع مضغوط (.gz) عبر التدفق الثنائي المباشر (بدون حد 1MB JSON)
+      const gzipped = gzipSync(Buffer.from(ndjsonText, 'utf8'));
+      const importRes = await request(ctx.server)
+        .post(`${base}/platform/backups/import?fileName=migrated-backup.ndjson.gz&note=نسخة%20مستوردة`)
+        .set('Authorization', `Bearer ${owner.token}`)
+        .set('Content-Type', 'application/octet-stream')
+        .send(gzipped);
+
+      expect(importRes.status).toBe(201);
+      const imported = (importRes.body as { data: PlatformBackupRow }).data;
+      expect(imported.status).toBe('succeeded');
+      expect(imported.verifiedAt).not.toBeNull();
+      expect(imported.checksum).toBe(sourceJob.checksum);
+      expect(imported.rows).toBe(sourceJob.rows);
+
+      // التحقّق والمعاينة التجريبية للاستعادة على النسخة المستوردة
+      const verified = await platform('post', `/platform/backups/${imported.id}/verify`, {});
+      expect(verified.status).toBe(201);
+      expect((verified.body as { data: PlatformBackupVerifyResult }).data.verified).toBe(true);
+
+      const dryRestore = await platform('post', `/platform/backups/${imported.id}/restore`, {
+        mode: 'dry_run',
+        reason: 'اختبار استعادة النسخة المستوردة',
+      });
+      expect(dryRestore.status).toBe(201);
+
+      // 2) رفض ملف تالف أو مبتور بـ422
+      const badRes = await request(ctx.server)
+        .post(`${base}/platform/backups/import?fileName=corrupt.ndjson`)
+        .set('Authorization', `Bearer ${owner.token}`)
+        .set('Content-Type', 'application/octet-stream')
+        .send(Buffer.from('{"not":"a-valid-backup"}\n', 'utf8'));
+      expect(badRes.status).toBe(422);
+    });
+
+    it('يعرض حالة جوجل درايف الحقيقية (not_configured) دون ادّعاء حساب وهمي ويرفض الربط بلا اعتمادات', async () => {
+      const statusRes = await platform('get', '/platform/google-drive/status');
+      expect(statusRes.status).toBe(200);
+      const status = statusRes.body.data as { connected: boolean; status: string; email: string };
+      expect(status.connected).toBe(false);
+      expect(status.status).toBe('not_configured');
+      expect(status.email).toBe('');
+
+      const connectNoCreds = await platform('post', '/platform/google-drive/connect', {});
+      expect(connectNoCreds.status).toBe(422);
+    });
+  });
 
   describe('العقود: صيغ المُدخل', () => {
     it('تطبيق الاحتفاظ يحتاج سبباً، ووضعُه الافتراضي تجريبي', () => {

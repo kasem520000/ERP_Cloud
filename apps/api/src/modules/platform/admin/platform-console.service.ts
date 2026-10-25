@@ -623,6 +623,12 @@ export class PlatformConsoleService {
     tenantMap: Map<string, { code: string | null; name: string | null }>,
   ): PlatformProblemRow {
     const tenant = row.tenant_id ? tenantMap.get(row.tenant_id) : undefined;
+    const href =
+      source === 'server'
+        ? `/problems?filter[source]=server&open=${row.id}`
+        : source === 'einvoice' && row.tenant_id
+          ? `/tenants/${row.tenant_id}`
+          : PROBLEM_HREFS[source];
     return {
       key: `${source}:${row.id}`,
       source,
@@ -635,8 +641,86 @@ export class PlatformConsoleService {
       tenantName: tenant?.name ?? null,
       attempts: row.attempts ?? null,
       occurredAt: new Date(row.occurred_at).toISOString(),
-      href: PROBLEM_HREFS[source],
+      href,
     };
+  }
+
+  async getServerProblem(id: string) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      throw new DomainError(errorCodes.NOT_FOUND, 'Server problem event was not found', 404);
+    }
+    return withPlatformAdminTx(this.database.db, async (tx) => {
+      const result = await tx.execute(sql`
+        SELECT id, source, severity, code, message, path, method, status, trace_id,
+               tenant_id, actor_user_id, meta, occurred_at
+          FROM platform_problem_events
+         WHERE id = ${id}::uuid
+         LIMIT 1
+      `);
+      const row = result.rows[0] as
+        | {
+            id: string;
+            source: string;
+            severity: string;
+            code: string | null;
+            message: string;
+            path: string | null;
+            method: string | null;
+            status: number | null;
+            trace_id: string | null;
+            tenant_id: string | null;
+            actor_user_id: string | null;
+            meta: Record<string, unknown> | null;
+            occurred_at: string | Date;
+          }
+        | undefined;
+      if (!row) {
+        throw new DomainError(errorCodes.NOT_FOUND, 'Server problem event was not found', 404);
+      }
+      const tenantMap = await this.tenantNames(tx);
+      const tenant = row.tenant_id ? tenantMap.get(row.tenant_id) : undefined;
+      return {
+        id: row.id,
+        source: row.source,
+        severity: row.severity === 'error' ? 'error' : 'warning',
+        code: row.code,
+        message: row.message,
+        path: row.path,
+        method: row.method,
+        status: row.status,
+        traceId: row.trace_id,
+        tenantId: row.tenant_id,
+        tenantCode: tenant?.code ?? null,
+        tenantName: tenant?.name ?? null,
+        actorUserId: row.actor_user_id,
+        meta: row.meta ?? {},
+        occurredAt: new Date(row.occurred_at).toISOString(),
+      };
+    });
+  }
+
+  async deleteServerProblem(id: string) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return { deleted: 0 };
+    }
+    return withPlatformAdminTx(this.database.db, async (tx) => {
+      const res = await tx.execute(sql`
+        DELETE FROM platform_problem_events
+         WHERE id = ${id}::uuid
+        RETURNING id
+      `);
+      return { deleted: res.rows.length };
+    });
+  }
+
+  async clearServerProblems() {
+    return withPlatformAdminTx(this.database.db, async (tx) => {
+      const res = await tx.execute(sql`
+        DELETE FROM platform_problem_events
+        RETURNING id
+      `);
+      return { deleted: res.rows.length };
+    });
   }
 
   // ------------------------------------------------------------------- omnibox

@@ -231,6 +231,8 @@ const envSchema = z.object({
 
   /** PHASE_04 jobs — BullMQ is only wired up when a Redis URL is present. */
   WORKER: booleanish.default(false),
+  /** Run the outbox/maintenance WorkerRunner embedded inside the API process (default true outside tests). */
+  EMBEDDED_WORKER: booleanish.optional(),
   JOBS_ENABLED: booleanish.default(true),
   JOB_QUEUE_PREFIX: z.string().default('erp'),
   OUTBOX_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(5_000),
@@ -238,6 +240,12 @@ const envSchema = z.object({
   OUTBOX_MAX_ATTEMPTS: z.coerce.number().int().positive().default(8),
   OUTBOX_BACKOFF_BASE_MS: z.coerce.number().int().positive().default(2_000),
   WORKER_HEALTH_LOG_INTERVAL_MS: z.coerce.number().int().positive().default(60_000),
+
+  /** Optional Google Drive OAuth2 credentials for external off-site backup sync. */
+  GOOGLE_DRIVE_CLIENT_ID: z.string().optional(),
+  GOOGLE_DRIVE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_DRIVE_REFRESH_TOKEN: z.string().optional(),
+  GOOGLE_DRIVE_FOLDER_ID: z.string().optional(),
 
   /** PHASE_04 idempotency — DATABASE_DESIGN §4 ("expires 24h"). */
   IDEMPOTENCY_TTL_HOURS: z.coerce.number().int().positive().default(24),

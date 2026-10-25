@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { accessSync, constants as fsConstants, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { gunzipSync } from 'node:zlib';
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, desc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
@@ -60,6 +61,7 @@ import {
   artifactKeySource,
   ensureArtifactKey,
   openArtifact,
+  parseArtifactHeader,
   ARTIFACT_STORE_FS,
   ARTIFACT_STORE_S3,
   type ArtifactKeySource,
@@ -86,6 +88,7 @@ import {
 import {
   GOOGLE_DRIVE_PORT,
   type GoogleDriveBackupFile,
+  type GoogleDriveConnectInput,
   type GoogleDriveConnection,
   type GoogleDrivePort,
 } from './google-drive.port.js';
@@ -370,6 +373,164 @@ export class PlatformBackupsService {
       this.logger.warn({ jobId, err: reason }, 'backup run failed');
       return withPlatformAdminTx(this.database.db, (tx) => this.loadJob(tx, jobId));
     }
+  }
+
+  /**
+   * `POST /platform/backups/import` — رفع واستيراد نسخة احتياطية خارجية (`.ndjson` أو `.gz` أو مشفّرة `.enc`).
+   *
+   * يفكّ الضغط أو التشفير إن وُجد، يتحقّق من الترويسة والذيل وتطابق الصفوف عبر `parseDump`،
+   * يحفظها في مخزن النسخ المشفّر (`putArtifact`)، ويُسجّلها كنسخة موثّقة جاهزة للاستعادة.
+   */
+  async importBackup(
+    rawBytes: Buffer,
+    options: { fileName?: string | null; note?: string | null },
+    actorUserId: string,
+  ): Promise<PlatformBackupRow> {
+    if (!rawBytes || rawBytes.byteLength === 0) {
+      throw new DomainError(
+        errorCodes.VALIDATION_FAILED,
+        'ملف النسخة الاحتياطية المرفوع فارغ.',
+        400,
+      );
+    }
+    if (rawBytes.byteLength > MAX_DUMP_BYTES) {
+      throw new DomainError(
+        'BACKUP_TOO_LARGE',
+        `حجم الملف يتجاوز السقف المسموح (${Math.round(MAX_DUMP_BYTES / 1024 / 1024)} م.ب).`,
+        422,
+      );
+    }
+
+    let plaintextBytes = rawBytes;
+    if (parseArtifactHeader(plaintextBytes) !== null) {
+      plaintextBytes = openArtifact(plaintextBytes);
+    }
+    if (
+      plaintextBytes.byteLength >= 2 &&
+      plaintextBytes[0] === 0x1f &&
+      plaintextBytes[1] === 0x8b
+    ) {
+      try {
+        plaintextBytes = gunzipSync(plaintextBytes);
+      } catch {
+        throw new DomainError(
+          errorCodes.VALIDATION_FAILED,
+          'تعذّر فكّ ضغط ملف النسخة الاحتياطية المضغوط (.gz).',
+          422,
+        );
+      }
+    }
+
+    if (plaintextBytes.byteLength > MAX_DUMP_BYTES) {
+      throw new DomainError(
+        'BACKUP_TOO_LARGE',
+        `حجم النسخة بعد فكّ الضغط يتجاوز السقف المسموح (${Math.round(MAX_DUMP_BYTES / 1024 / 1024)} م.ب).`,
+        422,
+      );
+    }
+
+    const dumpText = plaintextBytes.toString('utf8');
+    const parsed = parseDump(dumpText);
+    if (!parsed.complete || parsed.truncated || parsed.format !== DUMP_FORMAT) {
+      throw new DomainError(
+        errorCodes.VALIDATION_FAILED,
+        `ملف النسخة الاحتياطية غير صالح أو غير مكتمل: ${parsed.detail ?? 'صيغة الملف غير متوافقة مع erp-platform-dump/1'}`,
+        422,
+      );
+    }
+
+    const startedAt = new Date();
+    const jobId = newId();
+    const store = this.store();
+
+    // التحقق من وجود المستأجر محلياً إذا كان نطاق النسخة `tenant`؛ وإن كانت منقولة من خادم آخر
+    // لم يُستعد فيه المستأجر بعد، تُحفظ بنطاق `platform` حتى تنجح الاستعادة في إنشاء المستأجر أولاً.
+    let resolvedScope: 'platform' | 'tenant' = parsed.scope === 'tenant' ? 'tenant' : 'platform';
+    let resolvedTenantId: string | null =
+      resolvedScope === 'tenant' && parsed.tenantId ? parsed.tenantId : null;
+    if (resolvedTenantId) {
+      const exists = await withPlatformAdminTx(this.database.db, async (tx) => {
+        const rows = await tx
+          .select({ id: tenants.id })
+          .from(tenants)
+          .where(eq(tenants.id, resolvedTenantId!))
+          .limit(1);
+        return rows.length > 0;
+      });
+      if (!exists) {
+        resolvedScope = 'platform';
+        resolvedTenantId = null;
+      }
+    } else {
+      resolvedScope = 'platform';
+      resolvedTenantId = null;
+    }
+
+    const cleanName = (options.fileName ?? 'imported-backup.ndjson').trim().slice(0, 120);
+    const rawNote = options.note?.trim() || `استيراد خارجي: ${cleanName}`;
+    const note = rawNote.length >= 3 ? rawNote.slice(0, 500) : `استيراد: ${cleanName}`;
+
+    const { stored } = await this.putArtifact(
+      store,
+      this.buildObjectKey('platform-dump', jobId, startedAt),
+      plaintextBytes,
+    );
+    const artifactId = newId();
+    const finishedAt = new Date();
+
+    await withPlatformAdminTx(this.database.db, async (tx) => {
+      await tx.insert(backupArtifacts).values({
+        id: artifactId,
+        kind: 'platform-dump',
+        store: stored.store,
+        objectKey: stored.objectKey,
+        format: stored.format,
+        encryption: stored.encryption,
+        iv: stored.iv,
+        bytes: stored.bytes,
+        checksum: stored.checksum,
+        tables: parsed.tables.length,
+        rows: parsed.totalRows,
+        createdBy: actorUserId,
+      });
+      await tx.insert(backupJobs).values({
+        id: jobId,
+        scope: resolvedScope,
+        tenantId: resolvedTenantId,
+        status: 'succeeded',
+        artifactId,
+        note,
+        tables: parsed.tables.length,
+        rows: parsed.totalRows,
+        tenants: parsed.tenants.length,
+        startedAt,
+        finishedAt,
+        durationMs: Math.max(0, finishedAt.getTime() - startedAt.getTime()),
+        verifiedAt: finishedAt,
+        verifiedChecksum: stored.checksum,
+        requestedBy: actorUserId,
+      });
+    });
+
+    await this.audit.record({
+      actorUserId,
+      action: backupAuditActions.import,
+      entity: 'backup_jobs',
+      entityId: jobId,
+      after: {
+        fileName: cleanName,
+        scope: resolvedScope,
+        tenantId: resolvedTenantId,
+        store: stored.store,
+        bytes: stored.bytes,
+        checksum: stored.checksum,
+        tables: parsed.tables.length,
+        rows: parsed.totalRows,
+      },
+      meta: { note },
+    });
+
+    return withPlatformAdminTx(this.database.db, (tx) => this.loadJob(tx, jobId));
   }
 
   /**
@@ -2288,8 +2449,11 @@ export class PlatformBackupsService {
     return this.googleDrive.status();
   }
 
-  async googleDriveConnect(actorUserId: string): Promise<GoogleDriveConnection> {
-    const conn = await this.googleDrive.connect();
+  async googleDriveConnect(
+    actorUserId: string,
+    input?: GoogleDriveConnectInput,
+  ): Promise<GoogleDriveConnection> {
+    const conn = await this.googleDrive.connect(input);
     const label = await this.actorLabel(actorUserId);
     await this.audit.record({
       action: googleDriveAuditActions.connect,
@@ -2403,51 +2567,37 @@ export class PlatformBackupsService {
     fileId: string,
     mode: 'dry_run' | 'apply',
     actorUserId: string,
+    reason?: string,
   ): Promise<PlatformBackupRestoreRow> {
     const download = await this.googleDriveDownload(fileId, actorUserId);
-    // يُفكّ المحتوى ويُعالج مثل استعادة محلية: نفس preflight وinsertRows.
-    const parsed = parseDump(download.content.toString('utf8'));
-    if (!parsed.complete) {
-      throw new DomainError(errorCodes.VALIDATION_FAILED, `ملفّ غير صالح للاستعادة: ${parsed.detail ?? 'ملفّ مبتور'}`, 400);
-    }
-    // يُسجّل نتيجة الاستعادة في backup_restores (نفس الجدول).
-    const restoreId = newId();
-    await withPlatformAdminTx(this.database.db, async (tx) => {
-      await tx.execute(sql`
-        INSERT INTO backup_restores (id, backup_job_id, mode, status, verdict, table_counts, missing_tables, bytes, created_at, created_by)
-        VALUES (${restoreId}, NULL, ${mode}, 'dry_run', 'ready', '{}'::jsonb, '[]'::jsonb, ${download.sizeBytes}, now(), ${actorUserId})
-      `);
-    });
+    const imported = await this.importBackup(
+      download.content,
+      {
+        fileName: download.name,
+        note: `مستوردة من جوجل درايف (${download.name})`,
+      },
+      actorUserId,
+    );
+    const restoreRow = await this.restoreBackup(
+      imported.id,
+      {
+        mode,
+        reason:
+          reason && reason.trim().length >= 5
+            ? reason.trim()
+            : `استعادة نسخة من جوجل درايف: ${download.name}`,
+      },
+      actorUserId,
+    );
     const label = await this.actorLabel(actorUserId);
     await this.audit.record({
       action: googleDriveAuditActions.restore,
       actorUserId,
       actorLabel: label,
       entity: 'google_drive_backup_file',
-      meta: { fileId, name: download.name, mode, bytes: download.sizeBytes },
+      meta: { fileId, name: download.name, mode, bytes: download.sizeBytes, jobId: imported.id },
     });
-    return {
-      id: restoreId,
-      jobId: '00000000-0000-0000-0000-000000000000',
-      artifactId: null,
-      mode,
-      status: 'dry_run',
-      scope: 'platform',
-      tenantId: null,
-      checksum: download.checksum,
-      verified: true,
-      tables: parsed.tables.map((t) => ({ table: t.table, error: null, failed: 0, skipped: 0, rows: t.rows, inserted: 0, wouldInsert: 0 })),
-      totals: { rows: parsed.totalRows, inserted: 0, skipped: 0, failed: 0, wouldInsert: 0 },
-      missingTables: [],
-      verdict: 'ready',
-      detail: null,
-      reason: null,
-      startedAt: new Date().toISOString(),
-      finishedAt: null,
-      durationMs: 0,
-      requestedBy: actorUserId,
-      requestedByLabel: label,
-    };
+    return restoreRow;
   }
 }
 

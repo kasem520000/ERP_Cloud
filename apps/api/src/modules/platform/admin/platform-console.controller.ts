@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   platformAuditQuerySchema,
@@ -86,6 +86,27 @@ export class PlatformConsoleController {
     @Query(new ZodValidationPipe(platformProblemQuerySchema)) query: PlatformProblemQueryDto,
   ) {
     return { data: await this.console.listProblems(query) };
+  }
+
+  @Get('problems/server/:id')
+  @RequiresPlatformRole('console.health.view')
+  @ApiOperation({ summary: 'Full server problem event detail including stack and traceId' })
+  async getServerProblem(@Param('id') id: string) {
+    return { data: await this.console.getServerProblem(id) };
+  }
+
+  @Delete('problems/server/:id')
+  @RequiresPlatformRole('console.health.view')
+  @ApiOperation({ summary: 'Dismiss a resolved server problem event' })
+  async deleteServerProblem(@Param('id') id: string) {
+    return { data: await this.console.deleteServerProblem(id) };
+  }
+
+  @Delete('problems/server')
+  @RequiresPlatformRole('console.health.view')
+  @ApiOperation({ summary: 'Clear resolved server problem events' })
+  async clearServerProblems() {
+    return { data: await this.console.clearServerProblems() };
   }
 
   @Get('settings')

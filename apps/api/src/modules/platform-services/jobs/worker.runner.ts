@@ -1,7 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { env } from '@erp/config';
 import { jobTypes, QUEUE_NAMES, type QueueName } from '@erp/contracts';
-import { tenants, withTx, type DatabaseHandle } from '@erp/database';
+import { platformSettings, tenants, withPlatformAdminTx, withTx, type DatabaseHandle } from '@erp/database';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { Worker } from 'bullmq';
 
 import { DATABASE_HANDLE } from '../../../database/database.module.js';
@@ -154,6 +155,7 @@ export class WorkerRunner {
   }
 
   private logHealth(): void {
+    const nowIso = new Date().toISOString();
     this.logger.log(
       {
         role: 'worker',
@@ -164,13 +166,35 @@ export class WorkerRunner {
       },
       'worker health',
     );
+    void withPlatformAdminTx(this.database.db, async (tx) => {
+      const existing = await tx
+        .select({ id: platformSettings.id })
+        .from(platformSettings)
+        .where(and(isNull(platformSettings.tenantId), eq(platformSettings.key, 'worker.heartbeat')))
+        .limit(1);
+      const value = { at: nowIso, pid: process.pid, driver: this.queue.driver };
+      if (existing[0]) {
+        await tx
+          .update(platformSettings)
+          .set({ value, updatedAt: new Date() })
+          .where(eq(platformSettings.id, existing[0].id));
+      } else {
+        await tx.execute(sql`
+          INSERT INTO platform_settings (tenant_id, key, value, updated_at)
+          VALUES (NULL, 'worker.heartbeat', ${JSON.stringify(value)}::jsonb, now())
+          ON CONFLICT DO NOTHING
+        `);
+      }
+    }).catch(() => undefined);
   }
 
   async stop(): Promise<void> {
     if (this.outboxTimer) clearInterval(this.outboxTimer);
     if (this.healthTimer) clearInterval(this.healthTimer);
+    if (this.scheduleTimer) clearInterval(this.scheduleTimer);
     this.outboxTimer = undefined;
     this.healthTimer = undefined;
+    this.scheduleTimer = undefined;
 
     for (const worker of this.workers) {
       await worker.close();

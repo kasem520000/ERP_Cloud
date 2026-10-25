@@ -78,6 +78,22 @@ async function bootstrap(): Promise<void> {
   applyServerTimeouts(app.getHttpServer() as Parameters<typeof applyServerTimeouts>[0]);
   await app.listen(env.PORT, env.API_HOST);
 
+  const runEmbeddedWorker = env.EMBEDDED_WORKER ?? env.NODE_ENV !== 'test';
+  if (runEmbeddedWorker) {
+    try {
+      const runner = app.get(WorkerRunner);
+      await runner.start();
+      const stopRunner = () => void runner.stop().catch(() => undefined);
+      process.once('SIGTERM', stopRunner);
+      process.once('SIGINT', stopRunner);
+      console.log(`erp-api embedded worker active (poll=${env.OUTBOX_POLL_INTERVAL_MS}ms)`);
+    } catch (err) {
+      console.warn(
+        `erp-api embedded worker start skipped: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
   console.log(`erp-api listening on http://${env.API_HOST}:${env.PORT} (${env.NODE_ENV})`);
 }
 

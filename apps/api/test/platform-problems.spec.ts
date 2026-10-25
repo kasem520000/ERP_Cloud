@@ -101,6 +101,23 @@ describe('server problem log (batch 20 Oct · item 3)', () => {
     expect(row?.detail).toContain('/api/v1/spec/boom');
     expect(row?.hint).toContain('الخادم');
     expect(row?.href).toContain('source]=server');
+
+    const eventId = row!.key.replace(/^server:/, '');
+    const detailRes = await api(ctx.server, 'get', `${base}/platform/problems/server/${eventId}`, {
+      token: operator.token,
+    });
+    expect(detailRes.status).toBe(200);
+    const detailData = (detailRes.body as { data: { id: string; code: string; path: string; meta: Record<string, unknown> } }).data;
+    expect(detailData.id).toBe(eventId);
+    expect(detailData.code).toBe('TEST_BOOM');
+    expect(detailData.path).toBe('/api/v1/spec/boom');
+    expect(detailData.meta.stack).toContain('at spec');
+
+    const delRes = await api(ctx.server, 'delete', `${base}/platform/problems/server/${eventId}`, {
+      token: operator.token,
+    });
+    expect(delRes.status).toBe(200);
+    expect((delRes.body as { data: { deleted: number } }).data.deleted).toBe(1);
   });
 
   it('استقبال تقارير Next لا يُقبل دون الرمز المضبوط', async () => {
