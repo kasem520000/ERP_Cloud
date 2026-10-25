@@ -50,6 +50,13 @@ export type SequenceOptions = {
   /** Used only when the sequence row is created; afterwards the stored value wins. */
   prefix?: string;
   padding?: number;
+  /**
+   * The next number to issue (R-47 numbering presets). On row creation the initial
+   * `current_value` becomes `GREATEST(startAt, tenant_max + 1)` so the first document
+   * gets exactly `startAt`; on an existing row the counter jumps forward to `startAt`
+   * (never backward — `GREATEST` protects already-issued numbers).
+   */
+  startAt?: number;
 };
 
 const TENANT_WIDE_DOC_TYPES = new Set([
@@ -107,6 +114,7 @@ export class SequencesService {
   ): Promise<SequenceAllocation> {
     const prefix = options.prefix ?? '';
     const padding = options.padding ?? 6;
+    const startAt = options.startAt;
     if (padding < 1 || padding > 18) {
       throw new DomainError(errorCodes.VALIDATION_FAILED, 'padding must be between 1 and 18', 400, {
         field: 'padding',
@@ -130,7 +138,7 @@ export class SequencesService {
       INSERT INTO document_sequences (id, tenant_id, branch_id, doc_type, fiscal_year_id, prefix, padding, current_value, updated_at)
       VALUES (${newId()}, ${scope.tenantId}, ${effectiveBranchId}, ${scope.docType},
               ${effectiveFiscalYearId}, ${prefix}, ${padding},
-              COALESCE((SELECT MAX(current_value) FROM document_sequences WHERE tenant_id = ${scope.tenantId} AND doc_type = ${scope.docType}), 0) + 1,
+              GREATEST(${startAt ?? 0}, COALESCE((SELECT MAX(current_value) FROM document_sequences WHERE tenant_id = ${scope.tenantId} AND doc_type = ${scope.docType}), 0) + 1),
               now())
       ON CONFLICT (
         tenant_id,
@@ -138,7 +146,7 @@ export class SequencesService {
         doc_type,
         coalesce(fiscal_year_id, ${SEQUENCE_SCOPE_NIL_UUID}::uuid)
       )
-      DO UPDATE SET current_value = document_sequences.current_value + 1, updated_at = now()
+      DO UPDATE SET current_value = GREATEST(document_sequences.current_value + 1, ${startAt ?? 0}), updated_at = now()
       RETURNING current_value, prefix, padding
     `);
 

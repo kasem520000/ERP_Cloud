@@ -1205,7 +1205,11 @@ export class SalesService {
     const allocated = await this.sequences.next(
       { tenantId, branchId: locked.branchId, docType: locked.kind },
       tx,
-      { prefix, padding: numberingPolicy?.invoicePadding ?? 6 },
+      {
+        prefix,
+        padding: numberingPolicy?.invoicePadding ?? 6,
+        startAt: locked.kind === 'sale' ? numberingPolicy?.invoiceStartAt ?? undefined : undefined,
+      },
     );
     const number = allocated.display;
     const today = (posting as any).date?.trim() || new Date().toISOString().slice(0, 10);

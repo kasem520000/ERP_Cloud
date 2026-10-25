@@ -90,6 +90,61 @@ export const tenantSettingsRegistry: readonly TenantSettingDefinition[] = [
     z.number().int().min(1).max(20),
     6,
   ),
+  // --- Document numbering presets (R-47) -----------------------------------------
+  // Custom numbering per document family: prefix, zero-padding width, and the number
+  // the next document starts from. A customer migrating from another system sets
+  // `start_at` to the number after their last invoice and the sequence continues
+  // from there. `SequencesService.allocate` honours `startAt` at row creation and
+  // `SettingsService.put` bumps an existing sequence forward (never backward).
+  define(
+    'invoice.start_at',
+    'sales',
+    'Next number to issue for sales invoices (continue a sequence from another system).',
+    z.number().int().min(1).max(999999999),
+    1,
+  ),
+  define(
+    'pos.number_prefix',
+    'pos',
+    'Prefix for the POS order sequence (the business date is appended after it).',
+    z.string().max(12),
+    'POS-',
+  ),
+  define(
+    'pos.padding',
+    'pos',
+    'Zero-padding width of the POS order sequence.',
+    z.number().int().min(1).max(20),
+    4,
+  ),
+  define(
+    'pos.start_at',
+    'pos',
+    'Next number to issue for POS orders each business day.',
+    z.number().int().min(1).max(999999999),
+    1,
+  ),
+  define(
+    'purchases.number_prefix',
+    'purchases',
+    'Prefix for the purchase invoice document sequence.',
+    z.string().max(12),
+    'PI-',
+  ),
+  define(
+    'purchases.padding',
+    'purchases',
+    'Zero-padding width of the purchase invoice sequence.',
+    z.number().int().min(1).max(20),
+    6,
+  ),
+  define(
+    'purchases.start_at',
+    'purchases',
+    'Next number to issue for purchase invoices (continue a sequence from another system).',
+    z.number().int().min(1).max(999999999),
+    1,
+  ),
   define(
     'money.rounding_digits',
     'accounting',

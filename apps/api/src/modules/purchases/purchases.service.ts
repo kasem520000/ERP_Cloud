@@ -715,7 +715,16 @@ export class PurchasesService {
         const allocated = byLine.get(line.id);
         await tx.update(purchaseInvoiceLines).set({ allocatedCost: allocated?.allocatedCost ?? '0', landedTotal: allocated?.landedTotal ?? line.net, unitCostAtPost: allocated?.effectiveUnitCost ?? line.unitPrice, updatedAt: new Date() }).where(and(eq(purchaseInvoiceLines.tenantId, tenantId), eq(purchaseInvoiceLines.id, line.id)));
       }
-      const numbered = await this.sequences.next({ tenantId, branchId: locked.branchId, docType }, tx, { prefix: isReturn ? 'PR-' : 'PI-', padding: 6 });
+      const numberingPolicy = await readTenantMoneyPolicy(tx, tenantId);
+      const numbered = await this.sequences.next(
+        { tenantId, branchId: locked.branchId, docType },
+        tx,
+        {
+          prefix: isReturn ? 'PR-' : numberingPolicy.purchasePrefix,
+          padding: numberingPolicy.purchasePadding,
+          startAt: isReturn ? undefined : numberingPolicy.purchaseStartAt,
+        },
+      );
       const additionalCostTotal = costs.reduce((sum, cost) => sum.plus(cost.amount), new Decimal(0)).toFixed(4);
       const postedTotal = money(locked.total).plus(additionalCostTotal).toFixed(4);
       let journalEntryId: string | null = null;
