@@ -5047,21 +5047,60 @@ const definitions: ReportDefinition[] = [
           JOIN purchase_invoices pi ON pi.id = pil.invoice_id
           WHERE pi.tenant_id = ${tenantId} AND pi.status = 'posted' AND pi.kind IN ('purchase', 'purchase_return')
             AND ${date(sql`pi.posted_at::date`)} AND ${eqIf(sql`pi.branch_id`, f.branchId)}
+        ), sn AS (
+          /*
+           * MF-18 / r45 / AC2 — إشعار دائن جزء من وعاء الإقرار المقدَّم: حصّته من الوعاء
+           * ومن الضريبة تُشتق من نسبة فاتورته الأصلية (نفس صيغة «vat-return»)، وتُخصم من
+           * «الخاضعة» إن كانت فاتورته مُضرَّبة أو من «المعفاة» إن كانت بلا ضريبة — بلطف
+           * التصنيف الصحيح، لا بمبلغ مفترض. (بدونه كان الوعاء90 والصافي13.50 بينما
+           * 2222001 = 12.00 ⇐ فشل AC2/AC3 في r45 RED.)
+           */
+          SELECT coalesce(sum(CASE WHEN si.tax_total <> 0
+                     THEN round(san.amount - round(san.amount * coalesce(si.tax_total / nullif(si.total, 0), 0), 2), 2)
+                     ELSE 0 END), 0) AS taxed_base,
+                 coalesce(sum(CASE WHEN si.tax_total <> 0
+                     THEN round(san.amount * coalesce(si.tax_total / nullif(si.total, 0), 0), 2)
+                     ELSE 0 END), 0) AS taxed_vat,
+                 coalesce(sum(CASE WHEN si.tax_total = 0 THEN round(san.amount, 2) ELSE 0 END), 0) AS exempt_base
+          FROM sales_adjustment_notes san
+          JOIN sales_invoices si ON si.id = san.invoice_id
+          WHERE san.tenant_id = ${tenantId} AND san.status = 'posted' AND san.kind = 'credit'
+            AND ${date(sql`coalesce(san.posted_at::date, san.created_at::date)`)} AND ${eqIf(sql`san.branch_id`, f.branchId)}
+        ), pn AS (
+          /* MF-18 / r45 / AC2 — الإشعار المدين للمشتريات يزيد الوعاء/المدخلات بحصة فاتورته
+             (مطابق للفرع «إشعار مدين مشتريات» في «vat-return»). */
+          SELECT coalesce(sum(CASE WHEN pi.tax_total <> 0
+                     THEN round(pan.amount - round(pan.amount * coalesce(pi.tax_total / nullif(pi.total, 0), 0), 2), 2)
+                     ELSE 0 END), 0) AS taxed_base,
+                 coalesce(sum(CASE WHEN pi.tax_total <> 0
+                     THEN round(pan.amount * coalesce(pi.tax_total / nullif(pi.total, 0), 0), 2)
+                     ELSE 0 END), 0) AS taxed_vat,
+                 coalesce(sum(CASE WHEN pi.tax_total = 0 THEN round(pan.amount, 2) ELSE 0 END), 0) AS exempt_base
+          FROM purchase_adjustment_notes pan
+          JOIN purchase_invoices pi ON pi.id = pan.invoice_id
+          WHERE pan.tenant_id = ${tenantId} AND pan.status = 'posted' AND pan.kind = 'debit'
+            AND ${date(sql`coalesce(pan.posted_at::date, pan.created_at::date)`)} AND ${eqIf(sql`pan.branch_id`, f.branchId)}
         ), s AS (
           SELECT coalesce(sum(net) FILTER (WHERE tax <> 0 AND kind = 'sale'), 0)
-               - coalesce(sum(net) FILTER (WHERE tax <> 0 AND kind = 'sale_return'), 0) AS taxed_net,
+               - coalesce(sum(net) FILTER (WHERE tax <> 0 AND kind = 'sale_return'), 0)
+               - (SELECT taxed_base FROM sn) AS taxed_net,
                  coalesce(sum(tax) FILTER (WHERE tax <> 0 AND kind = 'sale'), 0)
-               - coalesce(sum(tax) FILTER (WHERE tax <> 0 AND kind = 'sale_return'), 0) AS taxed_vat,
+               - coalesce(sum(tax) FILTER (WHERE tax <> 0 AND kind = 'sale_return'), 0)
+               - (SELECT taxed_vat FROM sn) AS taxed_vat,
                  coalesce(sum(net) FILTER (WHERE tax = 0 AND kind = 'sale'), 0)
-               - coalesce(sum(net) FILTER (WHERE tax = 0 AND kind = 'sale_return'), 0) AS exempt_net
+               - coalesce(sum(net) FILTER (WHERE tax = 0 AND kind = 'sale_return'), 0)
+               - (SELECT exempt_base FROM sn) AS exempt_net
           FROM sale_lines
         ), p AS (
           SELECT coalesce(sum(net) FILTER (WHERE tax <> 0 AND kind = 'purchase'), 0)
-               - coalesce(sum(net) FILTER (WHERE tax <> 0 AND kind = 'purchase_return'), 0) AS taxed_net,
+               - coalesce(sum(net) FILTER (WHERE tax <> 0 AND kind = 'purchase_return'), 0)
+               + (SELECT taxed_base FROM pn) AS taxed_net,
                  coalesce(sum(tax) FILTER (WHERE tax <> 0 AND kind = 'purchase'), 0)
-               - coalesce(sum(tax) FILTER (WHERE tax <> 0 AND kind = 'purchase_return'), 0) AS taxed_vat,
+               - coalesce(sum(tax) FILTER (WHERE tax <> 0 AND kind = 'purchase_return'), 0)
+               + (SELECT taxed_vat FROM pn) AS taxed_vat,
                  coalesce(sum(net) FILTER (WHERE tax = 0 AND kind = 'purchase'), 0)
-               - coalesce(sum(net) FILTER (WHERE tax = 0 AND kind = 'purchase_return'), 0) AS exempt_net
+               - coalesce(sum(net) FILTER (WHERE tax = 0 AND kind = 'purchase_return'), 0)
+               + (SELECT exempt_base FROM pn) AS exempt_net
           FROM purchase_lines
         ), r AS (
           SELECT coalesce(sum(ri.net_amount), 0) AS net_total, coalesce(sum(ri.tax_amount), 0) AS vat_total

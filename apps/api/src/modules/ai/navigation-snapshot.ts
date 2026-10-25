@@ -202,6 +202,24 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     "source": "navigation"
   },
   {
+    "id": "nav:tax-filings",
+    "title": "الإقرارات الضريبية",
+    "href": "/accounting/tax-filings",
+    "keywords": [
+      "الإقرارات",
+      "الضريبية",
+      "Tax",
+      "filings",
+      "accounting",
+      "tax"
+    ],
+    "steps": [
+      "افتح «الإقرارات الضريبية» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
     "id": "nav:amortization-schedules",
     "title": "جداول المقدّم والاستحقاق",
     "href": "/accounting/amortization-schedules",

@@ -18,10 +18,8 @@ import {
   periodModuleLocks,
   shiftCloses,
   cashLocationBalances,
-  paymentAllocations,
-  purchaseInvoices,
-  salesInvoices,
   users,
+  vatFilings,
   warehouses,
   withTenantTx,
   type DatabaseHandle,
@@ -1009,6 +1007,24 @@ export class AccountingService {
         .where(eq(fiscalYears.id, period.fiscalYearId));
       if (parentYear?.status === 'closed') {
         throw new DomainError('FISCAL_YEAR_CLOSED', 'السنة المالية مُقفلة إقفالاً سنوياً — أعد فتح السنة نفسها أولاً', 409);
+      }
+      // MF-18 / r45 / AC1 — فترة غطّاها إقرار ضريبي مقدَّم لا تُعاد فتحها: لقطة
+      // الإقرار مجمَّدة ورصيد2222001 قد نُقل؛ إعادة الفتح ستفتح باب وثائق جديدة
+      // بتاريخ الإقرار فيتغيّر ما قُدِّم. الحارس يشمل النطاق المتداخل لا المطابق فقط.
+      const [filed] = await tx
+        .select({ id: vatFilings.id, from: vatFilings.periodFrom, to: vatFilings.periodTo })
+        .from(vatFilings)
+        .where(
+          and(eq(vatFilings.tenantId, tenantId), lte(vatFilings.periodFrom, period.endDate), gte(vatFilings.periodTo, period.startDate)),
+        )
+        .limit(1);
+      if (filed) {
+        throw new DomainError(
+          'VAT_FILING_EXISTS',
+          `لا يمكن إعادة فتح فترة يغطيها إقرار ضريبي مقدَّم (${filed.from} .. ${filed.to})`,
+          409,
+          { filingId: filed.id, periodFrom: filed.from, periodTo: filed.to },
+        );
       }
       await tx
         .update(fiscalPeriods)
@@ -3025,6 +3041,8 @@ export class AccountingService {
         .where(eq(fiscalPeriods.fiscalYearId, year.id))
         .orderBy(fiscalPeriods.startDate);
       let net = new Decimal(0);
+      /* eslint-disable no-restricted-syntax -- دَين قديم قبل D11: أسماء balance/signed في
+         بلوك Decimal سليم هذا وشرط المراجعة اليدوية خطر أكبر من المنع المؤقت. */
       const lines = income.map((row) => {
         const balance = new Decimal(row.credit).minus(row.debit); // إيراد دائن موجب
         // صافي الدخل = مجموع (دائن−مدين) لكل حسابات الدخل: الخسارة تدخل طبيعياً بمدين
@@ -3040,6 +3058,7 @@ export class AccountingService {
           actionAr: balance.gt(0) ? `دائن ← ${balance.toFixed(4)} (تصفير بمدين)` : `مدين ← ${balance.abs().toFixed(4)} (تصفير بدائن)`,
         };
       });
+      /* eslint-enable no-restricted-syntax */
       const retained =
         income.length > 0
           ? await this.retainedAccountInTx(tx, tenantId).catch((e: unknown) => {
@@ -3113,6 +3132,7 @@ export class AccountingService {
         await tx.update(fiscalPeriods).set({ status: 'open' }).where(eq(fiscalPeriods.id, endPeriod.id));
 
         const lines: Array<{ accountId: string; debit?: string; credit?: string; description: string }> = [];
+        /* eslint-disable no-restricted-syntax -- دَين قديم قبل D11 (نفس بلوك Decimal الأعلى). */
         for (const row of income) {
           const balance = new Decimal(row.debit).minus(row.credit); // موجب = مدين
           // صافي الدخل = مجموع −(مدين−دائن) لكل حسابات الدخل: الإيراد بموجب، والمصروف
@@ -3124,6 +3144,7 @@ export class AccountingService {
         }
         if (net.gt(0)) lines.push({ accountId: retained.id, credit: net.toFixed(4), description: `تحويل صافي دخل ${year.name} إلى الأرباح المحتجزة` });
         else if (net.lt(0)) lines.push({ accountId: retained.id, debit: net.abs().toFixed(4), description: `تحويل صافي خسارة ${year.name} إلى الأرباح المحتجزة` });
+        /* eslint-enable no-restricted-syntax */
 
         const [branch] = await tx
           .select({ id: branches.id })
@@ -3231,6 +3252,22 @@ export class AccountingService {
         .for('update');
       if (!year) throw new DomainError('FISCAL_YEAR_NOT_FOUND', 'Fiscal year not found', 404);
       if (year.status !== 'closed') throw new DomainError('FISCAL_YEAR_NOT_CLOSED', 'السنة ليست مُقفلة', 409);
+      // MF-18 / r45 / AC1 — سنة تحوي إقراراً مقدَّماً لا تُعاد فتحها (إقفالها يعكس
+      // قيد الإقفال وتُفتح فتراتها واحدة واحدة — كلها محميحة بحارس الفترة أعلاه، لكن
+      // رفض السنة كوحدة يمنع المسار كله من الباب الأمامي).
+      const [filedYear] = await tx
+        .select({ id: vatFilings.id, from: vatFilings.periodFrom, to: vatFilings.periodTo })
+        .from(vatFilings)
+        .where(and(eq(vatFilings.tenantId, tenantId), lte(vatFilings.periodFrom, year.endDate), gte(vatFilings.periodTo, year.startDate)))
+        .limit(1);
+      if (filedYear) {
+        throw new DomainError(
+          'VAT_FILING_EXISTS',
+          `لا يمكن إعادة فتح سنة يغطيها إقرار ضريبي مقدَّم (${filedYear.from} .. ${filedYear.to})`,
+          409,
+          { filingId: filedYear.id },
+        );
+      }
       if (year.closingEntryId) {
         const periods = await tx
           .select()

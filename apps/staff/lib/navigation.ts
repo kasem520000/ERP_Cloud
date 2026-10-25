@@ -129,6 +129,10 @@ const accounting: ModuleNode = {
           permission: 'accounting.period.view',
           endpoint: '/fiscal-periods',
         }),
+        screen('tax-filings', 'الإقرارات الضريبية', 'Tax filings', '/accounting/tax-filings', 'ready', {
+          permission: 'accounting.period.view',
+          endpoint: '/tax/filings',
+        }),
         screen('amortization-schedules', 'جداول المقدّم والاستحقاق', 'Amortization schedules', '/accounting/amortization-schedules', 'ready', {
           permission: 'accounting.reports.view',
           endpoint: '/amortization-schedules',

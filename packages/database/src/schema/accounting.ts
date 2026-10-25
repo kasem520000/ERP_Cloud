@@ -4,6 +4,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   numeric,
   pgTable,
   primaryKey,
@@ -18,7 +19,7 @@ import { baseAuditColumns, baseLegacyColumns, baseSoftDeleteColumns } from '../c
 
 import { employees } from './hrm.js';
 import { branches } from './organization.js';
-import { tenants } from './platform.js';
+import { tenants, users } from './platform.js';
 
 const money = { precision: 20, scale: 4, mode: 'string' as const };
 
@@ -227,7 +228,48 @@ export const openingBalances = pgTable(
   }),
 );
 
+/**
+ * MF-18 / D11 — الإقرار الضريبي المقدَّم: أرقام التقرير مجمَّدة في `snapshot` لحظة
+ * التقديم (AC1)، و`net_vat` = الصافي الذي نُقل عن2222001 في قيد التسوية (AC3)، والقيد
+ * والحساب مرتبطان بالمصفوفة. التداخل بين نطاقين ممنوع على مستوى التطبيق (409).
+ */
+export type VatFilingSnapshot = {
+  reportKey: 'vat-return-period';
+  params: { from: string; to: string };
+  rows: Array<Record<string, string>>;
+  columns: Array<{ key: string; labelAr: string; type: string; hidden?: boolean }>;
+  grandTotal: Array<{ key: string; labelAr: string; amount: string }>;
+};
+
+export const vatFilings = pgTable(
+  'vat_filings',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    tenantId: uuid('tenant_id')
+      .notNull()
+      .references(() => tenants.id, { onDelete: 'cascade' }),
+    periodFrom: date('period_from').notNull(),
+    periodTo: date('period_to').notNull(),
+    /** لقطة التقرير الرسمية `vat-return-period` (rows + columns + grandTotal + params). */
+    snapshot: jsonb('snapshot').notNull().$type<VatFilingSnapshot>(),
+    netVat: numeric('net_vat', { precision: 18, scale: 4 }).notNull(),
+    outputVat: numeric('output_vat', { precision: 18, scale: 4 }).notNull().default('0'),
+    inputVat: numeric('input_vat', { precision: 18, scale: 4 }).notNull().default('0'),
+    journalEntryId: uuid('journal_entry_id').references(() => journalEntries.id),
+    settlementAccountId: uuid('settlement_account_id').references(() => accounts.id),
+    filedAt: timestamp('filed_at', { withTimezone: true }).notNull().default(sql`now()`),
+    filedBy: uuid('filed_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    scopeKey: uniqueIndex('vat_filings_scope_key').on(table.tenantId, table.periodFrom, table.periodTo),
+    tenantPeriodIdx: index('vat_filings_tenant_period_idx').on(table.tenantId, table.periodFrom, table.periodTo),
+  }),
+);
+
 export type Account = typeof accounts.$inferSelect;
 export type JournalEntry = typeof journalEntries.$inferSelect;
 export type JournalEntryLine = typeof journalEntryLines.$inferSelect;
 export type FiscalPeriod = typeof fiscalPeriods.$inferSelect;
+export type VatFiling = typeof vatFilings.$inferSelect;
