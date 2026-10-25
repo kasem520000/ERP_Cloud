@@ -1,4 +1,4 @@
-# قائمة تحقق واجهات — مستأجر verify2026 (أُنشئت 2026-10-25T00:40:33.541Z)
+# قائمة تحقق واجهات — مستأجر verify2026 (أُنشئت 2026-10-25T02:33:17.419Z)
 
 > وُلِّدت آلياً بواسطة `pnpm verify-seed` (apps/api/scripts/verify-seed.ts).
 > القيم أدناه مأخوذة من قاعدة البيانات وردود تقارير API **بعد** توليد الحركات.
@@ -291,7 +291,12 @@
 - `pnpm --dir apps/api exec vitest run r45-tax-filings` → **7/7 GREEN**: (1) التقرير يقرأ ويجمّد ثم `POST /tax/filings` → 201 مع `netVat` + `journalEntryId` + `closedPeriodIds`؛ (2) نص الشهرين «الفترة حُوِّلت إلى 24/05» بدل «صمت 23/04..24/05» (سحب ممتد فتّش من 01/05)؛ (3) تداخل نطاق → 409 مع منحى `FISCAL_PERIOD_NOT_FOUND` على الشهرين؛ (4) صفر مطلق → 201 بلا قيد `journalEntryId:null` مع إقفال كامل؛ (5) سالب (مردود يفوق البيع بالـ150) → قيد Dr 1280001/Cr 2222001 (قرض ضريبي)؛ (6) clerk → 403 على العرض والتقديم؛ (7) العرض `accounting.period.view` بلا close والتقديم يتطلب `accounting.period.close`.
 - التقدّم: **RED صادق** (فشل `GET` تُرجَع 404 وPOST بلا جدول و403 بلا perm و«صمت» وnull) محفوظ في `logs/r45-red.txt`؛ ثم 0151 (أقواس `vat_filings` + UNIQUE بـCOALESCE)، `TaxFilingsService/Controller`، حراس `FISCAL_PERIOD_NOT_FOUND/FISCAL_PERIOD_NOT_OPEN/FISCAL_PERIOD_OVERLAP`، سند `journalEntryId` على قيود `vat_return`، `reporting.view` على التقارير موسَّعة لتشمل `accounting.period.view`، عدّاد الشاشات 281→282.
 - `node docs/accounting-audit/scripts/probe-d12-tax-filing.mjs` → **15/15 حيّاً** (`evidence/verify-seed/probe-d12-tax-filing.txt`) على بذرة verify2026 بعد `pnpm verify-seed -- --reset`: AC3a صافي التقرير = رصيد 2222001 لحظة التقديم (−13.80 = −13.80 · فرق 0.0000) · AC3b بعد التسويق: 2222001 = 0 · ذمة 1280001 = |الصافي| · قيد سطرين `is_vat=false` · AC1 التقرير المعاد = اللقطة حرفاً بحرف + الفترة `closed` + قيد وفاتورة autoPost لاحقان اليوم → 409 `FISCAL_PERIOD_CLOSED` · تكرار/تداخل → 409 `VAT_FILING_ALREADY_FILED` · reopen → 409 `VAT_FILING_EXISTS` · السجل والتفاصيل 200 + snapshot 13 بنداً · `vat-return` 200 (بلا انحدار) · TB **252,080 = 252,080** · شاشتا `/accounting/tax-filings` و`/reports/vat-return-period` 200 + `nav:tax-filings` في اللقطة.
-- ⚠ فحص أحادي التشغيل (الإقرار لا يُلغى عبر API — قفل مقصود): إعادة التشغيل تتطلب `pnpm verify-seed -- --reset`، وهو نفسه ما يُنفَّذ تعويضاً بعد الفحص (يُعيد بذرة 2026-10-25). **وينبغي بعد كل reset إعادة إدراج §26–§28 من git لأن السكربت يولّد الملف كاملاً.**
+- ⚠ فحص أحادي التشغيل (الإقرار لا يُلغى عبر API — قفل مقصود): إعادة التشغيل تتطلب `pnpm verify-seed -- --reset`، وهو نفسه ما يُنفَّذ تعويضاً بعد الفحص (يُعيد بذرة 2026-10-25). **وينبغي بعد كل reset إعادة إدراج §26–§29 من git لأن السكربت يولّد الملف كاملاً.**
+
+### 29. دورة العملات — تحقّق آلي (R46 / D12 · MF-28)
+- **وحدة:** `apps/api/test/r46-tax-fx.spec.ts` — `pnpm --dir apps/api exec vitest run r46-tax-fx` → **7/7** (RED صادق `logs/r46-red.txt` · GREEN `logs/r46-green.txt`) — AC1 فرق 1.00 + تصفير الذمة بالدولار · AC2 قيد إعادة التقييم + عكسه · AC3 لا سعر حر (EUR/نافذة/معطّلة) · سند USD ACC-073 · ارتداد SAR.
+- **رجوع شامل:** `pnpm --dir apps/api exec vitest run` → **265/265 · 2129/2129**.
+- **حيّ على verify2026:** `node docs/accounting-audit/scripts/probe-d13-fx-cycle.mjs` → **13/13** (`evidence/verify-seed/probe-d13-fx-cycle.txt`) — أحادي التشغيل: إعادة التشغيل تتطلب `pnpm verify-seed -- --reset` وهو نفسه التعويض بعد الفحص، **يُعاد بعده إدراج §26–§29** لأن السكربت يولّد الملف كاملاً.
 
 ## قالب الإبلاغ عن فرق
 
