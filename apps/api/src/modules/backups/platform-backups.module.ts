@@ -9,6 +9,10 @@ import {
   FileArtifactStore,
   S3ArtifactStore,
 } from './artifact-store.js';
+import {
+  GOOGLE_DRIVE_PORT,
+  GoogleDriveSimulator,
+} from './google-drive.port.js';
 import { PlatformBackupsController } from './platform-backups.controller.js';
 import { PlatformBackupsService } from './platform-backups.service.js';
 
@@ -19,6 +23,9 @@ import { PlatformBackupsService } from './platform-backups.service.js';
  * نفسه جزءٌ من العقد: الشاشة تعرض `store` لكل ملف، ومَن يقرأ «filesystem» يعرف أنه ليس
  * S3. والمنفذان مَعينان في هذه الوحدة (لا في `PlatformServicesModule`) لأن `ObjectStoragePort`
  * يُحقن فيهما، فتكون التبعية صريحةً في موضعها.
+ *
+ * ومنفذ جوجل درايف (`GOOGLE_DRIVE_PORT`) يُعلَن هنا أيضاً: التنفيذ الحالي هو محاكاة، لكن
+ * الواجهة تفصل التنفيذ الحقيقي القادم (بتوثيق OAuth فعلي) عن المنطق الذي يستخدمه.
  */
 @Module({
   imports: [PlatformModule],
@@ -34,6 +41,8 @@ import { PlatformBackupsService } from './platform-backups.service.js';
       useFactory: (storage: ObjectStoragePort) => new S3ArtifactStore(storage),
       inject: [OBJECT_STORAGE],
     },
+    // منفذ جوجل درايف: المحاكاة حالياً، والواجهة تُمكّن التنفيذ الحقيقي لاحقاً.
+    { provide: GOOGLE_DRIVE_PORT, useFactory: () => new GoogleDriveSimulator() },
   ],
   exports: [PlatformBackupsService],
 })

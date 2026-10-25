@@ -496,3 +496,75 @@ export const backupAuditActions = {
   dataRequestExport: 'platform.data-request.export',
   dataRequestErase: 'platform.data-request.erase',
 } as const;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// جوجل درايف — النسخ الاحتياطي المرتفع إلى الدرايف
+//
+// هذه الأنواع تصف اتصال جوجل درايف والملفات المرفوعة. التنفيذ في
+// `google-drive.port.ts` هو محاكاة (مثل بوابة ZATCA)، لكن الأنواع والعمليات
+// حقيقية وتتبع نفس القواعد التي تحكم النسخ المحلي.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const googleDriveBackupScopes = ['platform', 'tenant'] as const;
+export type GoogleDriveBackupScope = (typeof googleDriveBackupScopes)[number];
+
+export const googleDriveBackupStatuses = [
+  'connected',
+  'disconnected',
+  'never_connected',
+] as const;
+export type GoogleDriveBackupStatus = (typeof googleDriveBackupStatuses)[number];
+
+export const googleDriveConnectionSchema = z.object({
+  connected: z.boolean(),
+  email: z.string(),
+  connectedAt: z.string().nullable(),
+  files: z.number().int().min(0),
+  totalBytes: z.number().int().min(0),
+  status: z.enum(googleDriveBackupStatuses),
+});
+export type GoogleDriveConnection = z.infer<typeof googleDriveConnectionSchema>;
+
+export const googleDriveBackupFileSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  sizeBytes: z.number().int().min(0),
+  checksum: z.string(),
+  uploadedAt: z.string(),
+  scope: z.enum(googleDriveBackupScopes),
+  tenantId: z.string().nullable(),
+  backupJobId: z.string().nullable(),
+});
+export type GoogleDriveBackupFile = z.infer<typeof googleDriveBackupFileSchema>;
+
+export const googleDriveConnectSchema = z.object({}).passthrough();
+export const googleDriveUploadSchema = z.object({
+  backupJobId: z.string().nullable().optional(),
+  scope: z.enum(googleDriveBackupScopes).default('platform'),
+  tenantId: z.string().nullable().optional(),
+  name: z.string().min(1).max(256).optional(),
+});
+export type GoogleDriveUploadInput = z.infer<typeof googleDriveUploadSchema>;
+
+export const googleDriveBackupFileListSchema = z.object({
+  files: z.array(googleDriveBackupFileSchema),
+});
+export type GoogleDriveBackupFileList = z.infer<typeof googleDriveBackupFileListSchema>;
+
+export const googleDriveDownloadSchema = z.object({
+  content: z.string(),
+  name: z.string(),
+  checksum: z.string(),
+  sizeBytes: z.number().int().min(0),
+});
+export type GoogleDriveDownload = z.infer<typeof googleDriveDownloadSchema>;
+
+// أفعال التدقيق لجوجل درايف
+export const googleDriveAuditActions = {
+  connect: 'platform.backup.google-drive.connect',
+  disconnect: 'platform.backup.google-drive.disconnect',
+  upload: 'platform.backup.google-drive.upload',
+  download: 'platform.backup.google-drive.download',
+  deleteFile: 'platform.backup.google-drive.delete',
+  restore: 'platform.backup.google-drive.restore',
+} as const;

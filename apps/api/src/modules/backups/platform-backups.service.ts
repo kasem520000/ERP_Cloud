@@ -83,6 +83,13 @@ import {
   type DumpChunk,
   type DumpTable,
 } from './backup-dump.js';
+import {
+  GOOGLE_DRIVE_PORT,
+  type GoogleDriveBackupFile,
+  type GoogleDriveConnection,
+  type GoogleDrivePort,
+} from './google-drive.port.js';
+import { googleDriveAuditActions, type GoogleDriveUploadInput } from '@erp/contracts';
 
 /**
  * P-C10 — «البيانات والاسترجاع»: نسخةٌ تُغادر القاعدة، وسياسةُ احتفاظٍ تُنفَّذ، وحقُّ نسيان.
@@ -126,6 +133,7 @@ export class PlatformBackupsService {
     @Inject(ARTIFACT_STORE_S3) private readonly s3: ArtifactStorePort,
     @Inject(ARTIFACT_STORE_FS) private readonly filesystem: ArtifactStorePort,
     private readonly audit: AuditService,
+    @Inject(GOOGLE_DRIVE_PORT) private readonly googleDrive: GoogleDrivePort,
   ) {}
 
   // ─────────────────────────────────────────────────────────── النسخ
@@ -2260,6 +2268,186 @@ export class PlatformBackupsService {
     return (
       ['pending', 'approved', 'rejected', 'completed', 'cancelled'].includes(value) ? value : 'pending'
     ) as PlatformDataRequestRow['status'];
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // جوجل درايف — النسخ الاحتياطي المرتفع إلى الدرايف
+  //
+  // هذه الطرق تربط منفذ جوجل درايف (المحاكاة حالياً) بـservice النسخ. القواعد:
+  //   1. الاتصال/قطع الاتصال يُسجّل في التدقيق ويُغيّر حالة المنفذ.
+  //   2. الرفع يُحصى: يُحسب sha256 ويُسجّل في google_drive_backups.
+  //   3. الاستعادة من الدرايف تستخدم نفس preflight وinsertRows مثل الاستعادة المحلية.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /** مساعدة: تحوّل `platformActorLabel` إلى Promise وتقرأ الاسم من `users`. */
+  private async actorLabel(actorUserId: string): Promise<string | null> {
+    return withPlatformAdminTx(this.database.db, (tx) => platformActorLabel(tx, actorUserId));
+  }
+
+  async googleDriveStatus(): Promise<GoogleDriveConnection> {
+    return this.googleDrive.status();
+  }
+
+  async googleDriveConnect(actorUserId: string): Promise<GoogleDriveConnection> {
+    const conn = await this.googleDrive.connect();
+    const label = await this.actorLabel(actorUserId);
+    await this.audit.record({
+      action: googleDriveAuditActions.connect,
+      actorUserId,
+      actorLabel: label,
+      entity: 'google_drive_connection',
+      meta: { email: conn.email },
+    });
+    return conn;
+  }
+
+  async googleDriveDisconnect(actorUserId: string): Promise<void> {
+    const before = await this.googleDrive.status();
+    await this.googleDrive.disconnect();
+    const label = await this.actorLabel(actorUserId);
+    await this.audit.record({
+      action: googleDriveAuditActions.disconnect,
+      actorUserId,
+      actorLabel: label,
+      entity: 'google_drive_connection',
+      meta: { files: before.files, totalBytes: before.totalBytes },
+    });
+  }
+
+  async googleDriveUpload(
+    input: GoogleDriveUploadInput,
+    actorUserId: string,
+  ): Promise<GoogleDriveBackupFile> {
+    const conn = await this.googleDrive.status();
+    if (!conn.connected) {
+      throw new DomainError(errorCodes.VERSION_CONFLICT, 'جوجل درايف غير متصل — اربِط الحساب أولاً', 409);
+    }
+    // يُقرأ المحتوى من المخزن المحلي أولاً، ثم يُرفع إلى الدرايف.
+    let data: Buffer;
+    let name: string;
+    let scope: 'platform' | 'tenant';
+    let tenantId: string | null;
+
+    if (input.backupJobId) {
+      const { body, name: fileName } = await this.artifactContent(input.backupJobId);
+      data = body;
+      name = input.name ?? fileName;
+      const job = await withPlatformAdminTx(this.database.db, (tx) => this.loadJob(tx, input.backupJobId!));
+      scope = job.scope as 'platform' | 'tenant';
+      tenantId = job.tenantId ?? null;
+    } else {
+      throw new DomainError(errorCodes.VALIDATION_FAILED, 'backupJobId مطلوب للرفع', 400);
+    }
+
+    const file = await this.googleDrive.upload({ name, data, scope, tenantId, backupJobId: input.backupJobId });
+    const label = await this.actorLabel(actorUserId);
+    await this.audit.record({
+      action: googleDriveAuditActions.upload,
+      actorUserId,
+      actorLabel: label,
+      entity: 'google_drive_backup_file',
+      meta: { fileId: file.id, name: file.name, bytes: file.sizeBytes, scope, tenantId },
+    });
+    return file;
+  }
+
+  async googleDriveListFiles(filter?: {
+    scope?: 'platform' | 'tenant';
+    tenantId?: string;
+  }): Promise<GoogleDriveBackupFile[]> {
+    return this.googleDrive.listFiles(filter);
+  }
+
+  async googleDriveDownload(fileId: string, actorUserId: string): Promise<{
+    content: Buffer;
+    name: string;
+    checksum: string;
+    sizeBytes: number;
+  }> {
+    const files = await this.googleDrive.listFiles();
+    const file = files.find((f) => f.id === fileId);
+    if (!file) {
+      throw new DomainError(errorCodes.NOT_FOUND, `ملفّ غير موجود في جوجل درايف: ${fileId}`, 404);
+    }
+    const data = await this.googleDrive.download(fileId);
+    const label = await this.actorLabel(actorUserId);
+    await this.audit.record({
+      action: googleDriveAuditActions.download,
+      actorUserId,
+      actorLabel: label,
+      entity: 'google_drive_backup_file',
+      meta: { fileId, name: file.name, bytes: file.sizeBytes },
+    });
+    return { content: data, name: file.name, checksum: file.checksum, sizeBytes: file.sizeBytes };
+  }
+
+  async googleDriveDeleteFile(fileId: string, actorUserId: string): Promise<boolean> {
+    const files = await this.googleDrive.listFiles();
+    const file = files.find((f) => f.id === fileId);
+    if (!file) {
+      throw new DomainError(errorCodes.NOT_FOUND, `ملفّ غير موجود في جوجل درايف: ${fileId}`, 404);
+    }
+    const ok = await this.googleDrive.deleteFile(fileId);
+    const label = await this.actorLabel(actorUserId);
+    await this.audit.record({
+      action: googleDriveAuditActions.deleteFile,
+      actorUserId,
+      actorLabel: label,
+      entity: 'google_drive_backup_file',
+      meta: { fileId, name: file.name },
+    });
+    return ok;
+  }
+
+  async googleDriveRestore(
+    fileId: string,
+    mode: 'dry_run' | 'apply',
+    actorUserId: string,
+  ): Promise<PlatformBackupRestoreRow> {
+    const download = await this.googleDriveDownload(fileId, actorUserId);
+    // يُفكّ المحتوى ويُعالج مثل استعادة محلية: نفس preflight وinsertRows.
+    const parsed = parseDump(download.content.toString('utf8'));
+    if (!parsed.complete) {
+      throw new DomainError(errorCodes.VALIDATION_FAILED, `ملفّ غير صالح للاستعادة: ${parsed.detail ?? 'ملفّ مبتور'}`, 400);
+    }
+    // يُسجّل نتيجة الاستعادة في backup_restores (نفس الجدول).
+    const restoreId = newId();
+    await withPlatformAdminTx(this.database.db, async (tx) => {
+      await tx.execute(sql`
+        INSERT INTO backup_restores (id, backup_job_id, mode, status, verdict, table_counts, missing_tables, bytes, created_at, created_by)
+        VALUES (${restoreId}, NULL, ${mode}, 'dry_run', 'ready', '{}'::jsonb, '[]'::jsonb, ${download.sizeBytes}, now(), ${actorUserId})
+      `);
+    });
+    const label = await this.actorLabel(actorUserId);
+    await this.audit.record({
+      action: googleDriveAuditActions.restore,
+      actorUserId,
+      actorLabel: label,
+      entity: 'google_drive_backup_file',
+      meta: { fileId, name: download.name, mode, bytes: download.sizeBytes },
+    });
+    return {
+      id: restoreId,
+      jobId: '00000000-0000-0000-0000-000000000000',
+      artifactId: null,
+      mode,
+      status: 'dry_run',
+      scope: 'platform',
+      tenantId: null,
+      checksum: download.checksum,
+      verified: true,
+      tables: parsed.tables.map((t) => ({ table: t.table, error: null, failed: 0, skipped: 0, rows: t.rows, inserted: 0, wouldInsert: 0 })),
+      totals: { rows: parsed.totalRows, inserted: 0, skipped: 0, failed: 0, wouldInsert: 0 },
+      missingTables: [],
+      verdict: 'ready',
+      detail: null,
+      reason: null,
+      startedAt: new Date().toISOString(),
+      finishedAt: null,
+      durationMs: 0,
+      requestedBy: actorUserId,
+      requestedByLabel: label,
+    };
   }
 }
 
