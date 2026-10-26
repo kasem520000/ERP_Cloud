@@ -296,7 +296,7 @@ export default function FilesPage() {
                         </Badge>
                         <span className="mt-0.5 block font-mono text-[10.5px] text-muted" dir="ltr">
                           {row.scan.scanner} ·{' '}
-                          {new Date(row.scan.recordedAt).toLocaleString('en-GB', { timeZone: 'UTC' })}
+                          {new Date(row.scan.recordedAt).toLocaleString('en-GB', { timeZone: 'Asia/Riyadh' })}
                         </span>
                       </span>
                     ) : (
@@ -309,7 +309,7 @@ export default function FilesPage() {
                   ltr: true,
                   cell: (row) => (
                     <span className="font-mono text-[11.5px] text-muted">
-                      {new Date(row.createdAt).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC
+                      {new Date(row.createdAt).toLocaleString('en-GB', { timeZone: 'Asia/Riyadh' })}
                     </span>
                   ),
                 },

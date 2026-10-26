@@ -615,5 +615,8 @@ export function generatedAtText(payload: ReportsPayload | null): string | null {
   if (typeof stamp !== 'string' || stamp.trim().length === 0) return null;
   const parsed = new Date(stamp);
   if (Number.isNaN(parsed.getTime())) return stamp;
-  return parsed.toLocaleString('ar', { hour12: false });
+  return parsed.toLocaleString('ar-SA-u-ca-gregory-nu-latn', {
+    timeZone: 'Asia/Riyadh',
+    hour12: false,
+  });
 }

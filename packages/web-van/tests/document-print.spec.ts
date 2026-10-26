@@ -245,7 +245,7 @@ describe('the paper carries the server’s numbers, not the browser’s arithmet
     const html = buildVanDocumentPrintHtml(printView());
     expect(html).toContain(BASE.saleDate);
     const printed = new Date(BASE.printedAt);
-    expect(html).toContain(printed.toLocaleDateString('ar-SA-u-ca-gregory'));
+    expect(html).toContain(printed.toLocaleDateString('ar-SA-u-ca-gregory', { timeZone: 'Asia/Riyadh' }));
     expect(html).not.toContain('Invalid Date');
   });
 

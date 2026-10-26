@@ -57,7 +57,7 @@ export const tenantSettingsRegistry: readonly TenantSettingDefinition[] = [
     'organization',
     'Legacy flat timezone key; `locale.timezone` is authoritative.',
     z.string(),
-    'UTC',
+    'Asia/Riyadh',
   ),
   define(
     'branding.primary_color',

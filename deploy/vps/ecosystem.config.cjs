@@ -31,6 +31,7 @@ const app = (dir) => path.join(root, 'apps', dir);
 const common = {
   env: {
     NODE_ENV: 'production',
+    TZ: 'Asia/Riyadh',
     // لا أسرار هنا: `@erp/config` يقرأ `.env` من جذر المستودع بالبحث الصاعد من `cwd`،
     // فيكفي أن تكون العمليات داخل شجرة المستودع.
   },

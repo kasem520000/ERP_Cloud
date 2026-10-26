@@ -1,5 +1,9 @@
 import 'reflect-metadata';
 
+if (!process.env.TZ) {
+  process.env.TZ = 'Asia/Riyadh';
+}
+
 import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
 import { assertRuntimeEnv, describeEnvSources, env, envIssues } from '@erp/config';

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Button, ThemeToggle } from '@erp/ui';
 import { apiData } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
+import { BootCard } from '@erp/web-core/session-gate';
 
 import { licenceVerdict } from '../lib/licence';
 import { BAKERY_MODULES, isRepScoped, moduleForPath, visibleModules } from '../lib/navigation';
@@ -68,11 +69,7 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
   });
 
   if (verdict === 'loading') {
-    return (
-      <main aria-busy="true" className="bak-main">
-        <p className="m-0 text-[13px] text-muted">جارٍ التحقّق من الجلسة ومن ترخيص الباقة…</p>
-      </main>
-    );
+    return <BootCard logo="ERP" text="جارٍ التحقّق من الجلسة ومن ترخيص الباقة…" />;
   }
 
   if (verdict !== 'licensed') {

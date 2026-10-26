@@ -98,7 +98,8 @@ function mapBakeryHref(href: string | null, type: string): string | null {
 
 function formatTime(iso: string): string {
   try {
-    return new Date(iso).toLocaleString('ar-SA', {
+    return new Date(iso).toLocaleString('ar-SA-u-ca-gregory-nu-latn', {
+      timeZone: 'Asia/Riyadh',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',

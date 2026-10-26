@@ -233,7 +233,7 @@ export default function JobsPage() {
                   ltr: true,
                   cell: (row) => (
                     <span className="font-mono text-[11.5px] text-muted">
-                      {new Date(row.runAt).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC
+                      {new Date(row.runAt).toLocaleString('en-GB', { timeZone: 'Asia/Riyadh' })}
                     </span>
                   ),
                 },

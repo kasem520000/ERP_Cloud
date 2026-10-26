@@ -1820,7 +1820,7 @@ export class PosService {
 }
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
 }
 function decoratedDescription(line: OpenLine): string {
   return JSON.stringify({ text: line.description ?? 'POS item', modifiers: line.modifiers });

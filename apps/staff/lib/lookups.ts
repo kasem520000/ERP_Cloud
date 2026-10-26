@@ -484,15 +484,28 @@ export function shortDate(value: string | Date | null | undefined): string {
   return date.toISOString().slice(0, 10);
 }
 
+export const MAKKAH_TIMEZONE = 'Asia/Riyadh';
+
 export function dateTime(value: string | Date | null | undefined): string {
   if (!value) return '—';
   const date = typeof value === 'string' ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toISOString().slice(0, 16).replace('T', ' ');
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: MAKKAH_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const pick = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+  const hour = pick('hour') === '24' ? '00' : pick('hour');
+  return `${pick('year')}-${pick('month')}-${pick('day')} ${hour}:${pick('minute')}`;
 }
 
 export function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: MAKKAH_TIMEZONE }).format(new Date());
 }
 
 /** A running money total computed in the browser — never sent to the API. */

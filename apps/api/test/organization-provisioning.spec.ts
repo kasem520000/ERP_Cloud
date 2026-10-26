@@ -151,14 +151,19 @@ describe('organization provisioning and default flags (PHASE_05 §5.7, §11)', (
         'SELECT code, name_en FROM branches WHERE id = $1',
         [defaults.branchId],
       );
+      const warehouse = await client.query<{ name: string }>(
+        'SELECT name FROM warehouses WHERE id = $1',
+        [defaults.warehouseId],
+      );
       const currency = await client.query<{ minor_units: number }>(
         'SELECT minor_units FROM currencies WHERE tenant_id = $1 AND code = $2',
         [tenant.id, 'KWD'],
       );
-      return { branch: branch.rows[0], currency: currency.rows[0] };
+      return { branch: branch.rows[0], warehouse: warehouse.rows[0], currency: currency.rows[0] };
     });
 
     expect(rows.branch).toMatchObject({ code: 'HQ', name_en: 'Head office' });
+    expect(rows.warehouse?.name).toBe('المستودع الرئيسي');
     // A dinar has three minor units — rounding money at two would be wrong here.
     expect(rows.currency?.minor_units).toBe(3);
   });

@@ -91,7 +91,7 @@ export const escapeHtml = (value: string): string =>
 const formatPrintedAt = (value: string): string => {
   const at = new Date(value);
   if (Number.isNaN(at.getTime())) return value;
-  return `${at.toLocaleDateString('ar-SA-u-ca-gregory')} ${at.toLocaleTimeString('ar-SA-u-ca-gregory')}`;
+  return `${at.toLocaleDateString('ar-SA-u-ca-gregory', { timeZone: 'Asia/Riyadh' })} ${at.toLocaleTimeString('ar-SA-u-ca-gregory', { timeZone: 'Asia/Riyadh' })}`;
 };
 
 /**

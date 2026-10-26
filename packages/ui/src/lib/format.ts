@@ -82,19 +82,20 @@ export function formatCompactMoney(value: string | number, currency?: string): s
   return `${sign}${body}${currency ? ` ${currency}` : ''}`;
 }
 
-/** ISO date → a short, locale-stable label (no `toLocaleDateString` drift). */
-export function formatDate(iso: string, locale = 'en-GB'): string {
+/** ISO date → a short, locale-stable label in Makkah time (`Asia/Riyadh`). */
+export function formatDate(iso: string, locale = 'en-GB', timeZone = 'Asia/Riyadh'): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
   return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    timeZone,
   }).format(date);
 }
 
-/** ISO timestamp → date + 24h clock, the shape an audit row is read in. */
-export function formatDateTime(iso: string, locale = 'en-GB'): string {
+/** ISO timestamp → date + 24h clock in Makkah time (`Asia/Riyadh`). */
+export function formatDateTime(iso: string, locale = 'en-GB', timeZone = 'Asia/Riyadh'): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
   return new Intl.DateTimeFormat(locale, {
@@ -104,6 +105,7 @@ export function formatDateTime(iso: string, locale = 'en-GB'): string {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+    timeZone,
   }).format(date);
 }
 

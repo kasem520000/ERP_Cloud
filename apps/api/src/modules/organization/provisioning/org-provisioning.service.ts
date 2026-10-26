@@ -65,6 +65,7 @@ export type ProvisionOptions = {
   code?: string;
   nameAr?: string;
   nameEn?: string;
+  warehouseName?: string;
   /**
    * When true (new customer/tenant account creation via Platform Console, Self-Signup,
    * Lead Conversion, or Company File creation), also seeds the starter Fiscal Year & 12
@@ -148,7 +149,7 @@ export class OrgProvisioningService {
         tenantId,
         branchId,
         code,
-        name: options.nameEn ? nameEn : 'المستودع الرئيسي',
+        name: options.warehouseName ?? 'المستودع الرئيسي',
         isDefault: true,
         isActive: true,
         createdAt: now,
@@ -309,9 +310,9 @@ export class OrgProvisioningService {
     actorUserId: string | null,
     now: Date,
   ): Promise<boolean> {
-    const today = now.toISOString().slice(0, 10);
-    const currentYear = now.getUTCFullYear();
-    const currentMonthLabel = `${currentYear}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(now);
+    const currentYear = Number(today.slice(0, 4));
+    const currentMonthLabel = today.slice(0, 7);
 
     const [coveringYear] = await tx
       .select({ id: fiscalYears.id })
