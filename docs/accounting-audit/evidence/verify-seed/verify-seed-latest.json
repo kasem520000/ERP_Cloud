@@ -1,26 +1,26 @@
 {
-  "at": "2026-10-25T23:56:54.295Z",
+  "at": "2026-10-26T01:48:10.226Z",
   "tenantCode": "verify2026",
-  "tenantId": "01a1757e-d6f4-77b9-8b1d-0ebf652da3ae",
+  "tenantId": "01a175e4-b715-726a-af85-7c2ea6a8b2ba",
   "ids": {
-    "flId": "01a1757e-d9b6-74ed-b665-2c0879598f34",
-    "brkId": "01a1757e-d9d5-75d9-906e-0f2c9509e07c",
-    "suppId": "01a1757e-d9f5-711a-9f17-c4ecc0db5431",
-    "custCrId": "01a1757e-da12-743e-95de-bfcc24cbdb28",
-    "custCshId": "01a1757e-da34-76ef-8ed2-52c529856c18",
-    "piId": "01a1757e-da54-75b0-8cd8-755b4135a91c",
-    "s1Id": "01a1757e-dadf-7149-b180-f016cb5ee5ec",
-    "s2Id": "01a1757e-db62-73b8-abab-c6cc71c4583e",
-    "retId": "01a1757e-dbff-726c-8367-332e3f537829",
-    "expVoucher": "01a1757e-dd30-763c-86ec-5b70ec07be6b",
-    "rvVoucher": "01a1757e-dd8c-745c-a098-81bdb048d1c1",
-    "cashTransfer": "01a1757e-ddd9-7247-9821-1dbfb66c3f7a",
-    "stockTransfer": "01a1757e-de61-75cc-b105-3f3543b2b427",
-    "prId": "01a1757e-dfad-71d0-9cc1-d0e8ca6fdd7f",
-    "costCenterJeId": "01a1757e-e061-734a-84be-f5e592572ab7",
-    "costCenterGroupId": "01a1757e-e015-7228-804e-21d1593da98f",
-    "costCenterLeafId": "01a1757e-e02e-749c-b1ef-dea21f53b8a4",
-    "projectId": "01a1757e-e0bc-7456-ba2e-8a6363d3504c"
+    "flId": "01a175e4-b9a4-7738-a22d-a1b3f35b69be",
+    "brkId": "01a175e4-b9c4-70e6-ad87-ce11d40de2ef",
+    "suppId": "01a175e4-b9df-767d-98d6-8c8582cfefc5",
+    "custCrId": "01a175e4-ba0c-71fe-a918-398eb822fdb0",
+    "custCshId": "01a175e4-ba2c-70ff-ac85-348c1afc3368",
+    "piId": "01a175e4-ba4b-77fd-84cf-d04d6ae5bded",
+    "s1Id": "01a175e4-bacf-72b9-b31f-16ee3524bdcf",
+    "s2Id": "01a175e4-bb85-7131-a814-94a1d9f61e4c",
+    "retId": "01a175e4-bc17-77f9-bcc0-7cb9f70ce0c9",
+    "expVoucher": "01a175e4-bcf5-747b-a749-8ae3baa1d142",
+    "rvVoucher": "01a175e4-bd41-75c7-a3e1-c27adb877473",
+    "cashTransfer": "01a175e4-bd8c-747e-9443-0da17c6ce875",
+    "stockTransfer": "01a175e4-bdd8-7013-8dc0-873f7c34c226",
+    "prId": "01a175e4-beaa-742a-a45e-bd8ce2109e1f",
+    "costCenterJeId": "01a175e4-bf48-734e-be3d-44c36da600ec",
+    "costCenterGroupId": "01a175e4-bf0e-7199-a527-3cf2a3f8e06e",
+    "costCenterLeafId": "01a175e4-bf1f-7223-aa48-2e8f5643bb43",
+    "projectId": "01a175e4-bfa7-778a-9414-cc580e5beb80"
   },
   "checks": [
     {
@@ -190,6 +190,18 @@
       "ok": true,
       "expected": "HTTP 200 + kind=portal + بوابة محمية",
       "actual": "login=200 kind=portal /portal/invoices=200 "
+    },
+    {
+      "name": "اسم المستودع الافتراضي للمنشأة = «المستودع الرئيسي» والتوقيت = Asia/Riyadh (مكة المكرمة)",
+      "ok": true,
+      "expected": "المستودع الرئيسي · Asia/Riyadh",
+      "actual": "المستودع الرئيسي · Asia/Riyadh"
+    },
+    {
+      "name": "توافق عقد تطبيقات الأندرويد الحيّ (/cash-locations kind=safe|bank + /notifications meta.unread)",
+      "ok": true,
+      "expected": "HTTP 200 + kind∈{safe,bank} + meta.unread رقمي",
+      "actual": "cashLocations=200(bank,safe) notifications=200"
     }
   ],
   "notes": []

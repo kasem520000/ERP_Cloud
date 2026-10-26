@@ -1367,7 +1367,39 @@ async function runChecks(I: Ids): Promise<void> {
     actual: `login=${portalLogin.status} kind=${String(portalMem.kind)} /portal/invoices=${portalProbe.status} ${errCode(portalProbe.body)}`,
   });
 
-  // 19) Non-destructive Live Defect Diagnostics (recorded in notes so verify-seed warns about open regressions)
+  // 19) Default Warehouse Arabic Name (`المستودع الرئيسي`) & Makkah Timezone (`Asia/Riyadh`)
+  const defWhRow = await one(`select name from warehouses where id = $1 and tenant_id = $2`, [I.whMain, T]);
+  const whApi = await api('GET', '/warehouses', undefined, token);
+  const whApiList = Array.isArray(whApi.data) ? (whApi.data as Row[]) : [];
+  const defWhApi = whApiList.find((w) => w.id === I.whMain || w.isDefault === true);
+  const tenantTzRow = await one(`select timezone from tenants where id = $1`, [T]);
+  const tzSettingRow = await one(`select value::text as val from tenant_settings where tenant_id = $1 and key = 'timezone'`, [T]);
+  const tzValue = tzSettingRow?.val ? String(tzSettingRow.val).replace(/^"|"$/g, '') : String(tenantTzRow?.timezone ?? '');
+  checks.push({
+    name: 'اسم المستودع الافتراضي للمنشأة = «المستودع الرئيسي» والتوقيت = Asia/Riyadh (مكة المكرمة)',
+    ok:
+      String(defWhRow?.name ?? '') === 'المستودع الرئيسي' &&
+      String(defWhApi?.name ?? '') === 'المستودع الرئيسي' &&
+      String(tenantTzRow?.timezone ?? '') === 'Asia/Riyadh' &&
+      tzValue === 'Asia/Riyadh',
+    expected: 'المستودع الرئيسي · Asia/Riyadh',
+    actual: `${String(defWhApi?.name ?? defWhRow?.name ?? '')} · ${tzValue}`,
+  });
+
+  // 20) Android Apps Live Contract Probe (`android-bakery` & `android-rep` DTO shapes)
+  const cashLocRes = await api('GET', '/cash-locations', undefined, token);
+  const cashLocArr = Array.isArray(cashLocRes.data) ? (cashLocRes.data as Row[]) : [];
+  const allKindsValid = cashLocArr.length > 0 && cashLocArr.every((loc) => loc.kind === 'safe' || loc.kind === 'bank');
+  const notifProbe = await api('GET', '/notifications', undefined, token);
+  const notifMetaOk = notifProbe.status === 200 && typeof ((notifProbe.body as Row)?.meta as Row | undefined)?.unread === 'number';
+  checks.push({
+    name: 'توافق عقد تطبيقات الأندرويد الحيّ (/cash-locations kind=safe|bank + /notifications meta.unread)',
+    ok: cashLocRes.status === 200 && allKindsValid && notifMetaOk,
+    expected: 'HTTP 200 + kind∈{safe,bank} + meta.unread رقمي',
+    actual: `cashLocations=${cashLocRes.status}(${cashLocArr.map((l) => String(l.kind)).join(',')}) notifications=${notifProbe.status}`,
+  });
+
+  // 21) Non-destructive Live Defect Diagnostics (recorded in notes so verify-seed warns about open regressions)
   const suppRow = await one(`select id from parties where tenant_id = $1 and kind = 'supplier' limit 1`, [T]);
   if (suppRow?.id) {
     const pStmt = await api('GET', `/parties/${String(suppRow.id)}/statement`, undefined, token);
