@@ -1,0 +1,199 @@
+name: Build Android Release APKs
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'arena/**']
+    paths:
+      - 'apps/android-bakery/**'
+      - 'apps/android-rep/**'
+      - '.github/workflows/build-android-apks.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/android-bakery/**'
+      - 'apps/android-rep/**'
+      - '.github/workflows/build-android-apks.yml'
+
+concurrency:
+  group: android-release-apks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-bakery-release:
+    name: Build Bakery Production Release APK (android-bakery)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/android-bakery
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            apps/android-bakery/**/*.gradle*
+            apps/android-bakery/**/gradle-wrapper.properties
+            apps/android-bakery/**/libs.versions.toml
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Decode signing keystore (if configured)
+        if: ${{ env.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${KEYSTORE_BASE64}" | base64 --decode > "$RUNNER_TEMP/bakery-release.keystore"
+          echo "KEYSTORE_FILE=$RUNNER_TEMP/bakery-release.keystore" >> "$GITHUB_ENV"
+
+      - name: Build Production Release APK Only (assembleRelease)
+        shell: bash
+        run: |
+          set -o pipefail
+          (./gradlew assembleRelease --stacktrace --no-daemon) 2>&1 | tee bakery-build.log
+
+      - name: Surface compiler errors as annotations on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -f bakery-build.log ]; then
+            grep -E '(^e: |FAILURE:|> Task .* FAILED|\* What went wrong:|Error:)' bakery-build.log | head -n 40 | awk '{printf "%s%s", (NR%5==1 ? "::error title=BakeryReleaseBuild::" : " || "), $0; if (NR%5==0) print ""} END {if (NR%5!=0) print ""}'
+          fi
+
+      - name: Package Bakery Production Release APK & Checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-dist
+          SRC_APK=$(ls app/build/outputs/apk/release/*.apk | head -n 1)
+          cp "$SRC_APK" release-dist/sahab-bakery-release.apk
+          (cd release-dist && sha256sum sahab-bakery-release.apk > sahab-bakery-release.apk.sha256)
+          SIZE_BYTES=$(stat -c%s release-dist/sahab-bakery-release.apk)
+          SHA256=$(awk '{print $1}' release-dist/sahab-bakery-release.apk.sha256)
+          {
+            echo "### Bakery Production Release APK (\`com.erpcloud.bakery\`)"
+            echo "- **Build Type:** \`release\` only (Production)"
+            echo "- **Production Server:** \`https://api.sahabaccounting.com\`"
+            echo "- **File:** \`sahab-bakery-release.apk\`"
+            echo "- **Size:** \`${SIZE_BYTES}\` bytes"
+            echo "- **SHA-256:** \`${SHA256}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Bakery Production Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: bakery-app-release-apk
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            apps/android-bakery/release-dist/sahab-bakery-release.apk
+            apps/android-bakery/release-dist/sahab-bakery-release.apk.sha256
+
+      - name: Upload Bakery build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bakery-build-log
+          retention-days: 7
+          if-no-files-found: ignore
+          path: apps/android-bakery/bakery-build.log
+
+  build-rep-release:
+    name: Build Van Sales Rep Production Release APK (android-rep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/android-rep
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            apps/android-rep/**/*.gradle*
+            apps/android-rep/**/gradle-wrapper.properties
+            apps/android-rep/**/libs.versions.toml
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Decode signing keystore (if configured)
+        if: ${{ env.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${KEYSTORE_BASE64}" | base64 --decode > "$RUNNER_TEMP/rep-release.keystore"
+          echo "KEYSTORE_FILE=$RUNNER_TEMP/rep-release.keystore" >> "$GITHUB_ENV"
+
+      - name: Build Production Release APK Only (assembleRelease)
+        shell: bash
+        run: |
+          set -o pipefail
+          (./gradlew assembleRelease --stacktrace --no-daemon) 2>&1 | tee rep-build.log
+
+      - name: Surface compiler errors as annotations on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [ -f rep-build.log ]; then
+            grep -E '(^e: |FAILURE:|> Task .* FAILED|\* What went wrong:|Error:)' rep-build.log | head -n 40 | awk '{printf "%s%s", (NR%5==1 ? "::error title=RepReleaseBuild::" : " || "), $0; if (NR%5==0) print ""} END {if (NR%5!=0) print ""}'
+          fi
+
+      - name: Package Van Sales Rep Production Release APK & Checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-dist
+          SRC_APK=$(ls app/build/outputs/apk/release/*.apk | head -n 1)
+          cp "$SRC_APK" release-dist/sahab-rep-release.apk
+          (cd release-dist && sha256sum sahab-rep-release.apk > sahab-rep-release.apk.sha256)
+          SIZE_BYTES=$(stat -c%s release-dist/sahab-rep-release.apk)
+          SHA256=$(awk '{print $1}' release-dist/sahab-rep-release.apk.sha256)
+          {
+            echo "### Van Sales Rep Production Release APK (\`com.erpcloud.rep\`)"
+            echo "- **Build Type:** \`release\` only (Production)"
+            echo "- **Production Server:** \`https://api.sahabaccounting.com\`"
+            echo "- **File:** \`sahab-rep-release.apk\`"
+            echo "- **Size:** \`${SIZE_BYTES}\` bytes"
+            echo "- **SHA-256:** \`${SHA256}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Van Sales Rep Production Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: rep-app-release-apk
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            apps/android-rep/release-dist/sahab-rep-release.apk
+            apps/android-rep/release-dist/sahab-rep-release.apk.sha256
+
+      - name: Upload Rep build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rep-build-log
+          retention-days: 7
+          if-no-files-found: ignore
+          path: apps/android-rep/rep-build.log
