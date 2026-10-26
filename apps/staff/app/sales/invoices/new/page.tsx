@@ -1,13 +1,14 @@
 'use client';
 
-import { FormActions, FormGrid, Panel } from '@erp/ui';
+import { Panel } from '@erp/ui';
+import { ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { Notice } from '../../../../components/data-view';
 import {
   InvoiceLines,
-  TotalsPanel,
+  StickyInvoiceBar,
   computeTotals,
   emptyLine,
   filledLines,
@@ -21,8 +22,8 @@ import {
   arabicName,
   branchOptions,
   defaultOf,
-  listCostCenters,
   listBranches,
+  listCostCenters,
   listItems,
   listParties,
   listSalesmen,
@@ -52,8 +53,6 @@ export default function NewSalesInvoicePage() {
   const items = useQuery<Item[]>(() => listItems(), []);
   const taxGroups = useQuery<TaxGroup[]>(() => listTaxGroups(), []);
   const salesmen = useQuery<Salesman[]>(() => listSalesmen(), []);
-  // R9 — مركز التكلفة: القائمة التي كانت في نافذة الديسكتوب (« مركز التكلفة:» L530)
-  // وتحتها `➕ إضافة مركز تكلفة` — والقائمة هنا تقرأ ما يُدار في شاشة «مراكز التكلفة».
   const costCenters = useQuery<CostCenter[]>(() => listCostCenters(), []);
   const units = useQuery<Unit[]>(() => listUnits(), []);
   const tenantSettings = useQuery<Record<string, unknown>>(
@@ -73,10 +72,10 @@ export default function NewSalesInvoicePage() {
   const [costCenterId, setCostCenterId] = useState('');
   const [includesVat, setIncludesVat] = useState(false);
   const [invoiceDiscountText, setInvoiceDiscountText] = useState('');
-  /** ACC-105 / MF-08 — تاريخ استحقاق صريح؛ الفارغ يُشتق من مدة سداد العميل في الخادم. */
   const [dueDate, setDueDate] = useState('');
   const [lines, setLines] = useState<LineDraft[]>([emptyLine()]);
   const [serialQuery, setSerialQuery] = useState('');
+  const [showExtras, setShowExtras] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'warn' | 'danger'; text: string } | undefined>();
 
@@ -97,14 +96,9 @@ export default function NewSalesInvoicePage() {
     priceIncludesVat: includesVat,
     invoiceDiscount: invoiceDiscountText,
   });
-  /**
-   * حدّ الخصم على العضوية (R1، بديل `OperMaxDiscount`). عرضٌ لا فرض: الفرض في
-   * `assertDiscountWithinLimit` على الخادم، وهذه الشاشة تُعلن السقف قبل الكتابة.
-   */
+
   const discountLimitText = ((): string => {
     const pct = me?.membership.maxDiscountPct ?? null;
-    // الاسم `capAmount` لا `amount`: قاعدة الفحص (`eslint.config.mjs`) تمنع تعريف
-    // معرّفٍ باسمٍ نقديّ بلا نوع Decimal — والحدّ نصٌّ لا رقم.
     const capAmount = me?.membership.maxDiscountAmount ?? null;
     if (pct === null && capAmount === null) return '';
     const parts: string[] = [];
@@ -113,11 +107,16 @@ export default function NewSalesInvoicePage() {
     return `حدّك: ${parts.join(' · ')}`;
   })();
 
-  /**
-   * «🔢 التسلسلي:» — الخانة التي في رأس نافذة الديسكتوب (`frmInvSale.xaml` L592):
-   * يُدخل المُدخِل الرقم فيَجد الصنفَ وحالَه. فإن كان على الرفّ أُضيف سطرٌ بالرقم، وإلا
-   * ظهرت إحدى رسائل النافذة الثلاث بحروفها (`lib/serial-numbers.ts`).
-   */
+  const hasExtraValues = Boolean(
+    (cashName.trim() && cashName.trim() !== 'عميل عام') ||
+      cashMobile.trim() ||
+      salesmanId ||
+      costCenterId ||
+      dueDate.trim() ||
+      invoiceDiscountText.trim() ||
+      includesVat,
+  );
+
   async function findSerial() {
     const value = serialQuery.trim();
     setNotice(undefined);
@@ -151,7 +150,6 @@ export default function NewSalesInvoicePage() {
         taxGroupId: group?.id ?? '',
         serialText: decision.serialNo,
       };
-      // السطر الجديد بالرقم، والصفوف الفارغة تُنظَّف قبله: الرقم نفسه هو الرسالة.
       setLines([
         ...lines.filter((line) => line.itemId || line.description.trim() || line.serialText.trim()),
         next,
@@ -164,11 +162,6 @@ export default function NewSalesInvoicePage() {
     }
   }
 
-  /**
-   * «💾 حفظ» و«💾🖨️ حفظ + طباعة» — زرّا الديسكتوب `frmInvSale.xaml` L1263 وL1257.
-   * الاثنان يكتبان المستند؛ الثاني يفتح ورقة الطباعة بعده (`Print.cs` نفسها التي
-   * تفتحها «🖨️ طباعة» L1254) بدل شاشة الفاتورة.
-   */
   async function save(event: React.SyntheticEvent, print = false, forceDraft?: boolean) {
     event.preventDefault();
     setBusy(true);
@@ -214,21 +207,69 @@ export default function NewSalesInvoicePage() {
 
   return (
     <Screen
-      // «🧾 فاتورة مبيعات» — `Form_WPF/frmInvSale.xaml` L347.
       title="فاتورة مبيعات"
       subtitle={
         saveAsDraftByDefault
           ? 'وضع المسودة مفعّل من الإعدادات العامة: تُحفظ الفاتورة كمسودة أولاً، أو يمكنك ترحيلها فوراً.'
-          : 'تُحفظ الفاتورة وتُرحَّل فوراً بشكل افتراضي فتأخذ رقمها الضريبي وباركود QR وتتحرك بها المخازن والقيود (يمكنك تفعيل خيار المسودة من الإعدادات العامة).'
+          : 'أضف الأصناف والعميل؛ الإجماليات الضريبية وأزرار الحفظ والترحيل ظاهرة دائماً أسفل الشاشة.'
       }
       crumbs={['المبيعات', 'العمليات']}
     >
-      <form className="ui-doc-form" onSubmit={save}>
+      <form className="ui-doc-form invoice-compact-header" onSubmit={save}>
         <Panel
-          title="بيانات الفاتورة"
-          hint="الفرع والمستودع والعميل ثم شروط الضريبة والخصم. الحقول المعلَّمة بـ* إلزامية."
+          title="بيانات فاتورة المبيعات"
+          actions={
+            <button
+              type="button"
+              className="invoice-extra-toggle"
+              onClick={() => setShowExtras((prev) => !prev)}
+            >
+              <span>
+                {showExtras ? 'إخفاء الخيارات الإضافية' : 'العميل النقدي · المندوب · الخصم · التسلسلي'}
+                {hasExtraValues ? ' •' : ''}
+              </span>
+              <ChevronDown size={13} />
+            </button>
+          }
         >
-          <FormGrid cols={4}>
+          <div className="invoice-compact-grid">
+            <label className="field">
+              <span>العميل</span>
+              <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)}>
+                <option value="">— عميل عام (فاتورة ضريبية مبسطة) —</option>
+                {(parties.data ?? []).map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {partyLabel(row)}
+                    {(row.taxNo ?? row.tax_no ?? '').trim() &&
+                    row.name !== 'عميل عام' &&
+                    row.code !== 'CUST-GEN'
+                      ? ` — رقم ضريبي: ${row.taxNo ?? row.tax_no}`
+                      : ' — فاتورة ضريبية مبسطة'}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="field">
+              <span>تصنيف الفاتورة الضريبية</span>
+              <div
+                className="input"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 6,
+                  background: 'var(--surface-2)',
+                  minHeight: 38,
+                }}
+              >
+                <span className={`badge ${isStandardTaxInvoice ? 'active' : 'neutral'}`}>
+                  {taxInvoiceTypeLabel}
+                </span>
+                <small className="muted" dir="ltr">
+                  {isStandardTaxInvoice ? selectedPartyTaxNo : 'عميل عام'}
+                </small>
+              </div>
+            </div>
             <label className="field">
               <span>الفرع *</span>
               <select
@@ -260,182 +301,125 @@ export default function NewSalesInvoicePage() {
                     </option>
                   ))}
               </select>
-              {filledLines(lines).some((line) => line.itemId) && !effectiveWarehouse && (
-                <span className="muted small">ترحيل فاتورة فيها أصناف مخزنية يتطلب اختيار مستودع.</span>
-              )}
             </label>
-            <label className="field">
-              <span>العميل</span>
-              <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)}>
-                <option value="">— عميل عام (فاتورة ضريبية مبسطة) —</option>
-                {(parties.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {partyLabel(row)}
-                    {(row.taxNo ?? row.tax_no ?? '').trim() &&
-                    row.name !== 'عميل عام' &&
-                    row.code !== 'CUST-GEN'
-                      ? ` — رقم ضريبي: ${row.taxNo ?? row.tax_no}`
-                      : ' — فاتورة ضريبية مبسطة'}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="field">
-              <span>تصنيف الفاتورة الضريبية</span>
-              <div
-                className="input"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 8,
-                  background: 'var(--surface-2)',
-                }}
-              >
-                <span className={`badge ${isStandardTaxInvoice ? 'active' : 'neutral'}`}>
-                  {taxInvoiceTypeLabel}
-                </span>
-                <small className="muted" dir="ltr">
-                  {isStandardTaxInvoice
-                    ? `الرقم الضريبي: ${selectedPartyTaxNo}`
-                    : 'عميل عام / بدون رقم ضريبي'}
-                </small>
-              </div>
-            </div>
-            {!partyId && (
-              <>
+          </div>
+
+          {showExtras && (
+            <div className="invoice-extra-details">
+              <div className="invoice-compact-grid">
+                {!partyId && (
+                  <>
+                    <label className="field">
+                      <span>اسم العميل النقدي</span>
+                      <input
+                        className="input"
+                        value={cashName}
+                        placeholder="عميل عام"
+                        onChange={(event) => setCashName(event.target.value)}
+                      />
+                    </label>
+                    <label className="field">
+                      <span>جوال العميل</span>
+                      <input
+                        className="input"
+                        dir="ltr"
+                        value={cashMobile}
+                        onChange={(event) => setCashMobile(event.target.value)}
+                      />
+                    </label>
+                  </>
+                )}
                 <label className="field">
-                  <span>اسم العميل (الافتراضي: عميل عام)</span>
+                  <span>المندوب</span>
+                  <select
+                    className="input"
+                    value={salesmanId}
+                    onChange={(event) => setSalesmanId(event.target.value)}
+                  >
+                    <option value="">— بدون مندوب —</option>
+                    {(salesmen.data ?? [])
+                      .filter((row) => row.active !== false)
+                      .map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {row.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>مركز التكلفة</span>
+                  <select
+                    className="input"
+                    value={costCenterId}
+                    onChange={(event) => setCostCenterId(event.target.value)}
+                  >
+                    <option value="">— بلا مركز —</option>
+                    {(costCenters.data ?? []).map((center) => (
+                      <option key={center.id} value={center.id}>
+                        {center.code} — {arabicName(center)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>تاريخ الاستحقاق</span>
                   <input
                     className="input"
-                    value={cashName}
-                    placeholder="عميل عام"
-                    onChange={(event) => setCashName(event.target.value)}
+                    type="date"
+                    value={dueDate}
+                    onChange={(event) => setDueDate(event.target.value)}
                   />
                 </label>
                 <label className="field">
-                  <span>الجوال</span>
+                  <span>خصم على الفاتورة</span>
                   <input
                     className="input"
                     dir="ltr"
-                    value={cashMobile}
-                    onChange={(event) => setCashMobile(event.target.value)}
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={invoiceDiscountText}
+                    onChange={(event) => setInvoiceDiscountText(event.target.value)}
                   />
+                  {discountLimitText ? <span className="muted small">{discountLimitText}</span> : null}
                 </label>
-              </>
-            )}
-            <label className="field">
-              <span>المندوب</span>
-              <select
-                className="input"
-                value={salesmanId}
-                onChange={(event) => setSalesmanId(event.target.value)}
-              >
-                <option value="">— بدون مندوب —</option>
-                {(salesmen.data ?? [])
-                  .filter((row) => row.active !== false)
-                  .map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            {/*
- «التسلسلي:» — `frmInvSale.xaml` L592، وخانتها `txtSrchSerialNo` تقرأ
- الرقم عند `Enter` (L3599 `SearchBySerialNo` L722). الإدخال هنا يضيف سطراً
- بالصنف والرقم، والرسائل الثلاث من النافذة نفسها بحروفها.
-          */}
-            {/*
- «مركز التكلفة:» — `frmInvSale.xaml` L530 (القائمة `cmbCostCenter`) وتحتها زرّ
-            «إضافة مركز تكلفة» يفتح `frmCostCenter`. وهو مركز الفاتورة كلها: السطر الذي لا
- يذكر مركزاً يأخذه، والسطر الذي يذكر مركزاً يسبقه — كما في بناء القيد بالديسكتوب
-            (`InvoiceOper.cs` L2461 ثم L2432).
-          */}
-            <label className="field">
-              <span>مركز التكلفة:</span>
-              <select
-                className="input"
-                value={costCenterId}
-                onChange={(event) => setCostCenterId(event.target.value)}
-              >
-                <option value="">— بلا مركز —</option>
-                {(costCenters.data ?? []).map((center) => (
-                  <option key={center.id} value={center.id}>
-                    {center.code} — {arabicName(center)}
-                  </option>
-                ))}
-              </select>
-              <span className="muted small">مركز الفاتورة كلها — ولكل سطرٍ أن يخالفه من عموده.</span>
-            </label>
-            <label className="field">
-              <span>تاريخ الاستحقاق:</span>
-              <input
-                className="input"
-                type="date"
-                value={dueDate}
-                onChange={(event) => setDueDate(event.target.value)}
-              />
-              <span className="muted small">
-                اختياري — الفارغ يُشتق من مدة سداد العميل (أيام البطاقة أو طريقة الدفع) ويُقرأ في أعمار الديون.
-              </span>
-            </label>
-            <label className="field">
-              <span>التسلسلي:</span>
-              <span className="row">
-                <input
-                  className="input"
-                  dir="ltr"
-                  value={serialQuery}
-                  placeholder="امسح الرقم أو اكتبه"
-                  onChange={(event) => setSerialQuery(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      void findSerial();
-                    }
-                  }}
-                />
-                <button className="btn sm" type="button" onClick={() => void findSerial()}>
-                  بحث
-                </button>
-              </span>
-              <span className="muted small">
-                يُضيف الصنف مباشرةً في سطر جديد مرتبط بالرقم التسلسلي.
-              </span>
-            </label>
-            <label className="field">
-              <span>خصم</span>
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="decimal"
-                value={invoiceDiscountText}
-                onChange={(event) => setInvoiceDiscountText(event.target.value)}
-              />
-              <span className="muted small">
-                يُخفّض وعاء الضريبة قبل احتسابها.{discountLimitText ? ` ${discountLimitText}.` : ''}
-              </span>
-            </label>
-            <label className="field">
-              <span>الأسعار شاملة الضريبة</span>
-              <span className="row">
-                <input
-                  type="checkbox"
-                  checked={includesVat}
-                  onChange={(event) => setIncludesVat(event.target.checked)}
-                />
-                <span className="muted small">تُستخرج الضريبة من السعر بدل إضافتها إليه.</span>
-              </span>
-            </label>
-          </FormGrid>
+                <label className="field">
+                  <span>الأسعار شاملة الضريبة</span>
+                  <span className="row" style={{ minHeight: 38, alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={includesVat}
+                      onChange={(event) => setIncludesVat(event.target.checked)}
+                    />
+                    <span className="muted small">تُستخرج الضريبة من السعر</span>
+                  </span>
+                </label>
+                <label className="field" style={{ gridColumn: 'span 2' }}>
+                  <span>إدراج بالرقم التسلسلي:</span>
+                  <span className="row">
+                    <input
+                      className="input"
+                      dir="ltr"
+                      value={serialQuery}
+                      placeholder="امسح الرقم التسلسلي أو اكتبه ثم Enter"
+                      onChange={(event) => setSerialQuery(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          void findSerial();
+                        }
+                      }}
+                    />
+                    <button className="btn sm" type="button" onClick={() => void findSerial()}>
+                      بحث
+                    </button>
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
         </Panel>
 
-        <Panel
-          title="الأصناف"
-          hint="أضف سطراً لكل صنف؛ الحقول المحسوبة (المجموع والضريبة والصافي) تُحدَّث فوراً."
-          flush
-        >
+        <Panel title="الأصناف" flush>
           <InvoiceLines
             lines={lines}
             onChange={setLines}
@@ -445,17 +429,14 @@ export default function NewSalesInvoicePage() {
             priceField="salePrice"
             withNumbers
             costCenters={costCenters.data ?? []}
+            priceIncludesVat={includesVat}
+            invoiceDiscount={invoiceDiscountText}
           />
-        </Panel>
-
-        <Panel title="الإجماليات" hint="تُحتسب من الأسطر أعلاه — لا تُحرَّر يدوياً.">
-          <TotalsPanel totals={totals} />
         </Panel>
 
         <Notice notice={notice} />
 
-        <FormActions note="الحفظ يُرحّل المستند ويحرّك المخزون والقيود — لا يُعاد الترحيل مرتين.">
-          {/* «حفظ» L1263 و«حفظ + طباعة» L1257 في `frmInvSale.xaml`. */}
+        <StickyInvoiceBar totals={totals} variant="sales">
           <button className="btn primary" type="submit" disabled={busy}>
             {busy ? 'جارٍ الحفظ…' : saveAsDraftByDefault ? 'حفظ كمسودة' : 'حفظ وترحيل فوري'}
           </button>
@@ -481,7 +462,7 @@ export default function NewSalesInvoicePage() {
               حفظ كمسودة فقط
             </button>
           )}
-        </FormActions>
+        </StickyInvoiceBar>
       </form>
     </Screen>
   );

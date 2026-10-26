@@ -2397,24 +2397,100 @@ export function findScreenByHref(href: string) {
  */
 const TRAILING_SLASHES = new RegExp('/+$');
 
-export function findScreenForPath(href: string) {
-  const raw = href.split('?')[0] ?? '/';
-  const path = raw.length > 1 ? raw.replace(TRAILING_SLASHES, '') : raw;
-  const exact = findScreenByHref(path);
-  if (exact) return exact;
-  let best: (typeof allScreens)[number] | undefined;
-  let bestLength = -1;
-  for (const item of allScreens) {
-    const base = (item.href.split('?')[0] ?? '').replace(TRAILING_SLASHES, '');
-    if (base === '' || base === '/') continue;
-    if (path === base || path.startsWith(`${base}/`)) {
-      if (base.length > bestLength) {
-        best = item;
-        bestLength = base.length;
+/**
+ * Scores how closely a registered `ScreenItem` matches the current browser URL
+ * (`currentPath` + `currentSearch`).
+ *
+ * Rules:
+ * 1. If `itemHref` carries query parameters (e.g. `/purchases/invoices/new?kind=purchase_return`,
+ *    `/inventory/vouchers?kind=opening`, `/van-sales?tab=loads`), EVERY query key=value on
+ *    `itemHref` MUST match `currentSearch`; otherwise it scores `-1` (cannot match).
+ * 2. `currentPath` must either equal `itemPath` or sit beneath `${itemPath}/` (root `/` only
+ *    matches `/` itself).
+ * 3. Specificity prefers:
+ *    - module namespace affinity (`/purchases/*` prefers module `/purchases/...` over
+ *      cross-module shortcuts like `inventory -> goods-in`),
+ *    - longer `itemPath`,
+ *    - matched query parameter count (so `?kind=purchase_return` beats bare prefix),
+ *    - exact path match over prefix match.
+ */
+export function scoreNavItemMatch(
+  itemHref: string,
+  moduleHref: string | undefined,
+  currentPath: string,
+  currentSearch = '',
+): number {
+  const [rawItemPath = '/', rawItemQuery = ''] = itemHref.split('?');
+  const itemPath =
+    rawItemPath.length > 1 ? rawItemPath.replace(TRAILING_SLASHES, '') : rawItemPath || '/';
+  const normCurrentPath =
+    currentPath.length > 1 ? currentPath.replace(TRAILING_SLASHES, '') : currentPath || '/';
+
+  if (rawItemQuery) {
+    const currentParams = new URLSearchParams(currentSearch.replace(/^\?/, ''));
+    const requiredParams = new URLSearchParams(rawItemQuery);
+    for (const [key, value] of requiredParams.entries()) {
+      if (currentParams.get(key) !== value) return -1;
+    }
+  }
+
+  if (itemPath === '/') {
+    if (normCurrentPath !== '/') return -1;
+  } else if (normCurrentPath !== itemPath && !normCurrentPath.startsWith(`${itemPath}/`)) {
+    return -1;
+  }
+
+  const modRootSegment = (moduleHref ?? '').split('?')[0]?.replace(/^\//, '').split('/')[0] ?? '';
+  const modPrefix = modRootSegment ? `/${modRootSegment}` : '';
+  const hasModuleAffinity =
+    modPrefix.length > 1 &&
+    (normCurrentPath === modPrefix || normCurrentPath.startsWith(`${modPrefix}/`));
+
+  const querySpecificity = rawItemQuery ? Array.from(new URLSearchParams(rawItemQuery).keys()).length : 0;
+  const exactBonus = normCurrentPath === itemPath ? 200 : 0;
+
+  return (
+    (hasModuleAffinity ? 50_000 : 0) +
+    itemPath.length * 1_000 +
+    querySpecificity * 500 +
+    exactBonus
+  );
+}
+
+/**
+ * Resolves the single active `ScreenItem.key` across a module tree for the given
+ * `currentPath` and `currentSearch`, preventing query-parameterized sibling links
+ * (like `مردود المشتريات` on `/purchases/invoices/new?kind=purchase_return`) from
+ * stealing the active state on `/purchases/invoices/new`.
+ */
+export function resolveActiveSidebarKey(
+  tree: ReadonlyArray<{ href: string; groups: ReadonlyArray<{ items: ReadonlyArray<ScreenItem> }> }>,
+  currentPath: string,
+  currentSearch = '',
+): string | undefined {
+  let bestKey: string | undefined;
+  let bestScore = -1;
+  for (const mod of tree) {
+    for (const group of mod.groups) {
+      for (const item of group.items) {
+        const score = scoreNavItemMatch(item.href, mod.href, currentPath, currentSearch);
+        if (score > bestScore) {
+          bestScore = score;
+          bestKey = item.key;
+        }
       }
     }
   }
-  return best;
+  return bestKey;
+}
+
+export function findScreenForPath(href: string) {
+  const [rawPath = '/', rawSearch = ''] = href.split('?');
+  const path = rawPath.length > 1 ? rawPath.replace(TRAILING_SLASHES, '') : rawPath || '/';
+  if (path === '/') return findScreenByHref('/');
+
+  const bestKey = resolveActiveSidebarKey(modules, path, rawSearch);
+  return (bestKey ? allScreens.find((entry) => entry.key === bestKey) : undefined) ?? findScreenByHref(path);
 }
 
 export function screenCounts() {

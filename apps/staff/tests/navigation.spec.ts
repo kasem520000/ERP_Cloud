@@ -4,7 +4,15 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import { allScreens, findScreenByHref, modules, screenCounts, visibleModules } from '../lib/navigation.js';
+import {
+  allScreens,
+  findScreenByHref,
+  findScreenForPath,
+  modules,
+  resolveActiveSidebarKey,
+  screenCounts,
+  visibleModules,
+} from '../lib/navigation.js';
 
 const appDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'app');
 
@@ -328,5 +336,36 @@ describe('staff navigation tree', () => {
     const counts = screenCounts();
     expect(counts.total).toBe(counts.ready + counts.api + counts.planned);
     expect(counts.ready).toBeGreaterThan(0);
+  });
+
+  it('distinguishes purchase invoice creation from purchase return in sidebar & header', () => {
+    // Clicking "إنشاء فاتورة" on `/purchases/invoices` opens `/purchases/invoices/new` (no query):
+    // must highlight `purchase-invoice` («فاتورة المشتريات»), NOT `purchase-return` («مردود المشتريات»).
+    expect(resolveActiveSidebarKey(modules, '/purchases/invoices', '')).toBe('purchase-invoice');
+    expect(resolveActiveSidebarKey(modules, '/purchases/invoices/new', '')).toBe('purchase-invoice');
+    expect(resolveActiveSidebarKey(modules, '/purchases/invoices/inv-123', '')).toBe('purchase-invoice');
+    expect(findScreenForPath('/purchases/invoices/new')?.key).toBe('purchase-invoice');
+
+    // Clicking «مردود المشتريات» opens `/purchases/invoices/new?kind=purchase_return`:
+    // must highlight `purchase-return` («مردود المشتريات»).
+    expect(
+      resolveActiveSidebarKey(modules, '/purchases/invoices/new', 'kind=purchase_return'),
+    ).toBe('purchase-return');
+    expect(findScreenForPath('/purchases/invoices/new?kind=purchase_return')?.key).toBe(
+      'purchase-return',
+    );
+
+    // Sales equivalents
+    expect(resolveActiveSidebarKey(modules, '/sales/invoices', '')).toBe('sales-invoice');
+    expect(resolveActiveSidebarKey(modules, '/sales/invoices/new', '')).toBe('sales-invoice');
+    expect(resolveActiveSidebarKey(modules, '/sales/returns', '')).toBe('sales-return');
+
+    // Query-parameterized inventory vouchers only match their exact `kind`
+    expect(resolveActiveSidebarKey(modules, '/inventory/vouchers', 'kind=opening')).toBe(
+      'opening-stock',
+    );
+    expect(resolveActiveSidebarKey(modules, '/inventory/vouchers', 'kind=stock_out')).toBe(
+      'goods-out',
+    );
   });
 });

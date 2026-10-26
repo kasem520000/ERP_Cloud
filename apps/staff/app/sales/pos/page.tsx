@@ -1,8 +1,8 @@
 'use client';
 
-import { Panel, TableFrame } from '@erp/ui';
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
-import { Trash2 } from 'lucide-react';
+import { ChevronDown, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { CompanyProfileDto } from '@erp/contracts';
 
@@ -188,6 +188,7 @@ export default function PosPage() {
   const [tendered, setTendered] = useState('');
   const [invoiceDiscount, setInvoiceDiscount] = useState('');
   const [priceIncludesVat, setPriceIncludesVat] = useState(true);
+  const [showPosContext, setShowPosContext] = useState(false);
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | undefined>();
   const [receiptLines, setReceiptLines] = useState<
@@ -592,7 +593,7 @@ export default function PosPage() {
         </>
       }
     >
-      <div className="ui-split is-rail-wide">
+      <div className="ui-split is-rail-wide pos-cockpit-split">
         <div className="ui-split-main">
           <Panel title="الأصناف" hint="اختر صنفاً لإضافته إلى الفاتورة، أو امسح الباركود.">
             <div className="toolbar" style={{ marginBottom: 8 }}>
@@ -672,316 +673,359 @@ export default function PosPage() {
             )}
           </Panel>
         </div>
-        <aside className="ui-split-rail" style={{ position: 'static' }}>
-          <Panel title="الفاتورة الحالية">
+        <aside className="ui-split-rail pos-cockpit-rail">
+          <Panel
+            title="الفاتورة الحالية"
+            actions={
+              ticket.length > 0 ? (
+                <button className="btn sm" type="button" onClick={() => setTicket([])}>
+                  إفراغ ({ticket.length})
+                </button>
+              ) : undefined
+            }
+          >
             {ticket.length === 0 ? (
-              <p className="muted">اضغط على صنف لإضافته.</p>
+              <p className="muted" style={{ margin: '4px 0 8px' }}>
+                اضغط على صنف لإضافته إلى الفاتورة.
+              </p>
             ) : (
-              <TableFrame>
-                <thead>
-                  <tr>
-                    <th>الصنف</th>
-                    <th>الكمية</th>
-                    <th>السعر</th>
-                    <th>خصم %</th>
-                    <th>الإجمالي</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {ticket.map((entry) => {
-                    const line = computeTotals([entry.line], { priceIncludesVat }).lines[0];
-                    return (
-                      <tr key={entry.item.id}>
-                        <td>{arabicName(entry.item)}</td>
-                        <td>
-                          <input
-                            className="input"
-                            dir="ltr"
-                            inputMode="decimal"
-                            value={entry.line.quantityText}
-                            onChange={(event) => patch(entry.item.id, { quantityText: event.target.value })}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            dir="ltr"
-                            inputMode="decimal"
-                            value={entry.line.unitPriceText}
-                            readOnly={!canOverridePrice}
-                            title={canOverridePrice ? undefined : 'لا يمكن تعديل السعر'}
-                            onChange={(event) => patch(entry.item.id, { unitPriceText: event.target.value })}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            dir="ltr"
-                            inputMode="decimal"
-                            value={entry.line.discountRateText}
-                            onChange={(event) =>
-                              patch(entry.item.id, { discountRateText: event.target.value })
-                            }
-                          />
-                        </td>
-                        <td>{money(line?.total ?? '0')}</td>
-                        <td>
-                          <button
-                            className="btn sm"
-                            type="button"
-                            onClick={() =>
-                              setTicket((current) => current.filter((row) => row.item.id !== entry.item.id))
-                            }
-                          >
-                            حذف
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </TableFrame>
+              <div className="pos-cart-wrap">
+                <table className="pos-cart-table">
+                  <thead>
+                    <tr>
+                      <th className="pos-col-name">الصنف</th>
+                      <th className="pos-col-qty">الكمية</th>
+                      <th className="pos-col-price">السعر</th>
+                      <th className="pos-col-disc">خصم%</th>
+                      <th className="pos-col-total">الإجمالي</th>
+                      <th className="pos-col-del">حذف</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ticket.map((entry) => {
+                      const line = computeTotals([entry.line], { priceIncludesVat }).lines[0];
+                      const displayName = arabicName(entry.item);
+                      return (
+                        <tr key={entry.item.id}>
+                          <td className="pos-col-name" title={itemLabel(entry.item)}>
+                            {displayName}
+                          </td>
+                          <td className="pos-col-qty">
+                            <input
+                              className="input"
+                              dir="ltr"
+                              inputMode="decimal"
+                              value={entry.line.quantityText}
+                              onChange={(event) =>
+                                patch(entry.item.id, { quantityText: event.target.value })
+                              }
+                            />
+                          </td>
+                          <td className="pos-col-price">
+                            <input
+                              className="input"
+                              dir="ltr"
+                              inputMode="decimal"
+                              value={entry.line.unitPriceText}
+                              readOnly={!canOverridePrice}
+                              title={canOverridePrice ? undefined : 'لا يمكن تعديل السعر'}
+                              onChange={(event) =>
+                                patch(entry.item.id, { unitPriceText: event.target.value })
+                              }
+                            />
+                          </td>
+                          <td className="pos-col-disc">
+                            <input
+                              className="input"
+                              dir="ltr"
+                              inputMode="decimal"
+                              placeholder="0"
+                              value={entry.line.discountRateText}
+                              onChange={(event) =>
+                                patch(entry.item.id, { discountRateText: event.target.value })
+                              }
+                            />
+                          </td>
+                          <td className="pos-col-total">{money(line?.total ?? '0')}</td>
+                          <td className="pos-col-del">
+                            <button
+                              className="btn-line-delete"
+                              type="button"
+                              onClick={() =>
+                                setTicket((current) =>
+                                  current.filter((row) => row.item.id !== entry.item.id),
+                                )
+                              }
+                              aria-label="حذف الصنف"
+                              title="حذف الصنف"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
 
-            <dl className="kv" style={{ marginTop: 10 }}>
-              <dt>قبل الضريبة</dt>
-              <dd>{money(totals.subtotal)}</dd>
-              <dt>الضريبة</dt>
-              <dd>{money(totals.tax)}</dd>
-              <dt>المطلوب</dt>
-              <dd className="pos-total">{money(totals.total)}</dd>
-            </dl>
+            <div className="pos-context-bar">
+              <div className="pos-context-summary">
+                <span>
+                  {customerMode === 'account'
+                    ? partyLabel(
+                        (customers.data ?? []).find((row) => row.id === partyId) ??
+                          ({ name: 'اختر عميلاً آجلاً' } as Party),
+                      )
+                    : customerName.trim() || 'عميل عام'}
+                </span>
+                <span className="muted">·</span>
+                <span className="muted">
+                  {arabicName(
+                    warehouseRows.find((row) => row.id === effectiveWarehouse) ??
+                      ({ nameAr: 'المستودع الرئيسي' } as Warehouse),
+                  )}
+                </span>
+                {invoiceDiscount.trim() ? (
+                  <>
+                    <span className="muted">·</span>
+                    <span className="badge draft">خصم: {invoiceDiscount}</span>
+                  </>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                className="invoice-extra-toggle"
+                onClick={() => setShowPosContext((prev) => !prev)}
+              >
+                <span>{showPosContext ? 'طيّ' : 'العميل / الخصم'}</span>
+                <ChevronDown size={12} />
+              </button>
+            </div>
 
-            <div className="form-grid cols-2">
-              <label className="field">
-                <span>المستودع</span>
-                <select
-                  className="input"
-                  value={effectiveWarehouse}
-                  onChange={(event) => setWarehouseId(event.target.value)}
-                >
-                  {warehouseRows.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {arabicName(row)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>خصم على الفاتورة</span>
-                <input
-                  className="input"
-                  dir="ltr"
-                  inputMode="decimal"
-                  value={invoiceDiscount}
-                  onChange={(event) => setInvoiceDiscount(event.target.value)}
-                />
-                {/* R1 — الحدّ يُعرض هنا ويُفحص في الخادم: الشاشة تُعلن السقف، والخدمة تفرضه. */}
-                {discountLimitText && <span className="muted">{discountLimitText}</span>}
-              </label>
-              <label className="field">
-                <span>العميل</span>
-                <select
-                  className="input"
-                  value={customerMode}
-                  onChange={(event) => setCustomerMode(event.target.value as 'walkin' | 'account')}
-                >
-                  <option value="walkin">عميل عام (فاتورة ضريبية مبسطة)</option>
-                  <option value="account">حساب عميل مسجل</option>
-                </select>
-              </label>
-              {customerMode === 'walkin' ? (
-                <>
-                  <label className="field">
-                    <span>الاسم:</span>
-                    <div className="row" style={{ flexWrap: 'nowrap' }}>
-                      <input
-                        className="input"
-                        placeholder="عميل عام"
-                        value={customerName}
-                        onChange={(event) => setCustomerName(event.target.value)}
-                      />
-                      <button type="button" className="btn" onClick={() => setPickingCustomer(true)}>
-                        بحث
-                      </button>
-                    </div>
-                  </label>
-                  <label className="field">
-                    <span>رقم الجوال:</span>
-                    <input
-                      className="input"
-                      dir="ltr"
-                      inputMode="tel"
-                      value={customerMobile}
-                      onChange={(event) => setCustomerMobile(event.target.value)}
-                    />
-                  </label>
-                </>
-              ) : (
+            {(showPosContext || method === 'credit') && (
+              <div className="form-grid cols-2" style={{ marginTop: 8 }}>
                 <label className="field">
-                  <span>حساب العميل</span>
+                  <span>المستودع</span>
                   <select
                     className="input"
-                    value={partyId}
-                    onChange={(event) => setPartyId(event.target.value)}
+                    value={effectiveWarehouse}
+                    onChange={(event) => setWarehouseId(event.target.value)}
                   >
-                    <option value="">— اختر —</option>
-                    {(customers.data ?? []).map((row) => (
+                    {warehouseRows.map((row) => (
                       <option key={row.id} value={row.id}>
-                        {partyLabel(row)}
+                        {arabicName(row)}
                       </option>
                     ))}
                   </select>
                 </label>
-              )}
-            </div>
-
-            <h3>الدفع</h3>
-            <div className="chips">
-              {METHODS.map((row) => (
-                <button
-                  key={row.id}
-                  className={`chip ${method === row.id ? 'on' : ''}`}
-                  type="button"
-                  onClick={() => setMethod(row.id)}
-                  title={row.hint}
-                >
-                  {row.label}
-                </button>
-              ))}
-            </div>
-            <p className="muted small">{METHODS.find((row) => row.id === method)?.hint}</p>
-
-            {/**
-             * دفع الفاتورة بأكثر من طريقة — `frmPOSPay.xaml` L286 (زرّ « متعدد») وL548
-             * («⚖️ F6 مطابقة»). صفٌّ لكل طريقة: بماذا، وكم، ومن أيّ صندوقٍ أو بنك. والمطابقة
-             * سطرٌ ظاهر لا حسابٌ في الرأس: الكاشير يرى الفرق قبل أن يضغط «✔ دفع».
-             */}
-            {method === 'split' && (
-              <Panel title="طرق الدفع">
-                {tenders.map((row) => (
-                  <div
-                    key={row.key}
-                    className="row"
-                    style={{ alignItems: 'flex-end', gap: 6, marginBottom: 6 }}
+                <label className="field">
+                  <span>خصم على الفاتورة</span>
+                  <input
+                    className="input"
+                    dir="ltr"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={invoiceDiscount}
+                    onChange={(event) => setInvoiceDiscount(event.target.value)}
+                  />
+                  {discountLimitText && <span className="muted small">{discountLimitText}</span>}
+                </label>
+                <label className="field">
+                  <span>العميل</span>
+                  <select
+                    className="input"
+                    value={customerMode}
+                    onChange={(event) => setCustomerMode(event.target.value as 'walkin' | 'account')}
                   >
-                    <label className="field" style={{ flex: '0 0 110px' }}>
-                      <span>الطريقة</span>
-                      <select
-                        className="input"
-                        value={row.method}
-                        onChange={(event) =>
-                          setTenders((current) =>
-                            current.map((entry) =>
-                              entry.key === row.key
-                                ? { ...entry, method: event.target.value as Tender['method'], drawerId: '' }
-                                : entry,
-                            ),
-                          )
-                        }
-                      >
-                        <option value="cash">كاش</option>
-                        <option value="card">شبكة</option>
-                        <option value="bank">تحويل</option>
-                      </select>
+                    <option value="walkin">عميل عام (فاتورة ضريبية مبسطة)</option>
+                    <option value="account">حساب عميل مسجل</option>
+                  </select>
+                </label>
+                {customerMode === 'walkin' ? (
+                  <>
+                    <label className="field">
+                      <span>الاسم:</span>
+                      <div className="row" style={{ flexWrap: 'nowrap' }}>
+                        <input
+                          className="input"
+                          placeholder="عميل عام"
+                          value={customerName}
+                          onChange={(event) => setCustomerName(event.target.value)}
+                        />
+                        <button type="button" className="btn sm" onClick={() => setPickingCustomer(true)}>
+                          بحث
+                        </button>
+                      </div>
                     </label>
-                    <label className="field" style={{ flex: '0 0 110px' }}>
-                      <span>المبلغ</span>
+                    <label className="field">
+                      <span>رقم الجوال:</span>
                       <input
                         className="input"
                         dir="ltr"
-                        inputMode="decimal"
-                        value={row.amountText}
-                        onChange={(event) =>
-                          setTenders((current) =>
-                            current.map((entry) =>
-                              entry.key === row.key ? { ...entry, amountText: event.target.value } : entry,
-                            ),
-                          )
-                        }
+                        inputMode="tel"
+                        value={customerMobile}
+                        onChange={(event) => setCustomerMobile(event.target.value)}
                       />
                     </label>
-                    <label className="field" style={{ flex: 1 }}>
-                      <span>{row.method === 'cash' ? 'الصندوق' : 'البنك'}</span>
-                      <select
-                        className="input"
-                        value={row.drawerId}
-                        onChange={(event) =>
-                          setTenders((current) =>
-                            current.map((entry) =>
-                              entry.key === row.key ? { ...entry, drawerId: event.target.value } : entry,
-                            ),
-                          )
+                  </>
+                ) : (
+                  <label className="field">
+                    <span>حساب العميل</span>
+                    <select
+                      className="input"
+                      value={partyId}
+                      onChange={(event) => setPartyId(event.target.value)}
+                    >
+                      <option value="">— اختر —</option>
+                      {(customers.data ?? []).map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {partyLabel(row)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+            )}
+
+            <div className="pos-payment-compact">
+              <div className="chips">
+                {METHODS.map((row) => (
+                  <button
+                    key={row.id}
+                    className={`chip ${method === row.id ? 'on' : ''}`}
+                    type="button"
+                    onClick={() => setMethod(row.id)}
+                    title={row.hint}
+                  >
+                    {row.label}
+                  </button>
+                ))}
+              </div>
+
+              {method === 'split' && (
+                <Panel title="طرق الدفع">
+                  {tenders.map((row) => (
+                    <div
+                      key={row.key}
+                      className="row"
+                      style={{ alignItems: 'flex-end', gap: 6, marginBottom: 6 }}
+                    >
+                      <label className="field" style={{ flex: '0 0 96px' }}>
+                        <span>الطريقة</span>
+                        <select
+                          className="input"
+                          value={row.method}
+                          onChange={(event) =>
+                            setTenders((current) =>
+                              current.map((entry) =>
+                                entry.key === row.key
+                                  ? { ...entry, method: event.target.value as Tender['method'], drawerId: '' }
+                                  : entry,
+                              ),
+                            )
+                          }
+                        >
+                          <option value="cash">كاش</option>
+                          <option value="card">شبكة</option>
+                          <option value="bank">تحويل</option>
+                        </select>
+                      </label>
+                      <label className="field" style={{ flex: '0 0 96px' }}>
+                        <span>المبلغ</span>
+                        <input
+                          className="input"
+                          dir="ltr"
+                          inputMode="decimal"
+                          value={row.amountText}
+                          onChange={(event) =>
+                            setTenders((current) =>
+                              current.map((entry) =>
+                                entry.key === row.key
+                                  ? { ...entry, amountText: event.target.value }
+                                  : entry,
+                              ),
+                            )
+                          }
+                        />
+                      </label>
+                      <label className="field" style={{ flex: 1 }}>
+                        <span>{row.method === 'cash' ? 'الصندوق' : 'البنك'}</span>
+                        <select
+                          className="input"
+                          value={row.drawerId}
+                          onChange={(event) =>
+                            setTenders((current) =>
+                              current.map((entry) =>
+                                entry.key === row.key
+                                  ? { ...entry, drawerId: event.target.value }
+                                  : entry,
+                              ),
+                            )
+                          }
+                        >
+                          <option value="">— اختر —</option>
+                          {drawersFor(row.method).map((drawer) => (
+                            <option key={drawer.id} value={drawer.id}>
+                              {cashLocationLabel(drawer)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <button
+                        className="btn-line-delete"
+                        type="button"
+                        onClick={() =>
+                          setTenders((current) => current.filter((entry) => entry.key !== row.key))
                         }
+                        aria-label="حذف طريقة الدفع"
                       >
-                        <option value="">— اختر —</option>
-                        {drawersFor(row.method).map((drawer) => (
-                          <option key={drawer.id} value={drawer.id}>
-                            {cashLocationLabel(drawer)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="toolbar">
                     <button
                       className="btn sm"
                       type="button"
-                      onClick={() =>
-                        setTenders((current) => current.filter((entry) => entry.key !== row.key))
-                      }
-                      aria-label="حذف طريقة الدفع"
+                      onClick={() => setTenders((current) => [...current, newTender('cash')])}
                     >
-                      <Trash2 size={13} />
+                      + كاش
+                    </button>
+                    <button
+                      className="btn sm"
+                      type="button"
+                      onClick={() => setTenders((current) => [...current, newTender('card')])}
+                    >
+                      + شبكة
+                    </button>
+                    <button
+                      className="btn sm"
+                      type="button"
+                      onClick={() => setTenders((current) => [...current, newTender('bank')])}
+                    >
+                      + تحويل
                     </button>
                   </div>
-                ))}
-                <div className="toolbar">
-                  <button
-                    className="btn sm"
-                    type="button"
-                    onClick={() => setTenders((current) => [...current, newTender('cash')])}
-                  >
-                    + كاش
-                  </button>
-                  <button
-                    className="btn sm"
-                    type="button"
-                    onClick={() => setTenders((current) => [...current, newTender('card')])}
-                  >
-                    + شبكة
-                  </button>
-                  <button
-                    className="btn sm"
-                    type="button"
-                    onClick={() => setTenders((current) => [...current, newTender('bank')])}
-                  >
-                    + تحويل
-                  </button>
-                </div>
-                <dl className="kv" style={{ marginTop: 8 }}>
-                  <dt>مطابقة</dt>
-                  <dd className={tenderDiff === 0 ? 'pos-change' : 'pos-change-due'}>
-                    {tenderDiff === 0
-                      ? `مطابق — ${money(tenderTotal)}`
-                      : tenderDiff > 0
-                        ? `زيادة ${money(tenderDiff)}`
-                        : `ناقص ${money(-tenderDiff)}`}
-                  </dd>
-                  {tenderDiff < 0 && <dt>والباقي على حساب العميل</dt>}
-                  {tenderDiff < 0 && <dd>{money(-tenderDiff)}</dd>}
-                </dl>
-              </Panel>
-            )}
+                  <dl className="kv" style={{ marginTop: 6 }}>
+                    <dt>مطابقة</dt>
+                    <dd className={tenderDiff === 0 ? 'pos-change' : 'pos-change-due'}>
+                      {tenderDiff === 0
+                        ? `مطابق — ${money(tenderTotal)}`
+                        : tenderDiff > 0
+                          ? `زيادة ${money(tenderDiff)}`
+                          : `ناقص ${money(-tenderDiff)}`}
+                    </dd>
+                    {tenderDiff < 0 && <dt>والباقي على حساب العميل</dt>}
+                    {tenderDiff < 0 && <dd>{money(-tenderDiff)}</dd>}
+                  </dl>
+                </Panel>
+              )}
 
-            {method === 'bank' ? (
-              /**
-               * تحويل بنكي — `frmPayBank.xaml`: a tile per bank, ` موافق` / ` خروج`,
-               * and no sale without a named bank. `EntryOper.cs` L493/L620 then debits
-               * *that* bank's account instead of the generic شبكة account, so the choice
-               * cannot be a dropdown default the cashier never looked at.
-               */
-              <Panel title="البنوك المتاحة">
-                <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              {method === 'bank' ? (
+                <div className="pos-context-bar" style={{ marginTop: 2 }}>
                   <span>
                     {effectiveDrawer
                       ? cashLocationLabel(
@@ -989,72 +1033,111 @@ export default function PosPage() {
                         )
                       : 'لم يُختر بنك'}
                   </span>
-                  <button type="button" className="btn primary" onClick={() => setPickingBank(true)}>
+                  <button type="button" className="btn sm primary" onClick={() => setPickingBank(true)}>
                     اختر البنك
                   </button>
                 </div>
-              </Panel>
-            ) : null}
+              ) : null}
 
-            {method !== 'credit' && method !== 'bank' && method !== 'split' && (
-              <label className="field" style={{ marginTop: 8 }}>
-                <span>{method === 'cash' ? 'الصندوق' : 'حساب التحصيل'}</span>
-                <select
-                  className="input"
-                  value={effectiveDrawer}
-                  onChange={(event) => setCashLocationId(event.target.value)}
-                >
-                  <option value="">— اختر —</option>
-                  {drawers.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {cashLocationLabel(row)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            {method === 'cash' && (
-              <>
+              {method === 'card' && (
                 <label className="field">
-                  <span>المبلغ المستلم</span>
-                  <input
+                  <span>حساب التحصيل</span>
+                  <select
                     className="input"
-                    dir="ltr"
-                    inputMode="decimal"
-                    value={tendered}
-                    onChange={(event) => setTendered(event.target.value)}
-                  />
+                    value={effectiveDrawer}
+                    onChange={(event) => setCashLocationId(event.target.value)}
+                  >
+                    <option value="">— اختر —</option>
+                    {drawers.map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {cashLocationLabel(row)}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-                <div className="chips">
-                  {QUICK_CASH.map((value) => (
-                    <button className="chip" type="button" key={value} onClick={() => setTendered(value)}>
-                      {value}
-                    </button>
-                  ))}
-                  <button className="chip" type="button" onClick={() => setTendered(totals.total)}>
-                    المبلغ بالضبط
-                  </button>
-                </div>
-                <dl className="kv" style={{ marginTop: 8 }}>
-                  <dt>الباقي</dt>
-                  <dd className={change < 0 ? 'pos-change-due' : 'pos-change'}>{money(change)}</dd>
-                </dl>
-              </>
-            )}
+              )}
 
-            <Notice notice={notice} />
-            <button
-              className="btn primary block"
-              type="button"
-              disabled={busy || ticket.length === 0}
-              onClick={checkout}
-            >
-              {busy ? 'جارٍ إتمام البيع…' : `إتمام البيع — ${money(totals.total)}`}
-            </button>
-            {!shift.data && (
-              <p className="muted small">لا توجد وردية مفتوحة: لن تُنسب هذه المبيعة إلى جرد اليومية.</p>
-            )}
+              {method === 'cash' && (
+                <>
+                  <div className="pos-inline-2col">
+                    <label className="field">
+                      <span>الصندوق</span>
+                      <select
+                        className="input"
+                        value={effectiveDrawer}
+                        onChange={(event) => setCashLocationId(event.target.value)}
+                      >
+                        <option value="">— اختر —</option>
+                        {drawers.map((row) => (
+                          <option key={row.id} value={row.id}>
+                            {cashLocationLabel(row)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>المبلغ المستلم</span>
+                      <input
+                        className="input"
+                        dir="ltr"
+                        inputMode="decimal"
+                        placeholder={totals.total}
+                        value={tendered}
+                        onChange={(event) => setTendered(event.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="chips">
+                      {QUICK_CASH.map((value) => (
+                        <button
+                          className="chip"
+                          type="button"
+                          key={value}
+                          onClick={() => setTendered(value)}
+                        >
+                          {value}
+                        </button>
+                      ))}
+                      <button className="chip" type="button" onClick={() => setTendered(totals.total)}>
+                        المبلغ بالضبط
+                      </button>
+                    </div>
+                    {tendered.trim() ? (
+                      <span className={change < 0 ? 'pos-change-due' : 'pos-change'} style={{ fontSize: 12 }}>
+                        الباقي: {money(change)}
+                      </span>
+                    ) : null}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="pos-sticky-checkout">
+              <div className="pos-totals-strip">
+                <span>
+                  قبل الضريبة: <strong>{money(totals.subtotal)}</strong> · الضريبة:{' '}
+                  <strong>{money(totals.tax)}</strong>
+                </span>
+                <span>
+                  المطلوب: <strong className="pos-total">{money(totals.total)}</strong>
+                </span>
+              </div>
+              <Notice notice={notice} />
+              <button
+                className="btn primary block"
+                type="button"
+                disabled={busy || ticket.length === 0}
+                onClick={checkout}
+              >
+                {busy ? 'جارٍ إتمام البيع…' : `إتمام البيع — ${money(totals.total)}`}
+              </button>
+              {!shift.data && (
+                <p className="muted small" style={{ margin: 0 }}>
+                  لا توجد وردية مفتوحة: لن تُنسب هذه المبيعة إلى جرد اليومية.
+                </p>
+              )}
+            </div>
           </Panel>
         </aside>
       </div>

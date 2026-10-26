@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Anchor,
   BarChart3,
@@ -38,6 +38,7 @@ import { useLang, type Lang } from '../lib/i18n';
 import { useSession } from '../lib/session';
 import {
   findScreenForPath,
+  resolveActiveSidebarKey,
   visibleModules,
   type ModuleNode,
   type ScreenGroup,
@@ -271,16 +272,25 @@ function normalizeModuleGroups(module: ModuleNode): ScreenGroup[] {
  * تلقائياً **فقط** إذا كانت تحتوي الشاشة الحالية أو كان البحث فعّالاً. النتيجة: القائمة
  * تُقرأ كفهرسٍ لا كجدولٍ طويل، ويظل كلُّ رابطٍ في مكانه (لا شاشة فُقدت).
  */
+function SearchParamsBridge({ onChange }: { onChange: (value: string) => void }) {
+  const params = useSearchParams();
+  const text = params.toString();
+  useEffect(() => {
+    onChange(text);
+  }, [text, onChange]);
+  return null;
+}
+
 function NavGroupBlock({
   group,
-  pathname,
+  activeItemKey,
   lang,
   forceOpen,
   holdsActive,
   onNavigate,
 }: {
   group: ScreenGroup;
-  pathname: string;
+  activeItemKey: string | undefined;
   lang: Lang;
   forceOpen: boolean;
   holdsActive: boolean;
@@ -312,7 +322,7 @@ function NavGroupBlock({
               href={item.href}
               onClick={onNavigate}
               title={item.description}
-              className={pathname === item.href.split('?')[0] ? 'nav-link active' : 'nav-link'}
+              className={item.key === activeItemKey ? 'nav-link active' : 'nav-link'}
             >
               <span>{label(lang, item)}</span>
             </Link>
@@ -325,14 +335,14 @@ function NavGroupBlock({
 
 function ModuleBlock({
   module,
-  pathname,
+  activeItemKey,
   filter,
   lang,
   enabledAddonCodes,
   onNavigate,
 }: {
   module: ModuleNode;
-  pathname: string;
+  activeItemKey: string | undefined;
   filter: string;
   lang: Lang;
   enabledAddonCodes: Set<string>;
@@ -355,8 +365,11 @@ function ModuleBlock({
     }))
     .filter((group) => group.items.length > 0);
 
-  const active = groups.some((group) => group.items.some((item) => pathname === item.href.split('?')[0]));
+  const active = groups.some((group) => group.items.some((item) => item.key === activeItemKey));
   const [open, setOpen] = useState(active || Boolean(filter));
+  useEffect(() => {
+    if (active) setOpen(true);
+  }, [active]);
 
   if (groups.length === 0) return null;
   const expanded = open || Boolean(filter);
@@ -383,12 +396,12 @@ function ModuleBlock({
       {expanded && (
         <div className="nav-groups">
           {groups.map((group) => {
-            const holdsActive = group.items.some((item) => pathname === item.href.split('?')[0]);
+            const holdsActive = group.items.some((item) => item.key === activeItemKey);
             return (
               <NavGroupBlock
                 key={group.key}
                 group={group}
-                pathname={pathname}
+                activeItemKey={activeItemKey}
                 lang={lang}
                 // البحث يفتح كل ما طابق: نتيجةٌ مطويّةٌ ليست نتيجة.
                 forceOpen={Boolean(filter)}
@@ -479,7 +492,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { me, isPlatformAdmin, signOut, reload } = useSession();
   const { lang, t, setLang } = useLang();
   const pathname = usePathname() ?? '/';
-  const screenLabel = findScreenForPath(pathname)?.[lang === 'ar' ? 'labelAr' : 'labelEn'] ?? null;
+  const [searchString, setSearchString] = useState('');
+  const fullHref = searchString ? `${pathname}?${searchString}` : pathname;
+  const screenLabel = findScreenForPath(fullHref)?.[lang === 'ar' ? 'labelAr' : 'labelEn'] ?? null;
   const [filter, setFilter] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [appGate, setAppGate] = useState<AppGate | null>(null);
@@ -501,7 +516,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMobileOpen(false);
     setProfileMenuOpen(false);
-  }, [pathname]);
+  }, [pathname, searchString]);
 
   // Close profile dropdown and mobile sidebar on outside click or Escape key
   useEffect(() => {
@@ -670,6 +685,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     });
   }, [me?.permissions, isPlatformAdmin, appGate, enabledAddonCodes]);
 
+  const visibleTree = useMemo(
+    () =>
+      tree.map((mod) => ({
+        ...mod,
+        groups: mod.groups.map((grp) => ({
+          ...grp,
+          items: grp.items.filter((item) => {
+            const cleanHref = item.href.split('?')[0] ?? item.href;
+            if (item.status !== 'ready') return false;
+            if (CLOUD_HIDDEN_KEYS.has(item.key) || CLOUD_HIDDEN_HREFS.has(cleanHref)) return false;
+            const requiredAddon = ADDON_SETTING_CODE_BY_HREF[cleanHref];
+            if (requiredAddon && !enabledAddonCodes.has(requiredAddon)) return false;
+            return true;
+          }),
+        })),
+      })),
+    [tree, enabledAddonCodes],
+  );
+
+  const activeItemKey = useMemo(
+    () => resolveActiveSidebarKey(visibleTree, pathname, searchString),
+    [visibleTree, pathname, searchString],
+  );
+
   async function saveProfileName(event: React.FormEvent) {
     event.preventDefault();
     setProfileBusy(true);
@@ -687,6 +726,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="shell">
+      <Suspense fallback={null}>
+        <SearchParamsBridge onChange={setSearchString} />
+      </Suspense>
       {mobileOpen && (
         <div className="side-backdrop" onClick={() => setMobileOpen(false)} aria-hidden="true" />
       )}
@@ -752,7 +794,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <ModuleBlock
               key={module.key}
               module={module}
-              pathname={pathname}
+              activeItemKey={activeItemKey}
               filter={filter}
               lang={lang}
               enabledAddonCodes={enabledAddonCodes}

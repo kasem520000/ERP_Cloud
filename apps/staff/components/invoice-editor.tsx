@@ -1,5 +1,7 @@
 'use client';
 
+import { Fragment, useState, type ReactNode } from 'react';
+import { ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { calculateInvoiceTotals, type InvoiceTotals } from '@erp/contracts';
 
 import {
@@ -132,6 +134,8 @@ export function InvoiceLines({
   priceField = 'salePrice',
   withNumbers = false,
   costCenters = [],
+  priceIncludesVat = false,
+  invoiceDiscount = '',
 }: {
   lines: LineDraft[];
   onChange: (next: LineDraft[]) => void;
@@ -154,8 +158,13 @@ export function InvoiceLines({
    * وهي علاقة الميراث نفسها التي في الديسكتوب (L2432 ثم L2461).
    */
   costCenters?: CostCenter[];
+  priceIncludesVat?: boolean;
+  invoiceDiscount?: string;
 }) {
-  const totals = computeTotals(lines);
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const totals = computeTotals(lines, { priceIncludesVat, invoiceDiscount });
+  const hasSecondaryFields = withNumbers || costCenters.length > 0;
+
   const unitOf = (line: LineDraft): string => {
     const item = items.find((row) => row.id === line.itemId);
     const unitId = item?.baseUnitId ?? item?.base_unit_id;
@@ -172,7 +181,7 @@ export function InvoiceLines({
     const pieces = Number(line.quantityText || '0');
     if (!written) return 'عدد الأرقام = عدد القطع';
     return written === pieces
-      ? `${written} من ${pieces} `
+      ? `${written} من ${pieces}`
       : `${written} من ${pieces} — العدد لا يطابق الكمية`;
   }
 
@@ -197,170 +206,222 @@ export function InvoiceLines({
     });
   }
 
+  function toggleRow(index: number) {
+    setExpandedRows((current) => ({ ...current, [index]: !current[index] }));
+  }
+
+  const filled = filledLines(lines);
+
   return (
     <>
-      <div className="table-wrap">
-        <table>
+      <div className="table-wrap invoice-lines-wrap">
+        <table className="invoice-lines-compact">
           <thead>
             <tr>
-              <th style={{ minWidth: '14rem' }}>الصنف</th>
-              <th>الوحدة</th>
-              <th>الكمية</th>
-              <th>السعر</th>
-              <th>خصم %</th>
-              <th>ضريبة %</th>
-              {withNumbers && <th>رقم الدفعة</th>}
-              {withNumbers && <th>التسلسلي</th>}
-              {costCenters.length > 0 && <th>مركز التكلفة</th>}
-              <th>المجموع</th>
-              <th>الخصم</th>
-              <th>الإجمالي</th>
-              <th>الضريبة</th>
-              <th>الصافي</th>
-              <th />
+              <th className="invoice-col-item">الصنف</th>
+              <th className="invoice-col-unit">الوحدة</th>
+              <th className="invoice-col-qty">الكمية</th>
+              <th className="invoice-col-price">السعر</th>
+              <th className="invoice-col-disc">خصم %</th>
+              <th className="invoice-col-tax">ضريبة %</th>
+              <th className="invoice-col-net num">الصافي ش.ض</th>
+              <th className="invoice-col-actions">إجراء</th>
             </tr>
           </thead>
           <tbody>
             {lines.map((line, index) => {
-              const computed = totals.lines[filledLines(lines).indexOf(line)];
+              const computed = totals.lines[filled.indexOf(line)];
+              const hasLineMeta = Boolean(
+                line.batchNo.trim() || line.serialText.trim() || line.costCenterId,
+              );
+              const isExpanded = Boolean(expandedRows[index] || hasLineMeta);
               return (
-                <tr key={index}>
-                  <td>
-                    <select
-                      className="input table-input"
-                      value={line.itemId}
-                      onChange={(event) => pickItem(index, event.target.value)}
-                    >
-                      <option value="">— بند حر —</option>
-                      {items.map((row) => (
-                        <option key={row.id} value={row.id}>
-                          {itemLabel(row)}
-                        </option>
-                      ))}
-                    </select>
-                    {!line.itemId && (
-                      <input
-                        className="input table-input"
-                        placeholder="وصف البند"
-                        value={line.description}
-                        onChange={(event) => update(index, { description: event.target.value })}
-                      />
-                    )}
-                  </td>
-                  <td>{unitOf(line)}</td>
-                  <td>
-                    <input
-                      className="input table-input"
-                      dir="ltr"
-                      inputMode="decimal"
-                      value={line.quantityText}
-                      onChange={(event) => update(index, { quantityText: event.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="input table-input"
-                      dir="ltr"
-                      inputMode="decimal"
-                      value={line.unitPriceText}
-                      onChange={(event) => update(index, { unitPriceText: event.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="input table-input"
-                      dir="ltr"
-                      inputMode="decimal"
-                      value={line.discountRateText}
-                      onChange={(event) => update(index, { discountRateText: event.target.value })}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="input table-input"
-                      dir="ltr"
-                      inputMode="decimal"
-                      value={line.taxRateText}
-                      onChange={(event) => update(index, { taxRateText: event.target.value })}
-                    />
-                  </td>
-                  {withNumbers && (
-                    <td>
-                      <input
-                        className="input table-input"
-                        dir="ltr"
-                        placeholder="رقم الدفعة"
-                        value={line.batchNo}
-                        onChange={(event) => update(index, { batchNo: event.target.value })}
-                      />
-                    </td>
-                  )}
-                  {withNumbers && (
-                    <td>
-                      <input
-                        className="input table-input"
-                        dir="ltr"
-                        placeholder="رقم في كل سطر"
-                        value={line.serialText}
-                        onChange={(event) => update(index, { serialText: event.target.value })}
-                        title={serialHint(line)}
-                      />
-                      {serialList(line.serialText).length > 0 && (
-                        <span
-                          className={
-                            serialList(line.serialText).length === Number(line.quantityText || '0')
-                              ? 'badge ready'
-                              : 'badge draft'
-                          }
-                        >
-                          {serialHint(line)}
-                        </span>
-                      )}
-                    </td>
-                  )}
-                  {costCenters.length > 0 && (
-                    <td>
+                <Fragment key={index}>
+                  <tr>
+                    <td className="invoice-col-item">
                       <select
                         className="input table-input"
-                        value={line.costCenterId}
-                        onChange={(event) => update(index, { costCenterId: event.target.value })}
-                        title="اتركه فارغاً ليأخذ مركز رأس الفاتورة"
+                        value={line.itemId}
+                        onChange={(event) => pickItem(index, event.target.value)}
                       >
-                        <option value="">— مركز الفاتورة —</option>
-                        {costCenters.map((center) => (
-                          <option key={center.id} value={center.id}>
-                            {center.code} — {arabicName(center)}
+                        <option value="">— بند حر —</option>
+                        {items.map((row) => (
+                          <option key={row.id} value={row.id}>
+                            {itemLabel(row)}
                           </option>
                         ))}
                       </select>
+                      {!line.itemId && (
+                        <input
+                          className="input table-input"
+                          placeholder="وصف البند"
+                          value={line.description}
+                          onChange={(event) => update(index, { description: event.target.value })}
+                        />
+                      )}
                     </td>
+                    <td className="invoice-col-unit">{unitOf(line)}</td>
+                    <td className="invoice-col-qty">
+                      <input
+                        className="input table-input"
+                        dir="ltr"
+                        inputMode="decimal"
+                        value={line.quantityText}
+                        onChange={(event) => update(index, { quantityText: event.target.value })}
+                      />
+                    </td>
+                    <td className="invoice-col-price">
+                      <input
+                        className="input table-input"
+                        dir="ltr"
+                        inputMode="decimal"
+                        value={line.unitPriceText}
+                        onChange={(event) => update(index, { unitPriceText: event.target.value })}
+                      />
+                    </td>
+                    <td className="invoice-col-disc">
+                      <input
+                        className="input table-input"
+                        dir="ltr"
+                        inputMode="decimal"
+                        value={line.discountRateText}
+                        onChange={(event) => update(index, { discountRateText: event.target.value })}
+                      />
+                    </td>
+                    <td className="invoice-col-tax">
+                      <input
+                        className="input table-input"
+                        dir="ltr"
+                        inputMode="decimal"
+                        value={line.taxRateText}
+                        onChange={(event) => update(index, { taxRateText: event.target.value })}
+                      />
+                    </td>
+                    <td className="invoice-col-net num">
+                      {computed ? (
+                        <div>
+                          <div className="invoice-line-net-main">{money(computed.total)}</div>
+                          <span
+                            className="invoice-line-net-sub"
+                            title={`المجموع: ${money(computed.gross)} · الخصم: ${money(Number(computed.discount) + Number(computed.headerDiscountShare))} · قبل الضريبة: ${money(computed.net)} · الضريبة: ${money(computed.tax)}`}
+                          >
+                            ص: {money(computed.net)} · ض: {money(computed.tax)}
+                          </span>
+                        </div>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="invoice-col-actions">
+                      <div className="invoice-line-actions">
+                        {hasSecondaryFields && (
+                          <button
+                            className={`btn-line-meta ${hasLineMeta ? 'has-data' : ''}`}
+                            type="button"
+                            onClick={() => toggleRow(index)}
+                            title="رقم الدفعة · الأرقام التسلسلية · مركز التكلفة"
+                          >
+                            <span>تفاصيل</span>
+                            <ChevronDown size={11} />
+                          </button>
+                        )}
+                        <button
+                          className="btn-line-delete"
+                          type="button"
+                          onClick={() =>
+                            onChange(
+                              lines.length <= 1
+                                ? [emptyLine()]
+                                : lines.filter((_, position) => position !== index),
+                            )
+                          }
+                          aria-label="حذف السطر"
+                          title="حذف السطر"
+                        >
+                          <Trash2 size={12} />
+                          <span>حذف</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {hasSecondaryFields && isExpanded && (
+                    <tr className="invoice-line-subrow">
+                      <td colSpan={8}>
+                        <div className="invoice-subrow-grid">
+                          {withNumbers && (
+                            <label className="field" style={{ marginBottom: 0 }}>
+                              <span>رقم الدفعة</span>
+                              <input
+                                className="input table-input"
+                                dir="ltr"
+                                placeholder="رقم الدفعة"
+                                value={line.batchNo}
+                                onChange={(event) => update(index, { batchNo: event.target.value })}
+                              />
+                            </label>
+                          )}
+                          {withNumbers && (
+                            <label className="field" style={{ marginBottom: 0 }}>
+                              <span>الأرقام التسلسلية</span>
+                              <input
+                                className="input table-input"
+                                dir="ltr"
+                                placeholder="افصل بفاصلة: SN-1, SN-2"
+                                value={line.serialText}
+                                onChange={(event) => update(index, { serialText: event.target.value })}
+                                title={serialHint(line)}
+                              />
+                              {serialList(line.serialText).length > 0 && (
+                                <span
+                                  className={
+                                    serialList(line.serialText).length ===
+                                    Number(line.quantityText || '0')
+                                      ? 'badge ready'
+                                      : 'badge draft'
+                                  }
+                                >
+                                  {serialHint(line)}
+                                </span>
+                              )}
+                            </label>
+                          )}
+                          {costCenters.length > 0 && (
+                            <label className="field" style={{ marginBottom: 0 }}>
+                              <span>مركز التكلفة للسطر</span>
+                              <select
+                                className="input table-input"
+                                value={line.costCenterId}
+                                onChange={(event) => update(index, { costCenterId: event.target.value })}
+                                title="اتركه فارغاً ليأخذ مركز رأس الفاتورة"
+                              >
+                                <option value="">— مركز رأس الفاتورة —</option>
+                                {costCenters.map((center) => (
+                                  <option key={center.id} value={center.id}>
+                                    {center.code} — {arabicName(center)}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
                   )}
-                  {/* ترتيب أعمدة الديسكتوب: المجموع · الخصم · الإجمالي · الضريبة · الصافي */}
-                  <td className="num">{computed ? money(computed.gross) : '—'}</td>
-                  <td className="num">
-                    {computed ? money(Number(computed.discount) + Number(computed.headerDiscountShare)) : '—'}
-                  </td>
-                  <td className="num">{computed ? money(computed.net) : '—'}</td>
-                  <td className="num">{computed ? money(computed.tax) : '—'}</td>
-                  <td className="num">{computed ? money(computed.total) : '—'}</td>
-                  <td>
-                    <button
-                      className="btn sm"
-                      type="button"
-                      onClick={() => onChange(lines.filter((_, position) => position !== index))}
-                    >
-                      حذف
-                    </button>
-                  </td>
-                </tr>
+                </Fragment>
               );
             })}
           </tbody>
         </table>
       </div>
-      <button className="btn sm" type="button" onClick={() => onChange([...lines, emptyLine()])}>
-        + سطر
-      </button>
+      <div className="invoice-lines-footer">
+        <button className="btn sm" type="button" onClick={() => onChange([...lines, emptyLine()])}>
+          <Plus size={13} />
+          <span>إضافة سطر</span>
+        </button>
+        <small className="muted">
+          عدد البنود الفعّالة: <strong>{filled.length}</strong>
+        </small>
+      </div>
     </>
   );
 }
@@ -421,5 +482,56 @@ export function TotalsPanel({
         <strong>{money(totals.total, currency)}</strong>
       </dd>
     </dl>
+  );
+}
+
+/**
+ * شريط الإجماليات والحفظ الثابت أسفل شاشة الفاتورة:
+ * يعرض الإجماليات الخمسة حيّةً بجانب أزرار الحفظ والترحيل بحيث تبقى ظاهرةً على الشاشة
+ * دائماً دون الحاجة إلى النزول بالصفحة للأسفل.
+ */
+export function StickyInvoiceBar({
+  totals,
+  currency = 'SAR',
+  variant = 'sales',
+  children,
+}: {
+  totals: InvoiceTotals;
+  currency?: string;
+  variant?: 'sales' | 'purchase';
+  children: ReactNode;
+}) {
+  const labels = TOTALS_LABELS[variant];
+  const grossSum = totals.lines.reduce((sum, line) => sum + Number(line.gross), 0);
+  const discountSum = totals.lines.reduce(
+    (sum, line) => sum + Number(line.discount) + Number(line.headerDiscountShare),
+    0,
+  );
+  return (
+    <div className="invoice-sticky-bar">
+      <div className="invoice-sticky-kpis">
+        <div className="invoice-kpi-item">
+          <span>{labels.sum}</span>
+          <strong>{money(grossSum, currency)}</strong>
+        </div>
+        <div className="invoice-kpi-item">
+          <span>{labels.discount}</span>
+          <strong>{money(discountSum, currency)}</strong>
+        </div>
+        <div className="invoice-kpi-item">
+          <span>{labels.net}</span>
+          <strong>{money(totals.subtotal, currency)}</strong>
+        </div>
+        <div className="invoice-kpi-item">
+          <span>{labels.tax}</span>
+          <strong>{money(totals.tax, currency)}</strong>
+        </div>
+        <div className="invoice-kpi-item is-grand">
+          <span>{labels.total}</span>
+          <strong>{money(totals.total, currency)}</strong>
+        </div>
+      </div>
+      <div className="invoice-sticky-actions">{children}</div>
+    </div>
   );
 }

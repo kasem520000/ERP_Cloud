@@ -3812,3 +3812,359 @@ a:focus-visible {
 /* رمز الفاتورة داخل جدول التقرير — صغيرٌ ليُقرأ على الورق. */
 .report-qr { display: inline-flex; width: 54px; height: 54px; background: #fff; padding: 2px; border-radius: 4px; }
 .report-qr svg { width: 100%; height: 100%; }
+
+/* --------------------------------------------------------------------------
+ * Compact Zero-Horizontal-Scroll Invoice Editor & Sticky Action Bar
+ * Ensures line-item delete (`حذف`) is always visible without horizontal scroll,
+ * and totals + primary Save/Post buttons stay visible without vertical scroll.
+ * ------------------------------------------------------------------------ */
+.invoice-compact-header .field {
+  margin-bottom: 4px;
+}
+.invoice-compact-grid {
+  display: grid;
+  gap: 8px 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  .invoice-compact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .invoice-compact-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.invoice-extra-details {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+.invoice-extra-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.invoice-extra-toggle:hover {
+  border-color: var(--brand);
+}
+
+.table-wrap.invoice-lines-wrap {
+  overflow-x: hidden;
+  max-height: none;
+}
+table.invoice-lines-compact {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+table.invoice-lines-compact th,
+table.invoice-lines-compact td {
+  padding: 6px 6px;
+  vertical-align: middle;
+}
+table.invoice-lines-compact th {
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+table.invoice-lines-compact .input.table-input,
+table.invoice-lines-compact select.table-input {
+  padding: 0 6px;
+  font-size: 12.5px;
+  width: 100%;
+  min-width: 0;
+}
+.invoice-col-item { width: 29%; }
+.invoice-col-unit { width: 7%; text-align: center; }
+.invoice-col-qty { width: 9%; }
+.invoice-col-price { width: 11%; }
+.invoice-col-disc { width: 8%; }
+.invoice-col-tax { width: 8%; }
+.invoice-col-net { width: 15%; }
+.invoice-col-actions { width: 13%; text-align: end; }
+
+.invoice-line-net-main {
+  font-weight: 700;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.invoice-line-net-sub {
+  display: block;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.invoice-line-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+.btn-line-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 8px;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--color-danger, #dc2626) 35%, var(--line));
+  background: var(--color-danger-soft, rgba(220, 38, 38, 0.08));
+  color: var(--color-danger, #dc2626);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-line-delete:hover {
+  background: color-mix(in srgb, var(--color-danger, #dc2626) 16%, transparent);
+}
+.btn-line-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 7px;
+  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--muted-2, var(--text));
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-line-meta.has-data {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+tr.invoice-line-subrow td {
+  background: var(--surface-2);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line-strong);
+}
+.invoice-subrow-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  align-items: start;
+}
+.invoice-lines-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 860px) {
+  .table-wrap.invoice-lines-wrap {
+    overflow-x: auto;
+  }
+  table.invoice-lines-compact {
+    min-width: 680px;
+  }
+}
+
+.invoice-sticky-bar {
+  position: sticky;
+  bottom: 8px;
+  z-index: 25;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -4px 20px rgb(15 23 42 / 0.08);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+.invoice-sticky-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+.invoice-kpi-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.invoice-kpi-item > span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.invoice-kpi-item > strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  text-align: start;
+}
+.invoice-kpi-item.is-grand {
+  padding: 4px 10px;
+  border-radius: 9px;
+  background: var(--brand-soft);
+  border: 1px solid color-mix(in srgb, var(--brand) 30%, transparent);
+}
+.invoice-kpi-item.is-grand > strong {
+  font-size: 16px;
+  color: var(--color-brand-700, var(--brand));
+}
+.invoice-sticky-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* --------------------------------------------------------------------------
+ * POS Cashier Cockpit («الفاتورة الحالية»)
+ * Zero horizontal scroll on cart lines + sticky viewport-fitted checkout bar
+ * ------------------------------------------------------------------------ */
+@media (min-width: 1181px) {
+  .ui-split.is-rail-wide.pos-cockpit-split {
+    grid-template-columns: minmax(0, 1fr) minmax(405px, 460px);
+  }
+}
+.pos-cockpit-rail {
+  position: sticky;
+  top: 12px;
+}
+@media (max-width: 1180px) {
+  .pos-cockpit-rail {
+    position: static;
+  }
+}
+.pos-cart-wrap {
+  max-height: 220px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+table.pos-cart-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+table.pos-cart-table th,
+table.pos-cart-table td {
+  padding: 5px 5px;
+  font-size: 12px;
+  vertical-align: middle;
+}
+table.pos-cart-table th {
+  font-size: 11px;
+  background: var(--surface-2);
+}
+table.pos-cart-table .input {
+  height: 28px;
+  padding: 0 5px;
+  font-size: 12px;
+  border-radius: 6px;
+  text-align: center;
+}
+.pos-col-name {
+  width: 30%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.pos-col-qty { width: 15%; }
+.pos-col-price { width: 17%; }
+.pos-col-disc { width: 12%; }
+.pos-col-total {
+  width: 15%;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  text-align: end;
+}
+.pos-col-del {
+  width: 11%;
+  text-align: end;
+}
+.pos-context-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 12px;
+}
+.pos-context-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.pos-payment-compact {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+}
+.pos-payment-compact .field {
+  margin-bottom: 0;
+}
+.pos-inline-2col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+}
+.pos-sticky-checkout {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-strong);
+  background: var(--surface);
+  display: grid;
+  gap: 6px;
+}
+.pos-totals-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  font-size: 12px;
+}
+.pos-totals-strip .pos-total {
+  font-size: 17px;
+}
