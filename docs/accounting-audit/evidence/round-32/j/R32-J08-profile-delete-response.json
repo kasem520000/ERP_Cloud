@@ -1,8 +1,0 @@
-{
-  "id": "R32-J08-profile-delete",
-  "at": "2026-10-23T08:22:17.710Z",
-  "method": "DELETE",
-  "path": "/branch-posting-profiles/01a167da-790c-70c2-b55c-7229ac3ec040",
-  "status": 204,
-  "response": ""
-}

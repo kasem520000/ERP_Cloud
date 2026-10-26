@@ -1,8 +1,0 @@
-{
-  "id": "R33-X12-shift-current-36",
-  "at": "2026-10-23T20:04:05.193Z",
-  "method": "GET",
-  "path": "/shift-closes/current?branch_id=01a16a4d-3dfb-702b-95a6-7a4968382d71",
-  "status": 200,
-  "response": ""
-}
