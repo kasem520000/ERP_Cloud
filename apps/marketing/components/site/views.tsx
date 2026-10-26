@@ -32,7 +32,7 @@ import {
 } from '../../lib/help';
 import { t, type Locale } from '../../lib/i18n';
 import { industries, industryPath, INDUSTRIES_PATH, type Industry } from '../../lib/industries';
-import { einvoicingPoints, onboardingSteps, siteModules } from '../../lib/modules';
+import { cloudSurfaces, einvoicingPoints, onboardingSteps, siteModules } from '../../lib/modules';
 import { trustAxes, trustLimitsAr } from '../../lib/trust';
 import { hrefFor, SITE_PATHS } from '../../lib/site';
 
@@ -63,13 +63,15 @@ export function HomeView({
   // الكود: تغييره من شاشة الإعدادات في اللوحة يكفي، بلا نشرة.
   const heroTitle = locale === 'en' ? shell.taglineEn : shell.taglineAr;
 
-  // أرقام شريط الإحصاء كلها حقيقية ومصدرها محتوى/بنى هذا الموقع: عدد الوحدات، عدد خطوات
-  // البدء، ودراسات الحالة والأسئلة المنشورة — لا رقمٌ مفترض (§3.1).
+  // أرقام شريط الإحصاء كلها حقيقية ومصدرها محتوى/بنى هذا الموقع: عدد الوحدات، عدد واجهات
+  // التشغيل والتطبيقات، خطوات البدء، والأسئلة المنشورة — لا رقمٌ مفترض (§3.1).
   const stats = [
     { value: siteModules.length, label: t(locale, 'home.stats.modules') },
+    { value: cloudSurfaces.length, label: t(locale, 'home.stats.surfaces') },
     { value: onboardingSteps.length, label: t(locale, 'home.stats.steps') },
-    { value: cases.length, label: t(locale, cases.length === 1 ? 'home.stats.cases.one' : 'home.stats.cases') },
-    { value: faq.length, label: t(locale, faq.length === 1 ? 'home.stats.faq.one' : 'home.stats.faq') },
+    ...(cases.length > 0
+      ? [{ value: cases.length, label: t(locale, cases.length === 1 ? 'home.stats.cases.one' : 'home.stats.cases') }]
+      : [{ value: faq.length, label: t(locale, faq.length === 1 ? 'home.stats.faq.one' : 'home.stats.faq') }]),
   ];
 
   return (
@@ -85,6 +87,7 @@ export function HomeView({
         ctaLabel={t(locale, 'cta.start')}
         ctaHref="/onboarding"
         actions={[
+          { href: SITE_PATHS.login, label: t(locale, 'cta.heroLogin'), className: 'btn hero-login' },
           { href: l(SITE_PATHS.features), label: t(locale, 'cta.explore'), className: 'btn ghost' },
         ]}
         facts={[t(locale, 'home.hero.f1'), t(locale, 'home.hero.f2'), t(locale, 'home.hero.f3')]}
@@ -119,6 +122,34 @@ export function HomeView({
                 <CountUp value={stat.value} />
               </b>
               <span>{stat.label}</span>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <Reveal>
+          <SectionHeading
+            title={t(locale, 'home.surfaces.title')}
+            subtitle={t(locale, 'home.surfaces.subtitle')}
+            action={{ href: SITE_PATHS.login, label: t(locale, 'cta.heroLogin') }}
+          />
+        </Reveal>
+        <div className="grid cols">
+          {cloudSurfaces.map((surface, index) => (
+            <Reveal key={surface.key} delay={(index % 3) * 90}>
+              <article className="card module-card surface-card">
+                <div className="surface-card-top">
+                  <span className="card-icon" aria-hidden="true">
+                    <SiteIcon glyph={surface.icon} size={24} />
+                  </span>
+                  <span className="badge ready">
+                    {locale === 'en' ? surface.badgeEn : surface.badgeAr}
+                  </span>
+                </div>
+                <h3>{locale === 'en' ? surface.labelEn : surface.labelAr}</h3>
+                <p className="muted">{locale === 'en' ? surface.blurbEn : surface.blurbAr}</p>
+              </article>
             </Reveal>
           ))}
         </div>
@@ -190,9 +221,12 @@ export function HomeView({
             <Link className="btn primary" href="/onboarding">
               {t(locale, 'cta.start')}
             </Link>
-            <a className="btn" href="mailto:">
+            <Link className="btn hero-login" href={SITE_PATHS.login}>
+              {t(locale, 'cta.heroLogin')}
+            </Link>
+            <Link className="btn ghost" href={SITE_PATHS.contact}>
               {t(locale, 'cta.talk')}
-            </a>
+            </Link>
           </div>
         </Reveal>
       </section>
@@ -217,6 +251,28 @@ export function FeaturesView({ locale, page }: { locale: Locale; page: ContentPa
               </span>
               <h3>{locale === 'en' ? module.labelEn : module.labelAr}</h3>
               <p className="muted">{locale === 'en' ? module.blurbEn : module.blurbAr}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section className="section">
+        <SectionHeading
+          title={t(locale, 'home.surfaces.title')}
+          subtitle={t(locale, 'home.surfaces.subtitle')}
+        />
+        <div className="grid cols">
+          {cloudSurfaces.map((surface) => (
+            <article className="card module-card surface-card" key={surface.key}>
+              <div className="surface-card-top">
+                <span className="card-icon" aria-hidden="true">
+                  <SiteIcon glyph={surface.icon} size={24} />
+                </span>
+                <span className="badge ready">
+                  {locale === 'en' ? surface.badgeEn : surface.badgeAr}
+                </span>
+              </div>
+              <h3>{locale === 'en' ? surface.labelEn : surface.labelAr}</h3>
+              <p className="muted">{locale === 'en' ? surface.blurbEn : surface.blurbAr}</p>
             </article>
           ))}
         </div>

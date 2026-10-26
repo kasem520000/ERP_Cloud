@@ -5,6 +5,7 @@ import {
   Building2,
   Factory,
   FileText,
+  Globe,
   Landmark,
   Lock,
   Package,
@@ -12,6 +13,10 @@ import {
   Shirt,
   ShoppingBag,
   ShoppingCart,
+  Smartphone,
+  Sparkles,
+  Store,
+  Truck,
   Users,
   Database,
   BrickWall,
@@ -44,6 +49,11 @@ const ICONS: Record<string, LucideIcon> = {
   '🧱': BrickWall,
   '💾': Database,
   '📦': Package,
+  '📱': Smartphone,
+  '🚚': Truck,
+  '🥖': Store,
+  '🌐': Globe,
+  '✨': Sparkles,
 };
 
 export function SiteIcon({

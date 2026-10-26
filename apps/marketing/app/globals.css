@@ -656,6 +656,35 @@ p {
   font-size: 16.5px;
 }
 
+.btn.hero-login {
+  background: linear-gradient(135deg, rgb(11 122 99 / 14%), rgb(201 162 39 / 16%));
+  border-color: rgb(11 122 99 / 45%);
+  color: var(--brand);
+  font-weight: 800;
+}
+
+.btn.hero-login:hover {
+  background: linear-gradient(135deg, rgb(11 122 99 / 22%), rgb(201 162 39 / 24%));
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.hero .btn.hero-login {
+  padding: 15px 24px;
+  font-size: 16px;
+  background: linear-gradient(135deg, rgb(16 185 129 / 18%), rgb(201 162 39 / 20%));
+  border-color: rgb(201 162 39 / 55%);
+  color: #fff;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 20px -12px rgb(16 185 129 / 55%);
+}
+
+.hero .btn.hero-login:hover {
+  border-color: var(--brand-2);
+  background: linear-gradient(135deg, rgb(16 185 129 / 28%), rgb(201 162 39 / 30%));
+  color: #fff;
+}
+
 .hero .btn.ghost {
   background: rgb(255 255 255 / 6%);
   border-color: rgb(148 163 184 / 35%);
@@ -666,6 +695,84 @@ p {
 .hero .btn.ghost:hover {
   border-color: var(--brand-2);
   color: var(--brand-ink);
+}
+
+.surface-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.surface-card-top .card-icon {
+  margin-bottom: 0;
+}
+
+.login-page-stack {
+  gap: 24px;
+}
+
+.login-target-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.login-target-tabs .chip {
+  flex: 1 1 180px;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.login-surfaces-box {
+  margin-inline: auto;
+  width: 100%;
+}
+
+.login-surfaces-title {
+  font-size: 18px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.login-surfaces-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+
+.login-surface-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.login-surface-card .badge {
+  align-self: flex-start;
+}
+
+@media (max-width: 640px) {
+  .hero .toolbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .hero .toolbar > .btn.primary {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .hero .toolbar > .btn {
+    padding: 13px 16px;
+    font-size: 15px;
+    width: 100%;
+  }
 }
 
 .hero .meta-chips {

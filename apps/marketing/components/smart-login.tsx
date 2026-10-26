@@ -23,6 +23,8 @@ const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1';
  */
 export function SmartLogin() {
   const [mode, setMode] = useState<'login' | 'forgot' | 'reset'>('login');
+  const [staffTarget, setStaffTarget] = useState<'staff' | 'bakery'>('staff');
+  const [needsMfa, setNeedsMfa] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
@@ -90,10 +92,12 @@ export function SmartLogin() {
         return;
       }
 
+      const mfaRaw = String(form.get('mfaCode') ?? '').trim();
       const session = await login({
         tenantCode: String(form.get('tenantCode')).trim(),
         email: String(form.get('email')).trim(),
         password: String(form.get('password')),
+        ...(mfaRaw ? { mfaCode: mfaRaw } : {}),
       });
       storeToken(session.accessToken);
       const target = await detect(session.accessToken);
@@ -110,8 +114,13 @@ export function SmartLogin() {
       const code = ((await minted.json()) as { data: { code: string } }).data.code;
       const bridge = `handoff=${encodeURIComponent(code)}`;
       if (target.kind === 'staff') {
-        const path = target.mustChangePassword ? '/settings/change-password' : '/';
-        globalThis.location.assign(`${surfaceHref('staff', path)}?${bridge}`);
+        if (staffTarget === 'bakery') {
+          const path = target.mustChangePassword ? '/change-password' : '/';
+          globalThis.location.assign(`${surfaceHref('bakery', path)}?${bridge}`);
+        } else {
+          const path = target.mustChangePassword ? '/settings/change-password' : '/';
+          globalThis.location.assign(`${surfaceHref('staff', path)}?${bridge}`);
+        }
       } else if (target.kind === 'portal') {
         const path = session.mustChangePassword ? '/auth/change-password' : '/portal';
         globalThis.location.assign(`${surfaceHref('portal', path)}?${bridge}`);
@@ -120,6 +129,7 @@ export function SmartLogin() {
       }
     } catch (loginError) {
       if (loginError instanceof PortalError && loginError.code === 'MFA_REQUIRED') {
+        setNeedsMfa(true);
         setError('MFA_REQUIRED');
       } else {
         setError(loginError instanceof Error ? loginError.message : 'تعذر تسجيل الدخول');
@@ -139,9 +149,35 @@ export function SmartLogin() {
 
       {mode === 'login' && (
         <>
+          <div className="login-target-tabs" role="radiogroup" aria-label="وجهة الدخول للموظفين">
+            <button
+              type="button"
+              className={staffTarget === 'staff' ? 'chip active' : 'chip'}
+              onClick={() => setStaffTarget('staff')}
+            >
+              لوحة المنشأة والمحاسبة
+            </button>
+            <button
+              type="button"
+              className={staffTarget === 'bakery' ? 'chip active' : 'chip'}
+              onClick={() => setStaffTarget('bakery')}
+            >
+              نظام المخابز ونقاط البيع
+            </button>
+          </div>
           <input className="input" name="tenantCode" placeholder="رمز المنشأة" aria-label="tenant" required />
           <input className="input" name="email" type="email" placeholder="البريد الإلكتروني" aria-label="email" required />
           <input className="input" name="password" type="password" placeholder="كلمة المرور" aria-label="password" required />
+          {needsMfa ? (
+            <input
+              className="input mono"
+              name="mfaCode"
+              inputMode="numeric"
+              placeholder="رمز التحقق بخطوتين (6 أرقام)"
+              aria-label="mfaCode"
+              required
+            />
+          ) : null}
         </>
       )}
 
@@ -168,7 +204,7 @@ export function SmartLogin() {
 
       {error === 'MFA_REQUIRED' ? (
         <p role="alert" className="muted">
-          حسابك محمي بالتحقق بخطوتين — أكمل الدخول من <a href={surfaceHref('staff', '/')}>لوحة الإدارة</a>.
+          حسابك محمي بالتحقق بخطوتين — أدخل الرمز المكوّن من 6 أرقام من تطبيق المصادقة أعلاه ثم اضغط تسجيل الدخول.
         </p>
       ) : error ? (
         <p role="alert" className="muted">

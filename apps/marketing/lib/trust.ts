@@ -62,6 +62,14 @@ export const trustAxes: readonly TrustAxis[] = [
         source: 'apps/api/src/modules/platform/auth/mfa.service.ts',
       },
       {
+        titleAr: 'تسليمُ جلسةٍ لمرّة واحدة وخزنةٌ مشفّرة على الأندرويد',
+        bodyAr:
+          'الانتقال بين الموقع ولوحة الموظفين ونظام المخابز يتمّ برمز تسليمٍ قصير العمر يُستبدل مرّةً '
+          + 'واحدة (`POST /auth/handoff`) فلا تظهر رموز الجلسة في الرابط؛ وعلى الأندرويد تُحفظ بيانات '
+          + 'الجلسة والبصمة في خزنة `EncryptedSharedPreferences` بمفتاح العتاد.',
+        source: 'packages/web-core/src/token-bridge.tsx · apps/android-bakery/app/src/main/java/com/erpcloud/bakery/data/offline/CredentialStore.kt',
+      },
+      {
         titleAr: 'ترويساتٌ وحدودٌ على كل سطح',
         bodyAr:
           'الـAPI يعمل بـ`helmet` (وفيه HSTS)، وCORS بقائمةِ سماحٍ لا بنجمة، والواجهات تخاطبه بترويسة '

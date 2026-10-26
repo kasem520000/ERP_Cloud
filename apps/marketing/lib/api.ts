@@ -63,7 +63,7 @@ export async function portalFetch<T>(path: string, init?: RequestInit): Promise<
 
 export type Session = { accessToken: string; refreshToken: string; mustChangePassword: boolean; fullName: string; email: string };
 
-export async function login(input: { tenantCode: string; email: string; password: string }): Promise<Session> {
+export async function login(input: { tenantCode: string; email: string; password: string; mfaCode?: string }): Promise<Session> {
   const response = await fetch(`${baseUrl}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input) });
   if (!response.ok) {
     const failure = (await response.json().catch(() => ({}))) as { code?: string };

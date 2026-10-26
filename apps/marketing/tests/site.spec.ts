@@ -4,7 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import { dir, localeFromPath, localePath, LOCALES } from '../lib/i18n';
+import { dir, localeFromPath, localePath, LOCALES, t } from '../lib/i18n';
+import { cloudSurfaces } from '../lib/modules';
 import { siteFooterLinks, siteNavLinks, siteRoutes } from '../lib/navigation';
 import {
   articleJsonLd,
@@ -251,6 +252,19 @@ describe('marketing SEO (P-M1)', () => {
       const text = readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
       expect(text).not.toMatch(/[+٪%]\s?\d{2,}\s*(عميل|منشأة|مستخدم|دقة|رضا)/u);
       expect(text).not.toMatch(/\b\d{2,}\s*(customers|users|uptime)\b/i);
+    }
+  });
+
+  it('يعرض زر تسجيل الدخول في قسم البطل بجانب ابدأ مجاناً وشاهد الوحدات، وترتبط واجهات السحابة بملفات حقيقية', () => {
+    const viewsSource = readFileSync(fileURLToPath(new URL('../components/site/views.tsx', import.meta.url)), 'utf8');
+    expect(viewsSource).toContain("href: SITE_PATHS.login, label: t(locale, 'cta.heroLogin'), className: 'btn hero-login'");
+    expect(t('ar', 'cta.heroLogin')).toBe('تسجيل الدخول');
+    expect(t('en', 'cta.heroLogin')).toBe('Sign in');
+
+    const repoRoot = join(appDir, '../../..');
+    expect(cloudSurfaces.length).toBe(6);
+    for (const surface of cloudSurfaces) {
+      expect(existsSync(join(repoRoot, surface.source)), `missing surface source: ${surface.source}`).toBe(true);
     }
   });
 });
