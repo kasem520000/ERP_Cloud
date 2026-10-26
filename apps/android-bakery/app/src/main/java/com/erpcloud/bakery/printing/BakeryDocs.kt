@@ -12,6 +12,7 @@ import com.erpcloud.bakery.data.api.LoadOrderDto
 import com.erpcloud.bakery.data.api.PrintViewDto
 import com.erpcloud.bakery.data.api.ProductionBatchDto
 import com.erpcloud.bakery.data.api.ReportResultDto
+import com.erpcloud.bakery.data.api.formatNationalAddressAr
 import com.erpcloud.bakery.util.Dec
 
 /**
@@ -428,29 +429,48 @@ fun posReceipt(
 
     val ops = mutableListOf<Op>()
 
-    // ١) ترويسةُ المنشأة
-    val effectiveSeller = sellerName.trim().ifBlank { "منشأة المخابز والإنتاج" }
+    // ١) ترويسةُ المنشأة (rptInv)
+    val effectiveSeller = receipt.seller?.nameAr?.takeIf { it.isNotBlank() }
+        ?: sellerName.trim().ifBlank { "منشأة المخابز والإنتاج" }
+    val effectiveTaxNo = receipt.seller?.taxNo?.takeIf { it.isNotBlank() } ?: sellerTaxNo.trim()
+    val effectiveCrNo = receipt.seller?.crNo?.takeIf { it.isNotBlank() } ?: meta.sellerCrNo.trim()
+    val effectivePhone = receipt.seller?.phone?.takeIf { it.isNotBlank() } ?: meta.sellerPhone.trim()
+    val effectiveFieldAr = receipt.seller?.fieldAr.orEmpty().trim()
+    val effectiveSellerAddr = receipt.seller?.addressAr.orEmpty().trim()
+
     ops += Op.Section(doc.layout(effectiveSeller, titlePaint, doc.innerWidth, center))
+    if (effectiveFieldAr.isNotBlank()) {
+        ops += Op.Section(doc.layout(effectiveFieldAr, smallPaint, doc.innerWidth, center))
+    }
     if (meta.branchName.isNotBlank()) {
         ops += Op.Section(doc.layout("الفرع: ${meta.branchName.trim()}", smallBold, doc.innerWidth, center))
     }
-    if (sellerTaxNo.isNotBlank()) {
-        ops += Op.Section(doc.layout("الرقمُ الضريبيّ: ${sellerTaxNo.trim()}", smallPaint, doc.innerWidth, center))
+    if (effectiveTaxNo.isNotBlank()) {
+        ops += Op.Section(doc.layout("الرقم الضريبي: $effectiveTaxNo", smallPaint, doc.innerWidth, center))
     }
     val subHeader = buildList {
-        if (meta.sellerCrNo.isNotBlank()) add("س.ت: ${meta.sellerCrNo.trim()}")
-        if (meta.sellerPhone.isNotBlank()) add("هاتف: ${meta.sellerPhone.trim()}")
+        if (effectiveCrNo.isNotBlank()) add("س.ت: $effectiveCrNo")
+        if (effectivePhone.isNotBlank()) add("هاتف: $effectivePhone")
     }.joinToString("  ·  ")
     if (subHeader.isNotBlank()) {
         ops += Op.Section(doc.layout(subHeader, smallPaint, doc.innerWidth, center))
     }
+    if (effectiveSellerAddr.isNotBlank()) {
+        ops += Op.Section(doc.layout(effectiveSellerAddr, smallPaint, doc.innerWidth, center))
+    }
     ops += Op.DoubleRule
 
-    // ٢) شريطُ عنوانِ فاتورة الكاشير
-    val bannerTitle = if (sellerTaxNo.isNotBlank() || !qrPayload.isNullOrBlank()) {
-        "فاتورة ضريبية مبسطة — إيصال كاشير"
+    // ٢) شريطُ عنوان فاتورة الكاشير (فاتورة ضريبية / فاتورة ضريبية مبسطة)
+    val customerNameEff = receipt.customer?.name?.takeIf { it.isNotBlank() }
+        ?: meta.customerName.ifBlank { "عميل نقدي" }
+    val customerTaxEff = receipt.customer?.taxNo.orEmpty().trim()
+    val hasCustomerTax = customerTaxEff.isNotEmpty() &&
+        customerNameEff.trim() != "عميل عام" &&
+        customerNameEff.trim() != "عميل نقدي"
+    val bannerTitle = receipt.invoiceTitleAr?.takeIf { it.isNotBlank() } ?: if (hasCustomerTax) {
+        "فاتورة ضريبية"
     } else {
-        "فاتورة مبيعات نقدية — إيصال كاشير"
+        "فاتورة ضريبية مبسطة"
     }
     ops += Op.Banner(doc.layout(bannerTitle, bannerPaint, doc.innerWidth, center))
 
@@ -461,11 +481,20 @@ fun posReceipt(
     val stamp = meta.issuedAt.ifBlank {
         com.erpcloud.bakery.util.MakkahTime.nowDateTime()
     }
-    kv("رقمُ الفاتورة", receipt.number.ifBlank { "—" }, bold = true)
-    kv("التاريخُ والوقت", stamp)
-    kv("العميل", meta.customerName.ifBlank { "عميل نقدي" })
+    kv("رقم الفاتورة", receipt.number.ifBlank { "—" }, bold = true)
+    kv("طريقة الدفع", Labels_receipt(receipt), bold = true)
+    kv("التاريخ والوقت", stamp)
+    kv("العميل", customerNameEff, bold = true)
+    val custPhone = receipt.customer?.phone.orEmpty().trim()
+    if (custPhone.isNotEmpty()) kv("جوال العميل", custPhone)
+    if (hasCustomerTax) {
+        kv("الرقم الضريبي للعميل", customerTaxEff)
+        val custNa = receipt.customer?.address.formatNationalAddressAr()
+        if (custNa.isNotEmpty()) {
+            kv("العنوان الوطني للعميل", custNa)
+        }
+    }
     if (meta.cashierName.isNotBlank()) kv("الكاشير", meta.cashierName)
-    kv("طريقةُ الدفع", Labels_receipt(receipt))
     ops += Op.Dash
 
     // ٣) جدولُ الأصناف (٤ أعمدة احترافيّة)
@@ -524,13 +553,39 @@ fun posReceipt(
     receipt.paymentStatus?.let { kv("حالةُ السداد", com.erpcloud.bakery.ui.screens.Labels.docStatus(it).first) }
     ops += Op.DoubleRule
 
-    // ٥) رمزُ QR الزكاة المؤطّر
-    if (!qrPayload.isNullOrBlank()) {
+    // ٥) سياسة الاسترجاع + رمز QR الزكاة الإلزامي (المرحلة الثانية عند الإرسال أو الأولى)
+    val returnPolicy = receipt.seller?.returnPolicy.orEmpty().trim()
+    if (returnPolicy.isNotEmpty()) {
+        ops += Op.Section(
+            doc.layout("سياسة الاسترجاع والاستبدال:\n$returnPolicy", smallPaint, doc.innerWidth, right),
+            topGap = 4,
+        )
+    }
+    val effectiveQr = receipt.zatcaQr?.takeIf { it.isNotBlank() } ?: qrPayload?.takeIf { it.isNotBlank() } ?: run {
+        val isoStamp = ZatcaQr.normalizeTimestamp(stamp)
+        if (isoStamp.isNotBlank()) {
+            ZatcaQr.phase1Payload(
+                sellerName = effectiveSeller,
+                vatNo = effectiveTaxNo,
+                timestampIso = isoStamp,
+                grandTotal = Dec.orZero(receipt.total ?: subtotal.toPlainString())
+                    .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
+                vatTotal = Dec.orZero(receipt.taxTotal ?: "0")
+                    .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
+            )
+        } else null
+    }
+    if (!effectiveQr.isNullOrBlank()) {
         val qrSize = (doc.innerWidth * 0.44f).toInt().coerceIn(148, 320)
-        runCatching { ZatcaQr.bitmap(qrPayload, qrSize) }.getOrNull()?.let { square ->
+        runCatching { ZatcaQr.bitmap(effectiveQr, qrSize) }.getOrNull()?.let { square ->
             ops += Op.Qr(square)
+            val qrCap = if (receipt.zatcaPhase == 2) {
+                "رمز الفاتورة الإلكترونية — المرحلة الثانية (ZATCA Phase 2)"
+            } else {
+                "رمز الفاتورة الإلكترونية — المرحلة الأولى (ZATCA QR)"
+            }
             ops += Op.Section(
-                doc.layout("فاتورة إلكترونيّة متوافقة مع متطلّبات ZATCA", smallBold, doc.innerWidth, center),
+                doc.layout(qrCap, smallBold, doc.innerWidth, center),
             )
         }
     }
@@ -588,26 +643,58 @@ fun saleInvoice(view: PrintViewDto, widthPx: Int = 576): Bitmap {
             ops += Op.Dash
         }
 
-        // ------------------------------------------------ ترويسة المنشأة
-        ops += Op.Section(doc.layout(view.companyName.ifBlank { "مؤسسة" }, titlePaint, doc.innerWidth, center))
+        // ------------------------------------------------ ترويسة المنشأة (rptInv)
+        ops += Op.Section(doc.layout(view.companyName.ifBlank { "المنشأة" }, titlePaint, doc.innerWidth, center))
+        if (view.companyFieldAr.isNotBlank()) {
+            ops += Op.Section(doc.layout(view.companyFieldAr, smallPaint, doc.innerWidth, center))
+        }
         if (view.companyTaxNo.isNotBlank()) {
-            ops += Op.Section(doc.layout("الرقمُ الضريبيّ: ${view.companyTaxNo}", smallPaint, doc.innerWidth, center))
+            ops += Op.Section(doc.layout("الرقم الضريبي: ${view.companyTaxNo}", smallPaint, doc.innerWidth, center))
+        }
+        if (view.companyCrNo.isNotBlank()) {
+            ops += Op.Section(doc.layout("السجل التجاري: ${view.companyCrNo}", smallPaint, doc.innerWidth, center))
         }
         if (view.companyPhones.isNotEmpty()) {
             ops += Op.Section(doc.layout(view.companyPhones.joinToString(" · "), smallPaint, doc.innerWidth, center))
         }
-        ops += Op.Section(doc.layout(copy.copyLabel.ifBlank { "نسخة" }, boldPaint, doc.innerWidth, center))
+        val sellerAddr = view.companyAddressAr.ifBlank { view.companyAddress.formatNationalAddressAr() }
+        if (sellerAddr.isNotBlank()) {
+            ops += Op.Section(doc.layout(sellerAddr, smallPaint, doc.innerWidth, center))
+        }
+
+        val hasCustomerTax = view.customerTaxNo.trim().isNotEmpty() &&
+            view.customerName.trim() != "عميل عام" &&
+            view.customerName.trim() != "عميل نقدي"
+        val isReturn = view.documentKind == "return" || view.documentKind == "sale_return"
+        val officialTitle = view.invoiceTitleAr.ifBlank {
+            when {
+                !view.isZatca -> "إشعار تسليم بضاعة"
+                isReturn && hasCustomerTax -> "إشعار دائن ضريبي"
+                isReturn -> "إشعار دائن ضريبي مبسط"
+                hasCustomerTax -> "فاتورة ضريبية"
+                else -> "فاتورة ضريبية مبسطة"
+            }
+        }
+        val bannerPaint = doc.paint(doc.bodySize * 1.12f, bold = true, color = Color.WHITE)
+        ops += Op.Banner(doc.layout(officialTitle, bannerPaint, doc.innerWidth, center))
+        ops += Op.Section(doc.layout(copy.copyLabel.ifBlank { "نسخة العميل" }, boldPaint, doc.innerWidth, center))
         ops += Op.Dash
 
-        // ------------------------------------------------ بيانات المستند
-        kv("رقمُ المستند", copy.documentNumber.ifBlank { view.documentNumber })
-        view.invoiceNumber?.let { kv("رقمُ الفاتورة", it) }
+        // ------------------------------------------------ بيانات المستند والعميل
+        kv("رقم الفاتورة", view.invoiceNumber?.takeIf { it.isNotBlank() } ?: copy.documentNumber.ifBlank { view.documentNumber }, bold = true)
+        kv("طريقة الدفع", paymentMethodAr(view.paymentMethod), bold = true)
         kv("التاريخ", view.saleDate.ifBlank { "—" })
-        if (view.customerName.isNotBlank()) kv("العميل", view.customerName)
-        if (view.customerTaxNo.isNotBlank()) kv("الرقمُ الضريبيّ للعميل", view.customerTaxNo)
+        kv("العميل", view.customerName.ifBlank { "عميل نقدي" }, bold = true)
+        val phone = listOf(view.customerMobile, view.customerPhone).firstOrNull { it.isNotBlank() }
+        if (phone != null) kv("جوال العميل", phone)
+        if (hasCustomerTax) {
+            kv("الرقم الضريبي للعميل", view.customerTaxNo)
+            val customerNa = view.customerAddress.formatNationalAddressAr()
+            if (customerNa.isNotBlank()) {
+                kv("العنوان الوطني للعميل", customerNa)
+            }
+        }
         if (view.salesmanName.isNotBlank()) kv("المندوب", view.salesmanName)
-        kv("طريقةُ الدفع", paymentMethodAr(view.paymentMethod))
-        kv("نوعُ المستند", if (view.isZatca) "فاتورة ضريبيّة (فاتورة)" else "تسليم داخليّ")
         ops += Op.Dash
 
         // ------------------------------------------------ سطور الأصناف
@@ -650,29 +737,38 @@ fun saleInvoice(view: PrintViewDto, widthPx: Int = 576): Bitmap {
             kv("المتبقّي", Dec.money(outstanding.toPlainString()) + " ر.س", bold = true)
         }
         if (view.notes.isNotBlank()) kv("ملاحظات", view.notes)
+        if (view.returnPolicy.isNotBlank()) {
+            ops += Op.Section(
+                doc.layout("سياسة الاسترجاع والاستبدال: ${view.returnPolicy}", smallPaint, doc.innerWidth, Layout.Alignment.ALIGN_NORMAL),
+                topGap = 4,
+            )
+        }
 
         val qrPayload = view.qrPayload.takeIf { it.isNotBlank() } ?: run {
-            if (view.isZatca && view.companyName.isNotBlank() && view.companyTaxNo.isNotBlank()) {
-                val stamp = ZatcaQr.normalizeTimestamp(view.printedAt.ifBlank { view.saleDate })
-                if (stamp.isNotBlank()) {
-                    ZatcaQr.phase1Payload(
-                        sellerName = view.companyName,
-                        vatNo = view.companyTaxNo,
-                        timestampIso = stamp,
-                        grandTotal = Dec.orZero(copy.grandTotal.ifBlank { view.grandTotal })
-                            .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
-                        vatTotal = Dec.orZero(copy.vatTotal.ifBlank { view.vatTotal })
-                            .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
-                    )
-                } else null
+            val stamp = ZatcaQr.normalizeTimestamp(view.printedAt.ifBlank { view.saleDate })
+            if (stamp.isNotBlank() && view.companyName.isNotBlank()) {
+                ZatcaQr.phase1Payload(
+                    sellerName = view.companyName,
+                    vatNo = view.companyTaxNo,
+                    timestampIso = stamp,
+                    grandTotal = Dec.orZero(copy.grandTotal.ifBlank { view.grandTotal })
+                        .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
+                    vatTotal = Dec.orZero(copy.vatTotal.ifBlank { view.vatTotal })
+                        .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString(),
+                )
             } else null
         }
         if (!qrPayload.isNullOrBlank()) {
-            val qrSize = (doc.innerWidth * 0.40f).toInt().coerceIn(136, 300)
+            val qrSize = (doc.innerWidth * 0.44f).toInt().coerceIn(140, 310)
             runCatching { ZatcaQr.bitmap(qrPayload, qrSize) }.getOrNull()?.let { square ->
                 ops += Op.Qr(square)
+                val qrCaption = if (view.zatcaPhase == 2) {
+                    "رمز الفاتورة الإلكترونية — المرحلة الثانية (ZATCA Phase 2)"
+                } else {
+                    "رمز الفاتورة الإلكترونية — المرحلة الأولى (ZATCA QR)"
+                }
                 ops += Op.Section(
-                    doc.layout("امسحْ للتحقّق — فاتورة إلكترونيّة (ZATCA)", smallPaint, doc.innerWidth, center),
+                    doc.layout(qrCaption, smallPaint, doc.innerWidth, center),
                 )
             }
         }

@@ -528,6 +528,25 @@ data class PosDefaultsDto(
     val cashLocationId: String? = null,
 )
 
+@Serializable
+data class PosCheckoutSellerDto(
+    val nameAr: String = "",
+    val fieldAr: String = "",
+    val taxNo: String = "",
+    val crNo: String = "",
+    val phone: String = "",
+    val addressAr: String = "",
+    val returnPolicy: String = "",
+)
+
+@Serializable
+data class PosCheckoutCustomerDto(
+    val name: String = "",
+    val taxNo: String? = null,
+    val phone: String? = null,
+    val address: kotlinx.serialization.json.JsonObject? = null,
+)
+
 /** إيصالُ بيعة نقطة البيع — `POST /pos/checkout` (`{data}`). */
 @Serializable
 data class PosCheckoutReceiptDto(
@@ -543,6 +562,12 @@ data class PosCheckoutReceiptDto(
     val method: String? = null,
     val change: String? = null,
     val shiftId: String? = null,
+    val taxInvoiceType: String? = null,
+    val invoiceTitleAr: String? = null,
+    val zatcaQr: String? = null,
+    val zatcaPhase: Int = 1,
+    val seller: PosCheckoutSellerDto? = null,
+    val customer: PosCheckoutCustomerDto? = null,
 ) {
     val resolvedId: String get() = invoiceId.ifBlank { id.orEmpty() }
 }

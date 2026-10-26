@@ -2,6 +2,32 @@ package com.erpcloud.bakery.data.api
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonPrimitive
+
+fun JsonObject?.formatNationalAddressAr(): String {
+    if (this == null) return ""
+    fun pick(vararg keys: String): String {
+        for (k in keys) {
+            val v = this[k]?.runCatching { jsonPrimitive.content }?.getOrNull()?.trim().orEmpty()
+            if (v.isNotEmpty() && v != "null") return v
+        }
+        return ""
+    }
+    val building = pick("building", "buildingNumber", "buildingNo")
+    val street = pick("street", "streetName", "addStreet")
+    val district = pick("district", "neighborhood")
+    val city = pick("city")
+    val postal = pick("postal", "postalCode")
+    val additional = pick("additional", "additionalNumber")
+    return buildList {
+        if (building.isNotEmpty()) add("مبنى $building")
+        if (street.isNotEmpty()) add("شارع $street")
+        if (district.isNotEmpty()) add("حي $district")
+        if (city.isNotEmpty()) add(city)
+        if (postal.isNotEmpty()) add("الرمز البريدي $postal")
+        if (additional.isNotEmpty()) add("إضافي $additional")
+    }.joinToString(" ، ")
+}
 
 /**
  * عقدُ `GET /van-sales/documents/{id}/print-view?copies=2` — مستندٌ واحدٌ بعدد نسخ.
@@ -43,20 +69,28 @@ data class PrintCopyDto(
 data class PrintViewDto(
     val documentId: String,
     val documentNumber: String = "",
+    val documentKind: String = "sale",
     val invoiceNumber: String? = null,
     val invoiceStatus: String? = null,
+    val zatcaStatus: String? = null,
+    val zatcaPhase: Int = 1,
+    val invoiceTitleAr: String = "",
     val saleDate: String = "",
     val companyName: String = "",
     val companyNameEn: String = "",
     val companyTaxNo: String = "",
     val companyCrNo: String = "",
+    val companyFieldAr: String = "",
+    val companyAddressAr: String = "",
     val companyEmail: String = "",
     val companyPhones: List<String> = emptyList(),
     val companyAddress: JsonObject? = null,
+    val returnPolicy: String = "",
     val customerName: String = "",
     val customerTaxNo: String = "",
     val customerPhone: String = "",
     val customerMobile: String = "",
+    val customerAddress: JsonObject? = null,
     val salesmanName: String = "",
     val salesmanMobile: String = "",
     val vanWarehouseName: String = "",

@@ -764,7 +764,7 @@ class BakeryRepository(
             if (!response.isSuccessful) throw response.toApiException()
             val html = response.body()?.html.orEmpty()
             if (html.isBlank()) throw ApiException(ProblemDto(title = "Empty print response"), response.code())
-            html.replace(Regex("<div class=\"toolbar\">[\\s\\S]*?</div>\\s*(?=<div class=\"sheet)"), "")
+            html.replace(Regex("<div class=\"toolbar\">[\\s\\S]*?</div>\\s*(?=<div class=\"(?:sheet|pos-sheet))"), "")
         }
 
     /** صفحةُ طباعةِ فاتورةِ مبيعات — `paper=small` تُخرجُها إيصالَ كاشيرٍ 80mm. */

@@ -80,7 +80,21 @@ export class PrintTemplatesService {
                  p.name AS party_name, p.code AS party_code, p.tax_no AS party_tax_no,
                  p.phone AS party_phone, p.address AS party_address,
                  s.name AS salesman_name, w.name AS warehouse_name,
-                 COALESCE(u.full_name, u.email) AS cashier_name
+                 COALESCE(u.full_name, u.email) AS cashier_name,
+                 COALESCE(
+                   NULLIF(BTRIM(i.zatca_qr), ''),
+                   (SELECT es.qr_payload FROM einvoice_submissions es
+                     WHERE es.tenant_id = i.tenant_id AND es.invoice_id = i.id
+                       AND es.status IN ('signed', 'submitted', 'reported', 'cleared')
+                       AND COALESCE(BTRIM(es.qr_payload), '') <> ''
+                     ORDER BY es.created_at DESC LIMIT 1)
+                 ) AS effective_zatca_qr,
+                 COALESCE(
+                   NULLIF(BTRIM(i.zatca_status), ''),
+                   (SELECT es.status FROM einvoice_submissions es
+                     WHERE es.tenant_id = i.tenant_id AND es.invoice_id = i.id
+                     ORDER BY es.created_at DESC LIMIT 1)
+                 ) AS effective_zatca_status
             FROM sales_invoices i
             LEFT JOIN branches b ON b.id = i.branch_id
             LEFT JOIN parties p ON p.id = i.party_id
@@ -147,7 +161,7 @@ export class PrintTemplatesService {
         value instanceof Date
           ? value.toISOString().replace(/\.\d{3}Z$/, 'Z')
           : new Date(String(value)).toISOString().replace(/\.\d{3}Z$/, 'Z');
-      const phaseTwoQr = str(invoice.zatca_qr).trim();
+      const phaseTwoQr = str(invoice.effective_zatca_qr ?? invoice.zatca_qr).trim();
       const phaseOneQr = buildQrPayload({
         sellerName: company.nameAr,
         vatNo: company.taxNo,
@@ -157,17 +171,22 @@ export class PrintTemplatesService {
       });
       const qrPayload = phaseTwoQr || phaseOneQr;
       const isPhaseTwo = phaseTwoQr.length > 0;
-      const zatcaStatus = str(invoice.zatca_status);
+      const zatcaStatus = str(invoice.effective_zatca_status ?? invoice.zatca_status);
 
-      const paymentMethodLabel =
-        payments.length > 1
+      const totalDec = new Decimal(str(invoice.total) || '0');
+      const paidDec = new Decimal(str(invoice.paid_total) || '0');
+      const isPartiallyPaid = paidDec.gt(0) && paidDec.lt(totalDec);
+      const baseMethods =
+        payments.length > 0
           ? payments.map((p) => PAYMENT_METHODS[str(p.method)] ?? str(p.method)).join(' + ')
-          : payments.length === 1
-            ? (PAYMENT_METHODS[str(payments[0]!.method)] ?? str(payments[0]!.method))
-            : new Decimal(str(invoice.paid_total) || '0').gte(new Decimal(str(invoice.total) || '0')) &&
-                new Decimal(str(invoice.total) || '0').gt(0)
-              ? 'نقدي'
-              : 'آجل';
+          : '';
+      const paymentMethodLabel = isPartiallyPaid
+        ? `آجل (جزئي: ${baseMethods || 'دفعة'})`
+        : payments.length > 0 && paidDec.gte(totalDec)
+          ? baseMethods
+          : paidDec.gte(totalDec) && totalDec.gt(0)
+            ? 'نقدي'
+            : 'آجل';
 
       const docNotes = str(invoice.notes).trim() || company.defaultNotes || str(print.note).trim();
       const returnPolicy = company.returnPolicy;
@@ -1536,7 +1555,7 @@ export class PrintTemplatesService {
   .repx-na-table thead th { background: #eef0f3; font-weight: 700; }
   .repx-na-table .repx-na-caption { background: #dfe3e8; font-size: 0.95em; text-align: right; padding-inline: 8px; }
 
-  /* ── شريط عنوان المستند (فاتورة ضريبية / فاتورة ضريبية مبسطة / عنوان التقرير) ── */
+  /* ── شريط عنوان المستند (Document / Report Title Banner) ── */
   .repx-title-banner { border: 1.5px solid var(--accent); background: #f2f4f7; text-align: center; padding: 5px 10px; margin: 6px 0; }
   .doc-title { font-size: 1.3em; font-weight: 800; letter-spacing: 0.2px; }
   .doc-title-en { color: #444; font-size: 0.88em; font-weight: 600; }

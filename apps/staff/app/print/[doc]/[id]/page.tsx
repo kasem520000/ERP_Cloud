@@ -44,6 +44,12 @@ const DOCS: Record<string, { path: string; title: string; back: string; backLabe
     back: '/sales/shifts',
     backLabel: 'إغلاقات اليومية',
   },
+  report: {
+    path: '',
+    title: 'طباعة التقرير (A4)',
+    back: '/reports',
+    backLabel: 'كتالوج التقارير',
+  },
 };
 
 export default function PrintPage({ params }: { params: Promise<{ doc: string; id: string }> }) {
@@ -69,7 +75,8 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
     setHtml(undefined);
     setError(undefined);
     const qs = supportsSmallPaper ? `?paper=${paper}` : '';
-    apiFetch<{ html: string }>(`/reports/print/${spec.path}/${id}${qs}`)
+    const endpoint = spec.path ? `/reports/print/${spec.path}/${id}${qs}` : `/reports/print/${id}${qs}`;
+    apiFetch<{ html: string }>(endpoint)
       .then((payload) => {
         if (alive) setHtml(embeddable(payload.html));
       })

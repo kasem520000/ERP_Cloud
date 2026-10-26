@@ -219,6 +219,39 @@ describe('Android apps (`android-bakery` & `android-rep`) cloud contract & accou
     expect(zatcaQr).toContain("[+-]\\\\d{2}(?::?\\\\d{2})?$");
   });
 
+  it('aligns Android print engines and error catalogs with quota enforcement and rptInv / ZATCA Phase-2 rules', () => {
+    const bakeryErrors = fs.readFileSync(path.join(BAKERY_SRC, 'data/api/ErrorsAr.kt'), 'utf8');
+    const repErrors = fs.readFileSync(path.join(REP_SRC, 'data/api/ErrorsAr.kt'), 'utf8');
+    expect(bakeryErrors).toContain('USAGE_LIMIT_REACHED');
+    expect(bakeryErrors).toContain('إدارة المنصة');
+    expect(repErrors).toContain('USAGE_LIMIT_REACHED');
+    expect(repErrors).toContain('إدارة المنصة');
+
+    const bakeryPrintDto = fs.readFileSync(path.join(BAKERY_SRC, 'data/api/PrintDtos.kt'), 'utf8');
+    const repPrintDto = fs.readFileSync(path.join(REP_SRC, 'data/api/PrintDtos.kt'), 'utf8');
+    for (const dto of [bakeryPrintDto, repPrintDto]) {
+      expect(dto).toContain('val zatcaPhase: Int = 1');
+      expect(dto).toContain('val invoiceTitleAr: String = ""');
+      expect(dto).toContain('val returnPolicy: String = ""');
+      expect(dto).toContain('val customerAddress: JsonObject? = null');
+      expect(dto).toContain('fun JsonObject?.formatNationalAddressAr(): String');
+    }
+
+    const bakeryDocs = fs.readFileSync(path.join(BAKERY_SRC, 'printing/BakeryDocs.kt'), 'utf8');
+    const repBitmap = fs.readFileSync(path.join(REP_SRC, 'printing/InvoiceBitmap.kt'), 'utf8');
+    for (const renderer of [bakeryDocs, repBitmap]) {
+      expect(renderer).toContain('"فاتورة ضريبية"');
+      expect(renderer).toContain('"فاتورة ضريبية مبسطة"');
+      expect(renderer).toContain('if (hasCustomerTax)');
+      expect(renderer).toContain('"العنوان الوطني للعميل"');
+      expect(renderer).toContain('سياسة الاسترجاع والاستبدال');
+      expect(renderer).toContain('المرحلة الثانية');
+    }
+
+    const bakeryRepo = fs.readFileSync(path.join(BAKERY_SRC, 'data/BakeryRepository.kt'), 'utf8');
+    expect(bakeryRepo).toContain('(?:sheet|pos-sheet)');
+  });
+
   it('maintains balanced braces and parentheses across all Kotlin source files in both Android apps', () => {
     const allKt = [...walkFiles(BAKERY_SRC, '.kt'), ...walkFiles(REP_SRC, '.kt')];
     for (const file of allKt) {

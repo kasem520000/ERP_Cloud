@@ -1,26 +1,26 @@
 {
-  "at": "2026-10-26T01:48:10.226Z",
+  "at": "2026-10-26T03:19:33.750Z",
   "tenantCode": "verify2026",
-  "tenantId": "01a175e4-b715-726a-af85-7c2ea6a8b2ba",
+  "tenantId": "01a17638-62df-7018-90d0-56703cf8340a",
   "ids": {
-    "flId": "01a175e4-b9a4-7738-a22d-a1b3f35b69be",
-    "brkId": "01a175e4-b9c4-70e6-ad87-ce11d40de2ef",
-    "suppId": "01a175e4-b9df-767d-98d6-8c8582cfefc5",
-    "custCrId": "01a175e4-ba0c-71fe-a918-398eb822fdb0",
-    "custCshId": "01a175e4-ba2c-70ff-ac85-348c1afc3368",
-    "piId": "01a175e4-ba4b-77fd-84cf-d04d6ae5bded",
-    "s1Id": "01a175e4-bacf-72b9-b31f-16ee3524bdcf",
-    "s2Id": "01a175e4-bb85-7131-a814-94a1d9f61e4c",
-    "retId": "01a175e4-bc17-77f9-bcc0-7cb9f70ce0c9",
-    "expVoucher": "01a175e4-bcf5-747b-a749-8ae3baa1d142",
-    "rvVoucher": "01a175e4-bd41-75c7-a3e1-c27adb877473",
-    "cashTransfer": "01a175e4-bd8c-747e-9443-0da17c6ce875",
-    "stockTransfer": "01a175e4-bdd8-7013-8dc0-873f7c34c226",
-    "prId": "01a175e4-beaa-742a-a45e-bd8ce2109e1f",
-    "costCenterJeId": "01a175e4-bf48-734e-be3d-44c36da600ec",
-    "costCenterGroupId": "01a175e4-bf0e-7199-a527-3cf2a3f8e06e",
-    "costCenterLeafId": "01a175e4-bf1f-7223-aa48-2e8f5643bb43",
-    "projectId": "01a175e4-bfa7-778a-9414-cc580e5beb80"
+    "flId": "01a17638-64d8-715c-845b-ce131b8be0f7",
+    "brkId": "01a17638-64f7-76c1-ace1-c64e50b230e6",
+    "suppId": "01a17638-650c-7534-b7c1-49f637b8ee70",
+    "custCrId": "01a17638-652a-7128-9338-fb2c658b8cf9",
+    "custCshId": "01a17638-653f-761c-9539-2bde814da2c4",
+    "piId": "01a17638-6553-711f-8159-dc03b046efe2",
+    "s1Id": "01a17638-65c7-71ed-b0c2-b17882936096",
+    "s2Id": "01a17638-6639-7749-b8ea-150bd6ecaaa2",
+    "retId": "01a17638-66c5-70d5-bc93-11208cf252e4",
+    "expVoucher": "01a17638-67be-73d8-9447-854d45831c96",
+    "rvVoucher": "01a17638-67fa-72fd-bd4d-364c834f07f5",
+    "cashTransfer": "01a17638-6830-7467-a5dc-2bcfde19a022",
+    "stockTransfer": "01a17638-6876-743c-8856-d3e8902558f8",
+    "prId": "01a17638-6935-7488-bb86-00054a2e9f9b",
+    "costCenterJeId": "01a17638-69c7-77cc-9068-42990dc3ff08",
+    "costCenterGroupId": "01a17638-698c-761f-8276-370ead33b866",
+    "costCenterLeafId": "01a17638-699c-75d3-b8d3-12c67e621e75",
+    "projectId": "01a17638-6a28-71d5-a40a-70e859117116"
   },
   "checks": [
     {
@@ -202,6 +202,36 @@
       "ok": true,
       "expected": "HTTP 200 + kind∈{safe,bank} + meta.unread رقمي",
       "actual": "cashLocations=200(bank,safe) notifications=200"
+    },
+    {
+      "name": "إعدادات التقارير والفواتير (/settings/:key report.* + نص سياسة الإرجاع)",
+      "ok": true,
+      "expected": "حفظ واسترجاع report.return_policy + report.field_ar + العنوان والبنوك",
+      "actual": "PUT_ALL=true policy=سياسة الإرجاع: البضاعة المباعة ت"
+    },
+    {
+      "name": "طباعة فاتورة B2B (برقم ضريبي) A4 + 80mm: عنوان «فاتورة ضريبية» + إظهار العنوان الوطني للعميل + QR + سياسة الإرجاع",
+      "ok": true,
+      "expected": "فاتورة ضريبية + العنوان الوطني للعميل + سياسة الإرجاع + SVG QR",
+      "actual": "a4=200 small=200 title=true custNA=true qrPolicy=true"
+    },
+    {
+      "name": "طباعة فاتورة B2C/POS (بدون رقم ضريبي) A4 + 80mm: عنوان «فاتورة ضريبية مبسطة» + إخفاء العنوان الوطني للعميل + QR إلزامي",
+      "ok": true,
+      "expected": "فاتورة ضريبية مبسطة + إخفاء العنوان الوطني للعميل + pos-receipt + SVG QR",
+      "actual": "a4=200 small=200 title=true hiddenNA=true qr=true"
+    },
+    {
+      "name": "رمز QR المرحلة الثانية (ZATCA Phase 2): التبديل التلقائي إلى QR المرحلة الثانية فور الإرسال للزاتكا",
+      "ok": true,
+      "expected": "zatcaPhase=2 + QR المرحلة الثانية الموقّع + شارة المرحلة الثانية",
+      "actual": "phase=2 qrMatch=true htmlPhase2=true"
+    },
+    {
+      "name": "سياسة الاستخدام والحصص وطلب الاعتماد لإدارة المنصة (/usage 8 مقاييس + /usage/requests)",
+      "ok": true,
+      "expected": "8 مقاييس حصص + إنشاء واستعراض طلب اعتماد معلق لإدارة المنصة",
+      "actual": "metrics=8 create=201 listed=1"
     }
   ],
   "notes": []

@@ -344,13 +344,38 @@ async function goldenPath(I: Ids): Promise<Row> {
     [200, 201],
     'item VRF-BRK',
   );
-  const supp = must(await api('POST', '/parties', { kind: 'supplier', name: 'مورد التحقق' }), [200, 201], 'party supplier');
+  const supp = must(
+    await api('POST', '/parties', {
+      kind: 'supplier',
+      name: 'مورد التحقق',
+      taxNo: '310112233400003',
+      address: { building: '2210', street: 'شارع الصناعية', district: 'الملز', city: 'الرياض', postal: '12836', additional: '6543' },
+    }),
+    [200, 201],
+    'party supplier',
+  );
   const custCr = must(
-    await api('POST', '/parties', { kind: 'customer', name: 'عميل التحقق الآجل', paymentMethodId: (pm.data as Row).id }),
+    await api('POST', '/parties', {
+      kind: 'customer',
+      name: 'عميل التحقق الآجل',
+      paymentMethodId: (pm.data as Row).id,
+      taxNo: '310987654300003',
+      phone: '0551234567',
+      address: { building: '7421', street: 'طريق الملك عبدالعزيز', district: 'العليا', city: 'الرياض', postal: '12211', additional: '3189' },
+    }),
     [200, 201],
     'party customer credit',
   );
-  const custCsh = must(await api('POST', '/parties', { kind: 'customer', name: 'عميل التحقق النقدي' }), [200, 201], 'party customer cash');
+  const custCsh = must(
+    await api('POST', '/parties', {
+      kind: 'customer',
+      name: 'عميل التحقق النقدي',
+      phone: '0557654321',
+      address: { city: 'جدة', street: 'شارع التحلية', district: 'الروضة' },
+    }),
+    [200, 201],
+    'party customer cash',
+  );
   out.flId = fl.id;
   out.brkId = brk.id;
   out.suppId = supp.id;
@@ -1399,7 +1424,167 @@ async function runChecks(I: Ids): Promise<void> {
     actual: `cashLocations=${cashLocRes.status}(${cashLocArr.map((l) => String(l.kind)).join(',')}) notifications=${notifProbe.status}`,
   });
 
-  // 21) Non-destructive Live Defect Diagnostics (recorded in notes so verify-seed warns about open regressions)
+  // 21) إعدادات التقارير والفواتير (/settings/general -> PUT /settings/:key report.*) وسياسة الإرجاع
+  const reportSettingsSeed: Record<string, string> = {
+    'report.return_policy': 'سياسة الإرجاع: البضاعة المباعة ترد أو تستبدل خلال 7 أيام بالفاتورة الأصلية.',
+    'report.default_notes': 'نشكركم لثقتكم — يرجى مراجعة الأصناف قبل مغادرة الفرع.',
+    'report.field_ar': 'للتجارة والمخابز والتوزيع',
+    'report.field_en': 'General Trading & Bakery Distribution',
+    'report.address_ar': 'المملكة العربية السعودية — الرياض — حي العليا — طريق الملك فهد',
+    'report.address_en': 'Riyadh - Olaya Dist. - King Fahd Rd.',
+    'report.crn': '7001998877',
+    'report.bank1_name': 'مصرف الراجحي',
+    'report.bank1_iban': 'SA4480000123608010167519',
+  };
+  let allReportPutsOk = true;
+  for (const [k, v] of Object.entries(reportSettingsSeed)) {
+    const r = await api('PUT', `/settings/${encodeURIComponent(k)}`, { value: v }, token);
+    if (r.status >= 300) allReportPutsOk = false;
+  }
+  const getReportSettings = await api('GET', '/settings', undefined, token);
+  const settingsData = (getReportSettings.data ?? {}) as Row;
+  const settingsEffective = ((settingsData.settings ?? settingsData.effective ?? settingsData) ?? {}) as Row;
+  checks.push({
+    name: 'إعدادات التقارير والفواتير (/settings/:key report.* + نص سياسة الإرجاع)',
+    ok:
+      allReportPutsOk &&
+      String(settingsEffective['report.return_policy'] ?? '').includes('خلال 7 أيام') &&
+      String(settingsEffective['report.field_ar'] ?? '') === 'للتجارة والمخابز والتوزيع',
+    expected: 'حفظ واسترجاع report.return_policy + report.field_ar + العنوان والبنوك',
+    actual: `PUT_ALL=${allReportPutsOk} policy=${String(settingsEffective['report.return_policy'] ?? '').slice(0, 32)}`,
+  });
+
+  // 22) فاتورة ضريبية B2B (عميل برقم ضريبي): عنوان «فاتورة ضريبية» + إظهار العنوان الوطني للعميل + QR + سياسة الإرجاع (A4 + 80mm)
+  const b2bInvRow = await one(
+    `select si.id from sales_invoices si join parties p on p.id = si.party_id
+      where si.tenant_id = $1 and si.kind = 'sale' and si.status = 'posted' and coalesce(p.tax_no, '') <> ''
+      order by si.created_at asc limit 1`,
+    [T],
+  );
+  const b2bId = String(b2bInvRow?.id ?? '');
+  const b2bA4 = b2bId ? await api('GET', `/reports/print/invoices/${b2bId}?paper=a4`, undefined, token) : { status: 0, data: {} };
+  const b2bPos = b2bId ? await api('GET', `/reports/print/invoices/${b2bId}?paper=small`, undefined, token) : { status: 0, data: {} };
+  const b2bA4Html = String(((b2bA4.data ?? {}) as Row).html ?? '');
+  const b2bPosHtml = String(((b2bPos.data ?? {}) as Row).html ?? '');
+  const b2bTitleOk =
+    b2bA4Html.includes('فاتورة ضريبية') &&
+    !b2bA4Html.includes('فاتورة ضريبية مبسطة') &&
+    b2bPosHtml.includes('فاتورة ضريبية') &&
+    !b2bPosHtml.includes('فاتورة ضريبية مبسطة');
+  const b2bCustNaOk =
+    b2bA4Html.includes('العنوان الوطني للعميل') &&
+    b2bA4Html.includes('طريق الملك عبدالعزيز') &&
+    b2bPosHtml.includes('العنوان الوطني للعميل') &&
+    b2bPosHtml.includes('طريق الملك عبدالعزيز');
+  const b2bPolicyAndQrOk =
+    b2bA4Html.includes('خلال 7 أيام') &&
+    b2bPosHtml.includes('خلال 7 أيام') &&
+    b2bA4Html.includes('<svg') &&
+    b2bPosHtml.includes('<svg');
+  checks.push({
+    name: 'طباعة فاتورة B2B (برقم ضريبي) A4 + 80mm: عنوان «فاتورة ضريبية» + إظهار العنوان الوطني للعميل + QR + سياسة الإرجاع',
+    ok: b2bA4.status === 200 && b2bPos.status === 200 && b2bTitleOk && b2bCustNaOk && b2bPolicyAndQrOk,
+    expected: 'فاتورة ضريبية + العنوان الوطني للعميل + سياسة الإرجاع + SVG QR',
+    actual: `a4=${b2bA4.status} small=${b2bPos.status} title=${b2bTitleOk} custNA=${b2bCustNaOk} qrPolicy=${b2bPolicyAndQrOk}`,
+  });
+
+  // 23) فاتورة ضريبية مبسطة B2C (عميل بدون رقم ضريبي رغم وجود عنوان مسجل): عنوان «فاتورة ضريبية مبسطة» + إخفاء العنوان الوطني للعميل
+  const b2cInvRow = await one(
+    `select si.id from sales_invoices si left join parties p on p.id = si.party_id
+      where si.tenant_id = $1 and si.kind = 'sale' and si.status = 'posted' and coalesce(p.tax_no, '') = ''
+      order by si.created_at asc limit 1`,
+    [T],
+  );
+  const b2cId = String(b2cInvRow?.id ?? '');
+  const b2cA4 = b2cId ? await api('GET', `/reports/print/invoices/${b2cId}?paper=a4`, undefined, token) : { status: 0, data: {} };
+  const b2cPos = b2cId ? await api('GET', `/reports/print/invoices/${b2cId}?paper=small`, undefined, token) : { status: 0, data: {} };
+  const b2cA4Html = String(((b2cA4.data ?? {}) as Row).html ?? '');
+  const b2cPosHtml = String(((b2cPos.data ?? {}) as Row).html ?? '');
+  const b2cTitleOk = b2cA4Html.includes('فاتورة ضريبية مبسطة') && b2cPosHtml.includes('فاتورة ضريبية مبسطة');
+  const b2cCustNaHidden =
+    !b2cA4Html.includes('العنوان الوطني للعميل') &&
+    !b2cPosHtml.includes('العنوان الوطني للعميل') &&
+    !b2cA4Html.includes('شارع التحلية') &&
+    !b2cPosHtml.includes('شارع التحلية');
+  const b2cQrOk = b2cA4Html.includes('<svg') && b2cPosHtml.includes('<svg') && b2cPosHtml.includes('pos-receipt');
+  checks.push({
+    name: 'طباعة فاتورة B2C/POS (بدون رقم ضريبي) A4 + 80mm: عنوان «فاتورة ضريبية مبسطة» + إخفاء العنوان الوطني للعميل + QR إلزامي',
+    ok: b2cA4.status === 200 && b2cPos.status === 200 && b2cTitleOk && b2cCustNaHidden && b2cQrOk,
+    expected: 'فاتورة ضريبية مبسطة + إخفاء العنوان الوطني للعميل + pos-receipt + SVG QR',
+    actual: `a4=${b2cA4.status} small=${b2cPos.status} title=${b2cTitleOk} hiddenNA=${b2cCustNaHidden} qr=${b2cQrOk}`,
+  });
+
+  // 24) ZATCA Phase-2 QR عند اعتماد الفاتورة في الزكاة (einvoice_submissions status=cleared)
+  let phase2Ok = false;
+  let phase2Detail = 'no-invoice';
+  if (b2bId) {
+    const phase2SampleQr = Buffer.from('ZATCA-PHASE2-CLEARED-QR-SAMPLE-PAYLOAD-0123456789', 'utf8').toString('base64');
+    await db.query('BEGIN');
+    await db.query(`select set_config('app.current_tenant_id', $1, true)`, [T]);
+    const insSub = await db.query(
+      `insert into einvoice_submissions (id, tenant_id, invoice_id, authority, action, environment, status, qr_payload)
+       values (gen_random_uuid(), $1, $2, 'zatca', 'submit', 'simulation', 'cleared', $3)
+       returning id`,
+      [T, b2bId, phase2SampleQr],
+    );
+    await db.query('COMMIT');
+    const subId = String(insSub.rows[0]?.id ?? '');
+    try {
+      const invGet = await api('GET', `/sales/invoices/${b2bId}`, undefined, token);
+      const invData = (invGet.data ?? {}) as Row;
+      const p2Print = await api('GET', `/reports/print/invoices/${b2bId}?paper=small`, undefined, token);
+      const p2Html = String(((p2Print.data ?? {}) as Row).html ?? '');
+      phase2Ok =
+        Number(invData.zatcaPhase) === 2 &&
+        String(invData.zatcaQr ?? '') === phase2SampleQr &&
+        p2Html.includes('المرحلة الثانية') &&
+        p2Html.includes('<svg');
+      phase2Detail = `phase=${String(invData.zatcaPhase)} qrMatch=${String(invData.zatcaQr ?? '') === phase2SampleQr} htmlPhase2=${p2Html.includes('المرحلة الثانية')}`;
+    } finally {
+      if (subId) {
+        await db.query('BEGIN');
+        await db.query(`select set_config('app.current_tenant_id', $1, true)`, [T]);
+        await db.query(`delete from einvoice_submissions where id = $1`, [subId]);
+        await db.query('COMMIT');
+      }
+    }
+  }
+  checks.push({
+    name: 'رمز QR المرحلة الثانية (ZATCA Phase 2): التبديل التلقائي إلى QR المرحلة الثانية فور الإرسال للزاتكا',
+    ok: phase2Ok,
+    expected: 'zatcaPhase=2 + QR المرحلة الثانية الموقّع + شارة المرحلة الثانية',
+    actual: phase2Detail,
+  });
+
+  // 25) سياسة الاستخدام والحصص وطلبات الاعتماد لإدارة المنصة (/usage + /usage/requests)
+  const usageCur = await api('GET', '/usage', undefined, token);
+  const usageData = (usageCur.data ?? {}) as Row;
+  const usageMetrics = Array.isArray(usageData.metrics) ? (usageData.metrics as Row[]) : [];
+  const createQuotaReq = await api(
+    'POST',
+    '/usage/requests',
+    {
+      requestType: 'quota_increase',
+      metricKey: 'invoices_per_month',
+      requestedLimit: 5000,
+      reason: 'طلب تحقق آلي لزيادة حصة الفواتير الشهرية واعتماده من إدارة المنصة',
+    },
+    token,
+  );
+  const listQuotaReq = await api('GET', '/usage/requests', undefined, token);
+  const quotaReqs = Array.isArray(listQuotaReq.data) ? (listQuotaReq.data as Row[]) : [];
+  checks.push({
+    name: 'سياسة الاستخدام والحصص وطلب الاعتماد لإدارة المنصة (/usage 8 مقاييس + /usage/requests)',
+    ok:
+      usageCur.status === 200 &&
+      usageMetrics.length >= 8 &&
+      createQuotaReq.status < 300 &&
+      quotaReqs.some((r) => r.metricKey === 'invoices_per_month' && Number(r.requestedLimit) === 5000 && r.status === 'pending'),
+    expected: '8 مقاييس حصص + إنشاء واستعراض طلب اعتماد معلق لإدارة المنصة',
+    actual: `metrics=${usageMetrics.length} create=${createQuotaReq.status} listed=${quotaReqs.length}`,
+  });
+
+  // 26) Non-destructive Live Defect Diagnostics (recorded in notes so verify-seed warns about open regressions)
   const suppRow = await one(`select id from parties where tenant_id = $1 and kind = 'supplier' limit 1`, [T]);
   if (suppRow?.id) {
     const pStmt = await api('GET', `/parties/${String(suppRow.id)}/statement`, undefined, token);

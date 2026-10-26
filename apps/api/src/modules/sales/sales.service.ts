@@ -367,9 +367,23 @@ export class SalesService {
           ? 'فاتورة ضريبية'
           : 'فاتورة ضريبية مبسطة';
 
-    // الكيو آر إلزامي: إذا أُرسلت/وُقّعت الفاتورة في الزاتكا نستخدم حمولة المرحلة الثانية (`zatca_qr`)،
+    // الكيو آر إلزامي: إذا أُرسلت/وُقّعت الفاتورة في الزاتكا نستخدم حمولة المرحلة الثانية (`zatca_qr` أو `einvoice_submissions.qr_payload`)،
     // وإلا نولّد حمولة المرحلة الأولى الرسمية (TLV Tags 1..5) من بيانات المنشأة الفعلية.
-    const storedPhase2Qr = invoice.zatcaQr && String(invoice.zatcaQr).trim().length > 0 ? String(invoice.zatcaQr).trim() : null;
+    let storedPhase2Qr = invoice.zatcaQr && String(invoice.zatcaQr).trim().length > 0 ? String(invoice.zatcaQr).trim() : null;
+    if (!storedPhase2Qr) {
+      const subRes = await tx.execute(sql`
+        SELECT qr_payload
+          FROM einvoice_submissions
+         WHERE tenant_id = ${tenantId}::uuid
+           AND invoice_id = ${id}::uuid
+           AND status IN ('signed', 'submitted', 'reported', 'cleared')
+           AND COALESCE(qr_payload, '') <> ''
+         ORDER BY created_at DESC
+         LIMIT 1
+      `);
+      const subQr = (subRes.rows[0] as { qr_payload?: string } | undefined)?.qr_payload?.trim();
+      if (subQr) storedPhase2Qr = subQr;
+    }
     let qrCode: string;
     let zatcaPhase: 1 | 2;
     if (storedPhase2Qr) {
@@ -439,6 +453,7 @@ export class SalesService {
 
     return {
       ...invoice,
+      zatcaQr: qrCode,
       qrCode,
       zatcaPhase,
       partyName,

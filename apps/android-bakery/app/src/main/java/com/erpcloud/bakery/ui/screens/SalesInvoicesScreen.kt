@@ -373,25 +373,45 @@ fun SalesInvoicesScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                     }
                 }
-                // 🖨️ طباعةُ A4 الاحترافيّةُ من الخادمِ — بقالبِ الويبِ الرسميِّ وQR الزكاة.
+                // 🖨️ طباعةُ A4 (rptInvA4) وكاشير 80mm (rptInv) الاحترافيّة من الخادم وQR الزكاة.
                 Spacer(Modifier.height(10.dp))
                 val printScope = rememberCoroutineScope()
                 val printContext = LocalContext.current
-                OutlinedButton(
-                    onClick = {
-                        printScope.launch {
-                            try {
-                                val html = vm.salesInvoicePrintHtml(detail.id)
-                                com.erpcloud.bakery.printing.HtmlPrint.printViaSystem(
-                                    printContext, html, "فاتورة ${detail.number}",
-                                )
-                            } catch (error: Exception) {
-                                vm.showPrintError(error.message ?: "تعذّرت طباعةُ الفاتورة")
-                            }
-                        }
-                    },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("🖨 طباعة A4 — بالترويسةِ وQR الزكاة") }
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            printScope.launch {
+                                try {
+                                    val html = vm.salesInvoicePrintHtml(detail.id, paper = "a4")
+                                    com.erpcloud.bakery.printing.HtmlPrint.printViaSystem(
+                                        printContext, html, "فاتورة A4 ${detail.number}",
+                                    )
+                                } catch (error: Exception) {
+                                    vm.showPrintError(error.message ?: "تعذّرت طباعةُ الفاتورة")
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("🖨 طباعة A4") }
+                    OutlinedButton(
+                        onClick = {
+                            printScope.launch {
+                                try {
+                                    val html = vm.salesInvoicePrintHtml(detail.id, paper = "small")
+                                    com.erpcloud.bakery.printing.HtmlPrint.printViaSystem(
+                                        printContext, html, "كاشير 80mm ${detail.number}",
+                                    )
+                                } catch (error: Exception) {
+                                    vm.showPrintError(error.message ?: "تعذّرت طباعةُ الإيصال")
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("🧾 كاشير 80mm") }
+                }
             }
         }
     }
