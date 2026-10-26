@@ -56,6 +56,10 @@ object Dec {
     /** تنسيقُ كميّةٍ بالكيلوغرام (بلا أصفارٍ زائدة، حتّى ٤ منازل). */
     fun kg(value: String?): String = format(value, minDecimals = 0, maxDecimals = 4)
 
+    /** تنسيقٌ رقميٌّ عامٌّ بلا أصفارٍ لاحقةٍ زائدة حتّى [maxDecimals] منازل. */
+    fun fmt(value: String?, maxDecimals: Int = 2): String =
+        format(value, minDecimals = 0, maxDecimals = maxDecimals)
+
     /** نصُّ إرسالٍ إلى الخادم — أرقامٌ لاتينيّة، بلا أصفارٍ لاحقةٍ زائدة. */
     fun wire(value: String): String {
         val bd = parse(value) ?: return normalizeDigits(value).trim()
