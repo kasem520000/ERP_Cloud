@@ -28,54 +28,112 @@ fail() { printf '\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 if command -v nginx >/dev/null 2>&1; then
   say "مزامنة إعدادات Nginx"
   mkdir -p /etc/nginx/snippets /etc/nginx/sites-available /etc/nginx/sites-enabled
+  ROLLBACK_DIR="/etc/nginx/.erpcloud-backup-$STAMP"
+  mkdir -p "$ROLLBACK_DIR/sites-enabled" "$ROLLBACK_DIR/sites-available" "$ROLLBACK_DIR/snippets"
 
-  NGINX_CHANGED=0
-  BACKUP_SITE=""
-  BACKUP_SNIPPET=""
+  cp -a /etc/nginx/sites-enabled/. "$ROLLBACK_DIR/sites-enabled/" 2>/dev/null || true
+  [ -f /etc/nginx/sites-available/erpcloud ] && cp -a /etc/nginx/sites-available/erpcloud "$ROLLBACK_DIR/sites-available/erpcloud"
+  [ -f /etc/nginx/snippets/erp-proxy.conf ] && cp -a /etc/nginx/snippets/erp-proxy.conf "$ROLLBACK_DIR/snippets/erp-proxy.conf"
 
-  if [ ! -f /etc/nginx/snippets/erp-proxy.conf ] || ! cmp -s "$ROOT/deploy/vps/erp-proxy.conf" /etc/nginx/snippets/erp-proxy.conf; then
-    if [ -f /etc/nginx/snippets/erp-proxy.conf ]; then
-      BACKUP_SNIPPET="/etc/nginx/snippets/erp-proxy.conf.bak.$STAMP"
-      cp -a /etc/nginx/snippets/erp-proxy.conf "$BACKUP_SNIPPET"
+  # اكتشاف شهادة TLS الحالية على الخادم إن كانت في مسار غير `/etc/nginx/ssl/origin.{crt,key}` (مثل Let's Encrypt)
+  DETECTED_CERT=""
+  DETECTED_KEY=""
+  if [ ! -f /etc/nginx/ssl/origin.crt ] || [ ! -f /etc/nginx/ssl/origin.key ]; then
+    for cand in /etc/nginx/sites-enabled/* /etc/nginx/sites-available/*; do
+      [ -f "$cand" ] || continue
+      case "$cand" in *.bak.*) continue ;; esac
+      c_cert="$(awk '/^[[:space:]]*ssl_certificate[[:space:]]+/ { gsub(/;/, "", $2); print $2; exit }' "$cand" || true)"
+      c_key="$(awk '/^[[:space:]]*ssl_certificate_key[[:space:]]+/ { gsub(/;/, "", $2); print $2; exit }' "$cand" || true)"
+      if [ -n "$c_cert" ] && [ -n "$c_key" ] && [ -f "$c_cert" ] && [ -f "$c_key" ]; then
+        DETECTED_CERT="$c_cert"
+        DETECTED_KEY="$c_key"
+        break
+      fi
+    done
+  fi
+
+  RENDERED_SITE="$(mktemp)"
+  cp "$ROOT/deploy/vps/nginx-erpcloud.conf" "$RENDERED_SITE"
+
+  if [ -n "$DETECTED_CERT" ] && [ -n "$DETECTED_KEY" ]; then
+    sed -i \
+      -e "s|/etc/nginx/ssl/origin.crt|$DETECTED_CERT|g" \
+      -e "s|/etc/nginx/ssl/origin.key|$DETECTED_KEY|g" \
+      "$RENDERED_SITE"
+    ok "استُخدمت شهادة TLS الموجودة على الخادم: $DETECTED_CERT"
+  fi
+
+  # توافق تلقائي مع إصدارات Nginx الأقدم من 1.25.1 التي لا تدعم توجيه `http2 on;` المستقل
+  NGINX_VER="$(nginx -v 2>&1 | sed -nE 's/.*nginx\/([0-9]+\.[0-9]+\.[0-9]+).*/\1/p')"
+  if [ -n "$NGINX_VER" ]; then
+    IFS=. read -r N_MAJ N_MIN N_PAT <<< "$NGINX_VER"
+    if [ "$N_MAJ" -eq 1 ] && { [ "$N_MIN" -lt 25 ] || { [ "$N_MIN" -eq 25 ] && [ "$N_PAT" -lt 1 ]; }; }; then
+      sed -i \
+        -e '/^[[:space:]]*http2 on;/d' \
+        -e 's/listen 443 ssl default_server;/listen 443 ssl http2 default_server;/g' \
+        -e 's/listen \[::\]:443 ssl default_server;/listen [::]:443 ssl http2 default_server;/g' \
+        -e 's/listen 443 ssl;/listen 443 ssl http2;/g' \
+        -e 's/listen \[::\]:443 ssl;/listen [::]:443 ssl http2;/g' \
+        "$RENDERED_SITE"
     fi
-    cp "$ROOT/deploy/vps/erp-proxy.conf" /etc/nginx/snippets/erp-proxy.conf
-    NGINX_CHANGED=1
-    ok "تم تحديث /etc/nginx/snippets/erp-proxy.conf"
-  else
-    ok "/etc/nginx/snippets/erp-proxy.conf مطابق للمستودع"
   fi
 
-  if [ ! -f /etc/nginx/sites-available/erpcloud ] || ! cmp -s "$ROOT/deploy/vps/nginx-erpcloud.conf" /etc/nginx/sites-available/erpcloud; then
-    if [ -f /etc/nginx/sites-available/erpcloud ]; then
-      BACKUP_SITE="/etc/nginx/sites-available/erpcloud.bak.$STAMP"
-      cp -a /etc/nginx/sites-available/erpcloud "$BACKUP_SITE"
-    fi
-    cp "$ROOT/deploy/vps/nginx-erpcloud.conf" /etc/nginx/sites-available/erpcloud
-    NGINX_CHANGED=1
-    ok "تم تحديث /etc/nginx/sites-available/erpcloud"
-  else
-    ok "/etc/nginx/sites-available/erpcloud مطابق للمستودع"
-  fi
-
-  if [ ! -L /etc/nginx/sites-enabled/erpcloud ]; then
-    ln -sf /etc/nginx/sites-available/erpcloud /etc/nginx/sites-enabled/erpcloud
-    NGINX_CHANGED=1
-  fi
-  if [ -e /etc/nginx/sites-enabled/default ]; then
+  if [ -e /etc/nginx/sites-enabled/default ] || [ -L /etc/nginx/sites-enabled/default ]; then
     rm -f /etc/nginx/sites-enabled/default
-    NGINX_CHANGED=1
     ok "تمت إزالة /etc/nginx/sites-enabled/default المتعارض"
   fi
 
-  if [ "$NGINX_CHANGED" -eq 1 ]; then
-    if nginx -t; then
-      systemctl reload nginx
-      ok "nginx -t ناجح وتمت إعادة تحميل Nginx"
-    else
-      [ -n "$BACKUP_SITE" ] && cp -a "$BACKUP_SITE" /etc/nginx/sites-available/erpcloud
-      [ -n "$BACKUP_SNIPPET" ] && cp -a "$BACKUP_SNIPPET" /etc/nginx/snippets/erp-proxy.conf
-      fail "فشل nginx -t — أُعيدت النسخة الاحتياطية تلقائياً. تحقّق من /etc/nginx/ssl/origin.{crt,key}."
+  # تعطيل أي ملف آخر في sites-enabled يعرّف نفس نطاق sahabaccounting.com منعاً لتعارض server_name
+  for enabled in /etc/nginx/sites-enabled/*; do
+    [ -e "$enabled" ] || continue
+    [ "$(basename "$enabled")" = "erpcloud" ] && continue
+    if grep -q "sahabaccounting\.com" "$enabled" 2>/dev/null; then
+      rm -f "$enabled"
+      ok "تم تعطيل ملف الموقع القديم المتعارض: $enabled"
     fi
+  done
+
+  # إذا كان على الخادم موقعٌ آخر مستقل يحجز default_server مسبقاً على 80 أو 443، نرفع وسم default_server منعاً لخطأ duplicate default server
+  for other in /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf; do
+    [ -f "$other" ] || continue
+    [ "$(basename "$other")" = "erpcloud" ] && continue
+    if grep -Eq '^[[:space:]]*listen[[:space:]].*\b80\b.*default_server' "$other" 2>/dev/null; then
+      sed -i -E 's/(listen[[:space:]]+(\[::\]:)?80)[[:space:]]+default_server;/\1;/g' "$RENDERED_SITE"
+      warn "موقع آخر ($other) يحجز default_server على 80 — تم تجنّب التكرار تلقائياً"
+    fi
+    if grep -Eq '^[[:space:]]*listen[[:space:]].*\b443\b.*default_server' "$other" 2>/dev/null; then
+      sed -i -E 's/(listen[[:space:]]+(\[::\]:)?443[[:space:]]+ssl([[:space:]]+http2)?)[[:space:]]+default_server;/\1;/g' "$RENDERED_SITE"
+      warn "موقع آخر ($other) يحجز default_server على 443 — تم تجنّب التكرار تلقائياً"
+    fi
+  done
+
+  cp "$ROOT/deploy/vps/erp-proxy.conf" /etc/nginx/snippets/erp-proxy.conf
+  ok "تم تحديث /etc/nginx/snippets/erp-proxy.conf"
+
+  cp "$RENDERED_SITE" /etc/nginx/sites-available/erpcloud
+  chmod 644 /etc/nginx/sites-available/erpcloud
+  rm -f "$RENDERED_SITE"
+  ok "تم تحديث /etc/nginx/sites-available/erpcloud"
+
+  ln -sf /etc/nginx/sites-available/erpcloud /etc/nginx/sites-enabled/erpcloud
+
+  if nginx -t; then
+    systemctl reload nginx
+    rm -rf "$ROLLBACK_DIR"
+    ok "nginx -t ناجح وتمت إعادة تحميل Nginx بلا أخطاء"
+  else
+    rm -f /etc/nginx/sites-enabled/*
+    cp -a "$ROLLBACK_DIR/sites-enabled/." /etc/nginx/sites-enabled/ 2>/dev/null || true
+    if [ -f "$ROLLBACK_DIR/sites-available/erpcloud" ]; then
+      cp -a "$ROLLBACK_DIR/sites-available/erpcloud" /etc/nginx/sites-available/erpcloud
+    else
+      rm -f /etc/nginx/sites-available/erpcloud
+    fi
+    if [ -f "$ROLLBACK_DIR/snippets/erp-proxy.conf" ]; then
+      cp -a "$ROLLBACK_DIR/snippets/erp-proxy.conf" /etc/nginx/snippets/erp-proxy.conf
+    fi
+    rm -rf "$ROLLBACK_DIR"
+    fail "فشل nginx -t — أُعيدت الإعدادات السابقة كاملةً تلقائياً."
   fi
 else
   warn "nginx غير مثبّت على هذا المضيف؛ تم تخطّي مزامنة Nginx"

@@ -158,6 +158,29 @@ describe('إعداد Nginx (deploy/vps/nginx-erpcloud.conf)', () => {
       expect(ports.size, `${block.names.join(',')} يخلط منافذ: ${[...ports].join(',')}`).toBe(1);
     }
   });
+
+  it('يستخدم `http2 on;` الحديث ولا يكرّر توجيهات `erp-proxy.conf` داخل `location` (منع فشل `nginx -t`)', () => {
+    const cleanConf = stripComments(conf);
+    expect(cleanConf).not.toMatch(/listen\s+[^\n;]*\bhttp2\b/);
+    for (const block of blocks.filter((b) => b.tls)) {
+      expect(block.body).toContain('http2 on;');
+    }
+
+    const snippetDirectives = [...stripComments(read('deploy/vps/erp-proxy.conf')).matchAll(/^\s*([a-z_]+)\s+/gm)]
+      .map((m) => m[1])
+      .filter((name) => name !== 'proxy_set_header');
+
+    const locations = [...cleanConf.matchAll(/location\s+[^{]+\{([\s\S]*?)\}/g)].map((m) => m[1]);
+    expect(locations.length).toBeGreaterThanOrEqual(11);
+    for (const loc of locations) {
+      if (!loc.includes('erp-proxy.conf')) continue;
+      for (const directive of snippetDirectives) {
+        expect(loc, `التوجيه ${directive} مكرّر مع erp-proxy.conf`).not.toMatch(
+          new RegExp(`\\b${directive}\\b`),
+        );
+      }
+    }
+  });
 });
 
 describe('إعداد PM2 (deploy/vps/ecosystem.config.cjs)', () => {
