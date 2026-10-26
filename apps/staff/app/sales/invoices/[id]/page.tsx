@@ -99,11 +99,15 @@ type Invoice = {
   paymentStatus: string;
   createdAt: string;
   postedAt: string | null;
+  notes?: string | null;
   qrCode?: string | null;
+  zatcaPhase?: 1 | 2;
   taxInvoiceType?: 'standard' | 'simplified';
   taxInvoiceTypeLabelAr?: string;
   partyName?: string | null;
   partyTaxNo?: string | null;
+  partyPhone?: string | null;
+  customerNationalAddress?: Record<string, unknown> | null;
   lines: InvoiceLine[];
   payments: Payment[];
 };
@@ -905,44 +909,63 @@ export default function SalesInvoiceDetailPage() {
                     size={136}
                     label={
                       doc.taxInvoiceTypeLabelAr
-                        ? `باركود ${doc.taxInvoiceTypeLabelAr} (ZATCA QR)`
+                        ? `باركود ${doc.taxInvoiceTypeLabelAr} (${doc.zatcaPhase === 2 ? 'المرحلة الثانية ZATCA' : 'ZATCA QR'})`
                         : 'باركود الفاتورة الضريبية (ZATCA QR)'
                     }
                   />
-                  <button
-                    type="button"
-                    className="btn sm"
-                    onClick={() => {
-                      const identity = receiptIdentity(company.data ?? null, 'المنشأة');
-                      printThermalReceipt80mm({
-                        companyName: identity.companyName,
-                        taxNo: identity.taxNo,
-                        invoiceNumber: doc.number ?? doc.id.slice(0, 8),
-                        invoiceTypeLabel: doc.taxInvoiceTypeLabelAr || 'فاتورة ضريبية مبسطة',
-                        issuedAt: dateTime(doc.postedAt ?? doc.createdAt),
-                        customerName: party ? partyLabel(party) : doc.cashCustomerName || 'عميل عام',
-                        paymentMethodLabel: doc.paymentStatus === 'paid' ? 'مدفوعة' : 'آجل',
-                        lines: doc.lines.map((line) => {
-                          const foundItem = (items.data ?? []).find((entry) => entry.id === line.itemId);
-                          return {
-                            name: line.description || (foundItem ? itemLabel(foundItem) : 'صنف'),
-                            quantity: line.quantity,
-                            unitPrice: line.unitPrice,
-                            total: line.total,
-                          };
-                        }),
-                        subtotal: doc.subtotal,
-                        discount: doc.invoiceDiscount ?? '0',
-                        taxTotal: doc.taxTotal,
-                        total: doc.total,
-                        paidAmount: doc.paidTotal,
-                        // الحمولة الصادرة فعلًا أو لا شيء — الإيصال يقول «لم تُصدر بعد» بدل رمزٍ زائف.
-                        qrPayload: doc.qrCode ?? null,
-                      });
-                    }}
-                  >
-                    طباعة إيصال كاشير حراري (80mm)
-                  </button>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Link
+                      href={`/print/sales-invoice/${doc.id}`}
+                      className="btn primary sm"
+                    >
+                      طباعة فاتورة A4
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn sm"
+                      onClick={() => {
+                        const identity = receiptIdentity(company.data ?? null, 'المنشأة');
+                        printThermalReceipt80mm({
+                          companyName: identity.companyName,
+                          companyNameEn: company.data?.nameEn || undefined,
+                          taxNo: identity.taxNo,
+                          crNo: company.data?.crNo || undefined,
+                          companyPhones: company.data?.phones || undefined,
+                          companyAddress: (company.data?.address as Record<string, unknown> | undefined) ?? null,
+                          invoiceNumber: doc.number ?? doc.id.slice(0, 8),
+                          invoiceTypeLabel:
+                            doc.taxInvoiceTypeLabelAr ||
+                            (doc.partyTaxNo ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة'),
+                          issuedAt: dateTime(doc.postedAt ?? doc.createdAt),
+                          customerName:
+                            doc.partyName || (party ? partyLabel(party) : doc.cashCustomerName || 'عميل نقدي'),
+                          customerTaxNo: doc.partyTaxNo || undefined,
+                          customerPhone: doc.partyPhone || doc.cashCustomerMobile || undefined,
+                          customerAddress: doc.customerNationalAddress ?? null,
+                          paymentMethodLabel: doc.paymentStatus === 'paid' ? 'مدفوعة' : 'آجل',
+                          lines: doc.lines.map((line) => {
+                            const foundItem = (items.data ?? []).find((entry) => entry.id === line.itemId);
+                            return {
+                              name: line.description || (foundItem ? itemLabel(foundItem) : 'صنف'),
+                              quantity: line.quantity,
+                              unitPrice: line.unitPrice,
+                              total: line.total,
+                            };
+                          }),
+                          subtotal: doc.subtotal,
+                          discount: doc.invoiceDiscount ?? '0',
+                          taxTotal: doc.taxTotal,
+                          total: doc.total,
+                          paidAmount: doc.paidTotal,
+                          notes: doc.notes ?? undefined,
+                          zatcaPhase: doc.zatcaPhase,
+                          qrPayload: doc.qrCode ?? null,
+                        });
+                      }}
+                    >
+                      طباعة إيصال كاشير (80mm)
+                    </button>
+                  </div>
                 </div>
 
                 {Number(doc.taxTotal) > 0 || Number(doc.subtotal) > 0 ? (

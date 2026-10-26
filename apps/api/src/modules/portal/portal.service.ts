@@ -347,9 +347,9 @@ export class PortalService {
   }
 
   /** The same printed document the back office produces — the customer can save it as a PDF. */
-  async invoicePrint(tenantId: string, userId: string, invoiceId: string) {
+  async invoicePrint(tenantId: string, userId: string, invoiceId: string, paper?: string) {
     await this.invoice(tenantId, userId, invoiceId); // ownership check, and 404 for anything else
-    return this.print.salesInvoice(tenantId, invoiceId);
+    return this.print.salesInvoice(tenantId, invoiceId, { paper });
   }
 
   /**

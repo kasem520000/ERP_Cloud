@@ -1,24 +1,5 @@
-/**
- * 🖨️ مستند البيع الرسميّ بنسختيه — **مُصيِّرٌ واحد لورقةٍ واحدة يطبعها سطحان**.
- *
- * والمدخل هو `GET /van-sales/documents/:id/print-view` كما يرجعه الخادم: الأرقام على
- * الورق هي أرقام الأستاذ، ولا يُعاد حساب إجماليٍّ أو ضريبة في المتصفّح، ولا يُنشأ مستندٌ
- * ثانٍ هنا — فالخادم يقرّر عدد النسخ (`?copies=`) ونوع كلّ نسخة (`customer` / `rep` مع
- * مربّع توقيع). نسخةٌ للعميل ونسخةٌ تعود موقّعة إلى المحاسب من **سند بيعٍ واحد**، لا
- * فاتورتان.
- *
- * ورمز ZATCA يُرسم من الحمولة الصادرة على الفاتورة وحدها (`qrPayload` من وحدة الفوترة
- * الإلكترونية) — انظر `./qr`. وكان هنا قبل الرفع `‏<img src="data:image/png;base64,">`
- * بحمولةٍ فارغة: صورةٌ مكسورة على ورقةٍ رسمية بدل الرمز. فصار الرمز يُرسم فعلًا، وحين لا
- * تكون للفاتورة الضريبية حمولةٌ صادرة يُطبع القول الصريح نفسه الذي تقولُه الشاشة وإيصال
- * الكاشير — فلا ورقةَ توحي بإصدارٍ إلكترونيّ لم يحدث.
- *
- * ومكانه `@erp/web-van` لأنّ المستهلكين اثنان (`apps/staff` و`apps/bakery`) والخادم واحد:
- * ومُصيِّران يعنيان ورقًا يختلف عن ورق في اليوم الذي يُصلح فيه أحدهما.
- */
 import { ZATCA_QR_MISSING_TEXT, renderQrSvgMarkup } from './qr';
 
-/** 🖨️ نسخة الطباعة — what `/van-sales/documents/:id/print-view` returns. */
 export type VanDocumentPrintCopy = {
   copyIndex: number;
   kind: 'customer' | 'rep';
@@ -34,20 +15,32 @@ export type VanDocumentPrintCopy = {
 export type VanDocumentPrintView = {
   documentId: string;
   documentNumber: string;
+  documentKind?: string;
   invoiceNumber: string | null;
   invoiceStatus: string | null;
+  zatcaStatus?: string | null;
+  zatcaPhase?: 1 | 2;
+  invoiceTitleAr?: string;
   saleDate: string;
   companyName: string;
   companyNameEn: string;
   companyTaxNo: string;
   companyCrNo: string;
+  companyCrn?: string;
+  companyFieldAr?: string;
+  companyFieldEn?: string;
+  companyAddressAr?: string;
+  companyAddressEn?: string;
   companyEmail: string;
   companyPhones: string[];
   companyAddress: Record<string, unknown> | null;
+  banks?: Array<{ name: string; iban: string }>;
+  returnPolicy?: string;
   customerName: string;
   customerTaxNo: string;
   customerPhone: string;
   customerMobile: string;
+  customerAddress?: Record<string, unknown> | null;
   salesmanName: string;
   salesmanMobile: string;
   vanWarehouseName: string;
@@ -94,71 +87,173 @@ const formatPrintedAt = (value: string): string => {
   return `${at.toLocaleDateString('ar-SA-u-ca-gregory', { timeZone: 'Asia/Riyadh' })} ${at.toLocaleTimeString('ar-SA-u-ca-gregory', { timeZone: 'Asia/Riyadh' })}`;
 };
 
-/**
- * الرمز على الورق: يُرسم إن كانت للفاتورة حمولةٌ صادرة، ويُطبع قولٌ صريح إن كانت ضريبيةً
- * ولم تصدر بعد، ولا شيءَ إطلاقًا لإشعار التسليم الداخليّ (فلا QR له أصلًا، وسطرُ «لم
- * تُصدر» هناك إيهامٌ بنقصٍ ليس نقصًا).
- */
+function extractNa(raw: Record<string, unknown> | null | undefined) {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  const pick = (...keys: string[]) => {
+    for (const k of keys) {
+      const v = r[k];
+      if (typeof v === 'string' && v.trim() !== '') return v.trim();
+    }
+    return '';
+  };
+  return {
+    street: pick('street', 'streetName', 'addStreet', 'additionalStreet'),
+    district: pick('district', 'neighborhood'),
+    city: pick('city'),
+    region: pick('region', 'province', 'state'),
+    building: pick('building', 'buildingNumber', 'buildingNo'),
+    additional: pick('additional', 'additionalNumber', 'plot'),
+    postal: pick('postal', 'postalCode', 'zip'),
+    unit: pick('unit', 'crn'),
+  };
+}
+
+function renderNationalAddressGrid(
+  caption: string,
+  raw: Record<string, unknown> | null | undefined,
+  crn = '',
+): string {
+  const a = extractNa(raw);
+  const hasAny = Boolean(
+    a.street || a.district || a.city || a.region || a.building || a.additional || a.postal || crn,
+  );
+  if (!hasAny) return '';
+  return `<table class="na-grid">
+    <thead>
+      <tr><th colspan="8" class="na-cap">${escapeHtml(caption)}</th></tr>
+      <tr><th>الشارع</th><th>الحي</th><th>المدينة</th><th>المنطقة</th><th>المبنى</th><th>الإضافي</th><th>الرمز البريدي</th><th>الرقم الموحد</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>${escapeHtml(a.street || '—')}</td>
+        <td>${escapeHtml(a.district || '—')}</td>
+        <td>${escapeHtml(a.city || '—')}</td>
+        <td>${escapeHtml(a.region || 'المملكة العربية السعودية')}</td>
+        <td dir="ltr">${escapeHtml(a.building || '—')}</td>
+        <td dir="ltr">${escapeHtml(a.additional || '—')}</td>
+        <td dir="ltr">${escapeHtml(a.postal || '—')}</td>
+        <td dir="ltr">${escapeHtml(crn || a.unit || '—')}</td>
+      </tr>
+    </tbody>
+  </table>`;
+}
+
 function qrBlock(view: VanDocumentPrintView): string {
   if (view.qrPayload) {
-    return `<div class="qr">${renderQrSvgMarkup(view.qrPayload, 150)}<div class="muted small">حمولة TLV الصادرة من وحدة الفوترة الإلكترونية: <span dir="ltr">${escapeHtml(view.qrPayload)}</span></div></div>`;
+    const phaseLabel =
+      view.zatcaPhase === 2
+        ? 'رمز الفاتورة الإلكترونية — المرحلة الثانية (ZATCA Phase 2)'
+        : 'رمز الفاتورة الإلكترونية — المرحلة الأولى (ZATCA QR)';
+    return `<div class="qr">${renderQrSvgMarkup(view.qrPayload, 145)}<div class="qr-phase">${escapeHtml(phaseLabel)}</div><div class="muted small">حمولة TLV الصادرة من وحدة الفوترة الإلكترونية: <span dir="ltr">${escapeHtml(view.qrPayload)}</span></div></div>`;
   }
   if (view.invoiceMode !== 'zatca_tax') return '';
   return `<div class="qr qr-missing">${escapeHtml(ZATCA_QR_MISSING_TEXT)}</div>`;
 }
 
-/**
- * 🖨️ نسختان من مستند بيع واحد — one official document, printed twice: the customer's copy
- * and the rep's copy that comes back signed. Opening a print window (the same pattern the
- * thermal receipt uses) keeps the browser's own dialog in charge of the printer, and no
- * second invoice is ever created here.
- */
 export function buildVanDocumentPrintHtml(view: VanDocumentPrintView): string {
-  const address = view.companyAddress
-    ? [
-        view.companyAddress.street ? String(view.companyAddress.street) : '',
-        view.companyAddress.district ? String(view.companyAddress.district) : '',
-        view.companyAddress.city ? String(view.companyAddress.city) : '',
-      ]
-        .filter(Boolean)
-        .join(' — ')
+  const hasCustomerTax = Boolean(
+    view.customerTaxNo &&
+      view.customerTaxNo.trim().length > 0 &&
+      view.customerName.trim() !== 'عميل عام' &&
+      view.customerName.trim() !== 'عميل نقدي',
+  );
+  const primaryTitle =
+    view.invoiceTitleAr ||
+    (view.invoiceMode === 'zatca_tax'
+      ? hasCustomerTax
+        ? 'فاتورة ضريبية'
+        : 'فاتورة ضريبية مبسطة'
+      : 'إشعار تسليم / فاتورة توزيع داخلية');
+  const subTitle =
+    view.invoiceMode === 'zatca_tax'
+      ? 'فاتورة ضريبية إلكترونية (مبيعات توزيع)'
+      : 'إشعار تسليم / فاتورة توزيع داخلية';
+
+  const shortAddr =
+    view.companyAddressAr ||
+    (view.companyAddress
+      ? [
+          view.companyAddress.street ? String(view.companyAddress.street) : '',
+          view.companyAddress.district ? String(view.companyAddress.district) : '',
+          view.companyAddress.city ? String(view.companyAddress.city) : '',
+        ]
+          .filter(Boolean)
+          .join(' — ')
+      : '');
+
+  const sellerNaGrid = renderNationalAddressGrid(
+    'العنوان الوطني للمنشأة',
+    view.companyAddress,
+    view.companyCrn || view.companyCrNo,
+  );
+  // العنوان الوطني للعميل يظهر فقط عند وجود رقم ضريبي للعميل
+  const customerNaGrid = hasCustomerTax
+    ? renderNationalAddressGrid('العنوان الوطني للعميل', view.customerAddress ?? null)
     : '';
+
+  const banksHtml =
+    view.banks && view.banks.length > 0
+      ? `<div class="banks">${view.banks
+          .map((b) => `<div><b>${escapeHtml(b.name)}:</b> <span dir="ltr">${escapeHtml(b.iban)}</span></div>`)
+          .join('')}</div>`
+      : '';
 
   const renderCopy = (copy: VanDocumentPrintCopy): string => `
   <section class="copy">
-    <header>
+    <header class="repx-head">
       <div class="company">
         <h1>${escapeHtml(view.companyName || 'المنشأة')}</h1>
-        ${view.companyNameEn ? `<div class="en">${escapeHtml(view.companyNameEn)}</div>` : ''}
+        ${view.companyFieldAr ? `<div class="field-line">${escapeHtml(view.companyFieldAr)}</div>` : ''}
         <div class="meta">
           ${view.companyTaxNo ? `<span>الرقم الضريبي: <b dir="ltr">${escapeHtml(view.companyTaxNo)}</b></span>` : ''}
           ${view.companyCrNo ? `<span>السجل التجاري: <b dir="ltr">${escapeHtml(view.companyCrNo)}</b></span>` : ''}
           ${view.companyPhones.length ? `<span>هاتف: <b dir="ltr">${escapeHtml(view.companyPhones.join(' ، '))}</b></span>` : ''}
           ${view.companyEmail ? `<span>بريد: <b dir="ltr">${escapeHtml(view.companyEmail)}</b></span>` : ''}
-          ${address ? `<span>العنوان: ${escapeHtml(address)}</span>` : ''}
+          ${shortAddr ? `<span>العنوان: ${escapeHtml(shortAddr)}</span>` : ''}
         </div>
       </div>
-      <div class="doc">
+      <div class="head-center">
         <div class="copy-label">${escapeHtml(copy.copyLabel)}</div>
-        <h2>${view.invoiceMode === 'zatca_tax' ? 'فاتورة ضريبية إلكترونية (مبيعات توزيع)' : 'إشعار تسليم / فاتورة توزيع داخلية'}</h2>
-        <table class="kv">
-          <tr><td>رقم المستند</td><th dir="ltr">${escapeHtml(view.documentNumber)}</th></tr>
-          ${view.invoiceNumber ? `<tr><td>رقم الفاتورة الرسمية</td><th dir="ltr">${escapeHtml(view.invoiceNumber)}</th></tr>` : ''}
-          <tr><td>تاريخ البيع</td><th dir="ltr">${escapeHtml(view.saleDate)}</th></tr>
-          <tr><td>تاريخ ووقت الطباعة</td><th dir="ltr">${escapeHtml(formatPrintedAt(view.printedAt))}</th></tr>
-          <tr><td>طريقة الدفع</td><th>${escapeHtml(view.paymentMethod === 'cash' ? 'نقدًا' : view.paymentMethod === 'card' ? 'شبكة' : 'آجل')}</th></tr>
-        </table>
+      </div>
+      <div class="head-en" dir="ltr">
+        ${view.companyNameEn ? `<div class="en">${escapeHtml(view.companyNameEn)}</div>` : ''}
+        ${view.companyFieldEn ? `<div class="field-line">${escapeHtml(view.companyFieldEn)}</div>` : ''}
+        ${view.companyAddressEn ? `<div class="small muted">${escapeHtml(view.companyAddressEn)}</div>` : ''}
+        ${banksHtml}
       </div>
     </header>
 
+    ${sellerNaGrid}
+
+    <div class="title-banner">
+      <h2>${escapeHtml(primaryTitle)}</h2>
+      <div class="muted small">${escapeHtml(subTitle)}</div>
+    </div>
+
+    <table class="meta-grid">
+      <tr>
+        <th>رقم المستند</th>
+        <td dir="ltr"><b>${escapeHtml(view.documentNumber)}</b></td>
+        ${view.invoiceNumber ? `<th>رقم الفاتورة الرسمية</th><td dir="ltr"><b>${escapeHtml(view.invoiceNumber)}</b></td>` : '<th>الوضع الضريبي</th><td>' + escapeHtml(view.taxPolicyStatus) + '</td>'}
+        <th>طريقة الدفع</th>
+        <td><b>${escapeHtml(view.paymentMethod === 'cash' ? 'نقدًا' : view.paymentMethod === 'card' ? 'شبكة' : 'آجل')}</b></td>
+      </tr>
+      <tr>
+        <th>تاريخ البيع</th>
+        <td dir="ltr">${escapeHtml(view.saleDate)}</td>
+        <th>تاريخ ووقت الطباعة</th>
+        <td colspan="3" dir="ltr">${escapeHtml(formatPrintedAt(view.printedAt))}</td>
+      </tr>
+    </table>
+
     <div class="parties">
-      <div>
+      <div class="party-box">
         <h3>بيانات العميل</h3>
         <div><b>${escapeHtml(view.customerName || 'عميل نقدي')}</b></div>
         ${view.customerTaxNo ? `<div>الرقم الضريبي: <b dir="ltr">${escapeHtml(view.customerTaxNo)}</b></div>` : ''}
         ${view.customerPhone || view.customerMobile ? `<div>جوال: <b dir="ltr">${escapeHtml(view.customerMobile || view.customerPhone)}</b></div>` : ''}
       </div>
-      <div>
+      <div class="party-box">
         <h3>المندوب وسيارة التوزيع</h3>
         <div><b>${escapeHtml(view.salesmanName)}</b></div>
         ${view.salesmanMobile ? `<div>جوال: <b dir="ltr">${escapeHtml(view.salesmanMobile)}</b></div>` : ''}
@@ -168,20 +263,23 @@ export function buildVanDocumentPrintHtml(view: VanDocumentPrintView): string {
       </div>
     </div>
 
+    ${customerNaGrid}
+
     <table class="lines">
       <thead>
-        <tr><th>#</th><th>الصنف</th><th>الكمية</th><th>سعر الوحدة</th><th>الخصم</th><th>الإجمالي</th></tr>
+        <tr><th>م</th><th>كود</th><th>الصنف / البيان</th><th>الكمية</th><th>سعر الوحدة</th><th>الخصم</th><th>الإجمالي</th></tr>
       </thead>
       <tbody>
         ${view.lines
           .map(
             (line, index) => `<tr class="${line.kind === 'bonus' ? 'bonus' : ''}">
               <td>${index + 1}</td>
+              <td dir="ltr">${escapeHtml(line.sku || '—')}</td>
               <td>${escapeHtml(line.itemName)}${line.reason ? ` <span class="muted">(${escapeHtml(line.reason)})</span>` : ''}</td>
               <td dir="ltr">${escapeHtml(line.quantity)}</td>
               <td dir="ltr">${escapeHtml(line.unitPrice)}</td>
               <td dir="ltr">${escapeHtml(line.discount)}</td>
-              <td dir="ltr">${escapeHtml(line.lineTotal)}</td>
+              <td dir="ltr"><b>${escapeHtml(line.lineTotal)}</b></td>
             </tr>`,
           )
           .join('')}
@@ -190,16 +288,22 @@ export function buildVanDocumentPrintHtml(view: VanDocumentPrintView): string {
 
     ${Number(view.bonusQtyTotal) > 0 ? `<div class="bonus-note">🎁 الكميات المجانية (البونص): <b dir="ltr">${escapeHtml(view.bonusQtyTotal)}</b> — مُسلَّمة بلا قيمة وبلا ضريبة، وتُخصم من المخزون بالتكلفة.</div>` : ''}
 
-    <table class="totals">
-      <tr><td>الإجمالي قبل الضريبة</td><th dir="ltr">${escapeHtml(view.subtotal)}</th></tr>
-      ${Number(view.discountTotal) > 0 ? `<tr><td>الخصم</td><th dir="ltr">${escapeHtml(view.discountTotal)}</th></tr>` : ''}
-      <tr><td>ضريبة القيمة المضافة (${escapeHtml(view.vatRate)}%)</td><th dir="ltr">${escapeHtml(view.vatTotal)}</th></tr>
-      <tr class="grand"><td>الإجمالي المستحق</td><th dir="ltr">${escapeHtml(view.grandTotal)}</th></tr>
-      <tr><td>المدفوع</td><th dir="ltr">${escapeHtml(view.paidAmount)}</th></tr>
-      <tr><td>المتبقي</td><th dir="ltr">${escapeHtml(view.outstandingAmount)}</th></tr>
-    </table>
+    <div class="bottom-split">
+      <div class="bottom-right">
+        ${qrBlock(view)}
+        ${view.notes ? `<div class="notes"><b>ملاحظات:</b> ${escapeHtml(view.notes)}</div>` : ''}
+        ${view.returnPolicy ? `<div class="policy-box"><b>سياسة الاسترجاع والاستبدال:</b><div>${escapeHtml(view.returnPolicy).replace(/\n/g, '<br/>')}</div></div>` : ''}
+      </div>
 
-    ${qrBlock(view)}
+      <table class="totals">
+        <tr><td>الإجمالي قبل الضريبة</td><th dir="ltr">${escapeHtml(view.subtotal)}</th></tr>
+        ${Number(view.discountTotal) > 0 ? `<tr><td>الخصم</td><th dir="ltr">${escapeHtml(view.discountTotal)}</th></tr>` : ''}
+        <tr><td>ضريبة القيمة المضافة (${escapeHtml(view.vatRate)}%)</td><th dir="ltr">${escapeHtml(view.vatTotal)}</th></tr>
+        <tr class="grand"><td>الإجمالي المستحق</td><th dir="ltr">${escapeHtml(view.grandTotal)}</th></tr>
+        <tr><td>المدفوع</td><th dir="ltr">${escapeHtml(view.paidAmount)}</th></tr>
+        <tr><td>المتبقي</td><th dir="ltr">${escapeHtml(view.outstandingAmount)}</th></tr>
+      </table>
+    </div>
 
     ${
       copy.requiresCustomerSignature && copy.signatureBlock
@@ -210,7 +314,6 @@ export function buildVanDocumentPrintHtml(view: VanDocumentPrintView): string {
           </div>`
         : ''
     }
-    ${view.notes ? `<div class="notes">ملاحظات: ${escapeHtml(view.notes)}</div>` : ''}
     <footer class="muted small">
       ${view.invoiceMode === 'zatca_tax' ? 'مستند ضريبي إلكتروني — الحالة: ' + escapeHtml(view.invoiceStatus || '—') : 'حالة السياسة الضريبية: ' + escapeHtml(view.taxPolicyStatus)}
     </footer>
@@ -223,38 +326,57 @@ export function buildVanDocumentPrintHtml(view: VanDocumentPrintView): string {
 <title>${escapeHtml(view.documentNumber)} — نسختا الطباعة</title>
 <style>
   :root { color-scheme: light; }
-  body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; margin: 0; padding: 16px; background: #fff; color: #111; }
+  @page { size: A4; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; margin: 0; padding: 14px; background: #fff; color: #111; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .no-print { text-align: center; margin-bottom: 12px; }
-  .copy { border: 1px solid #999; border-radius: 6px; padding: 14px; margin: 0 auto 18px; max-width: 780px; page-break-after: always; }
+  .copy { border: 1.5px solid #222; padding: 12px; margin: 0 auto 18px; max-width: 800px; page-break-after: always; }
   .copy:last-child { page-break-after: auto; }
-  header { display: flex; justify-content: space-between; gap: 14px; border-bottom: 2px solid #111; padding-bottom: 8px; }
-  h1 { font-size: 19px; margin: 0 0 2px; }
-  h2 { font-size: 15px; margin: 0 0 6px; }
-  h3 { font-size: 13px; margin: 0 0 4px; }
-  .en { font-size: 12px; color: #444; }
-  .meta { font-size: 11px; color: #333; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-  .copy-label { display: inline-block; background: #111; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-bottom: 6px; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .kv td, .kv th { text-align: right; padding: 1px 4px; font-weight: 400; }
-  .kv th { font-weight: 700; }
-  .parties { display: flex; gap: 24px; margin: 10px 0; }
-  .lines th, .lines td { border: 1px solid #bbb; padding: 4px 6px; text-align: right; }
-  .lines thead th { background: #f2f2f2; }
+  header.repx-head { display: grid; grid-template-columns: 1.3fr auto 1.1fr; gap: 10px; align-items: center; border: 1.5px solid #222; padding: 8px 10px; margin-bottom: 6px; }
+  h1 { font-size: 18px; margin: 0 0 2px; font-weight: 800; }
+  h2 { font-size: 17px; margin: 0; font-weight: 800; }
+  h3 { font-size: 12.5px; margin: 0 0 4px; background: #dfe3e8; padding: 3px 6px; border-bottom: 1px solid #333; }
+  .en { font-size: 14px; font-weight: 800; color: #111; }
+  .field-line { font-size: 11.5px; font-weight: 600; color: #333; }
+  .head-center { text-align: center; }
+  .head-en { text-align: left; font-size: 11px; }
+  .banks { margin-top: 4px; border-top: 1px dashed #999; padding-top: 3px; font-size: 10.5px; }
+  .meta { font-size: 11px; color: #222; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .copy-label { display: inline-block; background: #111; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 4px; }
+  .title-banner { border: 1.5px solid #111; background: #eef0f3; text-align: center; padding: 5px 8px; margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  .meta-grid th, .meta-grid td { border: 1px solid #333; padding: 4px 6px; text-align: right; }
+  .meta-grid th { background: #eef0f3; font-weight: 700; white-space: nowrap; }
+  .na-grid { margin-bottom: 6px; font-size: 10.5px; }
+  .na-grid th, .na-grid td { border: 1px solid #333; padding: 3px 4px; text-align: center; }
+  .na-grid thead th { background: #eef0f3; }
+  .na-grid .na-cap { background: #dfe3e8; text-align: right; padding-inline: 6px; font-weight: 800; }
+  .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0; }
+  .party-box { border: 1px solid #333; padding-bottom: 5px; font-size: 11.5px; }
+  .party-box > div { padding: 1px 7px; }
+  .lines { margin-top: 6px; }
+  .lines th, .lines td { border: 1px solid #333; padding: 4px 6px; text-align: right; }
+  .lines thead th { background: #dfe3e8; text-align: center; font-weight: 800; }
   .lines tr.bonus td { background: #fffbe8; }
-  .bonus-note { margin: 8px 0; font-size: 12px; background: #fffbe8; border: 1px dashed #c9a227; padding: 6px 8px; border-radius: 4px; }
-  .totals { width: 320px; margin: 10px 0 10px auto; }
-  .totals td, .totals th { border-bottom: 1px solid #ddd; padding: 3px 6px; text-align: right; }
-  .totals tr.grand td, .totals tr.grand th { border-top: 2px solid #111; font-size: 14px; }
-  .sign { display: flex; gap: 18px; margin-top: 18px; }
-  .sign-box { flex: 1; border: 1px solid #999; border-radius: 4px; height: 62px; display: flex; align-items: flex-end; padding: 6px; font-size: 11px; color: #555; }
-  .notes { margin-top: 10px; font-size: 12px; }
+  .bonus-note { margin: 6px 0; font-size: 11.5px; background: #fffbe8; border: 1px dashed #c9a227; padding: 5px 8px; }
+  .bottom-split { display: grid; grid-template-columns: 1.25fr 0.95fr; gap: 10px; align-items: start; margin-top: 8px; }
+  .bottom-right { display: flex; flex-direction: column; gap: 6px; }
+  .totals { border: 1.5px solid #222; }
+  .totals td, .totals th { border: 1px solid #333; padding: 4px 7px; text-align: right; }
+  .totals td { background: #f6f7f9; font-weight: 600; }
+  .totals tr.grand td, .totals tr.grand th { background: #dfe3e8; border-top: 2px solid #111; border-bottom: 2px solid #111; font-size: 13.5px; font-weight: 800; }
+  .sign { display: flex; gap: 12px; margin-top: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .sign-box { flex: 1; min-width: 180px; border: 1px solid #333; height: 58px; display: flex; align-items: flex-end; justify-content: center; padding: 5px; font-size: 11px; font-weight: 700; color: #222; background: #fafafa; }
+  .notes { border: 1px dashed #555; padding: 5px 7px; font-size: 11.5px; }
+  .policy-box { border: 1px solid #333; padding: 5px 7px; font-size: 11px; background: #fafafa; line-height: 1.4; }
   .muted { color: #555; }
-  .small { font-size: 11px; }
-  footer { margin-top: 10px; border-top: 1px solid #ddd; padding-top: 6px; }
-  .qr { margin: 12px 0; text-align: center; }
-  .qr svg { display: block; margin: 0 auto 6px; }
-  .qr-missing { font-size: 11px; color: #555; border: 1px dashed #999; border-radius: 4px; padding: 6px 8px; }
-  @media print { .no-print { display: none !important; } body { padding: 0; } .copy { border: none; } }
+  .small { font-size: 10.5px; }
+  footer { margin-top: 8px; border-top: 1.5px solid #222; padding-top: 5px; }
+  .qr { border: 1px solid #333; padding: 6px; text-align: center; background: #fff; }
+  .qr svg { display: block; margin: 0 auto 4px; }
+  .qr-phase { font-size: 11px; font-weight: 800; margin-bottom: 2px; }
+  .qr-missing { font-size: 11px; color: #555; border: 1px dashed #999; padding: 6px 8px; }
+  @media print { .no-print { display: none !important; } body { padding: 0; } }
 </style>
 </head>
 <body>
@@ -267,7 +389,6 @@ export function buildVanDocumentPrintHtml(view: VanDocumentPrintView): string {
 </html>`;
 }
 
-/** نافذة الطباعة كما يحتاجها المُصيِّر — أقلّ من `Window`، فيُقاس بلا متصفّح. */
 export type PrintWindowLike = {
   open(url: string, target: string, features: string): PrintDocumentHost | null;
 };
@@ -278,11 +399,6 @@ export type PrintDocumentHost = {
 
 export const PRINT_WINDOW_FEATURES = 'width=900,height=1000';
 
-/**
- * يفتح نافذة الطباعة ويكتب فيها النسخ، ويُعيد `false` حين لا نافذة (بناءُ الخادم، أو
- * حاجبُ النوافذ المنبثقة) — فلا يظنّ المشرف أنّ الورق خرج وهو لم يخرج. والمتصفّح هو الذي
- * يتولّى حوار الطابعة، كما في الإيصال الحراريّ.
- */
 export function openVanDocumentPrintWindow(
   view: VanDocumentPrintView,
   host?: PrintWindowLike | null,

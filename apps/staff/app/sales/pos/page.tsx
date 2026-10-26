@@ -79,6 +79,18 @@ type PosSettings = {
   'pos.defaultInsurance': number;
   'pos.defaultUnitId': string;
   'pos.requireShift': boolean;
+  'report.return_policy'?: string;
+  'report.default_notes'?: string;
+  'report.address_ar'?: string;
+  'report.crn'?: string;
+  company?: {
+    nameAr?: string;
+    nameEn?: string;
+    taxNo?: string;
+    crNo?: string;
+    phones?: string[];
+    address?: Record<string, unknown> | null;
+  } | null;
 };
 
 type Shift = {
@@ -104,10 +116,16 @@ type Receipt = {
   shiftId: string | null;
   change: string;
   tendered: string | null;
-  /** ما قبضته الفاتورة طريقةً طريقة، وكم بقي على ذمة العميل. */
   tenders?: Array<{ method: string; amount: string }> | null;
   onAccount?: string | null;
   cashierId?: string | null;
+  qrCode?: string | null;
+  zatcaPhase?: 1 | 2;
+  taxInvoiceType?: 'standard' | 'simplified';
+  taxInvoiceTypeLabelAr?: string;
+  partyName?: string | null;
+  partyTaxNo?: string | null;
+  customerNationalAddress?: Record<string, unknown> | null;
 };
 
 const METHODS: Array<{ id: Method; label: string; hint: string }> = [
@@ -431,28 +449,50 @@ export default function PosPage() {
         text: `تم البيع — الفاتورة ${receiptData.number ?? ''} بمبلغ ${money(receiptData.total)}.`,
       });
       if (autoPrintThermal) {
-        // الحمولة الصادرة لهذه الفاتورة (لا شيء بعد البيع عادةً) — والغياب يُطبع غيابًا.
-        const qrPayload = await issuedQrPayload(receiptData.invoiceId);
-        const identity = receiptIdentity(company.data ?? null, branchRow ? arabicName(branchRow) : 'المنشأة');
+        const qrPayload = receiptData.qrCode || (await issuedQrPayload(receiptData.invoiceId));
+        const posCompany = settings.data?.company;
+        const identity = receiptIdentity(
+          company.data ?? null,
+          posCompany?.nameAr || (branchRow ? arabicName(branchRow) : 'المنشأة'),
+        );
+        const selectedParty =
+          customerMode === 'account' ? (customers.data ?? []).find((c) => c.id === partyId) : undefined;
         printThermalReceipt80mm({
           companyName: identity.companyName,
-          taxNo: identity.taxNo,
+          companyNameEn: company.data?.nameEn || posCompany?.nameEn || undefined,
+          taxNo: identity.taxNo || posCompany?.taxNo || undefined,
+          crNo: company.data?.crNo || posCompany?.crNo || undefined,
+          companyPhones: company.data?.phones || posCompany?.phones || undefined,
+          companyAddress:
+            settings.data?.['report.address_ar'] ||
+            (company.data?.address as Record<string, unknown> | undefined) ||
+            posCompany?.address ||
+            undefined,
           branchName: branchRow ? arabicName(branchRow) : undefined,
           invoiceNumber: receiptData.number ?? receiptData.invoiceId.slice(0, 8),
-          invoiceTypeLabel: 'فاتورة ضريبية مبسطة — إيصال كاشير',
-          issuedAt: new Date().toLocaleString('ar-SA-u-ca-gregory-nu-latn'),
+          invoiceTypeLabel:
+            receiptData.taxInvoiceTypeLabelAr ||
+            (receiptData.partyTaxNo ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة'),
+          issuedAt: new Date().toLocaleString('ar-SA-u-ca-gregory-nu-latn', { timeZone: 'Asia/Riyadh' }),
           customerName:
-            customerMode === 'walkin'
-              ? customerName.trim() || 'عميل عام'
-              : (customers.data ?? []).find((c) => c.id === partyId)?.name || 'عميل عام',
+            receiptData.partyName ||
+            (customerMode === 'walkin' ? customerName.trim() || 'عميل نقدي' : selectedParty?.name || 'عميل نقدي'),
+          customerTaxNo: receiptData.partyTaxNo || undefined,
+          customerPhone: customerMode === 'walkin' ? customerMobile.trim() || undefined : undefined,
+          customerAddress: receiptData.customerNationalAddress ?? null,
+          cashierName: me?.user.fullName || me?.user.email || undefined,
           paymentMethodLabel:
             METHODS.find((row) => row.id === receiptData.method)?.label ?? receiptData.method,
           lines: soldLines,
           subtotal: receiptData.subtotal,
+          discount: invoiceDiscount || undefined,
           taxTotal: receiptData.taxTotal,
           total: receiptData.total,
           paidAmount: receiptData.tendered ?? receiptData.paidTotal,
           changeAmount: receiptData.change,
+          notes: settings.data?.['report.default_notes'] || undefined,
+          returnPolicy: settings.data?.['report.return_policy'] || undefined,
+          zatcaPhase: receiptData.zatcaPhase,
           qrPayload,
         });
       }
@@ -1206,18 +1246,32 @@ export default function PosPage() {
                 className="btn primary sm"
                 type="button"
                 onClick={() => {
+                  const posCompany = settings.data?.company;
                   const identity = receiptIdentity(
                     company.data ?? null,
-                    branchRow ? arabicName(branchRow) : 'المنشأة',
+                    posCompany?.nameAr || (branchRow ? arabicName(branchRow) : 'المنشأة'),
                   );
                   printThermalReceipt80mm({
                     companyName: identity.companyName,
-                    taxNo: identity.taxNo,
+                    companyNameEn: company.data?.nameEn || posCompany?.nameEn || undefined,
+                    taxNo: identity.taxNo || posCompany?.taxNo || undefined,
+                    crNo: company.data?.crNo || posCompany?.crNo || undefined,
+                    companyPhones: company.data?.phones || posCompany?.phones || undefined,
+                    companyAddress:
+                      settings.data?.['report.address_ar'] ||
+                      (company.data?.address as Record<string, unknown> | undefined) ||
+                      posCompany?.address ||
+                      undefined,
                     branchName: branchRow ? arabicName(branchRow) : undefined,
                     invoiceNumber: receipt.number ?? receipt.invoiceId.slice(0, 8),
-                    invoiceTypeLabel: 'فاتورة ضريبية مبسطة — إيصال كاشير',
-                    issuedAt: new Date().toLocaleString('ar-SA-u-ca-gregory-nu-latn'),
-                    customerName: customerName.trim() || 'عميل عام',
+                    invoiceTypeLabel:
+                      receipt.taxInvoiceTypeLabelAr ||
+                      (receipt.partyTaxNo ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة'),
+                    issuedAt: new Date().toLocaleString('ar-SA-u-ca-gregory-nu-latn', { timeZone: 'Asia/Riyadh' }),
+                    customerName: receipt.partyName || customerName.trim() || 'عميل نقدي',
+                    customerTaxNo: receipt.partyTaxNo || undefined,
+                    customerAddress: receipt.customerNationalAddress ?? null,
+                    cashierName: me?.user.fullName || me?.user.email || undefined,
                     paymentMethodLabel:
                       METHODS.find((row) => row.id === receipt.method)?.label ?? receipt.method,
                     lines:
@@ -1236,12 +1290,18 @@ export default function PosPage() {
                     total: receipt.total,
                     paidAmount: receipt.tendered ?? receipt.paidTotal,
                     changeAmount: receipt.change,
-                    qrPayload: receiptQr.data ?? null,
+                    notes: settings.data?.['report.default_notes'] || undefined,
+                    returnPolicy: settings.data?.['report.return_policy'] || undefined,
+                    zatcaPhase: receipt.zatcaPhase,
+                    qrPayload: receipt.qrCode ?? receiptQr.data ?? null,
                   });
                 }}
               >
                 طباعة إيصال كاشير حراري (80mm)
               </button>
+              <Link className="btn sm" href={`/print/sales-invoice/${receipt.invoiceId}`}>
+                معاينة A4 رسمية
+              </Link>
               <Link className="btn sm" href={`/sales/invoices/${receipt.invoiceId}`}>
                 تفاصيل الفاتورة
               </Link>

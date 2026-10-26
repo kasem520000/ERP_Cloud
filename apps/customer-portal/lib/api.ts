@@ -124,7 +124,10 @@ export const fetchInvoices = (range: { from?: string; to?: string } = {}) => {
   return portalFetch<PortalInvoice[]>(`/portal/invoices${query ? `?${query}` : ''}`);
 };
 export const fetchInvoice = (id: string) => portalFetch<{ invoice: PortalInvoice; lines: PortalInvoiceLine[]; payments: Array<Record<string, string>> }>(`/portal/invoices/${id}`);
-export const fetchInvoiceHtml = (id: string) => portalFetch<{ html: string }>(`/portal/invoices/${id}/print`).then((result) => result.html);
+export const fetchInvoiceHtml = (id: string, paper: 'a4' | 'small' = 'a4') =>
+  portalFetch<{ html: string }>(
+    `/portal/invoices/${id}/print${paper === 'small' ? '?paper=small' : ''}`,
+  ).then((result) => result.html);
 export const fetchStatement = (range: { from?: string; to?: string } = {}) => {
   const query = new URLSearchParams(Object.entries(range).filter(([, value]) => value)).toString();
   return portalFetch<{ lines: StatementLine[]; closing: string }>(`/portal/statement${query ? `?${query}` : ''}`);

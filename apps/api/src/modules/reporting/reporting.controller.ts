@@ -41,13 +41,45 @@ export class ReportingController {
   @Put('printer-links/:id') @RequiresPermission('reporting.layout.manage') async updatePrinterLink(@Param('id') id: string, @Body() body: Partial<PrinterLinkInput>) { return { data: await this.printerLinks.update(getTenantContext().tenantId, id, body) }; }
   @Delete('printer-links/:id') @RequiresPermission('reporting.layout.manage') async deletePrinterLink(@Param('id') id: string) { await this.printerLinks.remove(getTenantContext().tenantId, id); return { ok: true }; }
 
-  // Printable documents. Each returns `{ html }` — a complete, self-contained A4 page the
+  // Printable documents. Each returns `{ html }` — a complete, self-contained A4/80mm page the
   // browser can show in an iframe and send straight to the printer.
-  @Get('print/invoices/:id') @RequiresPermission('reporting.view') async invoicePrint(@Param('id') id: string) { return { html: await this.print.salesInvoice(getTenantContext().tenantId, id) }; }
-  @Get('print/purchase-invoices/:id') @RequiresPermission('reporting.view') async purchaseInvoicePrint(@Param('id') id: string) { return { html: await this.print.purchaseInvoice(getTenantContext().tenantId, id) }; }
-  @Get('print/vouchers/:id') @RequiresPermission('reporting.view') async voucherPrint(@Param('id') id: string) { return { html: await this.print.voucher(getTenantContext().tenantId, id) }; }
-  @Get('print/journal-entries/:id') @RequiresPermission('reporting.view') async journalPrint(@Param('id') id: string) { return { html: await this.print.journalEntry(getTenantContext().tenantId, id) }; }
-  @Get('print/shifts/:id') @RequiresPermission('reporting.view') async shiftPrint(@Param('id') id: string) { return { html: await this.print.shiftClose(getTenantContext().tenantId, id) }; }
+  @Get('print/invoices/:id') @RequiresPermission('reporting.view') async invoicePrint(
+    @Param('id') id: string,
+    @Query('paper') paper?: string,
+    @Query('copies') copies?: string,
+  ) {
+    return {
+      html: await this.print.salesInvoice(getTenantContext().tenantId, id, { paper, copies }),
+    };
+  }
+  @Get('print/purchase-invoices/:id') @RequiresPermission('reporting.view') async purchaseInvoicePrint(
+    @Param('id') id: string,
+    @Query('paper') paper?: string,
+    @Query('copies') copies?: string,
+  ) {
+    return {
+      html: await this.print.purchaseInvoice(getTenantContext().tenantId, id, { paper, copies }),
+    };
+  }
+  @Get('print/vouchers/:id') @RequiresPermission('reporting.view') async voucherPrint(
+    @Param('id') id: string,
+    @Query('copies') copies?: string,
+  ) {
+    return { html: await this.print.voucher(getTenantContext().tenantId, id, { copies }) };
+  }
+  @Get('print/journal-entries/:id') @RequiresPermission('reporting.view') async journalPrint(
+    @Param('id') id: string,
+    @Query('copies') copies?: string,
+  ) {
+    return { html: await this.print.journalEntry(getTenantContext().tenantId, id, { copies }) };
+  }
+  @Get('print/shifts/:id') @RequiresPermission('reporting.view') async shiftPrint(
+    @Param('id') id: string,
+    @Query('paper') paper?: string,
+    @Query('copies') copies?: string,
+  ) {
+    return { html: await this.print.shiftClose(getTenantContext().tenantId, id, { paper, copies }) };
+  }
   // 🖨️ طباعة / 👁️ معاينة — the print-ready page of a report (`frmRpt*` has both buttons).
   // Declared before `:key` for the same reason `layouts` is.
   @Get('print/:key') @RequiresPermission('reporting.view') async printReport(@Param('key') key: string, @Query() query: Record<string, string | undefined>) {

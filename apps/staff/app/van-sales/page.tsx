@@ -850,14 +850,27 @@ export default function VanSalesPage() {
       );
       printThermalReceipt80mm({
         companyName: view.companyName,
+        companyNameEn: view.companyNameEn || undefined,
         taxNo: view.companyTaxNo,
+        crNo: view.companyCrNo || undefined,
+        companyPhones: view.companyPhones,
+        companyAddress: view.companyAddressAr || view.companyAddress,
         branchName: `دفعة إنتاج: ${view.productionBatchNo}`,
         invoiceNumber: view.invoiceNumber ?? view.documentNumber,
         invoiceTypeLabel:
-          view.invoiceMode === 'zatca_tax' ? 'فاتورة ضريبية مبسطة (ZATCA)' : 'إيصال تسليم بضاعة (توزيع)',
+          view.invoiceTitleAr ||
+          (view.invoiceMode === 'zatca_tax'
+            ? view.customerTaxNo
+              ? 'فاتورة ضريبية'
+              : 'فاتورة ضريبية مبسطة'
+            : 'إيصال تسليم بضاعة (توزيع)'),
         issuedAt: view.saleDate,
         customerName: view.customerName,
+        customerTaxNo: view.customerTaxNo || undefined,
+        customerPhone: view.customerMobile || view.customerPhone || undefined,
+        customerAddress: view.customerAddress ?? null,
         cashierName: view.salesmanName,
+        salesmanName: view.salesmanName,
         paymentMethodLabel:
           view.paymentMethod === 'cash'
             ? 'نقدي (Cash)'
@@ -875,6 +888,9 @@ export default function VanSalesPage() {
         taxTotal: view.vatTotal,
         total: view.grandTotal,
         paidAmount: view.paidAmount,
+        notes: view.notes || undefined,
+        returnPolicy: view.returnPolicy || undefined,
+        zatcaPhase: view.zatcaPhase,
         qrPayload: view.qrPayload,
       });
     } catch (error) {

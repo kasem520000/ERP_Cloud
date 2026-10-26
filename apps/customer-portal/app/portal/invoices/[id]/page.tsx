@@ -24,10 +24,10 @@ function InvoiceDetail({ id }: { id: string }) {
   const [printError, setPrintError] = useState('');
   const detail = useAsync(() => fetchInvoice(id), [id]);
 
-  async function print() {
+  async function print(paper: 'a4' | 'small' = 'a4') {
     setPrintError('');
     try {
-      const html = await fetchInvoiceHtml(id);
+      const html = await fetchInvoiceHtml(id, paper);
       if (!openPrintWindow(html))
         setPrintError('منع المتصفح فتح نافذة الطباعة. اسمح بالنوافذ المنبثقة ثم أعد المحاولة.');
     } catch (error) {
@@ -80,8 +80,11 @@ function InvoiceDetail({ id }: { id: string }) {
             <Link className="btn primary" href={`/portal/invoices/${id}/pay`}>
               ادفع
             </Link>
-            <button className="btn" type="button" onClick={print}>
-              طباعة / حفظ PDF
+            <button className="btn" type="button" onClick={() => void print('a4')}>
+              طباعة فاتورة A4 / PDF
+            </button>
+            <button className="btn" type="button" onClick={() => void print('small')}>
+              طباعة إيصال (80mm)
             </button>
           </>
         }

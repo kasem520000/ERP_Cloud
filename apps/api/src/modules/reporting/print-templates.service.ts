@@ -18,36 +18,24 @@ import {
 } from './print-settings.service.js';
 import { amountInArabicWords } from './tafqeet.js';
 
-/**
- * 🖨️ كيف تُطبع هذه الورقة — the part of `SettingPrint` the browser can honour.
- *
- * `Class/Print.cs` `Printing()` reads `printNo` and loops the print that many times
- * (L201-L206), picks the paper by `printType`, and injects `header.repx` / `footer.repx`
- * into the `headerRpt` / `footerRpt` subreports when `PrintHeader` / `PrintFooter` are on.
- * A service cannot reach a shop's printer, so the names are shown on the sheet instead of
- * used: «طابعة الكاشير» and «طابعة المطبخ» appear in the page's own toolbar (which
- * `.no-print` keeps off the paper), and the browser's print dialog is the operator's.
- */
 export type ReportPrintOptions = {
   settings: PrintSettings;
-  /** 🔢 عدد النسخ — `printNo`, overridable by `?copies=` for one print. */
+  /** عدد النسخ — `printNo`, overridable by `?copies=` for one print. */
   copies: number;
-  /** 📄 نوع الورقة — 1 «📄 ورقة A4» · 2 «🧾 ورق صغير», overridable by `?paper=`. */
+  /** نوع الورقة — 1 «ورقة A4» · 2 «ورق صغير 80mm», overridable by `?paper=`. */
   paper: 'a4' | 'small';
 };
 
-/**
- * 🎨 الأسلوب الفعلي — كل ما يحوّل «إعدادات» إلى «ورقة».
- *
- * اللون يُحسم هنا لا في القالب: `accentColor` إن كُتب، ثم لون هوية المنشأة، ثم أسود
- * الورقة. ولا يمرّ إلى `<style>` إلا بعد فحص الصيغة مرّةً أخرى — القيمة تصل من القاعدة
- * (وقيدها يضمن `#RRGGBB`) لكن الورقة لا تعتمد على مصدرٍ واحدٍ لسلامتها.
- */
+export type DocumentPrintQuery = {
+  paper?: string;
+  copies?: string;
+};
+
 export type PrintStyle = {
   template: PrintTemplate;
   accent: string | null;
   fontFamily: PrintFont;
-  /** 👁️ مضاعف الحجم — 0.85 .. 1.30 */
+  /** مضاعف الحجم — 0.85 .. 1.30 */
   scale: number;
 };
 
@@ -64,29 +52,12 @@ export function printStyle(settings: PrintSettings | undefined, brandColour?: st
   };
 }
 
-/**
- * ⚠️ علامات التنصيص **مفردة**: هذه القيمة تُكتب داخل `style="…"`، فاقتباسٌ مزدوج في اسم
- * خطٍّ يغلق السمة ويُلقي بقيّة الأنماط نصًّا خارجها (شوهد فعلاً: `font-family:"Segoe UI"…`
- * يقطع `style` عند أول خطّ). والمتصفّحان يقبلان الاثنين في CSS.
- */
 const FONT_STACKS: Record<PrintFont, string> = {
   segoe: "'Segoe UI', Tahoma, 'Noto Naskh Arabic', sans-serif",
   naskh: "'Noto Naskh Arabic', 'Traditional Arabic', 'Times New Roman', serif",
   sans: "system-ui, -apple-system, 'Segoe UI', Arial, sans-serif",
 };
 
-/**
- * Printable documents.
- *
- * Everything a customer or an auditor ever holds in their hand is produced here: the
- * sales invoice, the purchase invoice, the receipt and payment vouchers, the journal
- * voucher and the daily shift close. They share one A4 stylesheet so a company that
- * prints all six recognises them as one set of papers.
- *
- * The HTML is self-contained on purpose — no external CSS, fonts or images — because it
- * is opened inside an iframe in the browser, saved as a file, or handed to a PDF printer,
- * and none of those can be trusted to fetch anything.
- */
 @Injectable()
 export class PrintTemplatesService {
   constructor(
@@ -96,21 +67,26 @@ export class PrintTemplatesService {
 
   // ------------------------------------------------------------------ documents
 
-  async salesInvoice(tenantId: string, id: string) {
-    // 🖨️ `frmSalesInvoice` prints with `new Print(InvType)` — 2, «مبيعات».
-    const print = await this.settingsFor(tenantId, 'sales');
+  async salesInvoice(tenantId: string, id: string, query: DocumentPrintQuery = {}) {
+    const basePrint = await this.settingsFor(tenantId, 'sales');
+    const print = applyQueryOverrides(basePrint, query);
+    const paper: 'a4' | 'small' = print.printType === 2 ? 'small' : 'a4';
+
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const company = await this.company(tx, tenantId);
       const invoice = first(
         await tx.execute(sql`
           SELECT i.*, b.name_ar AS branch_name, b.code AS branch_code, b.phone AS branch_phone,
-                 p.name AS party_name, p.code AS party_code, p.tax_no AS party_tax_no, p.phone AS party_phone, p.address AS party_address,
-                 s.name AS salesman_name, w.name AS warehouse_name
+                 p.name AS party_name, p.code AS party_code, p.tax_no AS party_tax_no,
+                 p.phone AS party_phone, p.address AS party_address,
+                 s.name AS salesman_name, w.name AS warehouse_name,
+                 COALESCE(u.full_name, u.email) AS cashier_name
             FROM sales_invoices i
             LEFT JOIN branches b ON b.id = i.branch_id
             LEFT JOIN parties p ON p.id = i.party_id
             LEFT JOIN salesmen s ON s.id = i.salesman_id
             LEFT JOIN warehouses w ON w.id = i.warehouse_id
+            LEFT JOIN users u ON u.id = COALESCE(i.cashier_id, i.created_by)
            WHERE i.tenant_id = ${tenantId} AND i.id = ${id}
         `),
       );
@@ -118,7 +94,8 @@ export class PrintTemplatesService {
 
       let lines = rows(
         await tx.execute(sql`
-          SELECT l.*, COALESCE(l.description, it.name_ar) AS label, it.sku, u.code AS unit_code, it.name_ar AS item_name
+          SELECT l.*, COALESCE(l.description, it.name_ar) AS label, it.sku,
+                 COALESCE(u.name_ar, u.code) AS unit_label, u.code AS unit_code, it.name_ar AS item_name
             FROM sales_invoice_lines l
             LEFT JOIN items it ON it.id = l.item_id
             LEFT JOIN units_of_measure u ON u.id = it.base_unit_id
@@ -126,113 +103,163 @@ export class PrintTemplatesService {
            ORDER BY l.line_no
         `),
       );
-      // 🔢 ترتيب بنود الورقة — `PrintItemType` (1 إدخال · 2 رمز · 3 اسم · 4 كمية تنازلي · 5 سعر)
       lines = this.sortByPrintItemType(lines, print.printItemType);
+
       const payments = rows(
         await tx.execute(sql`
-          SELECT method, amount, reference FROM invoice_payments WHERE tenant_id = ${tenantId} AND invoice_id = ${id} ORDER BY created_at
+          SELECT method, amount, reference FROM invoice_payments
+           WHERE tenant_id = ${tenantId} AND invoice_id = ${id}
+           ORDER BY created_at
         `),
       );
 
+      const isReturn = str(invoice.kind) === 'sale_return' || str(invoice.kind) === 'return';
       const kindTitle = SALES_KIND_TITLES[str(invoice.kind)] ?? 'فاتورة مبيعات';
+      const customerTaxNo = str(invoice.party_tax_no).trim();
+      const customerName = str(invoice.party_name) || str(invoice.cash_customer_name) || 'عميل نقدي';
       const hasCustomerTaxNo = Boolean(
-        str(invoice.party_tax_no).trim() &&
-        str(invoice.party_name) !== 'عميل عام' &&
-        str(invoice.party_code) !== 'CUST-GEN',
+        customerTaxNo &&
+          customerName !== 'عميل عام' &&
+          customerName !== 'عميل نقدي' &&
+          str(invoice.party_code) !== 'CUST-GEN',
       );
-      const taxClassificationLabel = hasCustomerTaxNo ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة';
-      /**
-       * 🧾 رمز الفاتورة.
-       *
-       * المسودة لا تحمل رمزاً: لم تصدر بعد. الفاتورة المرحّلة وغير المُرسلة تحمل رمز
-       * المرحلة الأولى (الوسوم ١–٥) المبني هنا من بياناتها نفسها — وهو ما تطلبه الهيئة من
-       * فاتورةٍ صدرت ولم تُبلَّغ. وما إن تُرسل حتى يحلّ محلّه الحِمل المخزَّن في
-       * `zatca_qr` (الوسوم ٦–٩ مع البصمة والتوقيع)، فلا يُنتحل توقيعٌ لم يُصدر.
-       */
-      const postedAt = invoice.posted_at ?? invoice.created_at;
+
+      // عنوان الفاتورة الرسمي: «فاتورة ضريبية» عند وجود رقم ضريبي للعميل أو «فاتورة ضريبية مبسطة» عند غيابه
+      const invoiceTitleAr = isReturn
+        ? hasCustomerTaxNo
+          ? 'إشعار دائن ضريبي'
+          : 'إشعار دائن ضريبي مبسط'
+        : hasCustomerTaxNo
+          ? 'فاتورة ضريبية'
+          : 'فاتورة ضريبية مبسطة';
+      const invoiceTitleEn = isReturn
+        ? hasCustomerTaxNo
+          ? 'Tax Credit Note'
+          : 'Simplified Tax Credit Note'
+        : hasCustomerTaxNo
+          ? 'Tax Invoice'
+          : 'Simplified Tax Invoice';
+
+      // رمز الاستجابة السريعة (QR) إلزامي: عند الإرسال للزاتكا نستخدم حمولة المرحلة الثانية (`zatca_qr`)،
+      // وإلا نولّد حمولة المرحلة الأولى الرسمية (TLV Tags 1..5).
+      const postedAt = invoice.posted_at ?? invoice.created_at ?? new Date();
       const stamps = (value: unknown): string =>
         value instanceof Date
           ? value.toISOString().replace(/\.\d{3}Z$/, 'Z')
           : new Date(String(value)).toISOString().replace(/\.\d{3}Z$/, 'Z');
-      const phaseOneQr =
-        str(invoice.status) === 'posted'
-          ? buildQrPayload({
-              sellerName: company.nameAr,
-              vatNo: company.taxNo,
-              timestamp: stamps(postedAt),
-              grandTotal: Number(str(invoice.total) || 0).toFixed(2),
-              vatTotal: Number(str(invoice.tax_total) || 0).toFixed(2),
-            })
-          : '';
-      const title =
-        str(invoice.kind) === 'sale'
-          ? `${taxClassificationLabel} — ${kindTitle}`
-          : `${kindTitle}${str(invoice.tax_total) !== '0.0000' || company.taxNo ? ' ضريبية' : ''}`;
-      return this.documentPage(print, company, {
-        title: `${kindTitle} ${str(invoice.number) || ''}`.trim(),
-        body: `
-          ${this.header(
-            company,
-            {
-              docTitle: title,
-              docTitleEn:
-                str(invoice.kind) === 'sale'
-                  ? hasCustomerTaxNo
-                    ? 'Tax Invoice'
-                    : 'Simplified Tax Invoice'
-                  : (SALES_KIND_TITLES_EN[str(invoice.kind)] ?? 'Sales Invoice'),
-              number: str(invoice.number) || '—',
-              date: dateText(invoice.posted_at ?? invoice.created_at),
-              status: STATUS_LABELS[str(invoice.status)] ?? str(invoice.status),
-              extra: [
-                ['نوع الفاتورة', taxClassificationLabel],
-                ['الفرع', str(invoice.branch_name)],
-                ['المستودع', str(invoice.warehouse_name)],
-                ['المندوب', str(invoice.salesman_name)],
-              ],
-            },
-            print.printHeader,
-          )}
-          ${this.partyBlock('بيانات العميل', {
-            name: str(invoice.party_name) || str(invoice.cash_customer_name) || 'عميل عام',
-            code: str(invoice.party_code),
-            taxNo: str(invoice.party_tax_no),
-            phone: str(invoice.party_phone) || str(invoice.cash_customer_mobile),
-            // A simplified invoice (no buyer VAT number) must not carry the buyer's
-            // national address: it is not a required field and the customer never
-            // supplied it for tax purposes. Standard invoices print it.
-            address: hasCustomerTaxNo ? invoice.party_address : null,
-          })}
-          ${this.linesTable(lines)}
-          ${this.totalsBlock({
+      const phaseTwoQr = str(invoice.zatca_qr).trim();
+      const phaseOneQr = buildQrPayload({
+        sellerName: company.nameAr,
+        vatNo: company.taxNo,
+        timestamp: stamps(postedAt),
+        grandTotal: Number(str(invoice.total) || 0).toFixed(2),
+        vatTotal: Number(str(invoice.tax_total) || 0).toFixed(2),
+      });
+      const qrPayload = phaseTwoQr || phaseOneQr;
+      const isPhaseTwo = phaseTwoQr.length > 0;
+      const zatcaStatus = str(invoice.zatca_status);
+
+      const paymentMethodLabel =
+        payments.length > 1
+          ? payments.map((p) => PAYMENT_METHODS[str(p.method)] ?? str(p.method)).join(' + ')
+          : payments.length === 1
+            ? (PAYMENT_METHODS[str(payments[0]!.method)] ?? str(payments[0]!.method))
+            : new Decimal(str(invoice.paid_total) || '0').gte(new Decimal(str(invoice.total) || '0')) &&
+                new Decimal(str(invoice.total) || '0').gt(0)
+              ? 'نقدي'
+              : 'آجل';
+
+      const docNotes = str(invoice.notes).trim() || company.defaultNotes || str(print.note).trim();
+      const returnPolicy = company.returnPolicy;
+      const customerPhone = str(invoice.party_phone) || str(invoice.cash_customer_mobile);
+      // العنوان الوطني للعميل يظهر فقط إذا كان للعميل رقم ضريبي مسجّل
+      const buyerAddress = hasCustomerTaxNo
+        ? (invoice.party_address as Record<string, unknown> | null)
+        : null;
+
+      if (paper === 'small') {
+        return this.documentPage(print, company, {
+          title: `${kindTitle} ${str(invoice.number) || ''}`.trim(),
+          suppressAutoStampAndFooter: true,
+          body: this.renderPosReceipt80mm(company, {
+            invoiceTitleAr,
+            invoiceTitleEn,
+            number: str(invoice.number) || '—',
+            dateTime: dateTimeText(postedAt),
+            branchName: str(invoice.branch_name),
+            warehouseName: str(invoice.warehouse_name),
+            salesmanName: str(invoice.salesman_name),
+            cashierName: str(invoice.cashier_name),
+            paymentMethodLabel,
+            customerName,
+            customerTaxNo: hasCustomerTaxNo ? customerTaxNo : '',
+            customerPhone,
+            customerAddress: buyerAddress,
+            lines,
             currency: str(invoice.currency) || 'SAR',
             subtotal: str(invoice.subtotal),
             discount: str(invoice.invoice_discount),
             tax: str(invoice.tax_total),
-            extraTax: str(invoice.extra_tax),
-            withholding: str(invoice.withholding),
             total: str(invoice.total),
             paid: str(invoice.paid_total),
-            payments: payments.map((row) => ({
-              method: PAYMENT_METHODS[str(row.method)] ?? str(row.method),
-              amount: str(row.amount),
-              reference: str(row.reference),
-            })),
-            // الحمولة التي كتبتها وحدة الفوترة الإلكترونية فعلًا (`einvoicing.service`) —
-            // ولا تُختَرَع حمولةٌ عند غيابها: المربّع المرسوم من TLV بلا توقيع يفشل أيَّ
-            // ماسح، ووجوده على وثيقة رسمية ادّعاءٌ بأنّ الفاتورة أُصدرت وهي لم تُصدر.
-            qr: str(invoice.zatca_qr) || phaseOneQr,
-            zatcaStatus: str(invoice.zatca_status),
-          })}
-          ${this.signatures(['المستلم', 'المحاسب', 'الختم'])}
-        `,
+            qrPayload,
+            isPhaseTwo,
+            zatcaStatus,
+            notes: docNotes,
+            returnPolicy,
+            showHeader: print.printHeader,
+          }),
+        });
+      }
+
+      return this.documentPage(print, company, {
+        title: `${kindTitle} ${str(invoice.number) || ''}`.trim(),
+        suppressAutoStampAndFooter: true,
+        body: this.renderSalesInvoiceA4(company, print, {
+          invoiceTitleAr,
+          invoiceTitleEn,
+          number: str(invoice.number) || '—',
+          date: dateText(postedAt),
+          time: timeText(postedAt),
+          supplyDate: dateText(invoice.supply_date ?? postedAt),
+          status: STATUS_LABELS[str(invoice.status)] ?? str(invoice.status),
+          branchName: str(invoice.branch_name),
+          warehouseName: str(invoice.warehouse_name),
+          salesmanName: str(invoice.salesman_name),
+          cashierName: str(invoice.cashier_name),
+          referenceNo: str(invoice.reference_no),
+          paymentMethodLabel,
+          customerName,
+          customerCode: str(invoice.party_code),
+          customerTaxNo: hasCustomerTaxNo ? customerTaxNo : '',
+          customerPhone,
+          customerAddress: buyerAddress,
+          lines,
+          currency: str(invoice.currency) || 'SAR',
+          subtotal: str(invoice.subtotal),
+          discount: str(invoice.invoice_discount),
+          tax: str(invoice.tax_total),
+          extraTax: str(invoice.extra_tax),
+          withholding: str(invoice.withholding),
+          total: str(invoice.total),
+          paid: str(invoice.paid_total),
+          payments: payments.map((row) => ({
+            method: PAYMENT_METHODS[str(row.method)] ?? str(row.method),
+            amount: str(row.amount),
+            reference: str(row.reference),
+          })),
+          qrPayload,
+          isPhaseTwo,
+          zatcaStatus,
+          notes: docNotes,
+          returnPolicy,
+        }),
       });
     });
   }
 
-  async purchaseInvoice(tenantId: string, id: string) {
-    // 🖨️ `frmPurchInv` prints with `new Print(1)` — «مشتريات».
-    const print = await this.settingsFor(tenantId, 'purchases');
+  async purchaseInvoice(tenantId: string, id: string, query: DocumentPrintQuery = {}) {
+    const print = applyQueryOverrides(await this.settingsFor(tenantId, 'purchases'), query);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const company = await this.company(tx, tenantId);
       const invoice = first(
@@ -250,7 +277,8 @@ export class PrintTemplatesService {
 
       let lines = rows(
         await tx.execute(sql`
-          SELECT l.*, COALESCE(l.description, it.name_ar) AS label, it.sku, u.code AS unit_code, it.name_ar AS item_name
+          SELECT l.*, COALESCE(l.description, it.name_ar) AS label, it.sku,
+                 COALESCE(u.name_ar, u.code) AS unit_label, u.code AS unit_code, it.name_ar AS item_name
             FROM purchase_invoice_lines l
             LEFT JOIN items it ON it.id = l.item_id
             LEFT JOIN units_of_measure u ON u.id = it.base_unit_id
@@ -260,14 +288,9 @@ export class PrintTemplatesService {
       );
       lines = this.sortByPrintItemType(lines, print.printItemType);
 
-      /**
-       * ⚠️ `purchases.service` يحفظ النوع `purchase_return` (كما في العقد والواجهة)، وكان
-       * هذا السطر يقارنه بـ`return` فيطبع المرتجع «فاتورة مشتريات» بالعنوان الإنجليزي
-       * «Purchase Invoice» — مستندٌ رسمي بنوعٍ خاطئ. نقبل الصيغتين حتى لا يعود الخطأ إن
-       * اختصر أحدهم القيمة يومًا.
-       */
       const isReturn = str(invoice.kind) === 'purchase_return' || str(invoice.kind) === 'return';
       const kindTitle = isReturn ? 'مردود مشتريات' : 'فاتورة مشتريات';
+      const supplierTaxNo = str(invoice.party_tax_no).trim();
       return this.documentPage(print, company, {
         title: `${kindTitle} ${str(invoice.number) || ''}`.trim(),
         body: `
@@ -290,9 +313,9 @@ export class PrintTemplatesService {
           ${this.partyBlock('بيانات المورد', {
             name: str(invoice.party_name) || '—',
             code: str(invoice.party_code),
-            taxNo: str(invoice.party_tax_no),
+            taxNo: supplierTaxNo,
             phone: str(invoice.party_phone),
-            address: invoice.party_address,
+            address: supplierTaxNo ? invoice.party_address : null,
           })}
           ${this.linesTable(lines)}
           ${this.totalsBlock({
@@ -306,8 +329,6 @@ export class PrintTemplatesService {
             total: str(invoice.total),
             paid: str(invoice.paid_total),
             payments: [],
-            // 🧾 رمز الفاتورة الإلكترونية التزامٌ على **البائع**؛ وثيقة المشتريات ليست
-            // فاتورةً نصدرها، فطباعة «لم تُصدر بعد» عليها كانت خطأً لا نقصَ بيانات.
             qrApplicable: false,
           })}
           ${this.signatures(['المورد', 'أمين المستودع', 'المحاسب'])}
@@ -316,10 +337,8 @@ export class PrintTemplatesService {
     });
   }
 
-  async voucher(tenantId: string, id: string) {
-    // 🖨️ `frmSandQD` prints with `new Print(11)` — a number no radio of `frmSettings`
-    // writes, so the voucher falls through to «الإفتراضي».
-    const print = await this.settingsFor(tenantId, 'default');
+  async voucher(tenantId: string, id: string, query: DocumentPrintQuery = {}) {
+    const print = applyQueryOverrides(await this.settingsFor(tenantId, 'default'), query);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const company = await this.company(tx, tenantId);
       const voucher = first(
@@ -379,10 +398,8 @@ export class PrintTemplatesService {
     });
   }
 
-  async journalEntry(tenantId: string, id: string) {
-    // 🖨️ `FrmNewEntry` reads `SettingPrint WHERE Inv_Id=9` — likewise unwritable, so
-    // the entry falls through to «الإفتراضي».
-    const print = await this.settingsFor(tenantId, 'default');
+  async journalEntry(tenantId: string, id: string, query: DocumentPrintQuery = {}) {
+    const print = applyQueryOverrides(await this.settingsFor(tenantId, 'default'), query);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const company = await this.company(tx, tenantId);
       const entry = first(
@@ -457,9 +474,8 @@ export class PrintTemplatesService {
     });
   }
 
-  async shiftClose(tenantId: string, id: string) {
-    // 🖨️ `frmCloseShift` reads `SettingPrint WHERE Inv_Id = 6` — «تقارير».
-    const print = await this.settingsFor(tenantId, 'reports');
+  async shiftClose(tenantId: string, id: string, query: DocumentPrintQuery = {}) {
+    const print = applyQueryOverrides(await this.settingsFor(tenantId, 'reports'), query);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const company = await this.company(tx, tenantId);
       const shift = first(
@@ -528,23 +544,7 @@ export class PrintTemplatesService {
   }
 
   /**
-   * A printable page for any report in the catalogue — «🖨️ طباعة» و«👁️ معاينة» of the
-   * `frmRpt*` windows.
-   *
-   * Reports are wide and unpredictable, so this uses the same letterhead as the documents
-   * but lays the table out in landscape and repeats the header band on every printed page
-   * (`thead` + `page-break-inside: avoid`), which is what an accountant expects when a trial
-   * balance runs to nine pages.
-   *
-   * `Reports/header.repx` is the المنشأة block (الاسم · الرقم الضريبي · السجل التجاري ·
-   * الهاتف والجوال) and `Reports/footer.repx` is the العنوان والهاتف; between them
-   * `RptSalesInPeriod1/2.repx` print the filters, the grid, «إجمالي المبيعات», «المستخدم»
-   * and the strip «أعده · راجعه · المدير».
-   *
-   * `Reports/header.repx` is the المنشأة block (الاسم · الرقم الضريبي · السجل التجاري ·
-   * الهاتف والجوال) and `Reports/footer.repx` is the العنوان والهاتف; between them
-   * `RptSalesInPeriod1/2.repx` print «فاتورة » + the filters, the grid, «إجمالي
-   * المبيعات», «المستخدم» and the strip «أعده · راجعه · المدير».
+   * قالب طباعة أي تقرير A4/80mm وفق ترويسة `header.repx` وتذييل `footer.repx`.
    */
   async reportSheet(
     tenantId: string,
@@ -553,28 +553,17 @@ export class PrintTemplatesService {
       columns: Array<{ key: string; labelAr: string; numeric: boolean; qr?: boolean }>;
       rows: Array<Record<string, string>>;
       totals: Record<string, string>;
-      /**
-       * 💰 The summary cards under the grid — `txtSumSale` in `frmRptSalesInPeriod` and
-       * the 🔢 · 💵 · 📦 · 💰 cards of `frmRptItemsSalesDetails` / `frmRptItemsProfit`.
-       */
       grandTotal?: Array<{ labelAr: string; amount: string }>;
       captions: string[];
       generatedAt: string;
-      /** What an empty report says; the desktop's own sentence when the report has one. */
       emptyAr?: string;
-      /** «أعده · راجعه · المدير» — the signature strip of the desktop's report footer. */
       signature?: boolean;
-      /** 🖨️ إعدادات الطباعة — `SettingPrint`; defaults to one A4 copy with the header on. */
       print?: ReportPrintOptions;
     },
-    /** 👤 المستخدم — `Common.GetEmpName(MainClass.EmpNo)` at the desktop. */
     userId?: string,
   ) {
     const company = await withTenantTx(this.database.db, tenantId, async (tx) => this.company(tx, tenantId));
     const userName = userId ? await this.userName(tenantId, userId) : null;
-    const contact = [company.phones.join(' / '), company.email, addressText(company.address)]
-      .filter(Boolean)
-      .join(' — ');
     const head = report.columns.map((column) => `<th>${escapeHtml(column.labelAr)}</th>`).join('');
     const body = report.rows.length
       ? report.rows
@@ -602,48 +591,33 @@ export class PrintTemplatesService {
           .join('')}</tr></tfoot>`
       : '';
 
-    // 🖨️ إعدادات الطباعة — `SettingPrint` of the desktop (`Class/Print.cs` `Printing()`).
     const settings = report.print?.settings;
     const copies = Math.min(50, Math.max(1, report.print?.copies ?? 1));
     const paper = report.print?.paper ?? 'a4';
-    /** 🏛️ طباعة ترويسة الفاتورة — the `header.repx` subreport, on unless switched off. */
     const showHeader = settings?.printHeader !== false;
-    /** 📞 طباعة تذييل الفاتورة — the `footer.repx` subreport: الهاتف · الجوال · العنوان. */
     const showFooter = settings?.printFooter === true;
-    /** 🔖 طباعة الختم — the stamp image under the signatures. */
-    const stamp = settings?.printStamp === false ? '' : (settings?.stampImageUrl ?? '');
-    /** ✒️ سطر التوقيعات — يُخفى بطلبٍ صريح من مصمّم القوالب. */
+    const stamp = settings?.printStamp === false ? '' : (settings?.stampImageUrl || company.stampUrl || '');
     const showSignatures = settings?.showSignatures !== false;
-    /** 📝 ملاحظات التقرير — `txtNote`, printed under the grid. */
     const note = (settings?.note ?? '').trim();
     const image = (src: string, alt: string) =>
       src ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" />` : '';
 
     const sheet = `
-        <header class="doc-head">
-          ${
-            showHeader
-              ? `<div class="company">
-            ${company.logoHtml}
-            ${image(settings?.headerImageUrl ?? '', 'الترويـسة')}
-            <h1${company.brandColor ? ` style="color:${company.brandColor}"` : ''}>${escapeHtml(company.nameAr)}</h1>
-            ${company.nameEn ? `<div class="en">${escapeHtml(company.nameEn)}</div>` : ''}
-            <div class="meta">${company.taxNo ? `<span>الرقم الضريبي: <b dir="ltr">${escapeHtml(company.taxNo)}</b></span>` : ''}${company.crNo ? `<span>السجل التجاري: <b dir="ltr">${escapeHtml(company.crNo)}</b></span>` : ''}</div>
-            ${contact ? `<div class="meta">${escapeHtml(contact)}</div>` : ''}
-          </div>`
-              : ''
-          }
-          <div class="doc">
-            <div class="doc-title">${escapeHtml(report.titleAr)}</div>
-            <table class="doc-meta">
-              ${report.captions.map((caption) => `<tr><td>${escapeHtml(caption)}</td></tr>`).join('')}
-              <tr><td>عدد السجلات: ${report.rows.length}</td></tr>
-              ${userName ? `<tr><td>المستخدم: ${escapeHtml(userName)}</td></tr>` : ''}
-              <tr><td>طُبع في: ${escapeHtml(dateTimeText(report.generatedAt))}</td></tr>
-              ${copies > 1 ? `<tr><td>عدد النسخ: ${copies}</td></tr>` : ''}
-            </table>
+        ${
+          showHeader
+            ? this.renderRepxLetterhead(company, settings?.headerImageUrl ?? '')
+            : ''
+        }
+        <div class="repx-report-banner">
+          <div class="doc-title">${escapeHtml(report.titleAr)}</div>
+          <div class="repx-report-meta">
+            ${report.captions.map((caption) => `<span>${escapeHtml(caption)}</span>`).join('')}
+            <span>عدد السجلات: ${report.rows.length}</span>
+            ${userName ? `<span>المستخدم: ${escapeHtml(userName)}</span>` : ''}
+            <span>طُبع في: ${escapeHtml(dateTimeText(report.generatedAt))}</span>
+            ${copies > 1 ? `<span>عدد النسخ: ${copies}</span>` : ''}
           </div>
-        </header>
+        </div>
         <table class="lines report">
           <thead><tr><th>#</th>${head}</tr></thead>
           <tbody>${body}</tbody>
@@ -666,15 +640,13 @@ export class PrintTemplatesService {
             : ''
         }
         ${stamp ? `<div class="doc-stamp">${image(stamp, 'الختم')}</div>` : ''}
-        ${showFooter ? `<div class="doc-foot">${contact ? escapeHtml(contact) : ''}${image(settings?.footerImageUrl ?? '', 'التـذيـيـل')}</div>` : ''}
+        ${showFooter ? this.renderRepxFooter(company, settings?.footerImageUrl ?? '') : ''}
       `;
 
-    // 🔢 عدد النسخ — `Printing()` loops `Print()` `printNo` times (Print.cs L201-L206).
     const sheets =
       copies === 1
         ? sheet
         : Array.from({ length: copies }, () => `<div class="copy">${sheet}</div>`).join('');
-    // 🖨️ الطابعات — names the operator saved; the browser's print dialog is the real picker.
     const printers = [settings?.casherPrinter, settings?.kitchenPrinter]
       .filter(Boolean)
       .map((name) => escapeHtml(name!));
@@ -696,7 +668,491 @@ export class PrintTemplatesService {
     });
   }
 
-  /** 👤 المستخدم — the name printed on the report, `Common.GetEmpName(EmpNo)` at the desktop. */
+  // --------------------------------------------------- rptInvA4 & rptInv renderers
+
+  /**
+   * تصميم فاتورة A4 الرسمي المطابق لقالب `rptInvA4.repx`.
+   */
+  private renderSalesInvoiceA4(
+    company: Awaited<ReturnType<PrintTemplatesService['company']>>,
+    print: PrintSettings,
+    inv: {
+      invoiceTitleAr: string;
+      invoiceTitleEn: string;
+      number: string;
+      date: string;
+      time: string;
+      supplyDate: string;
+      status: string;
+      branchName: string;
+      warehouseName: string;
+      salesmanName: string;
+      cashierName: string;
+      referenceNo: string;
+      paymentMethodLabel: string;
+      customerName: string;
+      customerCode: string;
+      customerTaxNo: string;
+      customerPhone: string;
+      customerAddress: Record<string, unknown> | null;
+      lines: Array<Record<string, unknown>>;
+      currency: string;
+      subtotal: string;
+      discount: string;
+      tax: string;
+      extraTax?: string;
+      withholding?: string;
+      total: string;
+      paid: string;
+      payments: Array<{ method: string; amount: string; reference: string }>;
+      qrPayload: string;
+      isPhaseTwo: boolean;
+      zatcaStatus: string;
+      notes: string;
+      returnPolicy: string;
+    },
+  ) {
+    const due = Decimal.max(0, new Decimal(inv.total || '0').minus(inv.paid || '0'));
+    const grossBeforeDiscount = new Decimal(inv.subtotal || '0').plus(inv.discount || '0');
+    const stampSrc = print.printStamp === false ? '' : (print.stampImageUrl || company.stampUrl || '');
+    const companyAddrGrid = this.renderNationalAddressGrid(
+      'العنوان الوطني للمنشأة',
+      company.address,
+      company.crn || company.crNo,
+    );
+    const customerAddrGrid = inv.customerTaxNo
+      ? this.renderNationalAddressGrid('العنوان الوطني للعميل', inv.customerAddress, '', true)
+      : '';
+
+    const lineRows = inv.lines.length
+      ? inv.lines
+          .map((line, idx) => {
+            const qtyDec = new Decimal(str(line.quantity) || '0');
+            const priceDec = new Decimal(str(line.unit_price) || '0');
+            const grossLine = qtyDec.mul(priceDec);
+            return `<tr>
+              <td class="num center">${escapeHtml(str(line.line_no || idx + 1))}</td>
+              <td class="num center">${escapeHtml(str(line.sku) || '—')}</td>
+              <td><b>${escapeHtml(str(line.label))}</b></td>
+              <td class="center">${escapeHtml(str(line.unit_label || line.unit_code) || '—')}</td>
+              <td class="num center">${escapeHtml(qty(str(line.quantity)))}</td>
+              <td class="num">${escapeHtml(money(str(line.unit_price)))}</td>
+              <td class="num">${escapeHtml(money(grossLine.toFixed(2)))}</td>
+              <td class="num">${escapeHtml(money(str(line.discount_amount)))}</td>
+              <td class="num">${escapeHtml(money(str(line.tax)))}</td>
+              <td class="num bold-cell">${escapeHtml(money(str(line.total)))}</td>
+            </tr>`;
+          })
+          .join('')
+      : `<tr><td colspan="10" class="empty">لا توجد بنود على هذه الفاتورة.</td></tr>`;
+
+    return `
+      ${
+        print.printHeader !== false
+          ? `${this.renderRepxLetterhead(company, print.headerImageUrl, true)}${companyAddrGrid}`
+          : ''
+      }
+
+      <div class="repx-title-banner">
+        <div class="doc-title">${escapeHtml(inv.invoiceTitleAr)}</div>
+        <div class="doc-title-en">${escapeHtml(inv.invoiceTitleEn)}</div>
+      </div>
+
+      <table class="repx-meta-grid">
+        <tr>
+          <th>رقم الفاتورة</th>
+          <td dir="ltr"><b>${escapeHtml(inv.number)}</b></td>
+          <th>نوع السداد</th>
+          <td>${escapeHtml(inv.paymentMethodLabel)}</td>
+          <th>التاريخ والوقت</th>
+          <td dir="ltr">${escapeHtml(`${inv.date} ${inv.time}`.trim())}</td>
+        </tr>
+        <tr>
+          <th>الفرع / نقطة البيع</th>
+          <td>${escapeHtml(inv.branchName || 'الفرع الرئيسي')}</td>
+          <th>تاريخ التوريد</th>
+          <td dir="ltr">${escapeHtml(inv.supplyDate)}</td>
+          <th>الحالة / المرجع</th>
+          <td>${escapeHtml(inv.referenceNo ? `${inv.status} — ${inv.referenceNo}` : inv.status)}</td>
+        </tr>
+      </table>
+
+      <section class="party repx-customer-box">
+        <div class="repx-box-head">بيانات العميل / المشتري — Customer Details</div>
+        <table class="repx-meta-grid inner">
+          <tr>
+            <th>اسم العميل</th>
+            <td><b>${escapeHtml(inv.customerName)}</b>${inv.customerCode ? ` <span class="sku" style="display:inline" dir="ltr">(${escapeHtml(inv.customerCode)})</span>` : ''}</td>
+            ${inv.customerTaxNo ? `<th>الرقم الضريبي للعميل</th><td dir="ltr"><b>${escapeHtml(inv.customerTaxNo)}</b></td>` : '<th>نوع الفاتورة</th><td>مبسطة (مستهلك نهائي)</td>'}
+          </tr>
+          <tr>
+            <th>الجوال / الهاتف</th>
+            <td dir="ltr">${escapeHtml(inv.customerPhone || '—')}</td>
+            <th>المندوب / البائع</th>
+            <td>${escapeHtml(inv.salesmanName || inv.cashierName || '—')}</td>
+          </tr>
+        </table>
+        ${customerAddrGrid}
+      </section>
+
+      <table class="lines repx-inv-lines">
+        <thead>
+          <tr>
+            <th style="width:32px">م<br/><small>No</small></th>
+            <th style="width:76px">الكود<br/><small>Code</small></th>
+            <th>اسم الصنف / البيان<br/><small>Description</small></th>
+            <th style="width:58px">الوحدة<br/><small>Unit</small></th>
+            <th style="width:58px">الكمية<br/><small>Qty</small></th>
+            <th style="width:74px">السعر<br/><small>Price</small></th>
+            <th style="width:80px">الإجمالي<br/><small>Gross</small></th>
+            <th style="width:66px">الخصم<br/><small>Disc.</small></th>
+            <th style="width:74px">الضريبة<br/><small>VAT</small></th>
+            <th style="width:86px">الصافي<br/><small>Net Total</small></th>
+          </tr>
+        </thead>
+        <tbody>${lineRows}</tbody>
+      </table>
+
+      <section class="repx-bottom-split">
+        <div class="repx-bottom-right">
+          <div class="repx-qr-and-words">
+            ${this.qrBlock(inv.qrPayload, inv.zatcaStatus, true, inv.isPhaseTwo)}
+            <div class="repx-words-stack">
+              <p class="words"><b>المبلغ بالحروف:</b> فقط ${escapeHtml(amountInArabicWords(inv.total, inv.currency))}</p>
+              ${
+                inv.payments.length
+                  ? `<table class="pay"><thead><tr><th>طريقة الدفع</th><th>المبلغ</th></tr></thead><tbody>
+                      ${inv.payments
+                        .map(
+                          (row) =>
+                            `<tr><td>${escapeHtml(row.method)}${row.reference ? ` — ${escapeHtml(row.reference)}` : ''}</td><td class="num">${escapeHtml(money(row.amount))}</td></tr>`,
+                        )
+                        .join('')}
+                     </tbody></table>`
+                  : ''
+              }
+              ${inv.notes ? `<div class="repx-note-box"><b>ملاحظات:</b> ${escapeHtml(inv.notes).replace(/\n/g, '<br/>')}</div>` : ''}
+            </div>
+          </div>
+          ${
+            inv.returnPolicy
+              ? `<div class="repx-policy-box"><b>سياسة الاسترجاع والاستبدال:</b><div>${escapeHtml(inv.returnPolicy).replace(/\n/g, '<br/>')}</div></div>`
+              : ''
+          }
+        </div>
+
+        <table class="totals-table repx-totals-box">
+          <tr><th>الإجمالي قبل الخصم والضريبة</th><td class="num">${escapeHtml(money(grossBeforeDiscount.toFixed(2)))}</td></tr>
+          <tr><th>مجموع الخصومات</th><td class="num">${escapeHtml(money(inv.discount))}</td></tr>
+          <tr><th>الإجمالي الخاضع للضريبة</th><td class="num">${escapeHtml(money(inv.subtotal))}</td></tr>
+          <tr><th>ضريبة القيمة المضافة (15%)</th><td class="num">${escapeHtml(money(inv.tax))}</td></tr>
+          ${
+            inv.extraTax && !new Decimal(inv.extraTax || '0').isZero()
+              ? `<tr><th>ضريبة إضافية</th><td class="num">${escapeHtml(money(inv.extraTax))}</td></tr>`
+              : ''
+          }
+          ${
+            inv.withholding && !new Decimal(inv.withholding || '0').isZero()
+              ? `<tr><th>الاستقطاع</th><td class="num">${escapeHtml(money(inv.withholding))}</td></tr>`
+              : ''
+          }
+          <tr class="grand"><th>الصافي شامل الضريبة (${escapeHtml(inv.currency)})</th><td class="num">${escapeHtml(money(inv.total))}</td></tr>
+          <tr><th>المدفوع</th><td class="num">${escapeHtml(money(inv.paid))}</td></tr>
+          <tr><th>المتبقي</th><td class="num">${escapeHtml(money(due.toFixed(2)))}</td></tr>
+        </table>
+      </section>
+
+      <table class="repx-sign-strip">
+        <tr>
+          <td>
+            <div class="sign-label">المستلم — Receiver</div>
+            <div class="sign-space">&nbsp;</div>
+          </td>
+          <td>
+            <div class="sign-label">الختم — Official Stamp</div>
+            <div class="sign-space">${stampSrc ? `<img src="${escapeHtml(stampSrc)}" alt="الختم" class="stamp-inline" />` : '&nbsp;'}</div>
+          </td>
+          <td>
+            <div class="sign-label">البائع / المحاسب — Seller</div>
+            <div class="sign-space">${escapeHtml(inv.salesmanName || inv.cashierName || '')}</div>
+          </td>
+        </tr>
+      </table>
+
+      ${print.printFooter === true ? this.renderRepxFooter(company, print.footerImageUrl) : ''}
+    `;
+  }
+
+  /**
+   * تصميم إيصال نقطة البيع كاشير (80mm) المطابق لقالب `rptInv.repx`.
+   */
+  private renderPosReceipt80mm(
+    company: Awaited<ReturnType<PrintTemplatesService['company']>>,
+    rec: {
+      invoiceTitleAr: string;
+      invoiceTitleEn: string;
+      number: string;
+      dateTime: string;
+      branchName: string;
+      warehouseName: string;
+      salesmanName: string;
+      cashierName: string;
+      paymentMethodLabel: string;
+      customerName: string;
+      customerTaxNo: string;
+      customerPhone: string;
+      customerAddress: Record<string, unknown> | null;
+      lines: Array<Record<string, unknown>>;
+      currency: string;
+      subtotal: string;
+      discount: string;
+      tax: string;
+      total: string;
+      paid: string;
+      qrPayload: string;
+      isPhaseTwo: boolean;
+      zatcaStatus: string;
+      notes: string;
+      returnPolicy: string;
+      showHeader: boolean;
+    },
+  ) {
+    const due = Decimal.max(0, new Decimal(rec.total || '0').minus(rec.paid || '0'));
+    const companyAddrText = company.addressAr || nationalAddressText(company.address);
+    const customerAddrText = rec.customerTaxNo ? nationalAddressText(rec.customerAddress as Record<string, string> | null) : '';
+
+    const itemsRows = rec.lines
+      .map((line) => {
+        const lineUnit = str(line.unit_label || line.unit_code);
+        return `<tr>
+          <td class="pos-item-col">
+            <b>${escapeHtml(str(line.label))}</b>
+            ${lineUnit ? `<div class="pos-sub">${escapeHtml(lineUnit)}</div>` : ''}
+          </td>
+          <td class="num center">${escapeHtml(qty(str(line.quantity)))}</td>
+          <td class="num">${escapeHtml(money(str(line.unit_price)))}</td>
+          <td class="num bold-cell">${escapeHtml(money(str(line.total)))}</td>
+        </tr>`;
+      })
+      .join('');
+
+    return `
+      <div class="pos-receipt">
+        ${
+          rec.showHeader !== false
+            ? `<div class="pos-head company">
+                <div class="pos-logo">${company.logoHtml}</div>
+                <h1>${escapeHtml(company.nameAr)}</h1>
+                ${company.fieldAr ? `<div class="pos-sub">${escapeHtml(company.fieldAr)}</div>` : ''}
+                ${rec.branchName ? `<div class="pos-sub">الفرع: <b>${escapeHtml(rec.branchName)}</b></div>` : ''}
+                ${company.taxNo ? `<div class="pos-sub">الرقم الضريبي: <b dir="ltr">${escapeHtml(company.taxNo)}</b></div>` : ''}
+                ${company.crNo ? `<div class="pos-sub">السجل التجاري: <b dir="ltr">${escapeHtml(company.crNo)}</b></div>` : ''}
+                ${company.phones.length ? `<div class="pos-sub" dir="ltr">${escapeHtml(company.phones.join(' - '))}</div>` : ''}
+                ${companyAddrText ? `<div class="pos-sub">${escapeHtml(companyAddrText)}</div>` : ''}
+              </div>`
+            : ''
+        }
+
+        <div class="pos-title-box">
+          <div class="doc-title">${escapeHtml(rec.invoiceTitleAr)}</div>
+          <div class="pos-title-en">${escapeHtml(rec.invoiceTitleEn)}</div>
+        </div>
+
+        <table class="pos-meta-table">
+          <tr>
+            <th>رقم الفاتورة</th>
+            <td dir="ltr"><b>${escapeHtml(rec.number)}</b></td>
+            <th>طريقة الدفع</th>
+            <td><b>${escapeHtml(rec.paymentMethodLabel)}</b></td>
+          </tr>
+          <tr>
+            <th>التاريخ</th>
+            <td colspan="3" dir="ltr">${escapeHtml(rec.dateTime)}</td>
+          </tr>
+          ${
+            rec.cashierName || rec.salesmanName
+              ? `<tr>
+                  <th>الكاشير</th>
+                  <td>${escapeHtml(rec.cashierName || '—')}</td>
+                  <th>المندوب</th>
+                  <td>${escapeHtml(rec.salesmanName || '—')}</td>
+                </tr>`
+              : ''
+          }
+        </table>
+
+        <div class="pos-customer-box">
+          <div><span>العميل:</span> <b>${escapeHtml(rec.customerName)}</b></div>
+          ${rec.customerPhone ? `<div><span>جوال العميل:</span> <b dir="ltr">${escapeHtml(rec.customerPhone)}</b></div>` : ''}
+          ${rec.customerTaxNo ? `<div><span>الرقم الضريبي للعميل:</span> <b dir="ltr">${escapeHtml(rec.customerTaxNo)}</b></div>` : ''}
+          ${customerAddrText ? `<div data-national-address><span>العنوان الوطني للعميل:</span> <b>${escapeHtml(customerAddrText)}</b></div>` : ''}
+        </div>
+
+        <table class="lines pos-lines">
+          <thead>
+            <tr>
+              <th>الصنف</th>
+              <th style="width:42px">الكمية</th>
+              <th style="width:54px">السعر</th>
+              <th style="width:62px">الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>${itemsRows}</tbody>
+        </table>
+
+        <table class="pos-totals-table">
+          <tr><th>الإجمالي قبل الضريبة</th><td class="num">${escapeHtml(money(rec.subtotal))}</td></tr>
+          ${
+            !new Decimal(rec.discount || '0').isZero()
+              ? `<tr><th>الخصم</th><td class="num">${escapeHtml(money(rec.discount))}</td></tr>`
+              : ''
+          }
+          <tr><th>ضريبة القيمة المضافة (15%)</th><td class="num">${escapeHtml(money(rec.tax))}</td></tr>
+          <tr class="grand"><th>الصافي شامل الضريبة (${escapeHtml(rec.currency)})</th><td class="num">${escapeHtml(money(rec.total))}</td></tr>
+          <tr><th>المدفوع</th><td class="num">${escapeHtml(money(rec.paid))}</td></tr>
+          ${!due.isZero() ? `<tr><th>المتبقي</th><td class="num">${escapeHtml(money(due.toFixed(2)))}</td></tr>` : ''}
+        </table>
+
+        <p class="pos-words">فقط ${escapeHtml(amountInArabicWords(rec.total, rec.currency))}</p>
+
+        ${rec.notes ? `<div class="pos-note"><b>ملاحظات:</b> ${escapeHtml(rec.notes).replace(/\n/g, '<br/>')}</div>` : ''}
+        ${
+          rec.returnPolicy
+            ? `<div class="pos-policy"><b>سياسة الاسترجاع والاستبدال:</b><div>${escapeHtml(rec.returnPolicy).replace(/\n/g, '<br/>')}</div></div>`
+            : ''
+        }
+
+        <div class="pos-qr-wrap">
+          ${this.qrBlock(rec.qrPayload, rec.zatcaStatus, true, rec.isPhaseTwo)}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * الترويسة الرسمية ثلاثية الأعمدة وفق `header.repx` و`rptInvA4.repx`.
+   */
+  private renderRepxLetterhead(
+    company: Awaited<ReturnType<PrintTemplatesService['company']>>,
+    headerImageUrl = '',
+    includeBanks = false,
+  ) {
+    const titleStyle = company.brandColor ? ` style="color:${company.brandColor}"` : '';
+    const phones = company.phones.join(' / ');
+    const shortAddrAr = company.addressAr || addressText(company.address);
+    const shortAddrEn = company.addressEn || '';
+    const banksHtml =
+      includeBanks && company.banks.length
+        ? `<div class="repx-banks">${company.banks
+            .map(
+              (b) =>
+                `<div><b>${escapeHtml(b.name)}:</b> <span dir="ltr">${escapeHtml(b.iban)}</span></div>`,
+            )
+            .join('')}</div>`
+        : '';
+
+    return `
+      <header class="company" data-letterhead="repx">
+        <div class="repx-lh-right">
+          <h1${titleStyle}>${escapeHtml(company.nameAr)}</h1>
+          ${company.fieldAr ? `<div class="repx-field">${escapeHtml(company.fieldAr)}</div>` : ''}
+          <div class="repx-kv-list">
+            ${company.taxNo ? `<div>الرقم الضريبي: <b dir="ltr">${escapeHtml(company.taxNo)}</b></div>` : '<div class="warn">لم يُسجَّل الرقم الضريبي في بطاقة المنشأة</div>'}
+            ${company.crNo ? `<div>السجل التجاري: <b dir="ltr">${escapeHtml(company.crNo)}</b></div>` : ''}
+            ${phones ? `<div>هاتف / جوال: <b dir="ltr">${escapeHtml(phones)}</b></div>` : ''}
+            ${shortAddrAr ? `<div>العنوان: ${escapeHtml(shortAddrAr)}</div>` : ''}
+          </div>
+        </div>
+        <div class="repx-lh-center">
+          ${company.logoHtml}
+          ${headerImageUrl ? `<img src="${escapeHtml(headerImageUrl)}" alt="الترويـسة" class="repx-extra-header" />` : ''}
+        </div>
+        <div class="repx-lh-left" dir="ltr">
+          ${company.nameEn ? `<div class="repx-en-name">${escapeHtml(company.nameEn)}</div>` : `<div class="repx-en-name">${escapeHtml(company.nameAr)}</div>`}
+          ${company.fieldEn ? `<div class="repx-field">${escapeHtml(company.fieldEn)}</div>` : ''}
+          <div class="repx-kv-list">
+            ${company.taxNo ? `<div>VAT No.: <b>${escapeHtml(company.taxNo)}</b></div>` : ''}
+            ${company.crNo ? `<div>C.R.: <b>${escapeHtml(company.crNo)}</b></div>` : ''}
+            ${phones ? `<div>Tel: <b>${escapeHtml(phones)}</b></div>` : ''}
+            ${shortAddrEn ? `<div>${escapeHtml(shortAddrEn)}</div>` : ''}
+          </div>
+          ${banksHtml}
+        </div>
+      </header>
+    `;
+  }
+
+  /**
+   * التذييل الرسمي المؤطّر وفق `footer.repx`.
+   */
+  private renderRepxFooter(
+    company: Awaited<ReturnType<PrintTemplatesService['company']>>,
+    footerImageUrl = '',
+  ) {
+    const addr = company.addressAr || nationalAddressText(company.address) || addressText(company.address);
+    const phones = company.phones.join(' - ');
+    return `
+      <footer class="doc-foot">
+        <div class="repx-foot-grid">
+          <div>${addr ? `العنوان: ${escapeHtml(addr)}` : escapeHtml(company.nameAr)}</div>
+          <div>${phones ? `هاتف / جوال: <b dir="ltr">${escapeHtml(phones)}</b>` : company.email ? escapeHtml(company.email) : ''}</div>
+          <div>${company.taxNo ? `الرقم الضريبي: <b dir="ltr">${escapeHtml(company.taxNo)}</b>` : ''}${company.crNo ? ` · س.ت: <b dir="ltr">${escapeHtml(company.crNo)}</b>` : ''}</div>
+        </div>
+        ${footerImageUrl ? `<img src="${escapeHtml(footerImageUrl)}" alt="التـذيـيـل" />` : ''}
+      </footer>
+    `;
+  }
+
+  /**
+   * جدول العنوان الوطني ذو الـ 8 خانات المطابق لـ `rptInvA4.repx`.
+   */
+  private renderNationalAddressGrid(
+    captionAr: string,
+    rawAddress: Record<string, unknown> | null | undefined,
+    crnOrSub = '',
+    alwaysRenderWhenValid = false,
+  ) {
+    const a = extractNationalAddressParts(rawAddress);
+    const hasAny = Boolean(
+      a.street || a.district || a.city || a.region || a.building || a.additional || a.postal || crnOrSub,
+    );
+    if (!hasAny && !alwaysRenderWhenValid) return '';
+    if (!hasAny) return '';
+    return `
+      <div class="repx-na-wrap" data-national-address>
+        <table class="repx-na-table">
+          <thead>
+            <tr>
+              <th colspan="8" class="repx-na-caption">${escapeHtml(captionAr)}</th>
+            </tr>
+            <tr>
+              <th>الشارع</th>
+              <th>الحي</th>
+              <th>المدينة</th>
+              <th>المنطقة</th>
+              <th>رقم المبنى</th>
+              <th>الرقم الإضافي</th>
+              <th>الرمز البريدي</th>
+              <th>الرقم الموحد / الفرعي</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${escapeHtml(a.street || '—')}</td>
+              <td>${escapeHtml(a.district || '—')}</td>
+              <td>${escapeHtml(a.city || '—')}</td>
+              <td>${escapeHtml(a.region || a.country || 'المملكة العربية السعودية')}</td>
+              <td dir="ltr">${escapeHtml(a.building || '—')}</td>
+              <td dir="ltr">${escapeHtml(a.additional || '—')}</td>
+              <td dir="ltr">${escapeHtml(a.postal || '—')}</td>
+              <td dir="ltr">${escapeHtml(crnOrSub || a.unit || '—')}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
   private async userName(tenantId: string, userId: string): Promise<string | null> {
     try {
       const row = first(
@@ -710,7 +1166,7 @@ export class PrintTemplatesService {
       );
       return row?.name ? str(row.name) : null;
     } catch {
-      return null; // a caption is decoration; it must never fail a print
+      return null;
     }
   }
 
@@ -723,10 +1179,26 @@ export class PrintTemplatesService {
       ),
     );
     const tenant = first(await tx.execute(sql`SELECT name FROM tenants WHERE id = ${tenantId}`));
+    const settingRows = rows(
+      await tx.execute(
+        sql`SELECT key, value FROM tenant_settings WHERE tenant_id = ${tenantId}::uuid AND key LIKE 'report.%'`,
+      ),
+    );
+    const reportMap = new Map<string, string>(
+      settingRows.map((r) => [
+        str(r.key),
+        typeof r.value === 'string' ? r.value : r.value == null ? '' : String(r.value),
+      ]),
+    );
+    const banks = [1, 2, 3]
+      .map((n) => ({
+        name: (reportMap.get(`report.bank${n}_name`) ?? '').trim(),
+        iban: (reportMap.get(`report.bank${n}_iban`) ?? '').trim(),
+      }))
+      .filter((b) => b.name || b.iban);
+
     const brand = await this.brand(tx, tenantId);
     const address = (profile?.address ?? null) as Record<string, string> | null;
-    // الشعار: المرفوع في «بطاقة المنشأة» أولاً (data URL يسافر داخل الوثيقة)، ثم ملف
-    // التخزين الموقّع، ثم شعار المتجر. كلها زينة: غيابها لا يُسقط الطباعة.
     const inlineLogo = str(profile?.logo_data_url);
     return {
       nameAr: str(profile?.name_ar) || str(tenant?.name) || 'المنشأة',
@@ -739,10 +1211,18 @@ export class PrintTemplatesService {
       nationalAddress: nationalAddressText(address),
       logoHtml: inlineLogo ? brandMark(inlineLogo, brand.color).logoHtml : brand.logoHtml,
       brandColor: brand.color,
+      returnPolicy: (reportMap.get('report.return_policy') ?? '').trim(),
+      defaultNotes: (reportMap.get('report.default_notes') ?? '').trim(),
+      fieldAr: (reportMap.get('report.field_ar') ?? '').trim(),
+      fieldEn: (reportMap.get('report.field_en') ?? '').trim(),
+      addressAr: (reportMap.get('report.address_ar') ?? '').trim(),
+      addressEn: (reportMap.get('report.address_en') ?? '').trim(),
+      crn: (reportMap.get('report.crn') ?? '').trim(),
+      stampUrl: (reportMap.get('report.stamp_url') ?? '').trim(),
+      banks,
     };
   }
 
-  /** الشعار زينة. غيابه أو غياب سر التوقيع لا يُسقط الطباعة. */
   private async brand(tx: Tx, tenantId: string) {
     try {
       const row = first(
@@ -768,48 +1248,33 @@ export class PrintTemplatesService {
       status: string;
       extra: Array<[string, string]>;
     },
-    /**
-     * 🏛️ طباعة ترويسة الفاتورة — `PrintHeader`. The desktop injects `header.repx` into the
-     * `headerRpt` subreport when it is on and leaves the subreport empty when it is
-     * off; the document keeps its own title and number either way.
-     */
     showCompany = true,
   ) {
-    const contact = [company.phones.join(' / '), company.email, addressText(company.address)]
-      .filter(Boolean)
-      .join(' — ');
-    const titleStyle = company.brandColor ? ` style="color:${company.brandColor}"` : '';
     return `
-      <header class="doc-head">
+      ${showCompany ? this.renderRepxLetterhead(company) : ''}
+      <div class="repx-title-banner">
+        <div class="doc-title">${escapeHtml(doc.docTitle)}</div>
+        <div class="doc-title-en">${escapeHtml(doc.docTitleEn)}</div>
+      </div>
+      <table class="repx-meta-grid">
+        <tr>
+          <th>رقم المستند</th>
+          <td dir="ltr"><b>${escapeHtml(doc.number)}</b></td>
+          <th>التاريخ</th>
+          <td dir="ltr">${escapeHtml(doc.date)}</td>
+          <th>الحالة</th>
+          <td>${escapeHtml(doc.status)}</td>
+        </tr>
         ${
-          showCompany
-            ? `<div class="company">
-          ${company.logoHtml}
-          <h1${titleStyle}>${escapeHtml(company.nameAr)}</h1>
-          ${company.nameEn ? `<div class="en">${escapeHtml(company.nameEn)}</div>` : ''}
-          <div class="meta">
-            ${company.taxNo ? `<span>الرقم الضريبي: <b dir="ltr">${escapeHtml(company.taxNo)}</b></span>` : '<span class="warn">لم يُسجَّل الرقم الضريبي في بطاقة المنشأة</span>'}
-            ${company.crNo ? `<span>السجل التجاري: <b dir="ltr">${escapeHtml(company.crNo)}</b></span>` : ''}
-          </div>
-          ${contact ? `<div class="meta">${escapeHtml(contact)}</div>` : ''}
-          ${company.nationalAddress ? `<div class="meta" data-national-address>العنوان الوطني: ${escapeHtml(company.nationalAddress)}</div>` : ''}
-        </div>`
+          doc.extra.filter(([, value]) => value).length
+            ? `<tr>${doc.extra
+                .filter(([, value]) => value)
+                .slice(0, 3)
+                .map(([label, value]) => `<th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td>`)
+                .join('')}</tr>`
             : ''
         }
-        <div class="doc">
-          <div class="doc-title">${escapeHtml(doc.docTitle)}</div>
-          <div class="doc-title-en">${escapeHtml(doc.docTitleEn)}</div>
-          <table class="doc-meta">
-            <tr><th>رقم المستند</th><td dir="ltr">${escapeHtml(doc.number)}</td></tr>
-            <tr><th>التاريخ</th><td dir="ltr">${escapeHtml(doc.date)}</td></tr>
-            <tr><th>الحالة</th><td>${escapeHtml(doc.status)}</td></tr>
-            ${doc.extra
-              .filter(([, value]) => value)
-              .map(([label, value]) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`)
-              .join('')}
-          </table>
-        </div>
-      </header>
+      </table>
     `;
   }
 
@@ -847,7 +1312,7 @@ export class PrintTemplatesService {
               (line) => `<tr>
                 <td class="num">${escapeHtml(str(line.line_no))}</td>
                 <td>${escapeHtml(str(line.label))}${str(line.sku) ? `<span class="sku" dir="ltr">${escapeHtml(str(line.sku))}</span>` : ''}</td>
-                <td>${escapeHtml(str(line.unit_code))}</td>
+                <td>${escapeHtml(str(line.unit_label || line.unit_code))}</td>
                 <td class="num">${escapeHtml(qty(str(line.quantity)))}</td>
                 <td class="num">${escapeHtml(money(str(line.unit_price)))}</td>
                 <td class="num">${escapeHtml(money(str(line.discount_amount)))}</td>
@@ -875,7 +1340,6 @@ export class PrintTemplatesService {
     payments: Array<{ method: string; amount: string; reference: string }>;
     qr?: string;
     zatcaStatus?: string;
-    /** هل ينطبق رمز الفاتورة الإلكترونية على هذه الوثيقة أصلًا؟ */
     qrApplicable?: boolean;
   }) {
     const due = new Decimal(totals.total || '0').minus(totals.paid || '0');
@@ -912,20 +1376,14 @@ export class PrintTemplatesService {
     `;
   }
 
-  /**
-   * ZATCA prints the TLV payload as a QR next to the totals. When the invoice has not
-   * been reported yet there is nothing honest to draw, so the space carries a note
-   * instead of a decorative square that would fail any scan.
-   */
-  private qrBlock(payload?: string, status?: string, applicable = true) {
+  private qrBlock(payload?: string, status?: string, applicable = true, isPhaseTwo = false) {
     if (!applicable) return '';
-    // رمزٌ مرسوم من حمولةٍ محليّة = المرحلة الأولى؛ وحالةٌ مسجّلة تتقدّم على ذلك.
-    const label = status ? ZATCA_STATUS_LABELS[status] : null;
-    const drawnLabel = label ?? 'رمز الاستجابة السريعة (المرحلة الأولى)';
+    const statusLabel = status ? ZATCA_STATUS_LABELS[status] : null;
+    const drawnLabel = isPhaseTwo
+      ? `${statusLabel ?? 'رمز الفوترة الإلكترونية'} — المرحلة الثانية (ZATCA)`
+      : (statusLabel ?? 'رمز الاستجابة السريعة (المرحلة الأولى)');
     if (!payload) {
-      // لا حمولة = لا رمز. ولا نُنسب للمستند حالةً لم تُسجَّل له: كان السطر يقول
-      // «لم تُصدر بعد… الحالة: رمز الاستجابة السريعة (المرحلة الأولى)» وهو تناقض.
-      return `<div class="qr-empty">لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) لهذا المستند.${label ? ` الحالة: ${label}.` : ''}</div>`;
+      return `<div class="qr-empty">لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) لهذا المستند.${statusLabel ? ` الحالة: ${statusLabel}.` : ''}</div>`;
     }
     const qr = qrcode(0, 'M');
     qr.addData(payload);
@@ -933,13 +1391,6 @@ export class PrintTemplatesService {
     return `<div class="qr">${qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true })}<span>${escapeHtml(drawnLabel)}</span></div>`;
   }
 
-  /**
-   * 🧾 رمز QR داخل جدول تقرير — البند 10.
-   *
-   * الحمولة تأتي من `sales_invoices.zatca_qr` (المرحلة الثانية) أو من حمولةٍ نصّيةٍ بسيطة
-   * يبنيها استعلام التقرير حين لا يكون للفاتورة ربطٌ ضريبي. والرسم هنا بمُرمِّز واحد
-   * (`qrcode-generator`) هو نفسه الذي يرسم رمز وثيقة الفاتورة — فالورق لا يختلف عن الورق.
-   */
   private reportQr(payload: string): string {
     const value = payload.trim();
     if (!value) return '';
@@ -953,34 +1404,27 @@ export class PrintTemplatesService {
     return `<section class="signs">${labels.map((label) => `<div><span>${escapeHtml(label)}</span><i></i></div>`).join('')}</section>`;
   }
 
-  /**
-   * 🖨️ وثيقة — `Print.cs` for the five documents.
-   *
-   * `frmPurchInv` prints with `new Print(1)` («مشتريات»), `frmSalesInvoice` with
-   * `new Print(InvType)` (2, «مبيعات»), `frmCloseShift` reads `SettingPrint WHERE
-   * Inv_Id = 6` («تقارير»), and the voucher and the journal entry read 11 and 9 —
-   * numbers no radio of `frmSettings` can write, so they fall through to «الإفتراضي».
-   * What the sheet does with the row is the same as `Printing()`: `printNo` copies,
-   * the paper of `printType`, `header.repx`, `footer.repx` and the stamp.
-   */
   private documentPage(
     print: PrintSettings,
     company: Awaited<ReturnType<PrintTemplatesService['company']>>,
-    page: { title: string; body: string; landscape?: boolean },
+    page: {
+      title: string;
+      body: string;
+      landscape?: boolean;
+      suppressAutoStampAndFooter?: boolean;
+    },
   ) {
     const copies = Math.min(50, Math.max(1, print.printNo));
     const paper = print.printType === 2 ? 'small' : 'a4';
-    const contact = [company.phones.join(' / '), company.email, addressText(company.address)]
-      .filter(Boolean)
-      .join(' — ');
-    const image = (src: string, alt: string) =>
-      src ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" />` : '';
+    const stampSrc = print.stampImageUrl || company.stampUrl || '';
     const footer =
-      print.printFooter === true
-        ? `<div class="doc-foot">${contact ? escapeHtml(contact) : ''}${image(print.footerImageUrl, 'التـذيـيـل')}</div>`
+      !page.suppressAutoStampAndFooter && print.printFooter === true
+        ? this.renderRepxFooter(company, print.footerImageUrl)
         : '';
     const stamp =
-      print.printStamp === false ? '' : `<div class="doc-stamp">${image(print.stampImageUrl, 'الختم')}</div>`;
+      !page.suppressAutoStampAndFooter && print.printStamp !== false && stampSrc
+        ? `<div class="doc-stamp"><img src="${escapeHtml(stampSrc)}" alt="الختم" /></div>`
+        : '';
     const body = `<div class="copy">${page.body}${stamp}${footer}</div>`;
     const printers = [print.casherPrinter, print.kitchenPrinter]
       .filter(Boolean)
@@ -988,7 +1432,7 @@ export class PrintTemplatesService {
     const toolbar = [
       printers.length ? `🖨️ ${printers.join(' · ')}` : '',
       copies > 1 ? `🔢 عدد النسخ: ${copies}` : '',
-      paper === 'small' ? '🧾 ورق صغير' : '📄 ورقة A4',
+      paper === 'small' ? '🧾 ورق صغير (80mm)' : '📄 ورقة A4',
     ]
       .filter(Boolean)
       .join(' — ');
@@ -1002,28 +1446,18 @@ export class PrintTemplatesService {
     });
   }
 
-  /**
-   * 🔢 ترتيب بنود الورقة — `PrintItemType` من `SettingPrint`.
-   * الديسكتوب: 1 ترتيب الإدخال (افتراضي) و3 حسب التفاصيل (`ckPrintItems`)؛
-   * السحابة توسّعه: 1 إدخال · 2 رمز · 3 اسم · 4 كمية تنازلي · 5 سعر تنازلي.
-   * «ما اخترعناه»: القيم 2/4/5 ليست في الديسكتوب نصّاً، لكنها ترتيبٌ منطقيّ
-   * لنفس الحقل الذي كان بلا أثر (§10.5/5).
-   */
   private sortByPrintItemType(
     lines: Array<Record<string, unknown>>,
     printItemType: number,
   ): Array<Record<string, unknown>> {
     const type = Number(printItemType) || 1;
-    if (type === 1) return lines; // إدخال
+    if (type === 1) return lines;
     const copy = [...lines];
     if (type === 2) {
-      // حسب رمز الصنف
       copy.sort((a, b) => str(a.sku || a.label).localeCompare(str(b.sku || b.label), 'ar'));
     } else if (type === 3) {
-      // حسب اسم الصنف
       copy.sort((a, b) => str(a.item_name || a.label).localeCompare(str(b.item_name || b.label), 'ar'));
     } else if (type === 4) {
-      // كمية تنازلي
       copy.sort((a, b) => {
         try {
           return new Decimal(str(b.quantity) || '0').minus(str(a.quantity) || '0').toNumber();
@@ -1043,12 +1477,10 @@ export class PrintTemplatesService {
     return copy;
   }
 
-  /** 🖨️ إعدادات وثيقة — the scope of the document, then «الإفتراضي». */
   private settingsFor(tenantId: string, scope: string) {
     return this.printSettings.effective(tenantId, [scope, 'default']);
   }
 
-  /** One stylesheet for every document, plus a print button that hides itself. */
   private page({
     title,
     body,
@@ -1060,14 +1492,8 @@ export class PrintTemplatesService {
     title: string;
     body: string;
     landscape?: boolean;
-    /** 🖨️ A note beside the print button — the saved printer names, hidden when printing. */
     toolbar?: string;
-    /** 🎨 القالب واللون والخط — غيابها يعني الشكل الكلاسيكي الذي كان. */
     style?: PrintStyle;
-    /**
-     * 📄 نوع الورقة — `printType` of `SettingPrint`: 1 «📄 ورقة A4» · 2 «🧾 ورق صغير»,
-     * the two radios of `frmInvRptType.xaml` «🖨️ افتراضي طباعة الفواتير».
-     */
     paper?: 'a4' | 'small';
   }) {
     return `<!doctype html>
@@ -1077,79 +1503,119 @@ export class PrintTemplatesService {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(title)}</title>
 <style>
-  @page { size: ${paper === 'small' ? '80mm auto' : `A4${landscape ? ' landscape' : ''}`}; margin: ${paper === 'small' ? '3mm' : '12mm'}; }
+  @page { size: ${paper === 'small' ? '80mm auto' : `A4${landscape ? ' landscape' : ''}`}; margin: ${paper === 'small' ? '2.5mm' : '10mm'}; }
   * { box-sizing: border-box; }
-  /* 🔎 كل المقاسات نسبية إلى «--scale» (مصمّم القوالب) — تكبيرُ الخط يكبّر الورقة كلها
-     لا الفقرات وحدها، فلا يختلّ التوازن بين العنوان والجدول والإجماليات. */
-  body { font-family: inherit; color: #111; margin: 0; padding: 16px; background: #f4f5f7; font-size: calc(12px * var(--scale)); }
-  .sheet { background: #fff; max-width: ${paper === 'small' ? '80mm' : landscape ? '297mm' : '210mm'}; margin: 0 auto; padding: ${paper === 'small' ? '3mm 4mm' : '16mm 14mm'}; box-shadow: 0 1px 8px rgba(0,0,0,.12); }
-  /* 🧾 ورق صغير — 80mm thermal: one column, no shadows, smaller type. */
-  .sheet.small { font-size: 0.85em; }
-  .sheet.small table.report { font-size: 0.9em; }
-  .sheet.small .doc-head { display: block; }
-  .sheet.small .doc { text-align: right; }
-  .sheet.small .totals-strip { flex-direction: column; gap: 0.3em; font-size: 0.95em; }
-  /* 🔢 عدد النسخ — every copy starts on its own sheet, the way Printing() loops. */
-  .copy + .copy { page-break-before: always; }
-  .brand-logo { max-height: 56px; max-width: 160px; object-fit: contain; display: block; margin-bottom: 6px; }
-  .doc-images { display: flex; flex-direction: column; gap: 4px; align-items: center; }
-  .doc-images img { max-height: 90px; max-width: 100%; }
-  .doc-stamp { position: relative; display: inline-block; }
-  .doc-stamp img { max-height: 110px; max-width: 100%; }
-  .doc-note { margin-top: 0.85em; border: 1px dashed #bbb; padding: 0.5em 0.7em; color: #333; }
-  .doc-foot { margin-top: 0.85em; border-top: 1px solid #999; padding-top: 0.5em; color: #444; font-size: 0.92em; text-align: center; }
-  .doc-foot img { max-height: 70px; max-width: 100%; display: block; margin: 4px auto 0; }
-  h1 { font-size: 1.5em; margin: 0 0 0.15em; }
-  h2 { font-size: 1.08em; margin: 0 0 0.5em; }
-  .doc-head { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid var(--accent); padding-bottom: 0.85em; margin-bottom: 1em; }
-  .company .en { color: #555; font-size: 1em; }
-  .company .meta { margin-top: 0.3em; color: #333; display: flex; gap: 12px; flex-wrap: wrap; }
-  /* كتلةُ المستند على يسار الترويسة: نصُّها عربيٌّ فتُحاذى يميناً مع عناوين
-     جدول doc-meta — وكانت left فتنقطع «فاتورة مبيعات» عن سطرها الأوّل. */
-  .doc { text-align: right; min-width: 210px; }
-  .doc-title { font-size: 1.33em; font-weight: 700; }
-  .doc-title-en { color: #666; font-size: 0.92em; margin-bottom: 0.5em; }
-  .doc-meta { border-collapse: collapse; width: 100%; }
-  .doc-meta th { text-align: right; color: #555; font-weight: 500; padding: 1px 6px 1px 0; white-space: nowrap; }
-  .doc-meta td { text-align: left; font-weight: 600; padding: 1px 0; }
-  .party { border: 1px solid #ddd; border-radius: 6px; padding: 0.7em 0.85em; margin-bottom: 0.85em; }
+  body { font-family: inherit; color: #111; margin: 0; padding: 14px; background: #f4f5f7; font-size: calc(11.5px * var(--scale)); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sheet { background: #fff; max-width: ${paper === 'small' ? '80mm' : landscape ? '297mm' : '210mm'}; margin: 0 auto; padding: ${paper === 'small' ? '3mm 3.5mm' : '10mm 11mm'}; box-shadow: 0 1px 8px rgba(0,0,0,.12); }
+  .sheet.small { font-size: 0.92em; }
+  .copy + .copy { page-break-before: always; margin-top: 12mm; }
+  .brand-logo { max-height: 76px; max-width: 145px; object-fit: contain; display: block; margin: 0 auto; }
+  .repx-extra-header { max-height: 55px; max-width: 150px; display: block; margin: 4px auto 0; }
+  .doc-stamp { position: relative; display: inline-block; margin-top: 8px; }
+  .doc-stamp img, .stamp-inline { max-height: 78px; max-width: 140px; object-fit: contain; }
+  .doc-note { margin-top: 0.7em; border: 1px dashed #666; padding: 0.45em 0.65em; color: #222; }
+  .doc-foot { margin-top: 0.9em; border: 1.5px solid #222; padding: 0.45em 0.65em; color: #222; font-size: 0.9em; background: #fafafa; }
+  .doc-foot img { max-height: 60px; max-width: 100%; display: block; margin: 4px auto 0; }
+  .repx-foot-grid { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  /* ── ترويسة المنشأة الثلاثية وفق header.repx & rptInvA4.repx ── */
+  header.company { display: grid; grid-template-columns: 1.25fr auto 1.25fr; gap: 12px; align-items: center; border: 1.5px solid #222; padding: 8px 10px; margin-bottom: 6px; background: #fff; }
+  .repx-lh-right { text-align: right; }
+  .repx-lh-right h1 { font-size: 1.32em; margin: 0 0 2px; font-weight: 800; }
+  .repx-lh-center { text-align: center; padding: 0 6px; }
+  .repx-lh-left { text-align: left; font-size: 0.93em; }
+  .repx-en-name { font-size: 1.15em; font-weight: 800; margin-bottom: 2px; }
+  .repx-field { color: #333; font-weight: 600; font-size: 0.92em; margin-bottom: 3px; }
+  .repx-kv-list { line-height: 1.45; color: #222; font-size: 0.92em; }
+  .repx-banks { margin-top: 4px; padding-top: 3px; border-top: 1px dashed #aaa; font-size: 0.85em; line-height: 1.35; }
+
+  /* ── جدول العنوان الوطني ذو الـ 8 خانات ── */
+  .repx-na-wrap { margin-bottom: 6px; }
+  .repx-na-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+  .repx-na-table th, .repx-na-table td { border: 1px solid #333; padding: 3px 5px; text-align: center; }
+  .repx-na-table thead th { background: #eef0f3; font-weight: 700; }
+  .repx-na-table .repx-na-caption { background: #dfe3e8; font-size: 0.95em; text-align: right; padding-inline: 8px; }
+
+  /* ── شريط عنوان المستند (فاتورة ضريبية / فاتورة ضريبية مبسطة / عنوان التقرير) ── */
+  .repx-title-banner { border: 1.5px solid var(--accent); background: #f2f4f7; text-align: center; padding: 5px 10px; margin: 6px 0; }
+  .doc-title { font-size: 1.3em; font-weight: 800; letter-spacing: 0.2px; }
+  .doc-title-en { color: #444; font-size: 0.88em; font-weight: 600; }
+  .repx-report-banner { border: 1.5px solid var(--accent); background: #f4f6f9; padding: 6px 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .repx-report-meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.9em; color: #333; font-weight: 600; }
+
+  /* ── جدول بيانات الفاتورة والعميل ── */
+  .repx-meta-grid { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 0.92em; }
+  .repx-meta-grid th, .repx-meta-grid td { border: 1px solid #333; padding: 4px 7px; }
+  .repx-meta-grid th { background: #eef0f3; font-weight: 700; text-align: right; white-space: nowrap; width: 14%; }
+  .repx-meta-grid td { text-align: right; }
+  .repx-meta-grid.inner { margin-bottom: 0; }
+  .repx-customer-box { border: 1.5px solid #333; border-radius: 0; padding: 0; margin-bottom: 8px; }
+  .repx-customer-box .repx-box-head { background: #dfe3e8; font-weight: 800; padding: 4px 8px; border-bottom: 1px solid #333; font-size: 0.94em; }
+  .repx-customer-box .repx-na-wrap { margin: 0; }
+  .repx-customer-box .repx-na-table th, .repx-customer-box .repx-na-table td { border-bottom: 0; }
+
+  .party { border: 1px solid #333; padding: 0.6em 0.8em; margin-bottom: 0.75em; }
+  .party h2 { font-size: 1em; margin: 0 0 0.4em; }
   .party-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 12px; }
   .party-grid .wide { grid-column: 1 / -1; }
-  .party-grid span { color: #666; margin-inline-end: 6px; }
-  table.lines { width: 100%; border-collapse: collapse; margin-bottom: 0.85em; }
-  table.lines th, table.lines td { border: 1px solid #ccc; padding: 0.35em 0.5em; }
-  table.lines thead th { background: #f0f1f4; font-weight: 600; }
-  table.lines tfoot th { background: #f0f1f4; }
-  /* 💰 إجمالي المبيعات — the one number frmRptSalesInPeriod prints under the grid. */
-  .totals-strip { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 0.7em; padding: 0.5em 0.85em; border: 2px solid var(--accent); font-size: 1.17em; }
-  .totals-strip span { direction: ltr; }
-  /* أعده · راجعه · المدير — the signature strip of RptSalesInPeriod1/2.repx. */
-  table.signatures { width: 100%; border-collapse: collapse; margin-top: 1.5em; page-break-inside: avoid; }
-  table.signatures td { border: 1px solid #ccc; padding: 1.2em 0.5em 0.5em; text-align: center; width: 33%; color: #555; }
+  .party-grid span { color: #555; margin-inline-end: 6px; }
+
+  /* ── جداول البنود ── */
+  table.lines { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  table.lines th, table.lines td { border: 1px solid #333; padding: 4px 6px; }
+  table.lines thead th { background: #dfe3e8; font-weight: 700; text-align: center; line-height: 1.2; }
+  table.lines thead th small { font-weight: 600; color: #444; font-size: 0.82em; }
+  table.lines tfoot th { background: #eef0f3; }
+  .center { text-align: center !important; }
+  .bold-cell { font-weight: 700; }
   .num { text-align: left; font-variant-numeric: tabular-nums; direction: ltr; }
-  .sku { display: block; color: #777; font-size: 0.9em; }
+  .sku { display: block; color: #666; font-size: 0.86em; }
+
+  /* ── القسم السفلي لفاتورة rptInvA4 (كيو آر + تفقيط + ملاحظات + سياسة الإرجاع + الإجماليات) ── */
+  .repx-bottom-split { display: grid; grid-template-columns: 1.35fr 0.95fr; gap: 10px; align-items: stretch; margin-top: 4px; page-break-inside: avoid; }
+  .repx-bottom-right { display: flex; flex-direction: column; gap: 6px; }
+  .repx-qr-and-words { display: flex; gap: 10px; align-items: flex-start; border: 1px solid #333; padding: 6px 8px; }
+  .repx-words-stack { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+  .words { background: #f4f5f7; border: 1px solid #bbb; border-inline-start: 3px solid var(--accent); padding: 5px 8px; margin: 0; font-size: 0.94em; }
+  .repx-note-box { border: 1px dashed #666; padding: 4px 7px; font-size: 0.9em; background: #fff; }
+  .repx-policy-box { border: 1px solid #333; padding: 5px 8px; font-size: 0.88em; background: #fafafa; line-height: 1.45; }
+  .repx-totals-box { width: 100%; border-collapse: collapse; border: 1.5px solid #222; }
+  .repx-totals-box th, .repx-totals-box td { border: 1px solid #333; padding: 4px 8px; }
+  .repx-totals-box th { background: #f2f4f7; text-align: right; font-weight: 700; }
+  .repx-totals-box tr.grand th, .repx-totals-box tr.grand td { background: #dfe3e8; font-size: 1.08em; font-weight: 800; border-top: 2px solid #111; border-bottom: 2px solid #111; }
+
+  /* ── جدول التوقيعات والختم السفلي ── */
+  .repx-sign-strip { width: 100%; border-collapse: collapse; margin-top: 8px; page-break-inside: avoid; }
+  .repx-sign-strip td { border: 1px solid #333; width: 33.33%; text-align: center; vertical-align: top; padding: 4px 6px; }
+  .repx-sign-strip .sign-label { font-weight: 700; background: #eef0f3; padding: 3px; border-bottom: 1px solid #ccc; margin: -4px -6px 4px; font-size: 0.9em; }
+  .repx-sign-strip .sign-space { min-height: 54px; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+
+  /* ── أنماط باقي السندات والتقارير ── */
+  .totals-strip { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 0.7em; padding: 0.5em 0.85em; border: 2px solid var(--accent); font-size: 1.12em; }
+  .totals-strip span { direction: ltr; }
+  table.signatures { width: 100%; border-collapse: collapse; margin-top: 1.2em; page-break-inside: avoid; }
+  table.signatures td { border: 1px solid #333; padding: 1.1em 0.5em 0.5em; text-align: center; width: 33%; color: #333; font-weight: 700; }
   .totals { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; }
   .totals-side { flex: 1; }
   .totals-table { border-collapse: collapse; min-width: 260px; }
-  .totals-table th { text-align: right; padding: 3px 8px; color: #333; font-weight: 500; }
-  .totals-table td { padding: 3px 8px; border-bottom: 1px solid #eee; }
-  .totals-table .grand th, .totals-table .grand td { font-size: 1.17em; font-weight: 700; border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent); }
-  table.pay { border-collapse: collapse; margin-top: 0.7em; }
-  table.pay th, table.pay td { border: 1px solid #ddd; padding: 3px 8px; }
-  .words { background: #f6f6f8; border-inline-start: 3px solid var(--accent); padding: 0.5em 0.7em; margin: 0 0 0.7em; }
-  .panel { border: 1px solid #ddd; border-radius: 6px; padding: 0.85em 1em; margin-bottom: 1em; }
-  .panel .kv { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px dashed #e5e5e5; }
+  .totals-table th { text-align: right; padding: 3px 8px; color: #222; font-weight: 600; }
+  .totals-table td { padding: 3px 8px; border-bottom: 1px solid #ddd; }
+  .totals-table .grand th, .totals-table .grand td { font-size: 1.12em; font-weight: 800; border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent); }
+  table.pay { border-collapse: collapse; width: 100%; font-size: 0.88em; }
+  table.pay th, table.pay td { border: 1px solid #555; padding: 2px 6px; }
+  .panel { border: 1px solid #333; padding: 0.8em 1em; margin-bottom: 0.9em; }
+  .panel .kv { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px dashed #ccc; }
   .panel .kv:last-child { border-bottom: 0; }
-  .panel .kv span { color: #666; min-width: 150px; }
-  .qr { margin-top: 0.85em; display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
-  .qr svg { width: 110px; height: 110px; }
-  .qr span, .qr-empty { font-size: 0.9em; color: #666; }
-  .qr-empty { display: block; margin-top: 0.85em; }
+  .panel .kv span { color: #555; min-width: 150px; }
+  .qr { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; }
+  .qr svg { width: 118px; height: 118px; }
+  .qr span, .qr-empty { font-size: 0.82em; color: #333; font-weight: 600; max-width: 135px; }
+  .qr-empty { display: block; margin-top: 0.5em; }
   .warn { color: #a4400a; }
   .empty { color: #666; padding: 1em; border: 1px dashed #ccc; text-align: center; }
-  .signs { display: flex; gap: 24px; margin-top: 2em; }
-  .signs div { flex: 1; text-align: center; color: #555; }
-  .signs i { display: block; border-top: 1px solid #999; margin-top: 2.5em; }
+  .signs { display: flex; gap: 24px; margin-top: 1.8em; }
+  .signs div { flex: 1; text-align: center; color: #333; font-weight: 700; }
+  .signs i { display: block; border-top: 1px solid #555; margin-top: 2.2em; }
   .toolbar { max-width: 210mm; margin: 0 auto 10px; display: flex; gap: 8px; }
   .toolbar button { font: inherit; padding: 6px 14px; border: 1px solid #111; background: #111; color: #fff; border-radius: 6px; cursor: pointer; }
   .toolbar-note { align-self: center; color: #555; }
@@ -1159,27 +1625,44 @@ export class PrintTemplatesService {
   table.report tbody tr:nth-child(even) { background: #fafafa; }
   table.report td.empty { text-align: center; color: #666; padding: 1.5em; border: 1px solid #ccc; }
   .rep-qr svg { width: 46px; height: 46px; }
-  /* ─────────────────────────────────────────── 🎨 القوالب الثلاثة
-     القالب لا يحذف شيئاً ولا يضيف حقلاً: يغيّر الحدود والتعبئة والعناوين فقط. الألوان
-     تأتي من «--accent»، وأي غيابٍ له يسقط إلى أسود الورقة (انظر «printStyle»). */
-  body.tpl-modern .sheet { border-top: 5px solid var(--accent); padding-top: 12mm; }
-  body.tpl-modern .doc-head { border-bottom: 1px solid #e5e7eb; }
+
+  /* ── إيصال الكاشير الحراري 80mm وفق rptInv.repx ── */
+  .pos-receipt { width: 100%; font-size: 11px; color: #000; }
+  .pos-head { text-align: center; border-bottom: 1.5px dashed #000; padding-bottom: 6px; margin-bottom: 6px; }
+  .pos-head h1 { font-size: 1.25em; margin: 2px 0; font-weight: 800; }
+  .pos-logo .brand-logo { max-height: 54px; max-width: 120px; margin: 0 auto 4px; }
+  .pos-sub { font-size: 0.9em; color: #111; line-height: 1.35; }
+  .pos-title-box { border: 1.5px solid #000; background: #eaecef; text-align: center; padding: 4px 6px; margin-bottom: 5px; }
+  .pos-title-box .doc-title { font-size: 1.15em; font-weight: 800; }
+  .pos-title-en { font-size: 0.82em; color: #222; }
+  .pos-meta-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 0.9em; }
+  .pos-meta-table th, .pos-meta-table td { border: 1px solid #000; padding: 2px 4px; }
+  .pos-meta-table th { background: #f0f1f4; font-weight: 700; text-align: right; white-space: nowrap; }
+  .pos-customer-box { border: 1px solid #000; padding: 4px 6px; margin-bottom: 5px; font-size: 0.9em; line-height: 1.4; }
+  .pos-lines th, .pos-lines td { border: 1px solid #000 !important; padding: 3px 4px !important; font-size: 0.92em; }
+  .pos-lines thead th { background: #e5e7eb !important; }
+  .pos-totals-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 0.94em; }
+  .pos-totals-table th, .pos-totals-table td { border: 1px solid #000; padding: 3px 5px; }
+  .pos-totals-table th { text-align: right; background: #f5f5f5; }
+  .pos-totals-table tr.grand th, .pos-totals-table tr.grand td { background: #dfe3e8; font-weight: 800; font-size: 1.05em; }
+  .pos-words { border: 1px dashed #000; padding: 3px 5px; margin: 0 0 5px; font-size: 0.88em; text-align: center; font-weight: 700; }
+  .pos-note, .pos-policy { border: 1px solid #000; padding: 4px 5px; margin-bottom: 5px; font-size: 0.86em; line-height: 1.35; }
+  .pos-qr-wrap { text-align: center; margin-top: 6px; padding-top: 4px; border-top: 1px dashed #000; }
+  .pos-qr-wrap .qr svg { width: 150px; height: 150px; }
+
+  /* ── القوالب الثلاثة (classic / modern / minimal) ── */
+  body.tpl-modern .sheet { border-top: 5px solid var(--accent); }
   body.tpl-modern h1, body.tpl-modern .doc-title { color: var(--accent); }
-  body.tpl-modern table.lines th, body.tpl-modern table.lines td { border: 0; border-bottom: 1px solid #e5e7eb; }
   body.tpl-modern table.lines thead th { background: var(--accent); color: #fff; }
-  body.tpl-modern table.report tbody tr:nth-child(even) { background: #fbfbfd; }
-  body.tpl-modern .party { border-color: #eef0f4; background: #fafbfe; }
-  body.tpl-modern .totals-strip { border: 0; border-top: 2px solid var(--accent); background: #fafbfe; }
-  body.tpl-modern .doc-foot { border-top-color: #e5e7eb; }
+  body.tpl-modern table.lines thead th small { color: #e5e7eb; }
   body.tpl-minimal .sheet { box-shadow: none; border: 1px solid #eee; }
-  body.tpl-minimal .doc-head { border-bottom: 1px solid #111; }
-  body.tpl-minimal table.lines th, body.tpl-minimal table.lines td { border: 0; border-bottom: 1px solid #e5e5e5; }
-  body.tpl-minimal table.lines thead th, body.tpl-minimal table.lines tfoot th { background: #fff; font-weight: 700; }
-  body.tpl-minimal .party { border: 0; border-bottom: 1px solid #e5e5e5; border-radius: 0; padding-inline: 0; }
-  body.tpl-minimal .totals-strip { border: 0; border-top: 2px solid #111; border-bottom: 1px solid #111; padding-inline: 0; }
-  body.tpl-minimal .words, body.tpl-minimal .panel { background: #fff; }
-  body.tpl-minimal .panel { border: 0; border-bottom: 1px solid #eee; border-radius: 0; padding-inline: 0; }
-  body.tpl-minimal table.signatures td { border: 0; border-top: 1px solid #ccc; }
+  body.tpl-minimal table.lines thead th, body.tpl-minimal table.lines tfoot th { background: #fff; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .sheet { box-shadow: none; margin: 0; max-width: none; }
+    .toolbar { display: none; }
+  }
 </style>
 </head>
 <body class="tpl-${escapeHtml(style?.template ?? 'classic')}" style="${[
@@ -1197,6 +1680,19 @@ export class PrintTemplatesService {
 // ---------------------------------------------------------------------- helpers
 
 type Tx = Parameters<Parameters<typeof withTenantTx>[2]>[0];
+
+function applyQueryOverrides(base: PrintSettings, query: DocumentPrintQuery): PrintSettings {
+  const next = { ...base };
+  if (query.paper === 'small' || query.paper === '80mm') next.printType = 2;
+  else if (query.paper === 'a4') next.printType = 1;
+  if (query.copies !== undefined) {
+    const parsed = Number(query.copies);
+    if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 50) {
+      next.printNo = parsed;
+    }
+  }
+  return next;
+}
 
 function rows(result: unknown): Array<Record<string, unknown>> {
   return Array.isArray(result)
@@ -1221,22 +1717,52 @@ function qty(value: string): string {
 function dateText(value: unknown): string {
   if (!value) return '—';
   const date = value instanceof Date ? value : new Date(String(value));
-  return Number.isNaN(date.getTime()) ? String(value) : date.toISOString().slice(0, 10);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(date);
+}
+function timeText(value: unknown): string {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Riyadh',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
 }
 function dateTimeText(value: unknown): string {
   if (!value) return '—';
   const date = value instanceof Date ? value : new Date(String(value));
-  return Number.isNaN(date.getTime()) ? String(value) : date.toISOString().slice(0, 16).replace('T', ' ');
+  if (Number.isNaN(date.getTime())) return String(value);
+  return `${dateText(date)} ${timeText(date)}`.trim();
 }
 function shortId(value: string): string {
   return value ? value.slice(0, 8).toUpperCase() : '—';
 }
-/**
- * العنوان الوطني — the same `address` jsonb is written by the company card and the party
- * card, with short keys (`building`, `street`, `postal`…). Older rows carried the long
- * ZATCA spellings, so both are read: a printed address that silently disappears because
- * a key was renamed is exactly the defect this function exists to prevent.
- */
+
+function extractNationalAddressParts(raw: Record<string, unknown> | null | undefined) {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  const pick = (...keys: string[]) => {
+    for (const k of keys) {
+      const v = r[k];
+      if (typeof v === 'string' && v.trim() !== '') return v.trim();
+    }
+    return '';
+  };
+  return {
+    street: pick('street', 'streetName', 'addStreet', 'additionalStreet'),
+    district: pick('district', 'neighborhood'),
+    city: pick('city'),
+    region: pick('region', 'province', 'state'),
+    building: pick('building', 'buildingNumber', 'buildingNo'),
+    additional: pick('additional', 'additionalNumber', 'plot'),
+    postal: pick('postal', 'postalCode', 'zip'),
+    unit: pick('unit', 'crn'),
+    country: pick('country', 'countryCode'),
+  };
+}
+
 function addressText(address: unknown): string {
   if (!address || typeof address !== 'object') return '';
   const record = address as Record<string, unknown>;
@@ -1248,6 +1774,7 @@ function addressText(address: unknown): string {
     'additionalStreet',
     'district',
     'city',
+    'region',
     'postal',
     'postalCode',
     'additional',
@@ -1262,27 +1789,21 @@ function addressText(address: unknown): string {
     .join('، ');
 }
 
-/** The labelled form used under the establishment's name — «مبنى ٧٢٣٤، شارع …». */
 function nationalAddressText(address: Record<string, string> | null | undefined): string {
   if (!address) return '';
-  const value = (key: string): string => (typeof address[key] === 'string' ? address[key]!.trim() : '');
+  const a = extractNationalAddressParts(address);
   const parts: string[] = [];
-  const push = (label: string, key: string) => {
-    const item = value(key);
-    if (item) parts.push(label ? `${label} ${item}` : item);
-  };
-  push('مبنى', 'building');
-  push('شارع', 'street');
-  push('', 'addStreet');
-  push('حي', 'district');
-  push('', 'city');
-  push('الرمز البريدي', 'postal');
-  push('الرقم الإضافي', 'additional');
-  push('الوحدة', 'unit');
-  push('الرقم الفرعي', 'plot');
+  if (a.building) parts.push(`مبنى ${a.building}`);
+  if (a.street) parts.push(`شارع ${a.street}`);
+  if (a.district) parts.push(`حي ${a.district}`);
+  if (a.city) parts.push(a.city);
+  if (a.region) parts.push(a.region);
+  if (a.postal) parts.push(`الرمز البريدي ${a.postal}`);
+  if (a.additional) parts.push(`الرقم الإضافي ${a.additional}`);
+  if (a.unit) parts.push(`الوحدة ${a.unit}`);
   return parts.join('، ');
 }
-/** Numbers get thousands separators; text is printed as it came out of the query. */
+
 function cellText(value: string, numeric: boolean): string {
   if (!value) return '—';
   return numeric && /^-?\d+(\.\d+)?$/.test(value) ? money(value) : value;
@@ -1295,7 +1816,6 @@ export function escapeHtml(value: string): string {
   );
 }
 
-/** What the caption under the QR says. A prepared invoice carries a valid phase-1 code. */
 const ZATCA_STATUS_LABELS: Record<string, string> = {
   prepared: 'رمز الفوترة الإلكترونية (المرحلة الأولى)',
   signed: 'رمز موقّع — بانتظار الإرسال للهيئة',
@@ -1306,15 +1826,10 @@ const ZATCA_STATUS_LABELS: Record<string, string> = {
 
 const SALES_KIND_TITLES: Record<string, string> = {
   sale: 'فاتورة مبيعات',
+  sale_return: 'مردود مبيعات',
   return: 'مردود مبيعات',
   quotation: 'عرض سعر',
   contracting: 'فاتورة مقاولات',
-};
-const SALES_KIND_TITLES_EN: Record<string, string> = {
-  sale: 'Sales Invoice',
-  return: 'Sales Return',
-  quotation: 'Quotation',
-  contracting: 'Contracting Invoice',
 };
 const STATUS_LABELS: Record<string, string> = {
   draft: 'مسودة',
@@ -1328,6 +1843,7 @@ const STATUS_LABELS: Record<string, string> = {
 const PAYMENT_METHODS: Record<string, string> = {
   cash: 'نقداً',
   card: 'شبكة',
+  bank: 'تحويل بنكي',
   bank_transfer: 'تحويل بنكي',
   transfer: 'تحويل بنكي',
   cheque: 'شيك',

@@ -52,20 +52,13 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
   const frame = useRef<HTMLIFrameElement>(null);
   const [html, setHtml] = useState<string>();
   const [error, setError] = useState<string>();
-  /**
-   * `?auto=1` — «🖨️ طباعة» تفتح الحوار فور جهوز الورقة، و«👁️ معاينة» تعرضها فقط.
-   * والزرّان في النافذة المكتبية (`FrmNewEntry.xaml` L454–455) يفعلان هذا الفرق بعينه،
-   * والورقة واحدة في الحالتين.
-   */
-  const auto = useSearchParams().get('auto') === '1';
+  const searchParams = useSearchParams();
+  const initialPaper = searchParams.get('paper') === 'small' ? 'small' : 'a4';
+  const [paper, setPaper] = useState<'a4' | 'small'>(initialPaper);
+  const auto = searchParams.get('auto') === '1';
   const printed = useRef(false);
+  const supportsSmallPaper = doc === 'sales-invoice' || doc === 'purchase-invoice' || doc === 'shift';
 
-  /**
-   * الورقة تُعرض داخل `iframe` معزول (sandbox) فلا تنفّذ سكربتات. القالب يأتي من
-   * الخادم ومعمولٌ ليُفتح منفرداً أيضاً، وفيه زرّ «طباعة» بمعالجٍ سطري — يعمل
-   * منفرداً، ويُحجب هنا فيلوّث console بخطأ في كل فتح. نزيل شريط أدوات الورقة
-   * عند التضمين: الشاشة نفسها تحمل «طباعة» و«حفظ نسخة».
-   */
   function embeddable(source: string): string {
     return source.replace(/<div class="toolbar">[\s\S]*?<\/div>\s*(?=<div class="sheet)/, '');
   }
@@ -75,7 +68,8 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
     let alive = true;
     setHtml(undefined);
     setError(undefined);
-    apiFetch<{ html: string }>(`/reports/print/${spec.path}/${id}`)
+    const qs = supportsSmallPaper ? `?paper=${paper}` : '';
+    apiFetch<{ html: string }>(`/reports/print/${spec.path}/${id}${qs}`)
       .then((payload) => {
         if (alive) setHtml(embeddable(payload.html));
       })
@@ -85,7 +79,7 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
     return () => {
       alive = false;
     };
-  }, [spec, id]);
+  }, [spec, id, paper, supportsSmallPaper]);
 
   useEffect(() => {
     if (!auto || !html || printed.current) return;
@@ -108,6 +102,24 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
       crumbs={['التقارير', 'الطباعة']}
       actions={
         <>
+          {supportsSmallPaper ? (
+            <div className="inline-flex rounded-lg border border-line bg-surface-2 p-0.5">
+              <button
+                type="button"
+                className={`rounded-md px-2.5 py-1 text-xs font-bold ${paper === 'a4' ? 'bg-surface text-ink shadow-xs' : 'text-muted'}`}
+                onClick={() => setPaper('a4')}
+              >
+                ورقة A4
+              </button>
+              <button
+                type="button"
+                className={`rounded-md px-2.5 py-1 text-xs font-bold ${paper === 'small' ? 'bg-surface text-ink shadow-xs' : 'text-muted'}`}
+                onClick={() => setPaper('small')}
+              >
+                إيصال كاشير (80mm)
+              </button>
+            </div>
+          ) : null}
           <button
             className="btn primary"
             type="button"

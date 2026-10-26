@@ -52,8 +52,13 @@ export class PortalController {
     return { data: await this.portal.invoice(getTenantContext().tenantId, getAuthContext().userId, id) };
   }
 
-  @Get('portal/invoices/:id/print') async invoicePrint(@Param('id') id: string) {
-    return { html: await this.portal.invoicePrint(getTenantContext().tenantId, getAuthContext().userId, id) };
+  @Get('portal/invoices/:id/print') async invoicePrint(
+    @Param('id') id: string,
+    @Query('paper') paper?: string,
+  ) {
+    return {
+      html: await this.portal.invoicePrint(getTenantContext().tenantId, getAuthContext().userId, id, paper),
+    };
   }
 
   @Get('portal/invoices/:id/payment-link') async paymentLink(@Param('id') id: string) {
