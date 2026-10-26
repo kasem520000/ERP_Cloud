@@ -33,6 +33,7 @@ import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { readTenantMoneyPolicy } from '../../common/tenant-money-policy.js';
 import { getRequestContext } from '../../request-context/request-context.js';
 import { SalesService } from '../sales/sales.service.js';
+import { UsageService } from '../usage/usage.service.js';
 import { SequencesService } from '../platform-services/index.js';
 
 export type TableCategoryInput = { branchId: string; name: string; sortOrder?: number; printerName?: string };
@@ -146,6 +147,7 @@ export class PosService {
     @Inject(DATABASE_HANDLE) private readonly database: DatabaseHandle,
     private readonly sales: SalesService,
     private readonly sequences: SequencesService,
+    private readonly usage: UsageService,
   ) {}
 
   /**
@@ -170,6 +172,7 @@ export class PosService {
     );
     const off = rows.some((row) => row.value === false || row.value === 'false');
     if (off) throw new DomainError('NOT_FOUND', 'POS pack is disabled for this tenant', 404);
+    await this.usage.assertModuleAllowed(tenantId, 'feature.pos');
   }
 
   /**

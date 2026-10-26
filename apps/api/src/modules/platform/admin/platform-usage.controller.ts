@@ -1,25 +1,23 @@
-import { Controller, Get, Header, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProduces, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { uuidSchema, usagePeriodSchema, type PlatformUsageGridResponse, type UsageSnapshot } from '@erp/contracts';
+import {
+  reviewUsageRequestSchema,
+  usagePeriodSchema,
+  usageRequestStatusSchema,
+  uuidSchema,
+  type PlatformUsageGridResponse,
+  type ReviewUsageRequestInput,
+  type UsageRequest,
+  type UsageRequestStatus,
+  type UsageSnapshot,
+} from '@erp/contracts';
 
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe.js';
+import { getAuthContext } from '../../../request-context/request-context.js';
+import { UsageService } from '../../usage/index.js';
 import { RequiresPlatformRole } from '../decorators/requires-platform-role.decorator.js';
 import { PlatformAdminGuard } from '../guards/platform-admin.guard.js';
-import { UsageService } from '../../usage/index.js';
 
-/**
- * P-C5 — «الاستخدام والحصص» على مستوى المنصة.
- *
- * مسارَان لا أكثر، لأن كل ما تحسبه اللوحة موجودٌ في الشبكة نفسها:
- *
- *   - `GET /platform/usage?tenantId=&period=` — بلا `tenantId` تُعيد الشبكة كلها (كل عميل ×
- *     ثمانية مقاييس)، وبـ`tenantId` تُعيد لقطة عميلٍ واحد (تبويب «الاستخدام» في بطاقته).
- *   - `GET /platform/usage/export.csv` — البيان نفسه ملفًّا للمحاسبة.
- *
- * **الرمزان مختلفان عمداً**: قراءة الشبكة `console.tenants.view` (الدعم يرى عملاءه بلا
- * صلاحية مال)، وتصدير البيان `console.billing.manage` (الملف الذي تُبنى عليه مطالبةٌ مالية
- * ليس تقريرًا تشغيليًا). وهذا القرار في تقرير الجزء، لا في تعليقٍ لا يُقرأ.
- */
 @ApiTags('platform-usage')
 @ApiBearerAuth()
 @Controller('platform/usage')
@@ -41,6 +39,27 @@ export class PlatformUsageController {
     return { data: await this.usage.grid(period) };
   }
 
+  @Get('requests')
+  @RequiresPlatformRole('console.tenants.view')
+  @ApiQuery({ name: 'status', required: false, description: 'pending | approved | rejected' })
+  @ApiOperation({ summary: 'طلبات المنشآت لاعتماد رفع الحصص وتفعيل المزايا وترقية الباقات' })
+  async listRequests(
+    @Query('status', new ZodValidationPipe(usageRequestStatusSchema.optional())) status?: UsageRequestStatus,
+  ): Promise<{ data: UsageRequest[] }> {
+    return { data: await this.usage.listRequestsForPlatform(status) };
+  }
+
+  @Post('requests/:id/review')
+  @RequiresPlatformRole('console.billing.manage')
+  @ApiOperation({ summary: 'اعتماد أو رفض طلب حصة/ترقية منشأة مع تطبيق الحصة المعتمدة تلقائياً' })
+  async reviewRequest(
+    @Param('id', new ZodValidationPipe(uuidSchema)) id: string,
+    @Body(new ZodValidationPipe(reviewUsageRequestSchema)) body: ReviewUsageRequestInput,
+  ): Promise<{ data: UsageRequest }> {
+    const auth = getAuthContext();
+    return { data: await this.usage.reviewRequest(id, auth.userId, body) };
+  }
+
   @Get('export.csv')
   @RequiresPlatformRole('console.billing.manage')
   @Header('Content-Type', 'text/csv; charset=utf-8')
@@ -52,12 +71,10 @@ export class PlatformUsageController {
     @Query('period', new ZodValidationPipe(usagePeriodSchema.optional())) period?: string,
   ): Promise<string> {
     const rows = await this.usage.exportRows(period);
-    // BOM في الأول: بدونه يقرأ Excel أسماء العملاء العربية رموزاً.
     return `\uFEFF${rows.map((row) => row.map(csvCell).join(',')).join('\r\n')}\r\n`;
   }
 }
 
-/** خلية CSV: تُحيط بالفاصلة والتنصيص والسطر الجديد، وتُضاعف التنصيص (RFC 4180). */
 function csvCell(value: string): string {
   return /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
 }

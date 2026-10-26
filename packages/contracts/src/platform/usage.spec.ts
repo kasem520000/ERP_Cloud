@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  createUsageRequestSchema,
   errorCodes,
   errorStatus,
   platformSettingDefinitions,
+  reviewUsageRequestSchema,
   usageMetricKeys,
   usageMetricRegistry,
   usagePercentUsed,
@@ -73,5 +75,39 @@ describe('usage metric registry (P-C5)', () => {
   it('رمز التجاوز مُعلن وله حالة HTTP', () => {
     expect(errorCodes.USAGE_LIMIT_REACHED).toBe('USAGE_LIMIT_REACHED');
     expect(errorStatus.USAGE_LIMIT_REACHED).toBe(409);
+  });
+
+  it('عقد طلب رفع الحصة وترقية الباقة يتحقّق من الحقول الإلزامية لكل نوع', () => {
+    expect(
+      createUsageRequestSchema.safeParse({
+        requestType: 'quota_increase',
+        metricKey: 'branches',
+        requestedLimit: 5,
+        reason: 'افتتاح فروع جديدة في الرياض وجدة',
+      }).success,
+    ).toBe(true);
+
+    expect(
+      createUsageRequestSchema.safeParse({
+        requestType: 'quota_increase',
+        reason: 'ناقص البند والسقف',
+      }).success,
+    ).toBe(false);
+
+    expect(
+      createUsageRequestSchema.safeParse({
+        requestType: 'plan_upgrade',
+        requestedPlanId: '00000000-0000-4000-8000-000000000001',
+        reason: 'الانتقال لباقة الأعمال المتكاملة',
+      }).success,
+    ).toBe(true);
+
+    expect(
+      reviewUsageRequestSchema.safeParse({
+        approve: true,
+        approvedLimit: 10,
+        decisionNotes: 'تم الاعتماد وتحديث الحصة',
+      }).success,
+    ).toBe(true);
   });
 });

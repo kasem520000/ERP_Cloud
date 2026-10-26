@@ -8,6 +8,7 @@ import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { isUniqueViolation } from '../organization/shared/org-support.js';
 import { SequencesService } from '../platform-services/index.js';
 import { SalesService } from '../sales/sales.service.js';
+import { UsageService } from '../usage/usage.service.js';
 import { AccountingService } from '../accounting/accounting.service.js';
 import { PostingProfilesService } from '../organization/posting-profiles/posting-profiles.service.js';
 
@@ -25,8 +26,13 @@ export class ProjectsService {
     private readonly sales: SalesService,
     private readonly accounting: AccountingService,
     private readonly profiles: PostingProfilesService,
+    private readonly usage: UsageService,
   ) {}
-  async ensureEnabled(tenantId: string) { const [flag] = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(tenantSettings).where(and(eq(tenantSettings.tenantId, tenantId), eq(tenantSettings.key, 'pack.projects'))).limit(1)); if (flag && flag.value !== true && flag.value !== 'true') throw new DomainError('NOT_FOUND', 'Projects pack is disabled for this tenant', 404); }
+  async ensureEnabled(tenantId: string) {
+    const [flag] = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(tenantSettings).where(and(eq(tenantSettings.tenantId, tenantId), eq(tenantSettings.key, 'pack.projects'))).limit(1));
+    if (flag && flag.value !== true && flag.value !== 'true') throw new DomainError('NOT_FOUND', 'Projects pack is disabled for this tenant', 404);
+    await this.usage.assertModuleAllowed(tenantId, 'feature.projects');
+  }
   async list(tenantId: string) { await this.ensureEnabled(tenantId); return { data: await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(projects).where(and(eq(projects.tenantId, tenantId), isNull(projects.deletedAt))).orderBy(desc(projects.createdAt))) }; }
   /**
    * R11 — الحارس الذي كان غائباً: `projects.code` · `name` · `party_id` كلها NOT NULL،

@@ -541,6 +541,9 @@ export class SalesService {
   }
 
   async createInTx(tx: DrizzleTx, tenantId: string, input: SalesInvoiceInput): Promise<string> {
+    if (input.kind !== 'sale_return' && input.kind !== ('return' as string)) {
+      await this.usage.assertWithinLimit(tenantId, 'invoices_per_month');
+    }
     const givenWarehouseId = input.warehouseId?.trim() || '';
     let resolvedBranchId = input.branchId?.trim() || '';
     if (givenWarehouseId && !resolvedBranchId) {
@@ -731,8 +734,6 @@ export class SalesService {
   }
 
   async create(tenantId: string, input: SalesInvoiceInput) {
-    // P-C5: فواتير الشهر مقياسٌ محدود — والعدّ في القاعدة لا في الذاكرة.
-    await this.usage.assertWithinLimit(tenantId, 'invoices_per_month');
     await this.assertSaveAllowed(tenantId, input);
     if (input.autoPost) {
       return this.createAndPost(tenantId, input, {

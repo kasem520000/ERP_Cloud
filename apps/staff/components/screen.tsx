@@ -67,21 +67,36 @@ export function Loading({ rows = 4 }: { rows?: number }) {
 }
 
 export function ErrorBox({ message, onRetry }: { message?: string; onRetry?: () => void }) {
+  const text = message ?? 'خطأ غير معروف';
+  const isQuotaError =
+    text.includes('USAGE_LIMIT_REACHED') ||
+    text.includes('قدّم طلباً لإدارة المنصة') ||
+    text.includes('اشتراكك وحصتك');
   return (
     <div className="rounded-xl border border-line bg-surface p-4 shadow-1 grid gap-3">
       <p className="m-0 flex items-center gap-2 rounded-xl border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink">
-        تعذر تحميل البيانات: {message ?? 'خطأ غير معروف'}
+        {isQuotaError ? text : `تعذر تحميل البيانات: ${text}`}
       </p>
-      {onRetry ? (
-        <button
-          className="h-10 px-4 rounded-[10px] bg-brand-600 text-on-accent text-[13.5px] font-bold hover:bg-brand-700 transition-colors duration-150"
-          type="button"
-          onClick={onRetry}
-          style={{ justifyContent: 'flex-start' }}
-        >
-          إعادة المحاولة
-        </button>
-      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        {isQuotaError ? (
+          <Link
+            href="/settings/usage?openRequest=1"
+            className="h-10 px-4 inline-flex items-center rounded-[10px] bg-brand-600 text-on-accent text-[13.5px] font-bold hover:bg-brand-700 transition-colors duration-150"
+          >
+            تقديم طلب لإدارة المنصة للاعتماد ←
+          </Link>
+        ) : null}
+        {onRetry ? (
+          <button
+            className="h-10 px-4 rounded-[10px] bg-brand-600 text-on-accent text-[13.5px] font-bold hover:bg-brand-700 transition-colors duration-150"
+            type="button"
+            onClick={onRetry}
+            style={{ justifyContent: 'flex-start' }}
+          >
+            إعادة المحاولة
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

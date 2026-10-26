@@ -40,6 +40,7 @@ import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
 import { AccountingService, defaultNormalBalance, type AccountType, type JournalLineInput } from '../accounting/accounting.service.js';
 import { TreasuryService } from '../treasury/treasury.service.js';
+import { UsageService } from '../usage/usage.service.js';
 import { FileAttachmentRegistry } from '../platform-services/files/file-attachments.js';
 
 import { cumulativeEntitlement, DEFAULT_EOSB_RATES, entitlementMonths, periodDelta, serviceYearsAt, type EosbRates } from './eosb-math.js';
@@ -305,7 +306,7 @@ function toEmployeeCard(entry: { row: Employee; departmentName: string | null; d
 
 @Injectable()
 export class HrmService implements OnModuleInit {
-  constructor(@Inject(DATABASE_HANDLE) private readonly database: DatabaseHandle, private readonly accounting: AccountingService, private readonly treasury: TreasuryService, private readonly attachments: FileAttachmentRegistry, private readonly customFields: CustomFieldsService) {}
+  constructor(@Inject(DATABASE_HANDLE) private readonly database: DatabaseHandle, private readonly accounting: AccountingService, private readonly treasury: TreasuryService, private readonly attachments: FileAttachmentRegistry, private readonly customFields: CustomFieldsService, private readonly usage: UsageService) {}
 
   onModuleInit(): void {
     this.attachments.register('employee', async (tx, tenantId, entityId) => {
@@ -314,7 +315,11 @@ export class HrmService implements OnModuleInit {
     });
   }
 
-  async ensureEnabled(tenantId: string) { const [flag] = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(tenantSettings).where(and(eq(tenantSettings.tenantId, tenantId), eq(tenantSettings.key, 'pack.hrm'))).limit(1)); if (flag && flag.value !== true && flag.value !== 'true') throw new DomainError('NOT_FOUND', 'HRM pack is disabled for this tenant', 404); }
+  async ensureEnabled(tenantId: string) {
+    const [flag] = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(tenantSettings).where(and(eq(tenantSettings.tenantId, tenantId), eq(tenantSettings.key, 'pack.hrm'))).limit(1));
+    if (flag && flag.value !== true && flag.value !== 'true') throw new DomainError('NOT_FOUND', 'HRM pack is disabled for this tenant', 404);
+    await this.usage.assertModuleAllowed(tenantId, 'feature.hrm');
+  }
   /**
    * 🏢 الإدارات والأقسام — `frmManagement.xaml` («الإدارات») and `frmDepartments.xaml`
    * («إدخال بيانات الإدارات والأقسام») print two grids: managements, and departments

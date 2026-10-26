@@ -1,0 +1,467 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<XtraReportsLayoutSerializer SerializerVersion="25.2.3.0" Ref="0" ControlType="DevExpress.XtraReports.UI.XtraReport, DevExpress.XtraReports.v25.2, Version=25.2.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" Name="rptInvA4" Margins="25, 23, 25, 25" PaperKind="A4" PageWidthF="826.77167" PageHeightF="1169.2914" Version="25.2">
+  <Parameters>
+    <Item1 Ref="2" Visible="false" Description="Enter My Parameter:" Name="My_Parameter" Type="#Ref-1" />
+    <Item2 Ref="4" Visible="false" Description="Enter msg:" Name="msg" />
+    <Item3 Ref="5" Visible="false" Description="Enter note:" Name="note" />
+  </Parameters>
+  <Bands>
+    <Item1 Ref="6" ControlType="DetailBand" Name="Area3" HeightF="22" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+      <Controls>
+        <Item1 Ref="7" ControlType="XRLine" Name="Line29" SizeF="760,2" LocationFloat="10,0" ForeColor="Gainsboro" Borders="None" />
+        <Item2 Ref="8" ControlType="XRLabel" Name="LineNumber_1" CanGrow="false" TextAlignment="MiddleCenter" SizeF="28,18" LocationFloat="742,2" Font="Arial, 8pt, style=Bold" ForeColor="255,120,120,120" Padding="1,1,0,0,100" Borders="None">
+          <ExpressionBindings>
+            <Item1 Ref="9" EventName="BeforePrint" PropertyName="Text" Expression="[LineNumber]" />
+          </ExpressionBindings>
+        </Item2>
+        <Item3 Ref="10" ControlType="XRLabel" Name="DataColumn11" CanGrow="false" TextAlignment="MiddleCenter" SizeF="90,18" LocationFloat="652,2" Font="Arial, 7pt" ForeColor="255,80,80,80" Padding="1,1,0,0,100" Borders="None">
+          <ExpressionBindings>
+            <Item1 Ref="11" EventName="BeforePrint" PropertyName="Text" Expression="[DataColumn1]" />
+          </ExpressionBindings>
+        </Item3>
+        <Item4 Ref="12" ControlType="XRLabel" Name="Currency11" TextAlignment="MiddleRight" SizeF="152,18" LocationFloat="500,2" Font="Arial, 8pt, style=Bold" ForeColor="255,30,30,30" Padding="3,3,0,0,100" Borders="None">
+          <ExpressionBindings>
+            <Item1 Ref="13" EventName="BeforePrint" PropertyName="Text" Expression="[Currency1]" />
+          </ExpressionBindings>
+        </Item4>
+        <Item5 Ref="14" ControlType="XRLabel" Name="Currency21" CanGrow="false" TextAlignment="MiddleCenter" SizeF="42,18" LocationFloat="458,2" Font="Arial, 7pt" ForeColor="255,80,80,80" Padding="1,1,0,0,100" Borders="None">
+          <ExpressionBindings>
+            <Item1 Ref="15" EventName="BeforePrint" PropertyName="Text" Expression="[Currency2]" />
+          </ExpressionBindings>
+        </Item5>
+        <Item6 Ref="16" ControlType="XRLabel" Name="Value11" CanGrow="false" TextAlignment="MiddleCenter" SizeF="52,18" LocationFloat="406,2" Font="Arial, 9pt, style=Bold" ForeColor="255,30,30,30" Padding="1,1,0,0,100" Borders="None">
+          <ExpressionBindings>
+            <Item1 Ref="17" EventName="BeforePrint" PropertyName="Text" Expression="[Value1]" />
+          </ExpressionBindings>
+        </Item6>
+        <Item7 Ref="18" ControlType="XRLabel" Name="Price1" CanGrow="false" TextAlignment="MiddleCenter" SizeF="70,18" LocationFloat="336,2" Font="Arial, 9pt" ForeColor="255,30,30,30" Padding="1,1,0,0,100" Borders="None">
+          <ExpressionBindings>
+            <Item1 Ref="19" EventName="BeforePrint" PropertyName="Text" Expression="[Price]" />
+          </ExpressionBindings>
+        </Item7>
+        <Item8 Ref="20" ControlType="XRLabel" Name="Value21" CanGrow="false" TextAlignment="MiddleCenter" SizeF="68,18" LocationFloat="268,2" Font="Arial, 9pt" ForeColor="255,30,30,30" Padding="1,1,0,0,100" Borders="None">
+          <ExpressionBindings>
+            <Item1 Ref="21" EventName="BeforePrint" PropertyName="Text" Expression="[Value2]" />
+          </ExpressionBindings>
+        </Item8>
+        <Item9 Ref="22" ControlType="XRLabel" Name="discount1" CanGrow="false" TextAlignment="MiddleCenter" SizeF="36,18" LocationFloat="232,2" Font="Arial, 8pt" ForeColor="Black" Padding="1,1,0,0,100" Borders="None">
+          <ExpressionBindings>
+            <Item1 Ref="23" EventName="BeforePrint" PropertyName="Text" Expression="[discount]" />
+          </ExpressionBindings>
+          <StylePriority Ref="24" UseForeColor="false" />
+        </Item9>
+        <Item10 Ref="25" ControlType="XRLabel" Name="tot11" CanGrow="false" TextAlignment="MiddleCenter" SizeF="62,18" LocationFloat="170,2" Font="Arial, 9pt" ForeColor="255,30,30,30" Padding="1,1,0,0,100" Borders="None">
+          <ExpressionBindings>
+            <Item1 Ref="26" EventName="BeforePrint" PropertyName="Text" Expression="[tot1]" />
+          </ExpressionBindings>
+        </Item10>
+        <Item11 Ref="27" ControlType="XRLabel" Name="taxperc1" CanGrow="false" TextAlignment="MiddleCenter" SizeF="34,18" LocationFloat="136,2" Font="Arial, 8pt" ForeColor="Black" Padding="1,1,0,0,100" Borders="None">
+          <ExpressionBindings>
+            <Item1 Ref="28" EventName="BeforePrint" PropertyName="Text" Expression="[taxperc]" />
+          </ExpressionBindings>
+          <StylePriority Ref="29" UseForeColor="false" />
+        </Item11>
+        <Item12 Ref="30" ControlType="XRLabel" Name="taxval1" CanGrow="false" TextAlignment="MiddleCenter" SizeF="76,18" LocationFloat="60,2" Font="Arial, 8pt" ForeColor="Black" Padding="1,1,0,0,100" Borders="None">
+          <ExpressionBindings>
+            <Item1 Ref="31" EventName="BeforePrint" PropertyName="Text" Expression="[taxval]" />
+          </ExpressionBindings>
+          <StylePriority Ref="32" UseForeColor="false" />
+        </Item12>
+        <Item13 Ref="33" ControlType="XRLabel" Name="tot21" CanGrow="false" TextAlignment="MiddleCenter" SizeF="50,18" LocationFloat="10,2" Font="Arial, 9pt, style=Bold" ForeColor="255,30,30,30" Padding="1,1,0,0,100" Borders="None">
+          <ExpressionBindings>
+            <Item1 Ref="34" EventName="BeforePrint" PropertyName="Text" Expression="[tot2]" />
+          </ExpressionBindings>
+        </Item13>
+      </Controls>
+    </Item1>
+    <Item2 Ref="35" ControlType="ReportHeaderBand" Name="Area1" HeightF="0" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+      <SubBands>
+        <Item1 Ref="36" ControlType="SubBand" Name="Section1" HeightF="155" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+          <Controls>
+            <Item1 Ref="37" ControlType="XRSubreport" Name="Subreport1" SizeF="756,152" LocationFloat="10,0">
+              <ReportSource Ref="38" ControlType="DevExpress.XtraReports.UI.XtraReport, DevExpress.XtraReports.v25.2, Version=25.2.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" Name="rptHeader" PageWidthF="850" PageHeightF="1100" Version="25.2">
+                <Bands>
+                  <Item1 Ref="39" ControlType="DetailBand" Name="DetailArea1" HeightF="0" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100" />
+                  <Item2 Ref="40" ControlType="ReportHeaderBand" Name="ReportHeaderArea1" HeightF="0" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+                    <SubBands>
+                      <Item1 Ref="41" ControlType="SubBand" Name="ReportHeaderSection1" HeightF="28" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+                        <Controls>
+                          <Item1 Ref="42" ControlType="XRLabel" Name="NameA1" TextAlignment="MiddleCenter" SizeF="276,24" LocationFloat="464,2" Font="Times New Roman, 14pt, style=Bold" ForeColor="255,30,30,30" Padding="2,2,0,0,100" Borders="None">
+                            <ExpressionBindings>
+                              <Item1 Ref="43" EventName="BeforePrint" PropertyName="Text" Expression="[NameA]" />
+                            </ExpressionBindings>
+                          </Item1>
+                          <Item2 Ref="44" ControlType="XRLabel" Name="NameE1" TextAlignment="MiddleCenter" SizeF="289,21" LocationFloat="8,5" Font="Arial, 13pt, style=Bold" ForeColor="255,30,30,30" Padding="2,2,0,0,100" Borders="None">
+                            <ExpressionBindings>
+                              <Item1 Ref="45" EventName="BeforePrint" PropertyName="Text" Expression="[NameE]" />
+                            </ExpressionBindings>
+                          </Item2>
+                        </Controls>
+                      </Item1>
+                      <Item2 Ref="46" ControlType="SubBand" Name="ReportHeaderSection2" HeightF="200" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+                        <Controls>
+                          <Item1 Ref="47" ControlType="XRPictureBox" Name="Logo1" Padding="0,0,0,0,100" Sizing="ZoomImage" SizeF="151,95" LocationFloat="307,5" BackColor="Transparent" Borders="None">
+                            <ExpressionBindings>
+                              <Item1 Ref="48" EventName="BeforePrint" PropertyName="ImageSource" Expression="[Logo]" />
+                            </ExpressionBindings>
+                          </Item1>
+                          <Item2 Ref="49" ControlType="XRLabel" Name="FieldA1" CanGrow="false" TextAlignment="MiddleCenter" SizeF="275,18" LocationFloat="463,1" Font="Microsoft Sans Serif, 10pt, style=Bold" ForeColor="255,50,50,50" Padding="2,2,0,0,100" Borders="None">
+                            <ExpressionBindings>
+                              <Item1 Ref="50" EventName="BeforePrint" PropertyName="Text" Expression="[FieldA]" />
+                            </ExpressionBindings>
+                          </Item2>
+                          <Item3 Ref="51" ControlType="XRLabel" Name="FieldE1" CanGrow="false" TextAlignment="MiddleCenter" SizeF="292,17" LocationFloat="11,0" Font="Microsoft Sans Serif, 10pt, style=Bold" ForeColor="255,50,50,50" Padding="2,2,0,0,100" Borders="None">
+                            <ExpressionBindings>
+                              <Item1 Ref="52" EventName="BeforePrint" PropertyName="Text" Expression="[FieldE]" />
+                            </ExpressionBindings>
+                          </Item3>
+                          <Item4 Ref="53" ControlType="XRLabel" Name="txtAddress" CanGrow="false" TextAlignment="MiddleCenter" SizeF="267,18" LocationFloat="471,22" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" Padding="2,2,0,0,100" Borders="None" />
+                          <Item5 Ref="54" ControlType="XRLabel" Name="Text27" CanGrow="false" Text="هاتف / جوال" TextAlignment="MiddleRight" SizeF="74,15" LocationFloat="667,43" Font="Tahoma, 8pt, style=Bold" ForeColor="255,80,80,80" Padding="2,2,0,0,100" Borders="None" />
+                          <Item6 Ref="55" ControlType="XRLabel" Name="txtTel" CanGrow="false" TextAlignment="MiddleCenter" SizeF="99,15" LocationFloat="566,43" Font="Tahoma, 8pt, style=Bold" ForeColor="255,30,30,30" Padding="2,2,0,0,100" Borders="None" />
+                          <Item7 Ref="56" ControlType="XRLabel" Name="txtMobile" CanGrow="false" TextAlignment="MiddleCenter" SizeF="99,15" LocationFloat="467,43" Font="Tahoma, 8pt, style=Bold" ForeColor="255,30,30,30" Padding="2,2,0,0,100" Borders="None" />
+                          <Item8 Ref="57" ControlType="XRLabel" Name="Text3" CanGrow="false" Text="سجل تجاري" TextAlignment="MiddleRight" SizeF="77,15" LocationFloat="663,61" Font="Tahoma, 8pt, style=Bold" ForeColor="255,80,80,80" Padding="2,2,0,0,100" Borders="None" />
+                          <Item9 Ref="58" ControlType="XRLabel" Name="cr" CanGrow="false" TextAlignment="MiddleRight" SizeF="158,15" LocationFloat="493,61" Font="Microsoft Sans Serif, 9pt, style=Bold" ForeColor="255,30,30,30" Padding="2,2,0,0,100" Borders="None" />
+                          <Item10 Ref="59" ControlType="XRLabel" Name="Text1" CanGrow="false" Text="الرقم الضريبي" TextAlignment="MiddleRight" SizeF="90,15" LocationFloat="653,79" Font="Tahoma, 8pt, style=Bold" ForeColor="255,80,80,80" Padding="2,2,0,0,100" Borders="None" />
+                          <Item11 Ref="60" ControlType="XRLabel" Name="tax_no" CanGrow="false" TextAlignment="MiddleRight" SizeF="158,15" LocationFloat="493,79" Font="Microsoft Sans Serif, 9pt, style=Bold" ForeColor="255,30,30,30" Padding="2,2,0,0,100" Borders="None" />
+                          <Item12 Ref="61" ControlType="XRLabel" Name="txtaddressen" CanGrow="false" TextAlignment="MiddleCenter" SizeF="292,18" LocationFloat="11,20" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" Padding="2,2,0,0,100" Borders="None" />
+                          <Item13 Ref="62" ControlType="XRLabel" Name="bank1" CanGrow="false" TextAlignment="MiddleLeft" SizeF="292,14" LocationFloat="11,40" Font="Tahoma, 7pt, style=Bold" ForeColor="255,50,50,50" Padding="2,2,0,0,100" Borders="None" />
+                          <Item14 Ref="63" ControlType="XRLabel" Name="acc1" CanGrow="false" TextAlignment="MiddleLeft" SizeF="292,14" LocationFloat="11,54" Font="Tahoma, 7pt, style=Bold" ForeColor="255,50,50,50" Padding="2,2,0,0,100" Borders="None" />
+                          <Item15 Ref="64" ControlType="XRLabel" Name="bank2" CanGrow="false" TextAlignment="MiddleLeft" SizeF="292,14" LocationFloat="11,68" Font="Tahoma, 7pt, style=Bold" ForeColor="255,50,50,50" Padding="2,2,0,0,100" Borders="None" />
+                          <Item16 Ref="65" ControlType="XRLabel" Name="acc2" CanGrow="false" TextAlignment="MiddleLeft" SizeF="292,14" LocationFloat="11,82" Font="Tahoma, 7pt, style=Bold" ForeColor="255,50,50,50" Padding="2,2,0,0,100" Borders="None" />
+                          <Item17 Ref="66" ControlType="XRLabel" Name="bank3" CanGrow="false" TextAlignment="MiddleLeft" SizeF="292,14" LocationFloat="11,96" Font="Tahoma, 7pt, style=Bold" ForeColor="255,50,50,50" Padding="2,2,0,0,100" Borders="None" />
+                          <Item18 Ref="67" ControlType="XRLabel" Name="acc3" CanGrow="false" TextAlignment="MiddleLeft" SizeF="292,14" LocationFloat="11,110" Font="Tahoma, 7pt, style=Bold" ForeColor="255,50,50,50" Padding="2,2,0,0,100" Borders="None" />
+                          <Item19 Ref="68" ControlType="XRLabel" Name="lblCompNatTitle" CanGrow="false" Text="العنوان الوطني  National Address" TextAlignment="MiddleCenter" SizeF="764,18" LocationFloat="0,128" Font="Arial, 9pt, style=Bold" ForeColor="White" BackColor="255,55,65,81" Padding="2,2,0,0,100" Borders="None" />
+                          <Item20 Ref="69" ControlType="XRLabel" Name="lblCS" CanGrow="false" Text="الشارع" TextAlignment="MiddleCenter" SizeF="55,18" LocationFloat="709,146" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+                          <Item21 Ref="70" ControlType="XRLabel" Name="compStreet" CanGrow="false" TextAlignment="MiddleCenter" SizeF="140,18" LocationFloat="569,146" Font="Arial, 9pt" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Top, Right, Bottom" />
+                          <Item22 Ref="71" ControlType="XRLabel" Name="lblCA" CanGrow="false" Text="الحي" TextAlignment="MiddleCenter" SizeF="48,18" LocationFloat="521,146" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+                          <Item23 Ref="72" ControlType="XRLabel" Name="compArea" CanGrow="false" TextAlignment="MiddleCenter" SizeF="110,18" LocationFloat="411,146" Font="Arial, 9pt" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Top, Right, Bottom" />
+                          <Item24 Ref="73" ControlType="XRLabel" Name="lblCC" CanGrow="false" Text="المدينة" TextAlignment="MiddleCenter" SizeF="55,18" LocationFloat="356,146" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+                          <Item25 Ref="74" ControlType="XRLabel" Name="compCity" CanGrow="false" TextAlignment="MiddleCenter" SizeF="110,18" LocationFloat="246,146" Font="Arial, 9pt" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Top, Right, Bottom" />
+                          <Item26 Ref="75" ControlType="XRLabel" Name="lblCG" CanGrow="false" Text="المنطقة" TextAlignment="MiddleCenter" SizeF="62,18" LocationFloat="184,146" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="1,1,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+                          <Item27 Ref="76" ControlType="XRLabel" Name="compGov" CanGrow="false" TextAlignment="MiddleCenter" SizeF="184,18" LocationFloat="0,146" Font="Arial, 9pt" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Top, Right, Bottom" />
+                          <Item28 Ref="77" ControlType="XRLabel" Name="lblCBN" CanGrow="false" Text="رقم المبنى" TextAlignment="MiddleCenter" SizeF="72,18" LocationFloat="692,164" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="1,1,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+                          <Item29 Ref="78" ControlType="XRLabel" Name="compBuildNo" CanGrow="false" TextAlignment="MiddleCenter" SizeF="123,18" LocationFloat="569,164" Font="Arial, 9pt, style=Bold" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Right, Bottom" />
+                          <Item30 Ref="79" ControlType="XRLabel" Name="lblCAN" CanGrow="false" Text="الرقم الإضافي" TextAlignment="MiddleCenter" SizeF="80,18" LocationFloat="489,164" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="1,1,0,0,100" BorderColor="255,200,210,220" Borders="Right, Bottom" />
+                          <Item31 Ref="80" ControlType="XRLabel" Name="compAddNo" CanGrow="false" TextAlignment="MiddleCenter" SizeF="108,18" LocationFloat="381,164" Font="Arial, 9pt, style=Bold" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Right, Bottom" />
+                          <Item32 Ref="81" ControlType="XRLabel" Name="lblCPC" CanGrow="false" Text="الرمز البريدي" TextAlignment="MiddleCenter" SizeF="85,18" LocationFloat="296,164" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="1,1,0,0,100" BorderColor="255,200,210,220" Borders="Right, Bottom" />
+                          <Item33 Ref="82" ControlType="XRLabel" Name="compPostCode" CanGrow="false" TextAlignment="MiddleCenter" SizeF="100,18" LocationFloat="196,164" Font="Arial, 9pt, style=Bold" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Right, Bottom" />
+                          <Item34 Ref="83" ControlType="XRLabel" Name="lblCCRN" CanGrow="false" Text="CRN" TextAlignment="MiddleCenter" SizeF="46,18" LocationFloat="150,164" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="1,1,0,0,100" BorderColor="255,200,210,220" Borders="Right, Bottom" />
+                          <Item35 Ref="84" ControlType="XRLabel" Name="compCRN" CanGrow="false" TextAlignment="MiddleCenter" SizeF="150,18" LocationFloat="0,164" Font="Arial, 9pt" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+                          <Item36 Ref="85" ControlType="XRLine" Name="Line1" LineWidth="3" SizeF="764,3" LocationFloat="0,188" ForeColor="255,50,50,50" Borders="None" />
+                        </Controls>
+                      </Item2>
+                    </SubBands>
+                  </Item2>
+                  <Item3 Ref="86" ControlType="ReportFooterBand" Name="ReportFooterArea1" HeightF="0" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+                    <SubBands>
+                      <Item1 Ref="87" ControlType="SubBand" Name="ReportFooterSection1" HeightF="0" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100" Visible="false" />
+                      <Item2 Ref="88" ControlType="SubBand" Name="ReportFooterSection2" HeightF="0" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100" />
+                    </SubBands>
+                  </Item3>
+                </Bands>
+              </ReportSource>
+            </Item1>
+          </Controls>
+        </Item1>
+        <Item2 Ref="89" ControlType="SubBand" Name="ReportHeaderSection1" HeightF="286.7917" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+          <Controls>
+            <Item1 Ref="90" ControlType="XRLine" Name="line1" LineWidth="3" SizeF="756,3.125" LocationFloat="11.041665,135.25002" ForeColor="255,40,40,40" Borders="None" />
+            <Item2 Ref="91" ControlType="XRLabel" Name="lblHeader" CanGrow="false" TextAlignment="MiddleCenter" SizeF="350,32" LocationFloat="203,0" Font="Arial, 14pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="2,2,0,0,100" BorderColor="255,40,40,40" Borders="All" BorderWidth="2">
+              <StylePriority Ref="92" UseForeColor="false" UseBackColor="false" />
+            </Item2>
+            <Item3 Ref="93" ControlType="XRSubreport" Name="Subreport4" SizeF="165,128" LocationFloat="601,0">
+              <ReportSource Ref="94" ControlType="DevExpress.XtraReports.UI.XtraReport, DevExpress.XtraReports.v25.2, Version=25.2.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" Name="rptQR" PageWidthF="850" PageHeightF="1100" Version="25.2">
+                <Bands>
+                  <Item1 Ref="95" ControlType="DetailBand" Name="DetailArea1" HeightF="0" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100" />
+                  <Item2 Ref="96" ControlType="ReportHeaderBand" Name="ReportHeaderArea1" HeightF="160" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+                    <Controls>
+                      <Item1 Ref="97" ControlType="XRPictureBox" Name="barcode1" Padding="0,0,0,0,100" Sizing="ZoomImage" SizeF="160,155" LocationFloat="2,2" BackColor="Transparent" BorderColor="255,210,210,210" Borders="All" BorderWidth="1" />
+                    </Controls>
+                  </Item2>
+                  <Item3 Ref="98" ControlType="ReportFooterBand" Name="ReportFooterArea1" HeightF="0" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100" />
+                </Bands>
+              </ReportSource>
+            </Item3>
+            <Item4 Ref="99" ControlType="XRSubreport" Name="Subreport2" SizeF="190,26" LocationFloat="10,36">
+              <ReportSource Ref="100" ControlType="DevExpress.XtraReports.UI.XtraReport, DevExpress.XtraReports.v25.2, Version=25.2.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" Name="rptBarcode" PageWidthF="850" PageHeightF="1100" Version="25.2">
+                <Bands>
+                  <Item1 Ref="101" ControlType="DetailBand" Name="DetailArea1" HeightF="0" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100" Visible="false" />
+                  <Item2 Ref="102" ControlType="ReportHeaderBand" Name="ReportHeaderArea1" HeightF="25" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+                    <Controls>
+                      <Item1 Ref="103" ControlType="XRPictureBox" Name="barcode1" Padding="0,0,0,0,100" Sizing="ZoomImage" SizeF="185,24" LocationFloat="2,0" BackColor="Transparent" Borders="None" />
+                    </Controls>
+                  </Item2>
+                  <Item3 Ref="104" ControlType="ReportFooterBand" Name="ReportFooterArea1" HeightF="0" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100" Visible="false" />
+                </Bands>
+              </ReportSource>
+            </Item4>
+            <Item5 Ref="105" ControlType="XRLabel" Name="lblno" CanGrow="false" Text="رقم الفاتورة" TextAlignment="MiddleCenter" SizeF="115.00006,19.999996" LocationFloat="475,36.000015" Font="Arial, 10pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="2,2,0,0,100" BorderColor="255,55,65,81" Borders="All">
+              <StylePriority Ref="106" UseForeColor="false" UseBackColor="false" />
+            </Item5>
+            <Item6 Ref="107" ControlType="XRLabel" Name="lblnoen" CanGrow="false" Text="Invoice No." TextAlignment="MiddleCenter" SizeF="115.00006,15.999996" LocationFloat="475,55.999996" Font="Arial, 7pt" ForeColor="255,100,100,100" BackColor="255,245,247,250" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item7 Ref="108" ControlType="XRLabel" Name="txtNo" CanGrow="false" TextAlignment="MiddleCenter" SizeF="122.83334,36" LocationFloat="347.1667,36.00003" Font="Arial, 14pt, style=Bold" ForeColor="255,30,30,30" BackColor="255,255,255,230" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item8 Ref="109" ControlType="XRLine" Name="Line16" LineStyle="Dash" SizeF="580,2" LocationFloat="10,78" ForeColor="255,200,200,200" Borders="None" />
+            <Item9 Ref="110" ControlType="XRLabel" Name="Text8" CanGrow="false" Text="التاريخ" TextAlignment="MiddleCenter" SizeF="80,22" LocationFloat="510,84" Font="Arial, 10pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,245,247,250" Padding="4,4,0,0,100" BorderColor="255,200,210,220" Borders="All">
+              <StylePriority Ref="111" UseTextAlignment="false" />
+            </Item9>
+            <Item10 Ref="112" ControlType="XRLabel" Name="txtDate" CanGrow="false" TextAlignment="MiddleCenter" SizeF="98.00003,22" LocationFloat="411.99997,84" Font="Arial, 10pt, style=Bold" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item11 Ref="113" ControlType="XRLabel" Name="Text7" CanGrow="false" Text="الوقت" TextAlignment="MiddleCenter" SizeF="80,22" LocationFloat="510,106" Font="Arial, 10pt, style=Bold" ForeColor="255,60,60,60" BackColor="White" Padding="4,4,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item12 Ref="114" ControlType="XRLabel" Name="txtTime" CanGrow="false" TextAlignment="MiddleCenter" SizeF="98.00003,22" LocationFloat="411.99997,105.99999" Font="Arial, 10pt" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item13 Ref="115" ControlType="XRLabel" Name="Text22" CanGrow="false" Text="الفرع" TextAlignment="MiddleCenter" SizeF="70,22" LocationFloat="331.24997,84" Font="Arial, 10pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="4,4,0,0,100" BorderColor="255,55,65,81" Borders="All">
+              <StylePriority Ref="116" UseForeColor="false" UseBackColor="false" />
+            </Item13>
+            <Item14 Ref="117" ControlType="XRLabel" Name="branch" CanGrow="false" TextAlignment="MiddleCenter" SizeF="92.4583,22" LocationFloat="238.7917,84.000015" Font="Arial, 10pt, style=Bold" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item15 Ref="118" ControlType="XRLabel" Name="lblcust" CanGrow="false" Text="العميل" TextAlignment="MiddleCenter" SizeF="114,22" LocationFloat="652,138.37502" Font="Arial, 10pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,245,247,250" Padding="4,4,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item16 Ref="119" ControlType="XRLabel" Name="txtCust" CanGrow="false" TextAlignment="MiddleCenter" SizeF="254,22" LocationFloat="398,138.37502" Font="Arial, 10pt, style=Bold" ForeColor="255,30,30,30" BackColor="White" Padding="4,4,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item17 Ref="120" ControlType="XRLabel" Name="txtCustEN" CanGrow="false" TextAlignment="MiddleCenter" SizeF="368,16" LocationFloat="398,160.375" Font="Arial, 8pt" ForeColor="255,100,100,100" BackColor="255,250,250,252" Padding="4,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item18 Ref="121" ControlType="XRLabel" Name="lbltaxno" CanGrow="false" Text="الرقم الضريبي" TextAlignment="MiddleCenter" SizeF="114,22" LocationFloat="652,176.37498" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,245,247,250" Padding="4,4,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item19 Ref="122" ControlType="XRLabel" Name="tax_no" CanGrow="false" TextAlignment="MiddleCenter" SizeF="254,22" LocationFloat="398,176.37498" Font="Arial, 10pt" ForeColor="255,30,30,30" BackColor="255,245,247,250" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item20 Ref="123" ControlType="XRLabel" Name="lblCustNatTitle" CanGrow="false" Text="العنوان الوطني للعميل  Customer National Address" TextAlignment="MiddleCenter" SizeF="368,18" LocationFloat="11.999996,160.375" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="2,2,0,0,100" Borders="None">
+              <StylePriority Ref="124" UseForeColor="false" UseBackColor="false" />
+            </Item20>
+            <Item21 Ref="125" ControlType="XRLabel" Name="lblKS" CanGrow="false" Text="الشارع" TextAlignment="MiddleCenter" SizeF="45,18" LocationFloat="335,178.37503" Font="Arial, 8pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="1,1,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item22 Ref="126" ControlType="XRLabel" Name="custStreet" CanGrow="false" TextAlignment="MiddleCenter" SizeF="119.041534,18" LocationFloat="215.9584,178.37503" Font="Arial, 9pt" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Top, Right, Bottom" />
+            <Item23 Ref="127" ControlType="XRLabel" Name="lblKA" CanGrow="false" Text="الحي" TextAlignment="MiddleCenter" SizeF="35,18" LocationFloat="180.95842,178.37503" Font="Arial, 8pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="1,1,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item24 Ref="128" ControlType="XRLabel" Name="custArea" CanGrow="false" TextAlignment="MiddleCenter" SizeF="72,18" LocationFloat="108.95841,178.37503" Font="Arial, 9pt" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Top, Right, Bottom" />
+            <Item25 Ref="129" ControlType="XRLabel" Name="lblKC" CanGrow="false" Text="المدينة" TextAlignment="MiddleCenter" SizeF="42,18" LocationFloat="66.95841,178.37503" Font="Arial, 8pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="1,1,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item26 Ref="130" ControlType="XRLabel" Name="custCity" CanGrow="false" TextAlignment="MiddleCenter" SizeF="54,18" LocationFloat="12.958384,178.37503" Font="Arial, 9pt" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All">
+              <StylePriority Ref="131" UseBorders="false" />
+            </Item26>
+            <Item27 Ref="132" ControlType="XRLabel" Name="lblKBN" CanGrow="false" Text="رقم المبنى" TextAlignment="MiddleCenter" SizeF="58,18" LocationFloat="321.99997,196.37503" Font="Arial, 7pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="1,1,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item28 Ref="133" ControlType="XRLabel" Name="custBuildNo" CanGrow="false" TextAlignment="MiddleCenter" SizeF="67,18" LocationFloat="254.99995,196.37503" Font="Arial, 9pt, style=Bold" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Right, Bottom" />
+            <Item29 Ref="134" ControlType="XRLabel" Name="lblKAN" CanGrow="false" Text="الرقم الإضافي" TextAlignment="MiddleCenter" SizeF="65,18" LocationFloat="190,196.37503" Font="Arial, 7pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="1,1,0,0,100" BorderColor="255,200,210,220" Borders="Right, Bottom" />
+            <Item30 Ref="135" ControlType="XRLabel" Name="custAddNo" CanGrow="false" TextAlignment="MiddleCenter" SizeF="64.20832,18" LocationFloat="125.79165,196.37503" Font="Arial, 9pt, style=Bold" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Right, Bottom" />
+            <Item31 Ref="136" ControlType="XRLabel" Name="lblKPC" CanGrow="false" Text="الرمز البريدي" TextAlignment="MiddleCenter" SizeF="60,18" LocationFloat="65.79165,196.37503" Font="Arial, 7pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,240,242,245" Padding="1,1,0,0,100" BorderColor="255,200,210,220" Borders="Right, Bottom" />
+            <Item32 Ref="137" ControlType="XRLabel" Name="custPostCode" CanGrow="false" TextAlignment="MiddleCenter" SizeF="53.791645,18" LocationFloat="11.999996,196.37503" Font="Arial, 9pt, style=Bold" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item33 Ref="138" ControlType="XRLabel" Name="Text4" CanGrow="false" Text="طريقة الدفع" TextAlignment="MiddleCenter" SizeF="80,22" LocationFloat="256,36" Font="Arial, 10pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="4,4,0,0,100" BorderColor="255,55,65,81" Borders="All">
+              <StylePriority Ref="139" UseForeColor="false" UseBackColor="false" />
+            </Item33>
+            <Item34 Ref="140" ControlType="XRLabel" Name="paytype" CanGrow="false" TextAlignment="MiddleCenter" SizeF="62,22" LocationFloat="194,36" Font="Arial, 10pt, style=Bold" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item35 Ref="141" ControlType="XRLabel" Name="Text17" CanGrow="false" Text="المندوب" TextAlignment="MiddleCenter" SizeF="90,22" LocationFloat="134.58336,84" Font="Arial, 10pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,245,247,250" Padding="4,4,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item36 Ref="142" ControlType="XRLabel" Name="emp" CanGrow="false" TextAlignment="MiddleCenter" SizeF="123.54169,22.000015" LocationFloat="11.041667,84" Font="Arial, 10pt" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item37 Ref="143" ControlType="XRLabel" Name="Text26" CanGrow="false" Text="الموظف" TextAlignment="MiddleCenter" SizeF="90,22" LocationFloat="134.58336,105.99999" Font="Arial, 10pt, style=Bold" ForeColor="255,60,60,60" BackColor="White" Padding="4,4,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item38 Ref="144" ControlType="XRLabel" Name="emp2" CanGrow="false" TextAlignment="MiddleCenter" SizeF="123.54169,22" LocationFloat="11.041667,105.99999" Font="Arial, 10pt" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item39 Ref="145" ControlType="XRLabel" Name="Text21" CanGrow="false" Text="جوال العميل" TextAlignment="MiddleCenter" SizeF="90,22" LocationFloat="290,138.37502" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,245,247,250" Padding="4,4,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item40 Ref="146" ControlType="XRLabel" Name="custtel" CanGrow="false" TextAlignment="MiddleCenter" SizeF="273,22.000015" LocationFloat="11.999996,138.37502" Font="Arial, 10pt" ForeColor="255,30,30,30" BackColor="255,245,247,250" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item41 Ref="147" ControlType="XRLine" Name="lineCarTop" LineStyle="Dash" SizeF="756,2" LocationFloat="11.999996,218.37503" ForeColor="255,200,200,200" Borders="None" />
+            <Item42 Ref="148" ControlType="XRLabel" Name="lblCarTitle" CanGrow="false" Text="بيانات السيارة" TextAlignment="MiddleCenter" SizeF="756,18" LocationFloat="11.999996,222.37503" Font="Arial, 10pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="2,2,0,0,100" BorderColor="255,80,100,150" Borders="All">
+              <StylePriority Ref="149" UseFont="false" UseForeColor="false" UseBackColor="false" UseBorderColor="false" UseBorders="false" />
+            </Item42>
+            <Item43 Ref="150" ControlType="XRLabel" Name="capCarAdad" CanGrow="false" Text="عداد الممشى" TextAlignment="MiddleCenter" SizeF="70,20" LocationFloat="698,240.375" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,245,247,250" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item44 Ref="151" ControlType="XRLabel" Name="carAdad" CanGrow="false" TextAlignment="MiddleCenter" SizeF="184,20" LocationFloat="514,240.375" Font="Arial, 9pt, style=Bold" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item45 Ref="152" ControlType="XRLabel" Name="capCarMachen" CanGrow="false" Text="رقم الهيكل" TextAlignment="MiddleCenter" SizeF="70,20" LocationFloat="444,240.375" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,245,247,250" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item46 Ref="153" ControlType="XRLabel" Name="carMachen" CanGrow="false" TextAlignment="MiddleCenter" SizeF="180,20" LocationFloat="264,240.375" Font="Arial, 9pt, style=Bold" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item47 Ref="154" ControlType="XRLabel" Name="capCarBoard" CanGrow="false" Text="رقم اللوحة" TextAlignment="MiddleCenter" SizeF="70,20" LocationFloat="194,240.375" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,245,247,250" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item48 Ref="155" ControlType="XRLabel" Name="carBoard" CanGrow="false" TextAlignment="MiddleCenter" SizeF="182,20" LocationFloat="12,240.375" Font="Arial, 9pt, style=Bold" ForeColor="255,30,30,30" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item49 Ref="156" ControlType="XRLine" Name="lineCarBottom" LineStyle="Dash" SizeF="756,2" LocationFloat="11.999996,260.375" ForeColor="255,200,200,200" Borders="None" />
+            <Item50 Ref="157" ControlType="XRLabel" Name="src_info" CanGrow="false" TextAlignment="MiddleCenter" SizeF="367.99994,20.000046" LocationFloat="398,198.37498" Font="Arial, 9pt, style=Bold" ForeColor="255,140,100,30" Padding="2,2,0,0,100" Borders="None">
+              <StylePriority Ref="158" UseBackColor="false" UseBorderColor="false" UseBorders="false" />
+            </Item50>
+            <Item51 Ref="159" ControlType="XRLine" Name="LineBeforeTable" LineWidth="3" SizeF="756,3" LocationFloat="12.958384,279.8333" ForeColor="255,40,40,40" Borders="None" />
+          </Controls>
+        </Item2>
+      </SubBands>
+    </Item2>
+    <Item3 Ref="160" ControlType="PageHeaderBand" Name="Area2" HeightF="40" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+      <Controls>
+        <Item1 Ref="161" ControlType="XRLabel" Name="Text3h" CanGrow="false" Text="م" TextAlignment="MiddleCenter" SizeF="28,36" LocationFloat="742,2" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="All">
+          <StylePriority Ref="162" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item1>
+        <Item2 Ref="163" ControlType="XRLabel" Name="Text2h" CanGrow="false" Text="الباركود" TextAlignment="MiddleCenter" SizeF="90,20" LocationFloat="652,2" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Top, Right">
+          <StylePriority Ref="164" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item2>
+        <Item3 Ref="165" ControlType="XRLabel" Name="Text2he" CanGrow="false" Text="Barcode" TextAlignment="MiddleCenter" SizeF="90,16" LocationFloat="652,22" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Right, Bottom">
+          <StylePriority Ref="166" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item3>
+        <Item4 Ref="167" ControlType="XRLabel" Name="Text6h" CanGrow="false" Text="الصنف" TextAlignment="MiddleCenter" SizeF="152,20" LocationFloat="500,2" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Top, Right">
+          <StylePriority Ref="168" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item4>
+        <Item5 Ref="169" ControlType="XRLabel" Name="Text6he" CanGrow="false" Text="Item" TextAlignment="MiddleCenter" SizeF="152,16" LocationFloat="500,22" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Right, Bottom">
+          <StylePriority Ref="170" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item5>
+        <Item6 Ref="171" ControlType="XRLabel" Name="Text18h" CanGrow="false" Text="الوحدة" TextAlignment="MiddleCenter" SizeF="42,20" LocationFloat="458,2" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Top, Right">
+          <StylePriority Ref="172" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item6>
+        <Item7 Ref="173" ControlType="XRLabel" Name="Text18he" CanGrow="false" Text="Unit" TextAlignment="MiddleCenter" SizeF="42,16" LocationFloat="458,22" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Right, Bottom">
+          <StylePriority Ref="174" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item7>
+        <Item8 Ref="175" ControlType="XRLabel" Name="Text5h" CanGrow="false" Text="الكمية" TextAlignment="MiddleCenter" SizeF="52,20" LocationFloat="406,2" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Top, Right">
+          <StylePriority Ref="176" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item8>
+        <Item9 Ref="177" ControlType="XRLabel" Name="Text5he" CanGrow="false" Text="Qty" TextAlignment="MiddleCenter" SizeF="52,16" LocationFloat="406,22" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Right, Bottom">
+          <StylePriority Ref="178" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item9>
+        <Item10 Ref="179" ControlType="XRLabel" Name="Text14h" CanGrow="false" Text="السعر" TextAlignment="MiddleCenter" SizeF="70,20" LocationFloat="336,2" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Top, Right">
+          <StylePriority Ref="180" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item10>
+        <Item11 Ref="181" ControlType="XRLabel" Name="Text14he" CanGrow="false" Text="Price" TextAlignment="MiddleCenter" SizeF="70,16" LocationFloat="336,22" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Right, Bottom">
+          <StylePriority Ref="182" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item11>
+        <Item12 Ref="183" ControlType="XRLabel" Name="Text1h" CanGrow="false" Text="الإجمالي" TextAlignment="MiddleCenter" SizeF="68,20" LocationFloat="268,2" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Top, Right">
+          <StylePriority Ref="184" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item12>
+        <Item13 Ref="185" ControlType="XRLabel" Name="Text1he" CanGrow="false" Text="Total" TextAlignment="MiddleCenter" SizeF="68,16" LocationFloat="268,22" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Right, Bottom">
+          <StylePriority Ref="186" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item13>
+        <Item14 Ref="187" ControlType="XRLabel" Name="Text16h" CanGrow="false" Text="الخصم" TextAlignment="MiddleCenter" SizeF="36,20" LocationFloat="232,2" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Top, Right">
+          <StylePriority Ref="188" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item14>
+        <Item15 Ref="189" ControlType="XRLabel" Name="Text16he" CanGrow="false" Text="Disc" TextAlignment="MiddleCenter" SizeF="36,16" LocationFloat="232,22" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Right, Bottom">
+          <StylePriority Ref="190" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item15>
+        <Item16 Ref="191" ControlType="XRLabel" Name="Text20h" CanGrow="false" Text="بعد الخصم" TextAlignment="MiddleCenter" SizeF="62,20" LocationFloat="170,2" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Top, Right">
+          <StylePriority Ref="192" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item16>
+        <Item17 Ref="193" ControlType="XRLabel" Name="Text20he" CanGrow="false" Text="After Disc" TextAlignment="MiddleCenter" SizeF="62,16" LocationFloat="170,22" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Right, Bottom">
+          <StylePriority Ref="194" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item17>
+        <Item18 Ref="195" ControlType="XRLabel" Name="Text23h" CanGrow="false" Text="ض%" TextAlignment="MiddleCenter" SizeF="34,20" LocationFloat="136,2" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Top, Right">
+          <StylePriority Ref="196" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item18>
+        <Item19 Ref="197" ControlType="XRLabel" Name="Text23he" CanGrow="false" Text="VAT%" TextAlignment="MiddleCenter" SizeF="34,16" LocationFloat="136,22" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Right, Bottom">
+          <StylePriority Ref="198" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item19>
+        <Item20 Ref="199" ControlType="XRLabel" Name="Text33h" CanGrow="false" Text="ض.ق.م" TextAlignment="MiddleCenter" SizeF="76,20" LocationFloat="60,2" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Top, Right">
+          <StylePriority Ref="200" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item20>
+        <Item21 Ref="201" ControlType="XRLabel" Name="Text33he" CanGrow="false" Text="VAT" TextAlignment="MiddleCenter" SizeF="76,16" LocationFloat="60,22" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Right, Bottom">
+          <StylePriority Ref="202" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item21>
+        <Item22 Ref="203" ControlType="XRLabel" Name="Text34h" CanGrow="false" Text="الصافي" TextAlignment="MiddleCenter" SizeF="50,20" LocationFloat="10,2" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Top, Right">
+          <StylePriority Ref="204" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item22>
+        <Item23 Ref="205" ControlType="XRLabel" Name="Text34he" CanGrow="false" Text="Net" TextAlignment="MiddleCenter" SizeF="50,16" LocationFloat="10,22" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="1,1,0,0,100" BorderColor="255,40,40,40" Borders="Left, Right, Bottom">
+          <StylePriority Ref="206" UseFont="false" UseForeColor="false" UseBackColor="false" />
+        </Item23>
+      </Controls>
+    </Item3>
+    <Item4 Ref="207" ControlType="ReportFooterBand" Name="Area4" HeightF="0" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+      <SubBands>
+        <Item1 Ref="208" ControlType="SubBand" Name="Section4" HeightF="5" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+          <Controls>
+            <Item1 Ref="209" ControlType="XRLine" Name="LineCloseTable" LineWidth="3" SizeF="760,3" LocationFloat="10,1" ForeColor="255,40,40,40" Borders="None" />
+          </Controls>
+        </Item1>
+        <Item2 Ref="210" ControlType="SubBand" Name="ReportFooterSection2" HeightF="213.83333" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+          <Controls>
+            <Item1 Ref="211" ControlType="XRLabel" Name="Text24" CanGrow="false" Text="الإجمالي غير شامل الضريبة" TextAlignment="MiddleCenter" SizeF="200,24" LocationFloat="276,5" Font="Arial, 9pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,245,247,250" Padding="4,4,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item2 Ref="212" ControlType="XRLabel" Name="txtSum" CanGrow="false" TextAlignment="MiddleCenter" SizeF="100,24" LocationFloat="176,5" Font="Arial, 10pt, style=Bold" ForeColor="Black" BackColor="255,245,247,250" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Top, Bottom">
+              <StylePriority Ref="213" UseForeColor="false" />
+            </Item2>
+            <Item3 Ref="214" ControlType="XRLabel" Name="Text37" CanGrow="false" Text="Total (Excl. VAT)" TextAlignment="MiddleLeft" SizeF="166,24" LocationFloat="10,5" Font="Arial, 8pt" ForeColor="255,130,130,130" BackColor="255,245,247,250" Padding="4,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item4 Ref="215" ControlType="XRLabel" Name="lbldisc" CanGrow="false" Text="الخصم" TextAlignment="MiddleCenter" SizeF="200,24" LocationFloat="276,29" Font="Arial, 10pt, style=Bold" ForeColor="Black" BackColor="White" Padding="4,4,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom">
+              <StylePriority Ref="216" UseForeColor="false" />
+            </Item4>
+            <Item5 Ref="217" ControlType="XRLabel" Name="minus" CanGrow="false" TextAlignment="MiddleCenter" SizeF="100,24" LocationFloat="176,29" Font="Arial, 10pt, style=Bold" ForeColor="Black" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Bottom">
+              <StylePriority Ref="218" UseForeColor="false" />
+            </Item5>
+            <Item6 Ref="219" ControlType="XRLabel" Name="Text38" CanGrow="false" Text="Discount" TextAlignment="MiddleLeft" SizeF="166,24" LocationFloat="10,29" Font="Arial, 8pt" ForeColor="255,130,130,130" BackColor="White" Padding="4,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item7 Ref="220" ControlType="XRLabel" Name="Text15" CanGrow="false" Text="الإجمالي بعد الخصم" TextAlignment="MiddleCenter" SizeF="200,24" LocationFloat="276,53" Font="Arial, 10pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,245,247,250" Padding="4,4,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item8 Ref="221" ControlType="XRLabel" Name="sum2" CanGrow="false" TextAlignment="MiddleCenter" SizeF="100,24" LocationFloat="176,53" Font="Arial, 10pt, style=Bold" ForeColor="Black" BackColor="255,245,247,250" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Bottom">
+              <StylePriority Ref="222" UseForeColor="false" />
+            </Item8>
+            <Item9 Ref="223" ControlType="XRLabel" Name="Text28" CanGrow="false" Text="Total After Discount" TextAlignment="MiddleLeft" SizeF="166,24" LocationFloat="10,53" Font="Arial, 8pt" ForeColor="255,130,130,130" BackColor="255,245,247,250" Padding="4,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item10 Ref="224" ControlType="XRLabel" Name="lblvat" CanGrow="false" Text="إجمالي ضريبة القيمة المضافة" TextAlignment="MiddleCenter" SizeF="200,24" LocationFloat="276,77" Font="Arial, 9pt, style=Bold" ForeColor="Black" BackColor="255,255,251,240" Padding="4,4,0,0,100" BorderColor="255,220,200,150" Borders="All">
+              <StylePriority Ref="225" UseForeColor="false" />
+            </Item10>
+            <Item11 Ref="226" ControlType="XRLabel" Name="tax" CanGrow="false" TextAlignment="MiddleCenter" SizeF="100,24" LocationFloat="176,77" Font="Arial, 10pt, style=Bold" ForeColor="Black" BackColor="255,255,251,240" Padding="2,2,0,0,100" BorderColor="255,220,200,150" Borders="Top, Bottom">
+              <StylePriority Ref="227" UseForeColor="false" />
+            </Item11>
+            <Item12 Ref="228" ControlType="XRLabel" Name="lblvaten" CanGrow="false" Text="Total VAT" TextAlignment="MiddleLeft" SizeF="166,24" LocationFloat="10,77" Font="Arial, 8pt" ForeColor="255,130,130,130" BackColor="255,255,251,240" Padding="4,2,0,0,100" BorderColor="255,220,200,150" Borders="All" />
+            <Item13 Ref="229" ControlType="XRLabel" Name="lblretention" CanGrow="false" TextAlignment="MiddleCenter" SizeF="200,24" LocationFloat="276,101" Font="Arial, 10pt, style=Bold" ForeColor="255,60,60,60" BackColor="White" Padding="4,4,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item14 Ref="230" ControlType="XRLabel" Name="txtretention" CanGrow="false" TextAlignment="MiddleCenter" SizeF="100,24" LocationFloat="176,101" Font="Arial, 10pt, style=Bold" ForeColor="Black" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Bottom">
+              <StylePriority Ref="231" UseForeColor="false" />
+            </Item14>
+            <Item15 Ref="232" ControlType="XRLabel" Name="lblretention2" CanGrow="false" TextAlignment="MiddleLeft" SizeF="166,24" LocationFloat="10,101" Font="Arial, 9pt" ForeColor="255,130,130,130" BackColor="White" Padding="4,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item16 Ref="233" ControlType="XRLabel" Name="lblnet" CanGrow="false" Text="الصافي شامل الضريبة" TextAlignment="MiddleCenter" SizeF="200,30" LocationFloat="276,125" Font="Arial, 12pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="4,4,0,0,100" BorderColor="255,30,30,30" Borders="All" BorderWidth="2">
+              <StylePriority Ref="234" UseFont="false" UseForeColor="false" UseBackColor="false" UseTextAlignment="false" />
+            </Item16>
+            <Item17 Ref="235" ControlType="XRLabel" Name="net" CanGrow="false" TextAlignment="TopCenter" SizeF="100,30" LocationFloat="176,125" Font="Arial, 12pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="2,2,0,0,100" BorderColor="255,30,30,30" Borders="Top, Bottom" BorderWidth="2">
+              <StylePriority Ref="236" UseForeColor="false" UseBackColor="false" UseTextAlignment="false" />
+            </Item17>
+            <Item18 Ref="237" ControlType="XRLabel" Name="lblnet2" CanGrow="false" Text="Total Due (Incl. VAT)" TextAlignment="MiddleJustify" SizeF="166,30" LocationFloat="10,125" Font="Arial, 8pt, style=Bold" ForeColor="Black" BackColor="255,216,216,216" Padding="4,2,0,0,100" BorderColor="255,30,30,30" Borders="All" BorderWidth="2">
+              <StylePriority Ref="238" UseForeColor="false" UseBackColor="false" UseTextAlignment="false" />
+            </Item18>
+            <Item19 Ref="239" ControlType="XRLabel" Name="lbldiscount2" CanGrow="false" TextAlignment="MiddleRight" SizeF="146,22" LocationFloat="620,30.999994" Font="Arial, 10pt, style=Bold" ForeColor="Black" Padding="2,2,0,0,100" Borders="None">
+              <StylePriority Ref="240" UseForeColor="false" />
+            </Item19>
+            <Item20 Ref="241" ControlType="XRLabel" Name="discount2" CanGrow="false" TextAlignment="MiddleCenter" SizeF="120,22" LocationFloat="485.99994,28.999996" Font="Arial, 10pt, style=Bold" ForeColor="Black" Padding="2,2,0,0,100" Borders="None">
+              <StylePriority Ref="242" UseForeColor="false" />
+            </Item20>
+            <Item21 Ref="243" ControlType="XRLabel" Name="paid" CanGrow="false" TextAlignment="MiddleCenter" SizeF="280,22" LocationFloat="485.99994,100.99999" Font="Arial, 9pt, style=Bold" ForeColor="255,30,120,30" Padding="2,2,0,0,100" Borders="None">
+              <StylePriority Ref="244" UseBackColor="false" UseBorderColor="false" UseBorders="false" />
+            </Item21>
+            <Item22 Ref="245" ControlType="XRLabel" Name="ar2" CanGrow="false" TextAlignment="MiddleRight" SizeF="280,30" LocationFloat="486,125" Font="Arial, 8pt, style=Bold" ForeColor="Black" BackColor="255,255,248,248" Padding="4,4,0,0,100" BorderColor="255,220,200,200" Borders="All">
+              <StylePriority Ref="246" UseForeColor="false" />
+            </Item22>
+            <Item23 Ref="247" ControlType="XRLabel" Name="prev_balance" CanGrow="false" TextAlignment="MiddleCenter" SizeF="210.00002,22" LocationFloat="9.999998,162.00002" Font="Arial, 10pt, style=Bold" ForeColor="255,60,60,60" Padding="2,2,0,0,100" Borders="None" />
+            <Item24 Ref="248" ControlType="XRLabel" Name="total_balance" CanGrow="false" TextAlignment="MiddleCenter" SizeF="210.00002,22" LocationFloat="9.999998,184.00002" Font="Arial, 10pt, style=Bold" ForeColor="255,30,30,30" Padding="2,2,0,0,100" Borders="None" />
+            <Item25 Ref="249" ControlType="XRLabel" Name="Text31" CanGrow="false" Text="ملاحظات :" TextAlignment="MiddleRight" SizeF="70,24" LocationFloat="698.9583,162.00002" Font="Arial, 10pt, style=Bold" ForeColor="255,60,60,60" Padding="2,2,0,0,100" Borders="None" />
+            <Item26 Ref="250" ControlType="XRLabel" Name="notes1" TextAlignment="MiddleCenter" SizeF="458,24" LocationFloat="232,162.00002" Font="Arial, 9pt" ForeColor="255,60,60,60" BackColor="Ivory" Padding="4,4,0,0,100" BorderColor="255,220,220,180" Borders="All">
+              <ExpressionBindings>
+                <Item1 Ref="251" EventName="BeforePrint" PropertyName="Text" Expression="?note" />
+              </ExpressionBindings>
+            </Item26>
+          </Controls>
+        </Item2>
+        <Item3 Ref="252" ControlType="SubBand" Name="secSign" HeightF="118" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+          <Controls>
+            <Item1 Ref="253" ControlType="XRLine" Name="LineBeforeSign" LineStyle="Dash" SizeF="756,2" LocationFloat="10,2" ForeColor="255,200,200,200" Borders="None" />
+            <Item2 Ref="254" ControlType="XRLabel" Name="lblstamp" CanGrow="false" Text="الختم" TextAlignment="MiddleCenter" SizeF="190,22" LocationFloat="30,8" Font="Arial, 11pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,245,247,250" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item3 Ref="255" ControlType="XRSubreport" Name="Subreport3" SizeF="165,82" LocationFloat="42,32">
+              <ReportSource Ref="256" ControlType="DevExpress.XtraReports.UI.XtraReport, DevExpress.XtraReports.v25.2, Version=25.2.3.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" Name="rptStamp" PageWidthF="850" PageHeightF="1100" Version="25.2">
+                <Bands>
+                  <Item1 Ref="257" ControlType="DetailBand" Name="DetailArea1" HeightF="0" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100" />
+                  <Item2 Ref="258" ControlType="ReportHeaderBand" Name="ReportHeaderArea1" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+                    <Controls>
+                      <Item1 Ref="259" ControlType="XRPictureBox" Name="Logo1" Padding="0,0,0,0,100" Sizing="ZoomImage" SizeF="147,100" LocationFloat="2,0" BackColor="Transparent" Borders="None">
+                        <ExpressionBindings>
+                          <Item1 Ref="260" EventName="BeforePrint" PropertyName="Text" Expression="[Logo]" />
+                        </ExpressionBindings>
+                      </Item1>
+                    </Controls>
+                  </Item2>
+                  <Item3 Ref="261" ControlType="ReportFooterBand" Name="ReportFooterArea1" HeightF="0" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100" />
+                </Bands>
+              </ReportSource>
+            </Item3>
+            <Item4 Ref="262" ControlType="XRLabel" Name="lblsign3" CanGrow="false" Text="توقيع المستلم" TextAlignment="MiddleCenter" SizeF="190,22" LocationFloat="290,8" Font="Arial, 11pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,245,247,250" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item5 Ref="263" ControlType="XRLabel" Name="lblsign4" CanGrow="false" Text="............................................" TextAlignment="MiddleCenter" SizeF="190,55" LocationFloat="290,30" Font="Arial, 12pt" ForeColor="255,200,200,200" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+            <Item6 Ref="264" ControlType="XRLabel" Name="lblsign1" CanGrow="false" Text="توقيع البائع" TextAlignment="MiddleCenter" SizeF="190,22" LocationFloat="556,8" Font="Arial, 11pt, style=Bold" ForeColor="255,60,60,60" BackColor="255,245,247,250" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="All" />
+            <Item7 Ref="265" ControlType="XRLabel" Name="lblsign2" CanGrow="false" Text="............................................" TextAlignment="MiddleCenter" SizeF="190,55" LocationFloat="556,30" Font="Arial, 12pt" ForeColor="255,200,200,200" BackColor="White" Padding="2,2,0,0,100" BorderColor="255,200,210,220" Borders="Left, Right, Bottom" />
+          </Controls>
+        </Item3>
+        <Item4 Ref="266" ControlType="SubBand" Name="ReportFooterSection3" HeightF="22" KeepTogether="true" TextAlignment="TopLeft" Padding="0,0,0,0,100">
+          <Controls>
+            <Item1 Ref="267" ControlType="XRLabel" Name="msg1" TextAlignment="MiddleCenter" SizeF="700,18" LocationFloat="38,2" Font="Arial, 9pt, style=Bold" ForeColor="255,80,80,140" Padding="2,2,0,0,100" Borders="None">
+              <ExpressionBindings>
+                <Item1 Ref="268" EventName="BeforePrint" PropertyName="Text" Expression="?msg" />
+              </ExpressionBindings>
+              <StylePriority Ref="269" UseBackColor="false" UseBorderColor="false" UseBorders="false" />
+            </Item1>
+          </Controls>
+        </Item4>
+      </SubBands>
+    </Item4>
+    <Item5 Ref="270" ControlType="PageFooterBand" Name="Area5" HeightF="0" TextAlignment="TopLeft" Padding="0,0,0,0,100" />
+    <Item6 Ref="271" ControlType="TopMarginBand" Name="TopMargin" HeightF="25" />
+    <Item7 Ref="272" ControlType="BottomMarginBand" Name="BottomMargin" HeightF="25" />
+  </Bands>
+  <CrossBandControls>
+    <Item1 Ref="273" ControlType="XRCrossBandBox" Name="Box1" BorderWidth="1" WidthF="760" StartBand="#Ref-160" EndBand="#Ref-208" StartPointFloat="10,2" EndPointFloat="10,5" BorderColor="255,40,40,40" />
+    <Item2 Ref="274" ControlType="XRCrossBandLine" Name="Line28" WidthF="1.0416666" StartBand="#Ref-6" EndBand="#Ref-208" StartPointFloat="742,0" EndPointFloat="742,5" ForeColor="Gainsboro" />
+    <Item3 Ref="275" ControlType="XRCrossBandLine" Name="Line17" WidthF="1.0416666" StartBand="#Ref-6" EndBand="#Ref-208" StartPointFloat="652,0" EndPointFloat="652,5" ForeColor="Gainsboro" />
+    <Item4 Ref="276" ControlType="XRCrossBandLine" Name="Line19" WidthF="1.0416666" StartBand="#Ref-6" EndBand="#Ref-208" StartPointFloat="500,0" EndPointFloat="500,5" ForeColor="Gainsboro" />
+    <Item5 Ref="277" ControlType="XRCrossBandLine" Name="lnvv2" WidthF="1.0416666" StartBand="#Ref-6" EndBand="#Ref-208" StartPointFloat="458,0" EndPointFloat="458,5" ForeColor="Gainsboro" />
+    <Item6 Ref="278" ControlType="XRCrossBandLine" Name="Line22" WidthF="1.0416666" StartBand="#Ref-6" EndBand="#Ref-208" StartPointFloat="406,0" EndPointFloat="406,5" ForeColor="Gainsboro" />
+    <Item7 Ref="279" ControlType="XRCrossBandLine" Name="Line23" WidthF="1.0416666" StartBand="#Ref-6" EndBand="#Ref-208" StartPointFloat="336,0" EndPointFloat="336,5" ForeColor="Gainsboro" />
+    <Item8 Ref="280" ControlType="XRCrossBandLine" Name="lnvv1" WidthF="1.0416666" StartBand="#Ref-6" EndBand="#Ref-208" StartPointFloat="268,0" EndPointFloat="268,5" ForeColor="Gainsboro" />
+    <Item9 Ref="281" ControlType="XRCrossBandLine" Name="Line25" WidthF="1.0416666" StartBand="#Ref-6" EndBand="#Ref-208" StartPointFloat="232,0" EndPointFloat="232,5" ForeColor="Gainsboro" />
+    <Item10 Ref="282" ControlType="XRCrossBandLine" Name="Line26" WidthF="1.0416666" StartBand="#Ref-6" EndBand="#Ref-208" StartPointFloat="170,0" EndPointFloat="170,5" ForeColor="Gainsboro" />
+    <Item11 Ref="283" ControlType="XRCrossBandLine" Name="Line31" WidthF="1.0416666" StartBand="#Ref-6" EndBand="#Ref-208" StartPointFloat="136,0" EndPointFloat="136,5" ForeColor="Gainsboro" />
+    <Item12 Ref="284" ControlType="XRCrossBandLine" Name="Line27" WidthF="1.0416666" StartBand="#Ref-6" EndBand="#Ref-208" StartPointFloat="60,0" EndPointFloat="60,5" ForeColor="Gainsboro" />
+  </CrossBandControls>
+  <ObjectStorage>
+    <Item1 ObjectType="DevExpress.XtraReports.Serialization.ObjectStorageInfo, DevExpress.XtraReports.v25.2" Ref="1" Content="System.Double" Type="System.Type" />
+  </ObjectStorage>
+</XtraReportsLayoutSerializer>

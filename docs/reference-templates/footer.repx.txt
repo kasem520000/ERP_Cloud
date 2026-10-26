@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<XtraReportsLayoutSerializer SerializerVersion="18.2.7.0" Ref="0" ControlType="DevExpress.XtraReports.UI.XtraReport, DevExpress.XtraReports.v18.2, Version=18.2.7.0, Culture=neutral, PublicKeyToken=b88d1754d700e49a" Name="Report1" Margins="0, 0, 0, 0" PaperKind="A4" PageWidth="827" PageHeight="1169" Version="18.2" Font="Arial, 9.75pt">
+  <Bands>
+    <Item1 Ref="1" ControlType="TopMarginBand" Name="TopMargin" HeightF="4" Visible="false" />
+    <Item2 Ref="2" ControlType="DetailBand" Name="Detail" HeightF="110.333382">
+      <Controls>
+        <Item1 Ref="3" ControlType="XRLine" Name="line1" SizeF="726.875061,9.375" LocationFloat="9.999998, 35.4999847" BorderDashStyle="Dash">
+          <StylePriority Ref="4" UseBorderDashStyle="false" />
+        </Item1>
+        <Item2 Ref="5" ControlType="XRLabel" Name="label3" Multiline="true" Text="هاتف" TextAlignment="MiddleRight" SizeF="116.671005,23.00003" LocationFloat="77.7084045, 57.91667" Font="Arial, 9.75pt, style=Bold" Padding="2,2,0,0,100">
+          <ExpressionBindings>
+            <Item1 Ref="6" Expression="[Tel]" PropertyName="Text" EventName="BeforePrint" />
+          </ExpressionBindings>
+          <StylePriority Ref="7" UseFont="false" UseTextAlignment="false" />
+        </Item2>
+        <Item3 Ref="8" ControlType="XRLabel" Name="label4" Multiline="true" Text=": هاتف" TextAlignment="MiddleRight" SizeF="40.1196747,23.00003" LocationFloat="194.379425, 57.91667" Font="Arial, 9.75pt, style=Bold" Padding="2,2,0,0,100">
+          <StylePriority Ref="9" UseFont="false" UseTextAlignment="false" />
+        </Item3>
+        <Item4 Ref="10" ControlType="XRLabel" Name="label37" Multiline="true" Text="هاتف" TextAlignment="MiddleRight" SizeF="95.70981,23.0000458" LocationFloat="247.4233, 58.4166527" Font="Arial, 9.75pt, style=Bold" Padding="2,2,0,0,100">
+          <ExpressionBindings>
+            <Item1 Ref="11" Expression="[Mobile]" PropertyName="Text" EventName="BeforePrint" />
+          </ExpressionBindings>
+          <StylePriority Ref="12" UseFont="false" UseTextAlignment="false" />
+        </Item4>
+        <Item5 Ref="13" ControlType="XRLabel" Name="label32" Multiline="true" Text=": جوال" TextAlignment="MiddleRight" SizeF="38.7419434,23.0000153" LocationFloat="343.1331, 57.91667" Font="Arial, 9.75pt, style=Bold" Padding="2,2,0,0,100">
+          <StylePriority Ref="14" UseFont="false" UseTextAlignment="false" />
+        </Item5>
+        <Item6 Ref="15" ControlType="XRLabel" Name="label42" Multiline="true" Text="العنوان" TextAlignment="MiddleRight" SizeF="343.541656,23.00003" LocationFloat="381.875031, 57.91667" Font="Arial, 9.75pt, style=Bold" Padding="2,2,0,0,100">
+          <ExpressionBindings>
+            <Item1 Ref="16" Expression="[Address]" PropertyName="Text" EventName="BeforePrint" />
+          </ExpressionBindings>
+          <StylePriority Ref="17" UseFont="false" UseTextAlignment="false" />
+        </Item6>
+      </Controls>
+    </Item2>
+    <Item3 Ref="18" ControlType="BottomMarginBand" Name="BottomMargin" HeightF="0" />
+  </Bands>
+</XtraReportsLayoutSerializer>

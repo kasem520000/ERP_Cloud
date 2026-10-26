@@ -223,6 +223,21 @@ export const usageMetricUsageSchema = z.object({
 });
 export type UsageMetricUsage = z.infer<typeof usageMetricUsageSchema>;
 
+/** ملخّص اشتراك المنشأة الفعّال لعرض الباقة الحالية بجانب الحصص. */
+export const usageSubscriptionSummarySchema = z.object({
+  subscriptionId: uuidSchema,
+  planId: uuidSchema,
+  planCode: z.string(),
+  planName: z.string(),
+  status: z.string(),
+  interval: z.enum(['month', 'year']),
+  amount: z.string(),
+  currency: z.string(),
+  currentPeriodEnd: z.string().nullable(),
+  trialEndsAt: z.string().nullable(),
+});
+export type UsageSubscriptionSummary = z.infer<typeof usageSubscriptionSummarySchema>;
+
 /** لقطة استخدام منشأةٍ واحدة — تخدم سطح المنصة وسطح العميل بالشكل نفسه. */
 export const usageSnapshotSchema = z.object({
   tenantId: uuidSchema,
@@ -236,6 +251,8 @@ export const usageSnapshotSchema = z.object({
   metrics: z.array(usageMetricUsageSchema),
   /** سلسلة استدعاءات الـAPI لثلاثين يوماً — الرسم الوحيد الذي له سلسلة زمنية بمصدرٍ حقيقي. */
   apiCallsPerDay: z.array(usageSeriesPointSchema),
+  /** الباقة الحالية للمنشأة إن وُجد ترخيصٌ حيّ أو معلّق. */
+  subscription: usageSubscriptionSummarySchema.nullable().optional(),
   generatedAt: z.string(),
 });
 export type UsageSnapshot = z.infer<typeof usageSnapshotSchema>;
@@ -277,4 +294,110 @@ export type PlatformUsageGridResponse = z.infer<typeof platformUsageGridResponse
 export const usageAuditActions = {
   softLimit: 'usage.soft_limit',
   limitReached: 'usage.limit_reached',
+  requestCreated: 'usage.request.created',
+  requestApproved: 'usage.request.approved',
+  requestRejected: 'usage.request.rejected',
 } as const;
+
+// ══════════════════════════════════════════════════ طلبات اعتماد الحصص وترقية الباقات
+
+export const usageRequestTypeSchema = z.enum(['quota_increase', 'plan_upgrade', 'module_enable']);
+export type UsageRequestType = z.infer<typeof usageRequestTypeSchema>;
+
+export const usageRequestStatusSchema = z.enum(['pending', 'approved', 'rejected']);
+export type UsageRequestStatus = z.infer<typeof usageRequestStatusSchema>;
+
+export const usageModuleKeys = [
+  'feature.pos',
+  'feature.projects',
+  'feature.hrm',
+  'feature.niche',
+] as const;
+export type UsageModuleKey = (typeof usageModuleKeys)[number];
+
+export const usageModuleLabelsAr: Record<UsageModuleKey, string> = {
+  'feature.pos': 'نقطة البيع (الكاشير)',
+  'feature.projects': 'المشاريع والمقاولات',
+  'feature.hrm': 'الموارد البشرية والرواتب',
+  'feature.niche': 'القطاعات المتخصصة (البصريات والمرسى والخياطة)',
+};
+
+export const createUsageRequestSchema = z
+  .object({
+    requestType: usageRequestTypeSchema.default('quota_increase'),
+    metricKey: z.enum(usageMetricKeys).optional(),
+    moduleKey: z.enum(usageModuleKeys).optional(),
+    requestedLimit: z.coerce.number().int().min(1).max(100_000_000).optional(),
+    requestedPlanId: uuidSchema.optional(),
+    reason: z.string().trim().min(3, 'يرجى توضيح سبب الطلب باختصار').max(1000),
+  })
+  .superRefine((val, ctx) => {
+    if (val.requestType === 'quota_increase') {
+      if (!val.metricKey) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['metricKey'], message: 'اختر بند الحصة المطلوب رفعه' });
+      }
+      if (val.requestedLimit === undefined || val.requestedLimit < 1) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['requestedLimit'], message: 'حدد السقف الجديد المطلوب' });
+      }
+    } else if (val.requestType === 'plan_upgrade') {
+      if (!val.requestedPlanId) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['requestedPlanId'], message: 'اختر الباقة المطلوبة للترقية' });
+      }
+    } else if (val.requestType === 'module_enable') {
+      if (!val.moduleKey) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['moduleKey'], message: 'اختر الوحدة المطلوب تفعيلها' });
+      }
+    }
+  });
+export type CreateUsageRequestInput = z.infer<typeof createUsageRequestSchema>;
+
+export const reviewUsageRequestSchema = z.object({
+  approve: z.boolean(),
+  approvedLimit: z.coerce.number().int().min(1).max(100_000_000).optional(),
+  decisionNotes: z.string().trim().max(1000).optional(),
+});
+export type ReviewUsageRequestInput = z.infer<typeof reviewUsageRequestSchema>;
+
+export const usageRequestSchema = z.object({
+  id: uuidSchema,
+  tenantId: uuidSchema,
+  tenantCode: z.string().optional(),
+  tenantName: z.string().optional(),
+  currentPlanName: z.string().nullable().optional(),
+  requestType: usageRequestTypeSchema,
+  metricKey: z.enum(usageMetricKeys).nullable(),
+  metricLabelAr: z.string().nullable(),
+  moduleKey: z.enum(usageModuleKeys).nullable(),
+  moduleLabelAr: z.string().nullable(),
+  currentUsed: z.number().int().nonnegative().nullable().optional(),
+  currentLimit: z.number().int().nullable(),
+  requestedLimit: z.number().int().nullable(),
+  approvedLimit: z.number().int().nullable(),
+  requestedPlanId: uuidSchema.nullable(),
+  requestedPlanName: z.string().nullable(),
+  reason: z.string(),
+  status: usageRequestStatusSchema,
+  decisionNotes: z.string().nullable(),
+  requestedByEmail: z.string().nullable().optional(),
+  reviewedByEmail: z.string().nullable().optional(),
+  createdAt: z.string(),
+  reviewedAt: z.string().nullable(),
+});
+export type UsageRequest = z.infer<typeof usageRequestSchema>;
+
+export const usageAvailablePlanSchema = z.object({
+  id: uuidSchema,
+  code: z.string(),
+  name: z.string(),
+  interval: z.enum(['month', 'year']),
+  amount: z.string(),
+  currency: z.string(),
+  entitlements: z.array(
+    z.object({
+      kind: z.enum(['module', 'limit', 'flag']),
+      key: z.string(),
+      value: z.union([z.boolean(), z.number(), z.string()]),
+    }),
+  ),
+});
+export type UsageAvailablePlan = z.infer<typeof usageAvailablePlanSchema>;

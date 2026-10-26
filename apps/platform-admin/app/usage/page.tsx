@@ -1,43 +1,23 @@
 'use client';
 
-import { Panel } from '@erp/ui';
-import { useState } from 'react';
 import {
   usageMetricRegistry,
   type PlatformUsageGridResponse,
   type PlatformUsageGridRow,
   type UsageMetricKey,
   type UsageMetricState,
+  type UsageRequest,
+  type UsageRequestStatus,
   type UsageSnapshot,
 } from '@erp/contracts';
+import { Panel } from '@erp/ui';
+import { useState } from 'react';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
 import { Table, type Column } from '../../components/ui/table';
-import { ApiError, apiData, downloadFile } from '../../lib/api';
-import { useQuery } from '../../lib/use-query';
+import { ApiError, apiData, apiList, apiPost, downloadFile } from '../../lib/api';
 import { dateText } from '../../lib/format';
-
-/**
- * الاستخدام والحصص — شاشة يطلبها P-C5 (`docs/roadmap/PLATFORM_CONSOLE_PLAN.md` §4:
- * «`/usage` (شبكة + رسوم + تصدير)»).
- *
- * ثلاث طبقات، وكلٌّ منها يقرأ من الـAPI لا من الشاشة:
- *
- * 1. **الشبكة** (`GET /platform/usage`) — صفٌّ لكل عميل، أعمدةُه الثمانية هي فهرس المقاييس
- *    نفسه (`usageMetricRegistry` في `@erp/contracts`)، وترتيب الصفوف من الخدمة: الأسوأ أولاً،
- *    فلا يحتاج المشغّل إلى عينٍ تفحص ٣٠ صفاً لتجد من بلغ حدّه.
- * 2. **الرسم** (`GET /platform/usage?tenantId=`) — سلسلة استدعاءات الـAPI لثلاثين يوماً.
- *    اخترنا هذه السلسلة وحدها رسماً لأنها المقياس الوحيد الذي كان له معنى زمني يخصّ العميل
- *    (الفواتير تُعرض في بطاقة العميل)، ولا نرسم رقماً لا مصدر له.
- * 3. **التصدير** (`GET /platform/usage/export.csv`) — بيانٌ تلقائي بترميز BOM وفواصل
- *    RFC 4180 لمن يمسك الفوترة. وهو **بصلاحية المال** `console.billing.manage`، بخلاف
- *    الرؤية التي تكفيها `console.tenants.view`؛ فمن لا يملكها يرى زرّاً يشرح السبب بدل
- *    طلبٍ يعود 403.
- *
- * وقراءتان تُعلَنان في الشاشة ولا تُسكَت: **٨٠٪ ناعم** (راية وإشعار وتدقيق) و**١٠٠٪ صلب**
- * (رفض برمز `USAGE_LIMIT_REACHED`)، وأن الحدّ الذي مصدره `default` مغلّفٌ يُبلَّغ عنه ولا
- * يمنع لأن الفهرس يصف منشأةً جديدة — والعمود «من أين جاء الحدّ» هو ما يفرّق بينهما.
- */
+import { useQuery } from '../../lib/use-query';
 
 const STATE_LABEL: Record<UsageMetricState, string> = {
   ok: 'طبيعي',
@@ -51,6 +31,12 @@ const SOURCE_LABEL: Record<'tenant' | 'plan' | 'platform' | 'default', string> =
   plan: 'حدّ الباقة',
   platform: 'افتراض المنصة',
   default: 'مغلّف الفهرس',
+};
+
+const REQUEST_STATUS_LABEL: Record<UsageRequestStatus, string> = {
+  pending: 'بانتظار الاعتماد',
+  approved: 'معتمد ومطبّق',
+  rejected: 'مرفوض',
 };
 
 function toneOf(state: UsageMetricState): 'ok' | 'warn' | 'danger' {
@@ -69,13 +55,23 @@ export default function UsagePage() {
     () => apiData<PlatformUsageGridResponse>('/platform/usage'),
     [],
   );
+  const [reqFilter, setReqFilter] = useState<'all' | UsageRequestStatus>('pending');
+  const requests = useQuery<UsageRequest[]>(
+    () =>
+      apiList<UsageRequest>(
+        reqFilter === 'all' ? '/platform/usage/requests' : `/platform/usage/requests?status=${reqFilter}`,
+      ),
+    [reqFilter],
+  );
+
   const [selected, setSelected] = useState<string | undefined>();
   const [search, setSearch] = useState('');
   const [exporting, setExporting] = useState(false);
   const [exports, setExports] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>();
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [approvedLimits, setApprovedLimits] = useState<Record<string, string>>({});
+  const [decisionNotes, setDecisionNotes] = useState<Record<string, string>>({});
 
-  // A tenant is only fetched once an operator asks for it — the grid already carries the
-  // eight numbers, and this call adds the series and the per-metric sentence.
   const detail = useQuery<UsageSnapshot | undefined>(
     () =>
       selected ? apiData<UsageSnapshot>(`/platform/usage?tenantId=${selected}`) : Promise.resolve(undefined),
@@ -90,6 +86,44 @@ export default function UsagePage() {
       row.tenantName.includes(needle) ||
       row.tenantCode.toLowerCase().includes(needle.toLowerCase()),
   );
+
+  async function handleReview(req: UsageRequest, approve: boolean) {
+    setReviewingId(req.id);
+    setExports(undefined);
+    try {
+      const customLimitRaw = approvedLimits[req.id];
+      const approvedLimit =
+        approve && req.requestType === 'quota_increase'
+          ? Number(customLimitRaw !== undefined ? customLimitRaw : (req.requestedLimit ?? 1))
+          : undefined;
+      await apiPost<UsageRequest>(`/platform/usage/requests/${req.id}/review`, {
+        approve,
+        approvedLimit,
+        decisionNotes: decisionNotes[req.id] ?? '',
+      });
+      setExports({
+        kind: 'ok',
+        text: approve
+          ? `تم اعتماد طلب المنشأة «${req.tenantName ?? req.tenantCode}» وتطبيق الحصة/الباقة الجديدة تلقائياً وإشعار المنشأة.`
+          : `تم رفض طلب المنشأة «${req.tenantName ?? req.tenantCode}» وإرسال إشعار بالقرار.`,
+      });
+      requests.reload();
+      grid.reload();
+      if (selected) detail.reload();
+    } catch (error) {
+      setExports({
+        kind: 'danger',
+        text:
+          error instanceof ApiError && error.isForbidden
+            ? 'اعتماد الطلبات يحتاج صلاحية «إدارة الفوترة» (console.billing.manage).'
+            : error instanceof Error
+              ? error.message
+              : String(error),
+      });
+    } finally {
+      setReviewingId(null);
+    }
+  }
 
   async function exportCsv() {
     setExporting(true);
@@ -115,7 +149,6 @@ export default function UsagePage() {
     }
   }
 
-  /** أعمدةُ شبكة الاستهلاك — تتولّد من سجلّ المقاييس نفسه، فلا عمودٌ مكتوبٌ بخطّ اليد. */
   const gridColumns: Array<Column<PlatformUsageGridRow>> = [
     {
       key: 'tenant',
@@ -167,14 +200,23 @@ export default function UsagePage() {
     },
   ];
 
+  const requestRows = requests.data ?? [];
+
   return (
     <Screen
-      title="الاستخدام والحصص"
-      subtitle="ما يستهلكه كل عميل، وحدّه، ومن بلغه — ناعماً عند ٨٠٪ وصلباً عند ١٠٠٪."
+      title="الاستخدام والحصص وطلبات الاعتماد"
+      subtitle="مراقبة التزام المنشآت بسياسات الاستخدام والحصص للباقات، واعتماد طلبات رفع الحصص أو ترقية الباقات."
       crumbs={['المنصة', 'العملاء']}
       actions={
         <>
-          <button className="btn" type="button" onClick={grid.reload}>
+          <button
+            className="btn"
+            type="button"
+            onClick={() => {
+              grid.reload();
+              requests.reload();
+            }}
+          >
             تحديث
           </button>
           <button className="btn primary" type="button" disabled={exporting} onClick={() => void exportCsv()}>
@@ -184,6 +226,178 @@ export default function UsagePage() {
       }
     >
       {exports && <p className={`alert ${exports.kind}`}>{exports.text}</p>}
+
+      <Panel>
+        <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <h2 style={{ margin: 0 }}>
+            طلبات المنشآت لاعتماد رفع الحصص وترقية الباقات ({requestRows.length})
+          </h2>
+          <div className="row" style={{ gap: 6 }}>
+            {(['pending', 'approved', 'rejected', 'all'] as const).map((st) => (
+              <button
+                key={st}
+                type="button"
+                className={`btn sm ${reqFilter === st ? 'primary' : ''}`}
+                onClick={() => setReqFilter(st)}
+              >
+                {st === 'pending'
+                  ? 'بانتظار الاعتماد'
+                  : st === 'approved'
+                    ? 'المعتمدة'
+                    : st === 'rejected'
+                      ? 'المرفوضة'
+                      : 'الكل'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {requests.status === 'loading' && <Loading rows={2} />}
+        {requests.status === 'success' && requestRows.length === 0 && (
+          <p className="muted small" style={{ marginBottom: 0 }}>
+            لا توجد طلبات ضمن التصفية الحالية.
+          </p>
+        )}
+        {requests.status === 'success' && requestRows.length > 0 && (
+          <Table
+            bare
+            columns={[
+              {
+                key: 'tenant',
+                header: 'المنشأة والباقة',
+                cell: (req) => (
+                  <>
+                    <strong>{req.tenantName ?? '—'}</strong>
+                    <div className="muted small" dir="ltr">
+                      {req.tenantCode}
+                    </div>
+                    {req.currentPlanName ? (
+                      <div className="muted small">الباقة: {req.currentPlanName}</div>
+                    ) : null}
+                  </>
+                ),
+              },
+              {
+                key: 'target',
+                header: 'تفاصيل الطلب',
+                cell: (req) => {
+                  if (req.requestType === 'quota_increase') {
+                    return (
+                      <>
+                        <strong>رفع حصة: {req.metricLabelAr ?? req.metricKey}</strong>
+                        <div className="muted small">
+                          المستهلك: {req.currentUsed ?? 0} · الحد الحالي:{' '}
+                          {req.currentLimit === null ? 'بلا حد' : req.currentLimit} ← المطلوب:{' '}
+                          <strong>{req.requestedLimit}</strong>
+                        </div>
+                      </>
+                    );
+                  }
+                  if (req.requestType === 'plan_upgrade') {
+                    return (
+                      <>
+                        <strong>ترقية باقة</strong>
+                        <div className="muted small">إلى: «{req.requestedPlanName ?? '—'}»</div>
+                      </>
+                    );
+                  }
+                  return (
+                    <>
+                      <strong>تفعيل ميزة</strong>
+                      <div className="muted small">{req.moduleLabelAr ?? req.moduleKey}</div>
+                    </>
+                  );
+                },
+              },
+              {
+                key: 'reason',
+                header: 'مبررات المنشأة',
+                grow: true,
+                cell: (req) => (
+                  <>
+                    <div>{req.reason}</div>
+                    <div className="muted small" dir="ltr">
+                      {req.requestedByEmail ?? ''} · {dateText(req.createdAt)}
+                    </div>
+                  </>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'الحالة',
+                cell: (req) => (
+                  <span
+                    className={`badge ${
+                      req.status === 'approved' ? 'ready' : req.status === 'rejected' ? 'hard' : 'soft'
+                    }`}
+                  >
+                    {REQUEST_STATUS_LABEL[req.status]}
+                  </span>
+                ),
+              },
+              {
+                key: 'review',
+                header: 'قرار إدارة المنصة',
+                cell: (req) => {
+                  if (req.status !== 'pending') {
+                    return (
+                      <div className="muted small">
+                        {req.approvedLimit !== null ? <div>السقف المعتمد: {req.approvedLimit}</div> : null}
+                        <div>{req.decisionNotes ?? '—'}</div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div style={{ display: 'grid', gap: 6, minWidth: 220 }}>
+                      {req.requestType === 'quota_increase' && (
+                        <input
+                          className="input"
+                          type="number"
+                          min={1}
+                          dir="ltr"
+                          placeholder="السقف المعتمد"
+                          value={approvedLimits[req.id] ?? String(req.requestedLimit ?? '')}
+                          onChange={(e) =>
+                            setApprovedLimits((prev) => ({ ...prev, [req.id]: e.target.value }))
+                          }
+                        />
+                      )}
+                      <input
+                        className="input"
+                        placeholder="ملاحظات الاعتماد / سبب الرفض..."
+                        value={decisionNotes[req.id] ?? ''}
+                        onChange={(e) =>
+                          setDecisionNotes((prev) => ({ ...prev, [req.id]: e.target.value }))
+                        }
+                      />
+                      <div className="row" style={{ gap: 6 }}>
+                        <button
+                          className="btn sm primary"
+                          type="button"
+                          disabled={reviewingId === req.id}
+                          onClick={() => void handleReview(req, true)}
+                        >
+                          اعتماد وتطبيق
+                        </button>
+                        <button
+                          className="btn sm"
+                          type="button"
+                          disabled={reviewingId === req.id}
+                          onClick={() => void handleReview(req, false)}
+                        >
+                          رفض
+                        </button>
+                      </div>
+                    </div>
+                  );
+                },
+              },
+            ]}
+            rows={requestRows}
+            rowKey={(req) => req.id}
+          />
+        )}
+      </Panel>
 
       {grid.status === 'loading' && <Loading rows={5} />}
       {grid.status === 'error' && <ErrorBox message={grid.error} onRetry={grid.reload} />}
@@ -211,8 +425,7 @@ export default function UsagePage() {
               <dd>{data.totals.invoicesThisMonth.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</dd>
             </dl>
             <p className="muted small" style={{ marginBottom: 0 }}>
-              الحدّ الذي يمنع هو ما كتبه مشغّل (تجاوز العميل أو افتراض المنصة)؛ ومغلّف الفهرس الافتراضي يُعرض
-              بوسم «مغلّف الفهرس» ولا يمنع — لو مُنع لتوقّف كل عميل قائم عند نشر الحصص.
+              تُطبَّق حدود الباقة النشطة أو التجريبية إلزامياً على المنشأة، ويعلو فوقها التجاوز المعتمد لمنشأة بعينها.
             </p>
           </Panel>
 
@@ -358,10 +571,6 @@ export default function UsagePage() {
   );
 }
 
-/**
- * خليّة قياسٍ واحدة في الشبكة: الرقم فوق، والمتر تحته. الحالة تأتي من الـAPI (`state`)
- * ولا تُحسب هنا — القاعدة الواحدة (٨٠٪ ناعم) تعيش في العقود.
- */
 function MetricCell({ row, metric }: { row: PlatformUsageGridRow; metric: UsageMetricKey }) {
   const entry = row.metrics.find((item) => item.key === metric);
   if (!entry) return <span className="muted">—</span>;
