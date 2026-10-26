@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- أيقونةُ شريط الحالة: باصٌ أبيض مبسّط (يُلوَّن من النظام). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M6,4.5 h12 a2,2 0 0 1 2,2 v8 a2,2 0 0 1 -2,2 h-12 a2,2 0 0 1 -2,-2 v-8 a2,2 0 0 1 2,-2 z" />
+    <path
+        android:fillColor="#66000000"
+        android:pathData="M6.5,7 h3.5 a0.8,0.8 0 0 1 0.8,0.8 v2.4 a0.8,0.8 0 0 1 -0.8,0.8 h-3.5 a0.8,0.8 0 0 1 -0.8,-0.8 v-2.4 a0.8,0.8 0 0 1 0.8,-0.8 z" />
+    <path
+        android:fillColor="#66000000"
+        android:pathData="M12.5,7 h3.5 a0.8,0.8 0 0 1 0.8,0.8 v2.4 a0.8,0.8 0 0 1 -0.8,0.8 h-3.5 a0.8,0.8 0 0 1 -0.8,-0.8 v-2.4 a0.8,0.8 0 0 1 0.8,-0.8 z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M4.8,13.5 h14.4 v1 h-14.4 z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M7.5,17.5 m-2.1,0 a2.1,2.1 0 1 1 4.2,0 a2.1,2.1 0 1 1 -4.2,0" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M16.5,17.5 m-2.1,0 a2.1,2.1 0 1 1 4.2,0 a2.1,2.1 0 1 1 -4.2,0" />
+</vector>
