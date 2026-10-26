@@ -410,6 +410,7 @@ describe('توثيق البيئة والبناء', () => {
 
   it('يعزل منافذ PostgreSQL وRedis على 127.0.0.1 في Docker ويوفر سكربت sync-host.sh قابل للتنفيذ', () => {
     const infraCompose = read('infrastructure/docker-compose.yml');
+    expect(infraCompose).not.toMatch(/^\s*version\s*:/m);
     expect(infraCompose).toContain("'127.0.0.1:5432:5432'");
     expect(infraCompose).toContain("'127.0.0.1:6379:6379'");
 
@@ -425,6 +426,8 @@ describe('توثيق البيئة والبناء', () => {
     expect(syncHost).toContain("listen_addresses = 'localhost'");
     expect(syncHost).toContain('bind 127.0.0.1 ::1');
     expect(syncHost).toContain('/etc/nginx/sites-available/erpcloud');
+    expect(syncHost).toContain('com.docker.compose.project');
+    expect(syncHost).toContain('_postgres_data');
   });
 
   it('يخدم جذر بوابة العملاء بحالة 200 مباشرة ويعيد كتابة 404 التسويقية داخلياً بلا EPROTO', () => {

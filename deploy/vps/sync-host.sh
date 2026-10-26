@@ -193,13 +193,82 @@ if [ "$REDIS_UPDATED" -eq 1 ] && command -v systemctl >/dev/null 2>&1; then
   fi
 fi
 
-# ── 4) تحقّق نهائي من المنافذ المستمعة ───────────────────────────────────────
+# ── 4) عزل حاويات Docker (erp-postgres / erp-redis) إن كانت مستضافة عبر Docker ─
+DOCKER_REBOUND=0
+if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+  if docker container inspect erp-postgres >/dev/null 2>&1; then
+    pg_ports="$(docker port erp-postgres 5432/tcp 2>/dev/null || true)"
+    if printf '%s\n' "$pg_ports" | grep -Eq '^(0\.0\.0\.0|\[::\]|:::):5432$'; then
+      say "تقييد حاوية Docker (erp-postgres) على 127.0.0.1:5432 مع الحفاظ على البيانات"
+      PG_PROJECT="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' erp-postgres 2>/dev/null || true)"
+      PG_VOL="$(docker inspect -f '{{ range .Mounts }}{{ if eq .Destination "/var/lib/postgresql/data" }}{{ .Name }}{{ end }}{{ end }}' erp-postgres 2>/dev/null || true)"
+      if [ -n "$PG_PROJECT" ] && [ "$PG_VOL" = "${PG_PROJECT}_postgres_data" ] && [ -f "$ROOT/infrastructure/docker-compose.yml" ]; then
+        docker compose -p "$PG_PROJECT" -f "$ROOT/infrastructure/docker-compose.yml" up -d postgres
+        for _ in $(seq 1 30); do
+          if docker exec erp-postgres pg_isready -U app >/dev/null 2>&1; then
+            break
+          fi
+          sleep 1
+        done
+        DOCKER_REBOUND=1
+        ok "أُعيد ربط erp-postgres على 127.0.0.1:5432 مع الحفاظ على الحجم الدائم ($PG_VOL)"
+      else
+        warn "تعذّر التعرّف الآلي على مشروع Compose لحاوية erp-postgres (project='$PG_PROJECT'، volume='$PG_VOL') — لم تُمسّ الحاوية حفاظاً على البيانات"
+      fi
+    else
+      ok "حاوية erp-postgres مقصورة مسبقاً على 127.0.0.1:5432"
+    fi
+  fi
+
+  if docker container inspect erp-redis >/dev/null 2>&1; then
+    redis_ports="$(docker port erp-redis 6379/tcp 2>/dev/null || true)"
+    if printf '%s\n' "$redis_ports" | grep -Eq '^(0\.0\.0\.0|\[::\]|:::):6379$'; then
+      say "تقييد حاوية Docker (erp-redis) على 127.0.0.1:6379 مع الحفاظ على البيانات"
+      REDIS_PROJECT="$(docker inspect -f '{{ index .Config.Labels "com.docker.compose.project" }}' erp-redis 2>/dev/null || true)"
+      REDIS_VOL="$(docker inspect -f '{{ range .Mounts }}{{ if eq .Destination "/data" }}{{ .Name }}{{ end }}{{ end }}' erp-redis 2>/dev/null || true)"
+      if [ -n "$REDIS_PROJECT" ] && { [ -z "$REDIS_VOL" ] || [ "$REDIS_VOL" = "${REDIS_PROJECT}_redis_data" ]; } && [ -f "$ROOT/infrastructure/docker-compose.yml" ]; then
+        docker compose -p "$REDIS_PROJECT" -f "$ROOT/infrastructure/docker-compose.yml" up -d redis
+        for _ in $(seq 1 15); do
+          if docker exec erp-redis redis-cli ping 2>/dev/null | grep -q PONG; then
+            break
+          fi
+          sleep 1
+        done
+        DOCKER_REBOUND=1
+        ok "أُعيد ربط erp-redis على 127.0.0.1:6379 مع الحفاظ على الحجم الدائم (${REDIS_VOL:-redis_data})"
+      else
+        warn "تعذّر التعرّف الآلي على مشروع Compose لحاوية erp-redis (project='$REDIS_PROJECT'، volume='$REDIS_VOL') — لم تُمسّ الحاوية"
+      fi
+    else
+      ok "حاوية erp-redis مقصورة مسبقاً على 127.0.0.1:6379"
+    fi
+  fi
+fi
+
+# إذا أُعيد ربط حاويات القاعدة/Redis، نعيد تحميل erp-api وerp-worker لتجديد اتصالات المجمّع فوراً
+if [ "$DOCKER_REBOUND" -eq 1 ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+  if su - "$SUDO_USER" -c 'command -v pm2 >/dev/null 2>&1'; then
+    su - "$SUDO_USER" -c 'pm2 reload erp-api erp-worker >/dev/null 2>&1' || true
+    for _ in $(seq 1 30); do
+      if curl -fsS http://127.0.0.1:3000/health/ready >/dev/null 2>&1; then
+        ok "تم تجديد اتصال erp-api وerp-worker بقاعدة البيانات وRedis بنجاح"
+        break
+      fi
+      sleep 1
+    done
+  fi
+fi
+
+# ── 5) تحقّق نهائي من المنافذ المستمعة ───────────────────────────────────────
 if command -v ss >/dev/null 2>&1; then
   exposed="$(ss -ltn 2>/dev/null | awk '$4 ~ /:(3000|3001|3002|3003|3004|3005|5432|6379)$/ && $4 !~ /^127\.0\.0\.1:/ && $4 !~ /^\[::1\]:/')"
   if [ -z "$exposed" ]; then
     ok "جميع المنافذ الداخلية (3000–3005، 5432، 6379) مستمعة على loopback فقط"
   else
-    warn "لا تزال هناك منافذ مستمعة على غير loopback (إن كانت من Docker فأعد إنشاء الحاويات بعد تحديث docker-compose.yml):"
+    warn "لا تزال هناك منافذ مستمعة على غير loopback:"
     printf '%s\n' "$exposed"
+    if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+      docker ps --format '  • container={{.Names}} image={{.Image}} ports={{.Ports}}' | grep -E ':(5432|6379)->' || true
+    fi
   fi
 fi
