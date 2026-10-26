@@ -509,11 +509,9 @@ export class ContractingService {
   private async loadContract(tx: DrizzleTx, tenantId: string, id: string) {
     const [contract] = await tx.select().from(contractorContracts).where(and(eq(contractorContracts.tenantId, tenantId), eq(contractorContracts.id, id)));
     if (!contract) throw new DomainError('CONTRACT_NOT_FOUND', 'Contractor contract was not found', 404);
-    const [lines, payments, project] = await Promise.all([
-      tx.select().from(contractorContractLines).where(and(eq(contractorContractLines.tenantId, tenantId), eq(contractorContractLines.contractId, id))),
-      tx.select().from(contractorPayments).where(and(eq(contractorPayments.tenantId, tenantId), eq(contractorPayments.contractId, id))),
-      tx.select().from(projects).where(and(eq(projects.tenantId, tenantId), eq(projects.id, contract.projectId))),
-    ]);
+    const lines = await tx.select().from(contractorContractLines).where(and(eq(contractorContractLines.tenantId, tenantId), eq(contractorContractLines.contractId, id)));
+    const payments = await tx.select().from(contractorPayments).where(and(eq(contractorPayments.tenantId, tenantId), eq(contractorPayments.contractId, id)));
+    const project = await tx.select().from(projects).where(and(eq(projects.tenantId, tenantId), eq(projects.id, contract.projectId)));
     return {
       ...contract,
       projectBranchId: project[0]?.branchId ?? null,

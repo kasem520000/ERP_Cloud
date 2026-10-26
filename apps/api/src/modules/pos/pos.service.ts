@@ -236,188 +236,177 @@ export class PosService {
   async offlineData(tenantId: string) {
     await this.ensureEnabled(tenantId);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const [
-        itemRows,
-        categoryRows,
-        unitRows,
-        taxRows,
-        customerRows,
-        branchRows,
-        warehouseRows,
-        cashRows,
-        priceListRows,
-      ] = await Promise.all([
-        tx
-          .select({
-            id: items.id,
-            sku: items.sku,
-            barcode: items.barcode,
-            nameAr: items.nameAr,
-            nameEn: items.nameEn,
-            categoryId: items.categoryId,
-            baseUnitId: items.baseUnitId,
-            kind: items.kind,
-            salePrice: items.salePrice,
-            taxGroupId: items.taxGroupId,
-            trackLot: items.trackLot,
-            trackSerial: items.trackSerial,
-            weightedScale: items.weightedScale,
-          })
-          .from(items)
-          .where(and(eq(items.tenantId, tenantId), eq(items.showInPos, true), isNull(items.deletedAt)))
-          .limit(10000),
-        tx
-          .select({
-            id: itemCategories.id,
-            code: itemCategories.code,
-            nameAr: itemCategories.nameAr,
-            nameEn: itemCategories.nameEn,
-            sortOrder: itemCategories.sortOrder,
-          })
-          .from(itemCategories)
-          .where(
-            and(
-              eq(itemCategories.tenantId, tenantId),
-              eq(itemCategories.showInPos, true),
-              isNull(itemCategories.deletedAt),
-            ),
+      // تنفيذ متسلسل على عميل المعاملة `tx` الواحد لتفادي تحذير إهمال pg@9.0 عند تداخل client.query().
+      const itemRows = await tx
+        .select({
+          id: items.id,
+          sku: items.sku,
+          barcode: items.barcode,
+          nameAr: items.nameAr,
+          nameEn: items.nameEn,
+          categoryId: items.categoryId,
+          baseUnitId: items.baseUnitId,
+          kind: items.kind,
+          salePrice: items.salePrice,
+          taxGroupId: items.taxGroupId,
+          trackLot: items.trackLot,
+          trackSerial: items.trackSerial,
+          weightedScale: items.weightedScale,
+        })
+        .from(items)
+        .where(and(eq(items.tenantId, tenantId), eq(items.showInPos, true), isNull(items.deletedAt)))
+        .limit(10000);
+      const categoryRows = await tx
+        .select({
+          id: itemCategories.id,
+          code: itemCategories.code,
+          nameAr: itemCategories.nameAr,
+          nameEn: itemCategories.nameEn,
+          sortOrder: itemCategories.sortOrder,
+        })
+        .from(itemCategories)
+        .where(
+          and(
+            eq(itemCategories.tenantId, tenantId),
+            eq(itemCategories.showInPos, true),
+            isNull(itemCategories.deletedAt),
           ),
-        tx
-          .select({
-            id: unitsOfMeasure.id,
-            code: unitsOfMeasure.code,
-            nameAr: unitsOfMeasure.nameAr,
-            nameEn: unitsOfMeasure.nameEn,
-          })
-          .from(unitsOfMeasure)
-          .where(and(eq(unitsOfMeasure.tenantId, tenantId), isNull(unitsOfMeasure.deletedAt))),
-        tx
-          .select({
-            id: taxGroups.id,
-            nameAr: taxGroups.nameAr,
-            nameEn: taxGroups.nameEn,
-            rate: taxGroups.rate,
-            isInclusiveDefault: taxGroups.isInclusiveDefault,
-          })
-          .from(taxGroups)
-          .where(and(eq(taxGroups.tenantId, tenantId), isNull(taxGroups.deletedAt))),
-        tx
-          .select({
-            id: parties.id,
-            code: parties.code,
-            name: parties.name,
-            phone: parties.phone,
-            email: parties.email,
-            branchId: parties.branchId,
-          })
-          .from(parties)
-          .where(
-            and(
-              eq(parties.tenantId, tenantId),
-              sql`${parties.kind} in ('customer', 'both')`,
-              isNull(parties.deletedAt),
-            ),
-          )
-          .limit(10000),
-        tx
-          .select({
-            id: branches.id,
-            code: branches.code,
-            nameAr: branches.nameAr,
-            nameEn: branches.nameEn,
-            isDefault: branches.isDefault,
-          })
-          .from(branches)
-          .where(
-            and(eq(branches.tenantId, tenantId), eq(branches.isActive, true), isNull(branches.deletedAt)),
+        );
+      const unitRows = await tx
+        .select({
+          id: unitsOfMeasure.id,
+          code: unitsOfMeasure.code,
+          nameAr: unitsOfMeasure.nameAr,
+          nameEn: unitsOfMeasure.nameEn,
+        })
+        .from(unitsOfMeasure)
+        .where(and(eq(unitsOfMeasure.tenantId, tenantId), isNull(unitsOfMeasure.deletedAt)));
+      const taxRows = await tx
+        .select({
+          id: taxGroups.id,
+          nameAr: taxGroups.nameAr,
+          nameEn: taxGroups.nameEn,
+          rate: taxGroups.rate,
+          isInclusiveDefault: taxGroups.isInclusiveDefault,
+        })
+        .from(taxGroups)
+        .where(and(eq(taxGroups.tenantId, tenantId), isNull(taxGroups.deletedAt)));
+      const customerRows = await tx
+        .select({
+          id: parties.id,
+          code: parties.code,
+          name: parties.name,
+          phone: parties.phone,
+          email: parties.email,
+          branchId: parties.branchId,
+        })
+        .from(parties)
+        .where(
+          and(
+            eq(parties.tenantId, tenantId),
+            sql`${parties.kind} in ('customer', 'both')`,
+            isNull(parties.deletedAt),
           ),
-        tx
-          .select({
-            id: warehouses.id,
-            branchId: warehouses.branchId,
-            code: warehouses.code,
-            name: warehouses.name,
-            isDefault: warehouses.isDefault,
-          })
-          .from(warehouses)
-          .where(
-            and(
-              eq(warehouses.tenantId, tenantId),
-              eq(warehouses.isActive, true),
-              isNull(warehouses.deletedAt),
-            ),
+        )
+        .limit(10000);
+      const branchRows = await tx
+        .select({
+          id: branches.id,
+          code: branches.code,
+          nameAr: branches.nameAr,
+          nameEn: branches.nameEn,
+          isDefault: branches.isDefault,
+        })
+        .from(branches)
+        .where(
+          and(eq(branches.tenantId, tenantId), eq(branches.isActive, true), isNull(branches.deletedAt)),
+        );
+      const warehouseRows = await tx
+        .select({
+          id: warehouses.id,
+          branchId: warehouses.branchId,
+          code: warehouses.code,
+          name: warehouses.name,
+          isDefault: warehouses.isDefault,
+        })
+        .from(warehouses)
+        .where(
+          and(
+            eq(warehouses.tenantId, tenantId),
+            eq(warehouses.isActive, true),
+            isNull(warehouses.deletedAt),
           ),
-        tx
-          .select({
-            id: cashLocations.id,
-            branchId: cashLocations.branchId,
-            kind: cashLocations.kind,
-            name: cashLocations.name,
-            isDefault: cashLocations.isDefault,
-            changeInPos: cashLocations.changeInPos,
-          })
-          .from(cashLocations)
-          .where(
-            and(
-              eq(cashLocations.tenantId, tenantId),
-              eq(cashLocations.isActive, true),
-              isNull(cashLocations.deletedAt),
-            ),
+        );
+      const cashRows = await tx
+        .select({
+          id: cashLocations.id,
+          branchId: cashLocations.branchId,
+          kind: cashLocations.kind,
+          name: cashLocations.name,
+          isDefault: cashLocations.isDefault,
+          changeInPos: cashLocations.changeInPos,
+        })
+        .from(cashLocations)
+        .where(
+          and(
+            eq(cashLocations.tenantId, tenantId),
+            eq(cashLocations.isActive, true),
+            isNull(cashLocations.deletedAt),
           ),
-        tx
-          .select({
-            id: priceLists.id,
-            name: priceLists.name,
-            currencyCode: priceLists.currencyCode,
-            isDefault: priceLists.isDefault,
-          })
-          .from(priceLists)
-          .where(
-            and(
-              eq(priceLists.tenantId, tenantId),
-              eq(priceLists.isActive, true),
-              isNull(priceLists.deletedAt),
-            ),
+        );
+      const priceListRows = await tx
+        .select({
+          id: priceLists.id,
+          name: priceLists.name,
+          currencyCode: priceLists.currencyCode,
+          isDefault: priceLists.isDefault,
+        })
+        .from(priceLists)
+        .where(
+          and(
+            eq(priceLists.tenantId, tenantId),
+            eq(priceLists.isActive, true),
+            isNull(priceLists.deletedAt),
           ),
-      ]);
+        );
 
       const itemIds = itemRows.map((row) => row.id);
-      const [barcodeRows, itemUnitRows, stockRows, priceRows] = await Promise.all([
-        itemIds.length
-          ? tx
-              .select({
-                barcode: itemBarcodes.barcode,
-                itemId: itemBarcodes.itemId,
-                unitId: itemBarcodes.unitId,
-              })
-              .from(itemBarcodes)
-              .where(and(eq(itemBarcodes.tenantId, tenantId), inArray(itemBarcodes.itemId, itemIds)))
-          : Promise.resolve([]),
-        itemIds.length
-          ? tx
-              .select({
-                itemId: itemUnits.itemId,
-                unitId: itemUnits.unitId,
-                ratio: itemUnits.ratio,
-                barcode: itemUnits.barcode,
-                salePrice: itemUnits.salePrice,
-                isDefaultSale: itemUnits.isDefaultSale,
-              })
-              .from(itemUnits)
-              .where(and(eq(itemUnits.tenantId, tenantId), inArray(itemUnits.itemId, itemIds)))
-          : Promise.resolve([]),
-        itemIds.length
-          ? tx
-              .select({
-                itemId: stockBalances.itemId,
-                warehouseId: stockBalances.warehouseId,
-                quantity: stockBalances.quantity,
-              })
-              .from(stockBalances)
-              .where(and(eq(stockBalances.tenantId, tenantId), inArray(stockBalances.itemId, itemIds)))
-          : Promise.resolve([]),
+      const barcodeRows = itemIds.length
+        ? await tx
+            .select({
+              barcode: itemBarcodes.barcode,
+              itemId: itemBarcodes.itemId,
+              unitId: itemBarcodes.unitId,
+            })
+            .from(itemBarcodes)
+            .where(and(eq(itemBarcodes.tenantId, tenantId), inArray(itemBarcodes.itemId, itemIds)))
+        : [];
+      const itemUnitRows = itemIds.length
+        ? await tx
+            .select({
+              itemId: itemUnits.itemId,
+              unitId: itemUnits.unitId,
+              ratio: itemUnits.ratio,
+              barcode: itemUnits.barcode,
+              salePrice: itemUnits.salePrice,
+              isDefaultSale: itemUnits.isDefaultSale,
+            })
+            .from(itemUnits)
+            .where(and(eq(itemUnits.tenantId, tenantId), inArray(itemUnits.itemId, itemIds)))
+        : [];
+      const stockRows = itemIds.length
+        ? await tx
+            .select({
+              itemId: stockBalances.itemId,
+              warehouseId: stockBalances.warehouseId,
+              quantity: stockBalances.quantity,
+            })
+            .from(stockBalances)
+            .where(and(eq(stockBalances.tenantId, tenantId), inArray(stockBalances.itemId, itemIds)))
+        : [];
+      const priceRows =
         priceListRows.length && itemIds.length
-          ? tx
+          ? await tx
               .select({
                 priceListId: priceListItems.priceListId,
                 itemId: priceListItems.itemId,
@@ -436,8 +425,7 @@ export class PosService {
                   inArray(priceListItems.itemId, itemIds),
                 ),
               )
-          : Promise.resolve([]),
-      ]);
+          : [];
 
       const defaultBranch = branchRows.find((row) => row.isDefault) ?? branchRows[0];
       const defaultWarehouse =

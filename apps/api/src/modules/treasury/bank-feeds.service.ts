@@ -869,52 +869,50 @@ export class BankFeedsService {
   private async candidates(tx: DrizzleTx, tenantId: string, bankAccountId?: string): Promise<BankMatchCandidate[]> {
     const bankCashLocIds = await this.bankCashLocationIds(tx, tenantId, bankAccountId);
 
-    const [sales, purchases, voucherRows] = await Promise.all([
-      tx
-        .select({ id: salesInvoices.id, number: salesInvoices.number, total: salesInvoices.total, postedAt: salesInvoices.postedAt, createdAt: salesInvoices.createdAt, partyName: parties.name })
-        .from(salesInvoices)
-        .leftJoin(parties, eq(parties.id, salesInvoices.partyId))
-        .where(
-          and(
-            eq(salesInvoices.tenantId, tenantId),
-            eq(salesInvoices.status, 'posted'),
-            ne(salesInvoices.paymentStatus, 'unpaid'),
-          ),
-        )
-        .orderBy(desc(salesInvoices.createdAt))
-        .limit(1000),
-      tx
-        .select({ id: purchaseInvoices.id, number: purchaseInvoices.number, total: purchaseInvoices.total, postedAt: purchaseInvoices.postedAt, createdAt: purchaseInvoices.createdAt, partyName: parties.name })
-        .from(purchaseInvoices)
-        .leftJoin(parties, eq(parties.id, purchaseInvoices.partyId))
-        .where(
-          and(
-            eq(purchaseInvoices.tenantId, tenantId),
-            eq(purchaseInvoices.status, 'posted'),
-            ne(purchaseInvoices.paymentStatus, 'unpaid'),
-          ),
-        )
-        .orderBy(desc(purchaseInvoices.createdAt))
-        .limit(1000),
-      tx
-        .select({ id: vouchers.id, number: vouchers.number, reference: vouchers.referenceNo, amount: vouchers.amount, date: vouchers.date, description: vouchers.description, partyName: parties.name, kind: vouchers.kind })
-        .from(vouchers)
-        .leftJoin(parties, eq(parties.id, vouchers.partyId))
-        .where(
-          and(
-            eq(vouchers.tenantId, tenantId),
-            eq(vouchers.status, 'posted'),
-            // ACC-035 (R33): when the bank account is linked to treasury locations, only vouchers
-            // on *those* locations are candidates — a transfer on another bank must not reconcile
-            // this statement. Without a link, fall back to the non-cash methods.
-            bankCashLocIds.length
-              ? inArray(vouchers.cashLocationId, bankCashLocIds)
-              : inArray(vouchers.method, BANK_METHODS),
-          ),
-        )
-        .orderBy(desc(vouchers.date))
-        .limit(1000),
-    ]);
+    const sales = await tx
+      .select({ id: salesInvoices.id, number: salesInvoices.number, total: salesInvoices.total, postedAt: salesInvoices.postedAt, createdAt: salesInvoices.createdAt, partyName: parties.name })
+      .from(salesInvoices)
+      .leftJoin(parties, eq(parties.id, salesInvoices.partyId))
+      .where(
+        and(
+          eq(salesInvoices.tenantId, tenantId),
+          eq(salesInvoices.status, 'posted'),
+          ne(salesInvoices.paymentStatus, 'unpaid'),
+        ),
+      )
+      .orderBy(desc(salesInvoices.createdAt))
+      .limit(1000);
+    const purchases = await tx
+      .select({ id: purchaseInvoices.id, number: purchaseInvoices.number, total: purchaseInvoices.total, postedAt: purchaseInvoices.postedAt, createdAt: purchaseInvoices.createdAt, partyName: parties.name })
+      .from(purchaseInvoices)
+      .leftJoin(parties, eq(parties.id, purchaseInvoices.partyId))
+      .where(
+        and(
+          eq(purchaseInvoices.tenantId, tenantId),
+          eq(purchaseInvoices.status, 'posted'),
+          ne(purchaseInvoices.paymentStatus, 'unpaid'),
+        ),
+      )
+      .orderBy(desc(purchaseInvoices.createdAt))
+      .limit(1000);
+    const voucherRows = await tx
+      .select({ id: vouchers.id, number: vouchers.number, reference: vouchers.referenceNo, amount: vouchers.amount, date: vouchers.date, description: vouchers.description, partyName: parties.name, kind: vouchers.kind })
+      .from(vouchers)
+      .leftJoin(parties, eq(parties.id, vouchers.partyId))
+      .where(
+        and(
+          eq(vouchers.tenantId, tenantId),
+          eq(vouchers.status, 'posted'),
+          // ACC-035 (R33): when the bank account is linked to treasury locations, only vouchers
+          // on *those* locations are candidates — a transfer on another bank must not reconcile
+          // this statement. Without a link, fall back to the non-cash methods.
+          bankCashLocIds.length
+            ? inArray(vouchers.cashLocationId, bankCashLocIds)
+            : inArray(vouchers.method, BANK_METHODS),
+        ),
+      )
+      .orderBy(desc(vouchers.date))
+      .limit(1000);
 
     const result: BankMatchCandidate[] = [];
     for (const row of sales) result.push({ id: row.id, type: 'sale', date: dateOnly(row.postedAt ?? row.createdAt), amount: row.total, number: row.number, partyName: row.partyName });

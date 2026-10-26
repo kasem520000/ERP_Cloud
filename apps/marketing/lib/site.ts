@@ -98,9 +98,24 @@ export function hasEnglishTwin(path: string): boolean {
   return BILINGUAL_PATHS.some((known) => known.includes('[slug]') && path.startsWith(known.replace('[slug]', '')));
 }
 
+/** تطبيع رابط الموقع من الإعدادات: يقبل نطاقاً مجرداً (`sahabaccounting.com`) ولا يرمي أبداً عند فساد القيمة. */
+export function parseMetadataBase(raw = ''): URL | undefined {
+  const trimmed = raw.trim().replace(/\/+$/, '');
+  if (!trimmed) return undefined;
+  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return undefined;
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
 /** رابطٌ مطلق بالدالة الواحدة — ولا يُلحق شرطةً مزدوجة أبداً. */
 export function absoluteUrl(path: string, siteUrl = ''): string {
-  const base = siteUrl.replace(/\/+$/, '');
+  const parsed = parseMetadataBase(siteUrl);
+  const base = parsed ? parsed.origin + parsed.pathname.replace(/\/+$/, '') : '';
   const suffix = path.startsWith('/') ? path : `/${path}`;
   return base ? `${base}${suffix}` : suffix;
 }
@@ -149,7 +164,7 @@ export function buildMetadata(input: PageMetaInput): Metadata {
   return {
     title,
     description,
-    metadataBase: site.siteUrl ? new URL(site.siteUrl) : undefined,
+    metadataBase: parseMetadataBase(site.siteUrl),
     alternates: {
       canonical: url,
       ...(twin ? { languages: { ar: arabicUrl, en: englishUrl, 'x-default': arabicUrl } } : {}),

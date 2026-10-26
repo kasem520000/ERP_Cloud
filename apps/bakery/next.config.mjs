@@ -33,7 +33,7 @@ const allowedDevOrigins = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  ...(process.env.NEXT_OUTPUT_STANDALONE === '1' ? { output: 'standalone' } : {}),
   // ‏ADR-030: الحزمة المشتركة تُشحن مصدراً TypeScript فيُصرّفها التطبيق نفسه،
   // فلا خطوة بناءٍ تُزامَن بين الواجهات.
   transpilePackages: ['@erp/ui', '@erp/web-core', '@erp/web-van'],

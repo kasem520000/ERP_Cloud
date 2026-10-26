@@ -74,7 +74,11 @@ export function PortalShell({ children }: { children: ReactNode }) {
                 <Link
                   href={route.href}
                   key={route.key}
-                  className={pathname === route.href ? 'active' : undefined}
+                  className={
+                    pathname === route.href || (pathname === '/' && route.href === '/portal')
+                      ? 'active'
+                      : undefined
+                  }
                 >
                   <span>
                     {route.labelAr}

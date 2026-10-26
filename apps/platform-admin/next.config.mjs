@@ -27,7 +27,7 @@ const allowedDevOrigins = ['localhost', '127.0.0.1', '*.e2b.app', '*.e2b.dev', '
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  ...(process.env.NEXT_OUTPUT_STANDALONE === '1' ? { output: 'standalone' } : {}),
   // Design System v3 — the shared kit ships as TypeScript source and is
   // compiled by this app's own toolchain, so there is no build step to keep
   // in sync between the three surfaces (ADR-030).

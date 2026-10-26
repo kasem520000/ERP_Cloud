@@ -53,10 +53,16 @@ export function createPool(connectionString?: string, max?: number): Pool {
 export function createDatabase(connectionString?: string, max?: number): DatabaseHandle {
   const pool = createPool(connectionString, max);
   const db = drizzle(pool, { schema });
+  let closePromise: Promise<void> | undefined;
   return {
     db,
     pool,
-    close: () => pool.end(),
+    close: () => {
+      // Idempotent shutdown: PM2 / NestJS shutdown hooks may invoke close() more than once
+      // across SIGINT/SIGTERM transitions; pg-pool throws if pool.end() is called twice.
+      closePromise ??= pool.end();
+      return closePromise;
+    },
   };
 }
 
@@ -79,9 +85,10 @@ export function getDb(): DrizzleDb {
 }
 
 export async function closeDb(): Promise<void> {
-  if (singleton) {
-    await singleton.close();
-    singleton = undefined;
+  const current = singleton;
+  singleton = undefined;
+  if (current) {
+    await current.close();
   }
 }
 

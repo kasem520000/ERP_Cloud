@@ -257,9 +257,14 @@ export class CampaignsService {
       };
       for (const row of totals.rows) counts[String(row.status) as CampaignStatus] = Number(row.total);
 
+      // في القائمة تُعرض أرقام الحملة كما تُقرأ من صفوفها لحظتها — بالتسلسل على نفس عميل المعاملة `tx`.
+      const data: CampaignView[] = [];
+      for (const row of rows.rows) {
+        data.push(await this.viewInTx(tx, String(row.id)));
+      }
+
       return {
-        // في القائمة تُعرض أرقام الحملة كما تُقرأ من صفوفها لحظتها — لا من عمودٍ مجمَّد.
-        data: await Promise.all(rows.rows.map((row) => this.viewInTx(tx, String(row.id)))),
+        data,
         meta: {
           total: Number(filtered.rows[0]?.total ?? 0),
           limit: query.limit,

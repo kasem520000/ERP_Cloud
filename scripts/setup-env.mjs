@@ -105,7 +105,7 @@ const surfaceUrls = localUrls
       CUSTOMER_PUBLIC_URL: 'https://portal.sahabaccounting.com',
       CONSOLE_PUBLIC_URL: 'https://admin.sahabaccounting.com',
       CORS_ALLOWED_ORIGINS:
-        'https://sahabaccounting.com,https://staff.sahabaccounting.com,https://portal.sahabaccounting.com,https://admin.sahabaccounting.com,https://bakery.sahabaccounting.com',
+        'https://sahabaccounting.com,https://marketing.sahabaccounting.com,https://staff.sahabaccounting.com,https://portal.sahabaccounting.com,https://admin.sahabaccounting.com,https://bakery.sahabaccounting.com',
     };
 
 const replacements = {

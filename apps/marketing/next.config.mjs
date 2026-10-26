@@ -30,7 +30,13 @@ const apiTarget = (process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:3000').repl
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  ...(process.env.NEXT_OUTPUT_STANDALONE === '1' ? { output: 'standalone' } : {}),
+  // عند التشغيل خلف Nginx على `WEB_HOST=127.0.0.1` مع `X-Forwarded-Proto: https`،
+  // تطبّع `NextURL` عنوان `127.0.0.1` إلى `localhost` داخل الوسيط بينما يبقى `initURL`
+  // في `router-server` على `https://127.0.0.1:3002/...`، فيظنّ Next أنّ `NextResponse.rewrite`
+  // وكيلٌ خارجي ويفتح اتصال TLS خام على منفذ HTTP 3002 (`EPROTO: wrong version number`).
+  // تعطيل تطبيع عنوان الوسيط يحفظ `request.url` و`x-middleware-rewrite` على أصل `initURL` ذاته.
+  skipMiddlewareUrlNormalize: true,
   // Design System v3 — the shared kit ships as TypeScript source and is
   // compiled by this app's own toolchain, so there is no build step to keep
   // in sync between the three surfaces (ADR-030).

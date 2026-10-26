@@ -81,6 +81,8 @@ export async function postServerProblem(
 export function apiBaseFromHeaders(headers: Record<string, string | string[] | undefined>): string | null {
   const explicit = (process.env.PROBLEM_INGEST_URL ?? '').trim();
   if (explicit.length > 0) return explicit.replace(/\/+$/, '');
+  const proxyTarget = (process.env.API_PROXY_TARGET ?? '').trim();
+  if (proxyTarget.length > 0) return `${proxyTarget.replace(/\/+$/, '')}/api/v1`;
   const host = first(headers['x-forwarded-host']) ?? first(headers.host);
   if (!host) return null;
   const proto = first(headers['x-forwarded-proto']) ?? 'http';

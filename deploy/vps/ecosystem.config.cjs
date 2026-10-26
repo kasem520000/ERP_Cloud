@@ -15,8 +15,11 @@
  * 3. **المنافذ على loopback.** `WEB_HOST=127.0.0.1` و`API_HOST=127.0.0.1`: لا وصول
  *    مباشر إلى 3000–3005 من الإنترنت، فكل الطلبات تمرّ بـNginx (وترويسات الأمان
  *    والعنوان الحقيقي للعميل تصبح ذات معنى).
- * 4. **`cwd` مطلق** (‏`__dirname`) فلا يعتمد على المكان الذي تُشغَّل منه `pm2 start`.
- * 5. **إعادة تشغيلٍ عند الفشل** + سقف ذاكرة + سجلّات دوّارة بدل ملفٍّ ينمو بلا حدّ.
+ * 4. **`env_production` مُعرَّف صراحةً.** `deploy.sh` يمرّر `--env production`، فيجد
+ *    PM2 البيئة المعلنة بلا تحذير `Environment [production] is not defined`.
+ * 5. **إغلاق `/api/docs` وتخطّي الهجرة التلقائية المكررة وقت الإقلاع.** `deploy.sh`
+ *    يشغّل `pnpm run db:migrate` بدور المهاجر قبل إعادة التشغيل، فلا تُعيد عملية
+ *    `erp-api` محاولة الهجرة ولا تفتح Swagger في الإنتاج افتراضياً.
  *
  * القيم الحسّاسة في `.env` (‏`chmod 600`) لا هنا: هذا الملف يُحفظ في المستودع.
  *
@@ -28,13 +31,24 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..', '..');
 const app = (dir) => path.join(root, 'apps', dir);
 
+const baseEnv = {
+  NODE_ENV: 'production',
+  TZ: 'Asia/Riyadh',
+  // تقارير أخطاء سيرفرات Next تذهب مباشرة عبر loopback بدلاً من الالتفاف عبر شهادة Cloudflare الخارجية.
+  PROBLEM_INGEST_URL: 'http://127.0.0.1:3000/api/v1',
+  // لا أسرار هنا: `@erp/config` يقرأ `.env` من جذر المستودع بالبحث الصاعد من `cwd`،
+  // فيكفي أن تكون العمليات داخل شجرة المستودع.
+};
+
+const withProductionEnv = (vars) => {
+  const merged = { ...baseEnv, ...vars };
+  return {
+    env: merged,
+    env_production: { ...merged },
+  };
+};
+
 const common = {
-  env: {
-    NODE_ENV: 'production',
-    TZ: 'Asia/Riyadh',
-    // لا أسرار هنا: `@erp/config` يقرأ `.env` من جذر المستودع بالبحث الصاعد من `cwd`،
-    // فيكفي أن تكون العمليات داخل شجرة المستودع.
-  },
   autorestart: true,
   // سقفٌ أعلى من استهلاك الذروة المقاس؛ عند تجاوزه إعادة تشغيل أفضل من swap.
   max_memory_restart: '700M',
@@ -61,16 +75,19 @@ module.exports = {
       // `TRUST_PROXY=loopback` — الدلو المشترك يجعل السقف سقفاً واحداً لا سقفاً لكل نسخة.
       instances: 1,
       exec_mode: 'fork',
-      env: {
-        ...common.env,
+      ...withProductionEnv({
         PORT: '3000',
         API_HOST: '127.0.0.1',
         API_PROXY_TARGET: 'http://127.0.0.1:3000',
         // على VPS تعمل عملية `erp-worker` مستقلة؛ تعطيل العامل المدمج يمنع ازدواج السحب.
         EMBEDDED_WORKER: '0',
+        // `deploy.sh` يشغّل `pnpm run db:migrate` قبل الإقلاع بدور المهاجر؛ تخطّي المحاولة هنا يسرّع الإقلاع ويمنع تعليق الاتصالات.
+        AUTO_MIGRATE: 'false',
+        // توثيق Swagger مغلق في الإنتاج افتراضياً (دفاع بالعمق إلى جانب حجب Nginx).
+        OPENAPI_ENABLED: 'false',
         // خلف Nginx على loopback فقط: الوكيل الوحيد الموثوق.
         TRUST_PROXY: 'loopback',
-      },
+      }),
     },
     {
       ...common,
@@ -81,11 +98,11 @@ module.exports = {
       // نسخة واحدة: توقيع ZATCA وترقيم المستندات يحتاجان تسلسلاً، والتوازي هنا
       // يضاعف العمل لا يسرّعه (القفل في القاعدة هو ما يمنع التكرار).
       instances: 1,
-      env: {
-        ...common.env,
+      exec_mode: 'fork',
+      ...withProductionEnv({
         WORKER: '1',
         // بلا PORT: عمليةٌ بلا مستمع HTTP أصلاً، و`PORT` هنا تُربك القراءة فقط.
-      },
+      }),
     },
     ...['staff', 'marketing', 'platform-admin', 'customer-portal', 'bakery'].map((name, index) => ({
       ...common,
@@ -95,15 +112,14 @@ module.exports = {
       script: 'pnpm',
       args: 'start',
       interpreter: 'none',
-      env: {
-        ...common.env,
+      ...withProductionEnv({
         WEB_HOST: '127.0.0.1',
         API_PROXY_TARGET: 'http://127.0.0.1:3000',
         // المنافذ كما في `apps/*/next.config.mjs` و`deploy/vps/nginx-erpcloud.conf`.
         [`${['STAFF', 'MARKETING', 'PLATFORM_ADMIN', 'CUSTOMER_PORTAL', 'BAKERY'][index]}_PORT`]: String(
           3001 + index,
         ),
-      },
+      }),
     })),
   ],
 };

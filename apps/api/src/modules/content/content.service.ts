@@ -340,6 +340,14 @@ export class ContentService {
 
       const banner = await this.liveBanner(tx);
       const defaultLocale = read('site.default_locale') === 'en' ? 'en' : 'ar';
+      const rawSiteUrl = read('site.url').trim().replace(/\/+$/, '');
+      const normalizedSiteUrl = !rawSiteUrl
+        ? ''
+        : /^https?:\/\//i.test(rawSiteUrl)
+          ? rawSiteUrl
+          : /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])(?::\d+)?(?:\/|$)/i.test(rawSiteUrl)
+            ? `http://${rawSiteUrl}`
+            : `https://${rawSiteUrl}`;
 
       return {
         brandName: read('site.brand_name'),
@@ -350,7 +358,7 @@ export class ContentService {
         supportPhone: read('support.phone'),
         defaultLocale,
         locales: ['ar', 'en'],
-        siteUrl: read('site.url').replace(/\/+$/, ''),
+        siteUrl: normalizedSiteUrl,
         companyLegalName: read('site.company_legal_name'),
         maintenance: values['site.maintenance'] === true || values['site.maintenance'] === 'true',
         menus,

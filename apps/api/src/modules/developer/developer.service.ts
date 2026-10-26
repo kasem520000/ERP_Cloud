@@ -368,23 +368,21 @@ export class DeveloperService {
       if (filters.event) conditions.push(sql`${filters.event} = ANY(${webhookEndpoints.events})`);
       const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-      // `matched` لا `total`: عدّادُ الصفوف ليس مبلغاً، واسمٌ يقول ما هو يمنع قراءته خطأً.
-      const [items, matched] = await Promise.all([
-        tx
-          .select()
-          .from(webhookEndpoints)
-          .where(where)
-          .orderBy(
-            sort
-              ? sort.direction === 'asc'
-                ? asc(sort.column === 'url' ? webhookEndpoints.url : webhookEndpoints.createdAt)
-                : desc(sort.column === 'url' ? webhookEndpoints.url : webhookEndpoints.createdAt)
-              : desc(webhookEndpoints.createdAt),
-          )
-          .limit(limit)
-          .offset(offset),
-        tx.select({ total: count() }).from(webhookEndpoints).where(where),
-      ]);
+      // `matched` لا `total`: عدّادُ الصفوف ليس مبلغاً، والتنفيذ متسلسل على `tx` الواحد.
+      const items = await tx
+        .select()
+        .from(webhookEndpoints)
+        .where(where)
+        .orderBy(
+          sort
+            ? sort.direction === 'asc'
+              ? asc(sort.column === 'url' ? webhookEndpoints.url : webhookEndpoints.createdAt)
+              : desc(sort.column === 'url' ? webhookEndpoints.url : webhookEndpoints.createdAt)
+            : desc(webhookEndpoints.createdAt),
+        )
+        .limit(limit)
+        .offset(offset);
+      const matched = await tx.select({ total: count() }).from(webhookEndpoints).where(where);
       return { items, total: Number(matched[0]?.total ?? 0) };
     });
 
@@ -501,22 +499,20 @@ export class DeveloperService {
       if (filters.event) conditions.push(eq(webhookDeliveries.event, filters.event));
       const where = and(...conditions);
 
-      const [items, matched] = await Promise.all([
-        tx
-          .select()
-          .from(webhookDeliveries)
-          .where(where)
-          .orderBy(
-            sort
-              ? sort.direction === 'asc'
-                ? asc(sort.column === 'status' ? webhookDeliveries.status : webhookDeliveries.createdAt)
-                : desc(sort.column === 'status' ? webhookDeliveries.status : webhookDeliveries.createdAt)
-              : desc(webhookDeliveries.createdAt),
-          )
-          .limit(limit)
-          .offset(offset),
-        tx.select({ total: count() }).from(webhookDeliveries).where(where),
-      ]);
+      const items = await tx
+        .select()
+        .from(webhookDeliveries)
+        .where(where)
+        .orderBy(
+          sort
+            ? sort.direction === 'asc'
+              ? asc(sort.column === 'status' ? webhookDeliveries.status : webhookDeliveries.createdAt)
+              : desc(sort.column === 'status' ? webhookDeliveries.status : webhookDeliveries.createdAt)
+            : desc(webhookDeliveries.createdAt),
+        )
+        .limit(limit)
+        .offset(offset);
+      const matched = await tx.select({ total: count() }).from(webhookDeliveries).where(where);
       return { items, total: Number(matched[0]?.total ?? 0) };
     });
 

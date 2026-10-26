@@ -1756,11 +1756,24 @@ export class VanSalesService {
        * rather than a generic failure.
        */
       const readinessBranchId = await this.resolveDefaultBranchIdInTx(tx, tenantId, null, mainWarehouseId);
-      const [salesProfile, transferProfile, voucherProfile] = await Promise.all([
-        this.resolvePostingProfileOrNullInTx(tx, tenantId, readinessBranchId, 'sales_invoice'),
-        this.resolvePostingProfileOrNullInTx(tx, tenantId, readinessBranchId, 'stock_transfer'),
-        this.resolvePostingProfileOrNullInTx(tx, tenantId, readinessBranchId, 'receipt_voucher'),
-      ]);
+      const salesProfile = await this.resolvePostingProfileOrNullInTx(
+        tx,
+        tenantId,
+        readinessBranchId,
+        'sales_invoice',
+      );
+      const transferProfile = await this.resolvePostingProfileOrNullInTx(
+        tx,
+        tenantId,
+        readinessBranchId,
+        'stock_transfer',
+      );
+      const voucherProfile = await this.resolvePostingProfileOrNullInTx(
+        tx,
+        tenantId,
+        readinessBranchId,
+        'receipt_voucher',
+      );
 
       /**
        * 🧾 هويّةُ البائع الضريبية في لوحة الخطّ أيضًا، لا في `GET /van-sales/policy` وحده:

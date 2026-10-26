@@ -172,8 +172,12 @@ export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
   return SwaggerModule.createDocument(app, config);
 }
 
+export function isOpenApiEnabled(candidate: typeof env = env): boolean {
+  return candidate.OPENAPI_ENABLED ?? candidate.NODE_ENV !== 'production';
+}
+
 export function registerOpenApi(app: INestApplication, document: OpenAPIObject): void {
-  if (!env.OPENAPI_ENABLED) return;
+  if (!isOpenApiEnabled()) return;
   SwaggerModule.setup('api/docs', app, document, {
     jsonDocumentUrl: 'api/docs/openapi.json',
   });

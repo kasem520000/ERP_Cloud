@@ -1,6 +1,5 @@
-import { redirect } from 'next/navigation';
-
-/** The portal surface has no public landing — send everyone to the account dashboard. */
-export default function CustomerPortalHome() {
-  redirect('/portal');
-}
+/**
+ * جذر بوابة العملاء يخدم لوحة الحساب مباشرة بحالة HTTP 200 (متسقاً مع `staff` و`admin`
+ * و`bakery` وفحص `deploy/vps/smoke.sh` §02)، مع بقاء `/portal` شغالاً بالتطابق.
+ */
+export { default } from './portal/page';

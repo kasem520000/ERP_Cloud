@@ -14,7 +14,7 @@ const apiTarget = (process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:3000').repl
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  ...(process.env.NEXT_OUTPUT_STANDALONE === '1' ? { output: 'standalone' } : {}),
   // ‏`@erp/web-core` تُشحن مصدراً TypeScript (ADR-030) فيُصرّفها التطبيق نفسه؛ والبوابة
   // تستهلك منها قرارَ عنوان التسليم (`handoffAction`) بدل نسخةٍ محلية ثانية من القاعدة.
   transpilePackages: ['@erp/web-core'],

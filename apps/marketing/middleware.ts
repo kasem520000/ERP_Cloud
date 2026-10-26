@@ -45,6 +45,22 @@ const CONTENT_DETAIL = /^\/(?:en\/)?(help|changelog|blog|cases|legal)\/([^/]+)$/
  */
 const INDUSTRY_DETAIL = /^\/industries\/([^/]+)$/;
 
+/**
+ * إعادة كتابة داخلية تحافظ على أصل `request.url` الفعلي (`initURL` في Next 15).
+ *
+ * بالاقتران مع `skipMiddlewareUrlNormalize: true` في `next.config.mjs`، يبقى `request.url`
+ * مطابقاً حرفياً لـ`initURL` (`https://127.0.0.1:3002/...`) بدلاً من تطبيع `NextURL` له إلى
+ * `https://localhost:3002/...`، ولا يعيد `adapter` استبدال `x-middleware-rewrite` بـ`localhost`.
+ * هكذا يرى `resolve-routes` التطابق التام في الأصل فيبقى التحويل داخلياً بحالة 404 بلا `EPROTO`.
+ */
+function rewriteNotFound(request: NextRequest, locale: 'ar' | 'en', headers: Headers): NextResponse {
+  const path = `/not-found-view/${locale}${request.nextUrl.search}`;
+  return NextResponse.rewrite(new URL(path, request.url), {
+    status: 404,
+    request: { headers },
+  });
+}
+
 export async function middleware(request: NextRequest) {
   const headers = new Headers(request.headers);
   headers.set('x-pathname', request.nextUrl.pathname);
@@ -53,9 +69,7 @@ export async function middleware(request: NextRequest) {
   if (industryMatch && (request.method === 'GET' || request.method === 'HEAD')) {
     const slug = decodeURIComponent(industryMatch[1] ?? '');
     if (!industrySlugs.includes(slug)) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/not-found-view/ar';
-      return NextResponse.rewrite(url, { status: 404, request: { headers } });
+      return rewriteNotFound(request, 'ar', headers);
     }
   }
 
@@ -83,10 +97,8 @@ export async function middleware(request: NextRequest) {
       published = true;
     }
     if (!published) {
-      const url = request.nextUrl.clone();
       const english = /^\/en(?:\/|$)/.test(request.nextUrl.pathname);
-      url.pathname = `/not-found-view/${english ? 'en' : 'ar'}`;
-      return NextResponse.rewrite(url, { status: 404, request: { headers } });
+      return rewriteNotFound(request, english ? 'en' : 'ar', headers);
     }
   }
 

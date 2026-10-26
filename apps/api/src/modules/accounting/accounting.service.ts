@@ -3824,25 +3824,24 @@ export class AccountingService {
         return rows[0] ?? null;
       };
 
-      const [first, last, previous, next, counted] = await Promise.all([
-        one(undefined, 'asc'),
-        one(undefined, 'desc'),
-        one(before, 'desc'),
-        one(after, 'asc'),
-        tx
-          .select({
-            total: sql<number>`COUNT(*)::int`,
-            position: sql<number>`(COUNT(*) FILTER (WHERE ${journalEntries.id} <= ${entryId}::uuid))::int`,
-            /**
-             * هل القيد **داخل** النطاق أصلاً؟ القيد يُفتح بمعرّفه وقد يقع خارج ما يعرضه
-             * السجل (رابطٌ مباشر إلى قيدٍ في فترةٍ أخرى)، وحينها ليس له موضعٌ في النطاق:
-             * يُقال `0` — لا رقمٌ يحسبه ترتيبُ المعرّفات كأنّه منه وليس فيه.
-             */
-            present: sql<number>`(COUNT(*) FILTER (WHERE ${journalEntries.id} = ${entryId}::uuid))::int`,
-          })
-          .from(journalEntries)
-          .where(scope),
-      ]);
+      // تنفيذ متسلسل على `tx` الواحد (عميل `pg` واحد لكل معاملة؛ `Promise.all` على نفس `tx` يطلق تحذير إهمال pg@9.0).
+      const first = await one(undefined, 'asc');
+      const last = await one(undefined, 'desc');
+      const previous = await one(before, 'desc');
+      const next = await one(after, 'asc');
+      const counted = await tx
+        .select({
+          total: sql<number>`COUNT(*)::int`,
+          position: sql<number>`(COUNT(*) FILTER (WHERE ${journalEntries.id} <= ${entryId}::uuid))::int`,
+          /**
+           * هل القيد **داخل** النطاق أصلاً؟ القيد يُفتح بمعرّفه وقد يقع خارج ما يعرضه
+           * السجل (رابطٌ مباشر إلى قيدٍ في فترةٍ أخرى)، وحينها ليس له موضعٌ في النطاق:
+           * يُقال `0` — لا رقمٌ يحسبه ترتيبُ المعرّفات كأنّه منه وليس فيه.
+           */
+          present: sql<number>`(COUNT(*) FILTER (WHERE ${journalEntries.id} = ${entryId}::uuid))::int`,
+        })
+        .from(journalEntries)
+        .where(scope);
 
       const totals = counted[0] ?? { total: 0, position: 0, present: 0 };
       /**

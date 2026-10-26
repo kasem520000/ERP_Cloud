@@ -57,6 +57,7 @@ COPY apps ./apps
 COPY packages ./packages
 COPY scripts ./scripts
 # الحزم المشتركة أوّلاً (النوعان من التطبيقات يقرآنها في وقت البناء)، ثم التطبيق المطلوب.
+ENV NEXT_OUTPUT_STANDALONE=1
 RUN pnpm --filter "./packages/*" run build
 RUN pnpm --filter "@erp/${APP}" run build
 

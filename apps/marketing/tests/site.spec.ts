@@ -15,6 +15,7 @@ import {
   fallbackSite,
   hasEnglishTwin,
   organizationJsonLd,
+  parseMetadataBase,
   robotsRules,
   sitemapEntries,
   softwareJsonLd,
@@ -266,5 +267,30 @@ describe('marketing SEO (P-M1)', () => {
     for (const surface of cloudSurfaces) {
       expect(existsSync(join(repoRoot, surface.source)), `missing surface source: ${surface.source}`).toBe(true);
     }
+  });
+
+  it('يتسامح مع site.url المجرّد أو الفاسد دون رمي Invalid URL أثناء تصيير Server Components', () => {
+    expect(parseMetadataBase('sahabaccounting.com')?.href).toBe('https://sahabaccounting.com/');
+    expect(parseMetadataBase('https://sahabaccounting.com///')?.href).toBe('https://sahabaccounting.com/');
+    expect(parseMetadataBase('')).toBeUndefined();
+    expect(parseMetadataBase('http://[::1')).toBeUndefined();
+
+    const bareMeta = buildMetadata({
+      locale: 'ar',
+      path: '/',
+      title: 'الرئيسية',
+      description: 'وصف',
+      site: { ...fallbackSite, siteUrl: 'sahabaccounting.com' },
+    });
+    expect(bareMeta.metadataBase?.href).toBe('https://sahabaccounting.com/');
+
+    const malformedMeta = buildMetadata({
+      locale: 'ar',
+      path: '/',
+      title: 'الرئيسية',
+      description: 'وصف',
+      site: { ...fallbackSite, siteUrl: 'http://[::1' },
+    });
+    expect(malformedMeta.metadataBase).toBeUndefined();
   });
 });

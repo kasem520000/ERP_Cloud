@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app-dev-password
     ports:
-      - '5432:5432'
+      - '127.0.0.1:5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -19,7 +19,7 @@ services:
     container_name: erp-redis
     restart: unless-stopped
     ports:
-      - '6379:6379'
+      - '127.0.0.1:6379:6379'
     volumes:
       - redis_data:/data
 
@@ -32,8 +32,8 @@ services:
       MINIO_ROOT_PASSWORD: minioadmin
     command: server /data --console-address ':9001'
     ports:
-      - '9000:9000'
-      - '9001:9001'
+      - '127.0.0.1:9000:9000'
+      - '127.0.0.1:9001:9001'
     volumes:
       - minio_data:/data
 
@@ -42,8 +42,8 @@ services:
     container_name: erp-mailhog
     restart: unless-stopped
     ports:
-      - '1025:1025'
-      - '8025:8025'
+      - '127.0.0.1:1025:1025'
+      - '127.0.0.1:8025:8025'
 
 volumes:
   postgres_data:

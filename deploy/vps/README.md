@@ -8,22 +8,19 @@
 |---|---|---|
 | `nginx-erpcloud.conf` | `/etc/nginx/sites-available/erpcloud` | سبعة مضيفين: كتلة `server` مستقلة لكل سطح، 80 → 301، `default_server` بـ444 |
 | `erp-proxy.conf` | `/etc/nginx/snippets/erp-proxy.conf` | ترويسات الوكيل المشتركة (`Host`, `X-Forwarded-*`, WS, مهلات) |
-| `ecosystem.config.cjs` | يبقى داخل المستودع | سبع عمليات PM2: API، worker، وخمس واجهات — كلها على loopback |
-| `deploy.sh` | يبقى داخل المستودع | نشرٌ واحد: تثبيت ← فحص بيئة ← بناء ← هجرات ← `startOrReload` ← فحص صحة |
+| `ecosystem.config.cjs` | يبقى داخل المستودع | سبع عمليات PM2 (`env` + `env_production`): API، worker، وخمس واجهات — كلها على loopback |
+| `sync-host.sh` | يبقى داخل المستودع (`sudo`) | مزامنة Nginx وعزل PostgreSQL (`5432`) وRedis (`6379`) على `127.0.0.1` بخطوة واحدة آمنة |
+| `deploy.sh` | يبقى داخل المستودع | نشرٌ متدرّج: تثبيت ← فحص بيئة ← بناء ← هجرات ← API/worker ← جهوزية ← الواجهات الخمس |
 | `smoke.sh` | يبقى داخل المستودع | 20 فحصاً بعد النشر: الصحة، الأسطح الخمسة، الوكيل، التوجيه، العزل، worker، السقف |
 
 ## التركيب
 
 ```bash
-# 1) Nginx — مرة واحدة (ثم بعد كل تعديل على الملف)
-sudo cp deploy/vps/erp-proxy.conf      /etc/nginx/snippets/erp-proxy.conf
-sudo cp deploy/vps/nginx-erpcloud.conf /etc/nginx/sites-available/erpcloud
-sudo ln -sfn /etc/nginx/sites-available/erpcloud /etc/nginx/sites-enabled/erpcloud
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t && sudo systemctl reload nginx
+# 1) إعدادات المضيف الجذرية (Nginx + عزل PostgreSQL/Redis على loopback) — مرة واحدة أو عند تغيّرها
+chmod +x deploy/vps/sync-host.sh deploy/vps/deploy.sh deploy/vps/smoke.sh
+sudo ./deploy/vps/sync-host.sh
 
 # 2) العمليات — عند كل نشر
-chmod +x deploy/vps/deploy.sh
 ./deploy/vps/deploy.sh
 ```
 

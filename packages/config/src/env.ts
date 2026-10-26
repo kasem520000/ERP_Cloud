@@ -168,7 +168,10 @@ const envSchema = z.object({
   SIGNUP_ENABLED: booleanish.default(true),
 
   CORS_ALLOWED_ORIGINS: csv.default(''),
-  OPENAPI_ENABLED: booleanish.default(true),
+  /** Closed by default in production (`NODE_ENV === 'production'`); enabled in dev/test unless overridden. */
+  OPENAPI_ENABLED: booleanish.optional(),
+  /** Run automatic Drizzle migrations on API boot (disabled on VPS PM2 where `deploy.sh` runs `db:migrate` beforehand). */
+  AUTO_MIGRATE: booleanish.default(true),
 
   S3_ENDPOINT: z.string().optional(),
   S3_BUCKET: z.string().optional(),

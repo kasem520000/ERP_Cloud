@@ -2943,6 +2943,16 @@ tr.total td,
   html {
     overflow-x: clip;
   }
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+  .auth-brand {
+    padding: 28px 20px;
+  }
+  .auth-card {
+    margin: 20px auto 36px;
+    padding: 24px 20px;
+  }
   .shell {
     grid-template-columns: 1fr;
   }

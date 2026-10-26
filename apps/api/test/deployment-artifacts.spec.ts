@@ -170,6 +170,7 @@ describe('إعداد PM2 (deploy/vps/ecosystem.config.cjs)', () => {
         `const c = require(${JSON.stringify(join(root, 'deploy/vps/ecosystem.config.cjs'))});
          process.stdout.write(JSON.stringify({ apps: c.apps.map((a) => ({
            name: a.name, cwd: a.cwd, script: a.script, args: a.args ?? null, env: a.env,
+           env_production: a.env_production ?? null,
            max_memory_restart: a.max_memory_restart ?? null,
          })) }));`,
       ],
@@ -182,6 +183,7 @@ describe('إعداد PM2 (deploy/vps/ecosystem.config.cjs)', () => {
         script: string;
         args: string | null;
         env: Record<string, string>;
+        env_production: Record<string, string> | null;
         max_memory_restart: string | null;
       }[];
     };
@@ -350,11 +352,86 @@ describe('توثيق البيئة والبناء', () => {
     expect(env).toContain('NEXT_PUBLIC_SUPPORT_EMAIL=support@sahabaccounting.com');
   });
 
-  it('كل واجهة تُوكّل افتراضياً إلى 127.0.0.1:3000 لا إلى منفذها', () => {
+  it('كل واجهة تُوكّل افتراضياً إلى 127.0.0.1:3000 لا إلى منفذها، وتفعّل standalone في Docker فقط', () => {
     for (const app of ['staff', 'marketing', 'platform-admin', 'customer-portal', 'bakery']) {
       const config = read(`apps/${app}/next.config.mjs`);
       expect(config, `${app} لا يضبط هدف الوكيل`).toContain('http://127.0.0.1:3000');
       expect(config, `${app} ما زال يبني الهدف من PORT`).not.toMatch(/API_PROXY_TARGET[^\n]*\$\{?PORT/);
+      expect(config, `${app} يفرض standalone على next start`).toContain("process.env.NEXT_OUTPUT_STANDALONE === '1'");
     }
+    expect(read('deploy/Dockerfile.web')).toContain('ENV NEXT_OUTPUT_STANDALONE=1');
+  });
+
+  it('يُعرّف env_production لكل عمليات PM2 ويغلق Swagger والهجرة المكررة في الإنتاج', () => {
+    const output = execFileSync(
+      process.execPath,
+      [
+        '-e',
+        `const c = require(${JSON.stringify(join(root, 'deploy/vps/ecosystem.config.cjs'))});
+         process.stdout.write(JSON.stringify(c.apps));`,
+      ],
+      { encoding: 'utf8' },
+    );
+    const apps = JSON.parse(output) as Array<{
+      name: string;
+      env: Record<string, string>;
+      env_production?: Record<string, string>;
+    }>;
+    for (const app of apps) {
+      expect(app.env_production, `${app.name} يفتقد env_production`).toEqual(app.env);
+    }
+    const api = apps.find((a) => a.name === 'erp-api')!;
+    expect(api.env_production?.OPENAPI_ENABLED).toBe('false');
+    expect(api.env_production?.AUTO_MIGRATE).toBe('false');
+  });
+
+  it('يعزل منافذ PostgreSQL وRedis على 127.0.0.1 في Docker ويوفر سكربت sync-host.sh قابل للتنفيذ', () => {
+    const infraCompose = read('infrastructure/docker-compose.yml');
+    expect(infraCompose).toContain("'127.0.0.1:5432:5432'");
+    expect(infraCompose).toContain("'127.0.0.1:6379:6379'");
+
+    const deployCompose = read('deploy/docker-compose.yml');
+    expect(deployCompose).toContain("'127.0.0.1:5433:5432'");
+    expect(deployCompose).toContain("'127.0.0.1:6380:6379'");
+
+    expect(statSync(join(root, 'deploy/vps/sync-host.sh')).mode & 0o111).not.toBe(0);
+    expect(() =>
+      execFileSync('bash', ['-n', join(root, 'deploy/vps/sync-host.sh')], { stdio: 'pipe' }),
+    ).not.toThrow();
+    const syncHost = read('deploy/vps/sync-host.sh');
+    expect(syncHost).toContain("listen_addresses = 'localhost'");
+    expect(syncHost).toContain('bind 127.0.0.1 ::1');
+    expect(syncHost).toContain('/etc/nginx/sites-available/erpcloud');
+  });
+
+  it('يخدم جذر بوابة العملاء بحالة 200 مباشرة ويعيد كتابة 404 التسويقية داخلياً بلا EPROTO', () => {
+    const portalHome = read('apps/customer-portal/app/page.tsx');
+    expect(portalHome).not.toContain("redirect('/portal')");
+    expect(portalHome).toContain('./portal/page');
+
+    const marketingNextConfig = read('apps/marketing/next.config.mjs');
+    expect(marketingNextConfig).toContain('skipMiddlewareUrlNormalize: true');
+
+    const marketingMiddleware = read('apps/marketing/middleware.ts').replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+    expect(marketingMiddleware).toContain('new URL(path, request.url)');
+    expect(marketingMiddleware).not.toContain('request.nextUrl.clone()');
+
+    const setupEnv = read('scripts/setup-env.mjs');
+    expect(setupEnv).toContain('https://marketing.sahabaccounting.com');
+
+    const apiMain = read('apps/api/src/main.ts');
+    expect(apiMain).toContain('const keepAlive = setInterval');
+    expect(apiMain).toContain('clearInterval(keepAlive)');
+  });
+
+  it('يغلق DatabaseHandle.close() المجمّع مرّة واحدة فقط (idempotent) ويغلق OpenAPI افتراضياً في الإنتاج', async () => {
+    const { createDatabase } = await import('@erp/database');
+    const handle = createDatabase('postgres://invalid:invalid@127.0.0.1:1/nonexistent', 1);
+    await expect(Promise.all([handle.close(), handle.close(), handle.close()])).resolves.toBeDefined();
+
+    const { isOpenApiEnabled } = await import('../src/bootstrap.js');
+    expect(isOpenApiEnabled({ NODE_ENV: 'production', OPENAPI_ENABLED: undefined } as never)).toBe(false);
+    expect(isOpenApiEnabled({ NODE_ENV: 'development', OPENAPI_ENABLED: undefined } as never)).toBe(true);
+    expect(isOpenApiEnabled({ NODE_ENV: 'production', OPENAPI_ENABLED: true } as never)).toBe(true);
   });
 });

@@ -2242,83 +2242,83 @@ export class TreasuryService implements OnModuleInit {
         return custodyAccounts.find((account) => account.id === id);
       };
 
-      return Promise.all(
-        rows.map(async (row) => {
-          const live = row.status === 'open' ? await this.shiftTakings(tx, tenantId, row) : undefined;
-          const summary = (row.summary ?? {}) as Record<string, unknown>;
-          const expenses = (live?.expenses ?? summary.expenses ?? {}) as Record<string, string | undefined>;
-          const pick = (key: string) => live?.[key as keyof typeof live] ?? (summary[key] as string | undefined) ?? '0';
-          const custody = custodyOf(row);
-          return {
-            id: row.id,
-            /** 🔢 الرقم — allocated when the drawer was counted. */
-            number: row.number,
-            status: row.status,
-            employee: nameOf(row.userId),
-            employeeId: row.userId,
-            /** The membership behind the cashier, so a screen can filter by 👤 الموظف. */
-            membershipId: staff.find((person) => person.userId === row.userId)?.membershipId ?? null,
-            openedAt: row.openedAt,
-            closedAt: row.closedAt,
-            /**
-             * 📒 القيد — the entry this count produced, and whether one is still owed.
-             *
-             * R12: a drawer that matched the books is *still* postable, because the count
-             * moves the day's cash into عهدة الإغلاق. Only a drawer that held nothing and
-             * was expected to hold nothing has nothing to post (`SHIFT_BALANCED`).
-             */
-            journalEntryId: row.journalEntryId,
-            postedAt: row.postedAt,
-            postable:
-              row.status === 'closed' &&
-              !row.journalEntryId &&
-              (money(row.diff).abs().gt(0) ||
-                money(row.countedCash).abs().gt(0) ||
-                money(row.expectedCash).abs().gt(0)),
-            /** 🧾 عهدة الإغلاق — where the count landed, once the entry is posted. */
-            custodyAccountId: (summary.custodyAccountId as string | undefined) ?? null,
-            custodyAccountCode: custody ? (custody.code ?? null) : null,
-            custodyAccountName: custody ? (custody.nameAr ?? null) : null,
-            custodyAmount: (summary.custodyAmount as string | undefined) ?? null,
-            /** 💹 الصافي */
-            net: pick('net'),
-            /** 🏦 رصيد الصندوق — what the cashier counted, not what the till expected. */
-            safeBalance: row.status === 'closed' ? row.countedCash : '0',
-            expected: row.status === 'closed' ? row.expectedCash : (live?.expectedCash ?? '0'),
-            /** 📉 الفرق */
-            diff: row.status === 'closed' ? row.diff : '0',
-            /** 🏦 التحويلات البنكية ببنكها (سطور `bank-transfer` عند الإقفال). */
-            banks: (live?.banks ??
-              (summary.banks as Array<{ id: string; name: string; amount: string }> | undefined) ??
-              []) as Array<{ id: string; name: string; amount: string }>,
-            /** 📋 آجل */
-            postponed: pick('postponed'),
-            /** 🌐 الشبكة */
-            network: pick('network'),
-            /** 💵 النقدي */
-            cash: pick('cash'),
-            /** 💰 مجموع الشبكة والنقدي */
-            sumCashAndNetwork: pick('sumCashAndNetwork'),
-            /** 🧾 الضريبة */
-            tax: pick('tax'),
-            /** 🏷️ الخصم */
-            discount: pick('discount'),
-            expenses: {
-              /** 📤 المصاريف */
-              total: expenses.total ?? '0',
-              /** 🚗 توصيل */
-              delivery: expenses.delivery ?? '0',
-              /** ☕ الضيافة */
-              hospitality: expenses.hospitality ?? '0',
-              /** 🛒 المشتريات */
-              purchases: expenses.purchases ?? '0',
-              /** 🛡️ تأمين */
-              insurance: expenses.insurance ?? '0',
-              other: expenses.other ?? '0',
-            },
-          };
-        }),
-      );
+      const out = [];
+      for (const row of rows) {
+        const live = row.status === 'open' ? await this.shiftTakings(tx, tenantId, row) : undefined;
+        const summary = (row.summary ?? {}) as Record<string, unknown>;
+        const expenses = (live?.expenses ?? summary.expenses ?? {}) as Record<string, string | undefined>;
+        const pick = (key: string) => live?.[key as keyof typeof live] ?? (summary[key] as string | undefined) ?? '0';
+        const custody = custodyOf(row);
+        out.push({
+          id: row.id,
+          /** 🔢 الرقم — allocated when the drawer was counted. */
+          number: row.number,
+          status: row.status,
+          employee: nameOf(row.userId),
+          employeeId: row.userId,
+          /** The membership behind the cashier, so a screen can filter by 👤 الموظف. */
+          membershipId: staff.find((person) => person.userId === row.userId)?.membershipId ?? null,
+          openedAt: row.openedAt,
+          closedAt: row.closedAt,
+          /**
+           * 📒 القيد — the entry this count produced, and whether one is still owed.
+           *
+           * R12: a drawer that matched the books is *still* postable, because the count
+           * moves the day's cash into عهدة الإغلاق. Only a drawer that held nothing and
+           * was expected to hold nothing has nothing to post (`SHIFT_BALANCED`).
+           */
+          journalEntryId: row.journalEntryId,
+          postedAt: row.postedAt,
+          postable:
+            row.status === 'closed' &&
+            !row.journalEntryId &&
+            (money(row.diff).abs().gt(0) ||
+              money(row.countedCash).abs().gt(0) ||
+              money(row.expectedCash).abs().gt(0)),
+          /** 🧾 عهدة الإغلاق — where the count landed, once the entry is posted. */
+          custodyAccountId: (summary.custodyAccountId as string | undefined) ?? null,
+          custodyAccountCode: custody ? (custody.code ?? null) : null,
+          custodyAccountName: custody ? (custody.nameAr ?? null) : null,
+          custodyAmount: (summary.custodyAmount as string | undefined) ?? null,
+          /** 💹 الصافي */
+          net: pick('net'),
+          /** 🏦 رصيد الصندوق — what the cashier counted, not what the till expected. */
+          safeBalance: row.status === 'closed' ? row.countedCash : '0',
+          expected: row.status === 'closed' ? row.expectedCash : (live?.expectedCash ?? '0'),
+          /** 📉 الفرق */
+          diff: row.status === 'closed' ? row.diff : '0',
+          /** 🏦 التحويلات البنكية ببنكها (سطور `bank-transfer` عند الإقفال). */
+          banks: (live?.banks ??
+            (summary.banks as Array<{ id: string; name: string; amount: string }> | undefined) ??
+            []) as Array<{ id: string; name: string; amount: string }>,
+          /** 📋 آجل */
+          postponed: pick('postponed'),
+          /** 🌐 الشبكة */
+          network: pick('network'),
+          /** 💵 النقدي */
+          cash: pick('cash'),
+          /** 💰 مجموع الشبكة والنقدي */
+          sumCashAndNetwork: pick('sumCashAndNetwork'),
+          /** 🧾 الضريبة */
+          tax: pick('tax'),
+          /** 🏷️ الخصم */
+          discount: pick('discount'),
+          expenses: {
+            /** 📤 المصاريف */
+            total: expenses.total ?? '0',
+            /** 🚗 توصيل */
+            delivery: expenses.delivery ?? '0',
+            /** ☕ الضيافة */
+            hospitality: expenses.hospitality ?? '0',
+            /** 🛒 المشتريات */
+            purchases: expenses.purchases ?? '0',
+            /** 🛡️ تأمين */
+            insurance: expenses.insurance ?? '0',
+            other: expenses.other ?? '0',
+          },
+        });
+      }
+      return out;
     });
   }
 

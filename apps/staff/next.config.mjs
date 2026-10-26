@@ -34,7 +34,7 @@ const allowedDevOrigins = [
 ];
 
 const nextConfig = {
-  output: 'standalone',
+  ...(process.env.NEXT_OUTPUT_STANDALONE === '1' ? { output: 'standalone' } : {}),
   // Design System v3 — the shared kit ships as TypeScript source and is
   // compiled by this app's own toolchain, so there is no build step to keep
   // in sync between the three surfaces (ADR-030).

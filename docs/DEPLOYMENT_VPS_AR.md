@@ -10,6 +10,7 @@
 | `deploy/vps/nginx-erpcloud.conf` | `/etc/nginx/sites-available/erpcloud` |
 | `deploy/vps/erp-proxy.conf` | `/etc/nginx/snippets/erp-proxy.conf` |
 | `deploy/vps/ecosystem.config.cjs` | `~/ERP_Cloud/deploy/vps/` (داخل المستودع) |
+| `deploy/vps/sync-host.sh` | `~/ERP_Cloud/deploy/vps/` (مزامنة Nginx وعزل 5432/6379 عبر `sudo`) |
 | `deploy/vps/deploy.sh` | `~/ERP_Cloud/deploy/vps/` |
 | `deploy/vps/smoke.sh` | `~/ERP_Cloud/deploy/vps/` |
 
@@ -135,13 +136,16 @@ JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n…\n-----END PUBLIC KEY-----"
 ### 3.2 إعداد الخادم
 
 ```bash
-sudo apt -y install postgresql-16 postgresql-contrib-16
+sudo apt -y install postgresql-16 postgresql-contrib-16 redis-server
 sudo sed -i "s/^#\?listen_addresses.*/listen_addresses = 'localhost'/" \
   /etc/postgresql/16/main/postgresql.conf
-sudo systemctl restart postgresql
+sudo sed -i "s/^#\?bind .*/bind 127.0.0.1 ::1/" /etc/redis/redis.conf
+sudo systemctl restart postgresql redis-server
 ```
 
-`listen_addresses = 'localhost'` يعني أن القاعدة **غير موجودة** على الشبكة العامة —
+`listen_addresses = 'localhost'` لـPostgreSQL و`bind 127.0.0.1 ::1` لـRedis يعنيان أن
+القاعدة والذاكرة المؤقتة **غير موجودتين** على الشبكة العامة (وهو ما يتحقق منه البند `06`
+في `smoke.sh` ويطبّقه `sudo ./deploy/vps/sync-host.sh` تلقائياً) —
 حتى لو أخطأ جدارٌ ناري، لا مقبس يسمع.
 
 ### 3.3 الأدوار: مالك النظام، المهاجر، والتطبيق
@@ -288,8 +292,9 @@ WEB_HOST=127.0.0.1
 # الوكيل الوحيد الموثوق هو Nginx على loopback. لا تستخدم `true` هنا أبداً:
 # يثق بكل X-Forwarded-For، فيتجاوز المهاجم سقف IP بعناوين وهمية.
 TRUST_PROXY=loopback
-CORS_ALLOWED_ORIGINS=https://sahabaccounting.com,https://staff.sahabaccounting.com,https://portal.sahabaccounting.com,https://admin.sahabaccounting.com,https://bakery.sahabaccounting.com
-OPENAPI_ENABLED=false
+CORS_ALLOWED_ORIGINS=https://sahabaccounting.com,https://marketing.sahabaccounting.com,https://staff.sahabaccounting.com,https://portal.sahabaccounting.com,https://admin.sahabaccounting.com,https://bakery.sahabaccounting.com
+OPENAPI_ENABLED=false         # مغلق افتراضياً في NODE_ENV=production وفي ecosystem.config.cjs (ومحجوب بـNginx)
+AUTO_MIGRATE=false            # deploy.sh يشغّل db:migrate بدور erp_dba قبل الإقلاع؛ لا تُعِد الهجرة بدور erp_api
 SIGNUP_ENABLED=true           # تفعيل التسجيل الذاتي للمشتركين الجدد من الموقع التسويقي
 PASSWORD_BREACH_CHECK=enforce
 MAIL_TRANSPORT=smtp           # console يطبع الرسائل في السجل فقط
@@ -615,3 +620,37 @@ pm2 monit
 | «Relation does not exist» | `pnpm db:migrate` | الهجرة لم تُطبَّق |
 | صفحات تُعاد توجيهها إلى `https://hostrequest_uri` | `nginx -T \| grep hostrequest` | نسخة قديمة من الملف: `$` ساقطة |
 | «النشر نجح» لكن سطحٌ لا يفتح | `./deploy/vps/smoke.sh` | أحد فحوص 01–05 أحمر: لا تُعلن النجاح قبله |
+
+---
+
+## 13. سجلّ معالجة أخطاء التشغيل وفحوص الدخان (المراحل 1–4)
+
+ملخّص الأعطال العشرة التي رُصدت على الخادم الحيّ وكيف أُغلقت نهائياً في الكود والتكوين:
+
+| المرحلة | العَرَض المرصود | السبب الجذري | الإصلاح المُطبَّق |
+|---|---|---|---|
+| **1 — PM2 وNext والعزل** | تحذير `Environment [production] is not defined in process file` | `deploy.sh` كان يمرّر `--env production` بلا `env_production` في `ecosystem.config.cjs` | إضافة `env_production` لكل العمليات السبع في `deploy/vps/ecosystem.config.cjs` |
+| **1 — PM2 وNext والعزل** | تحذير `"next start" does not work with "output: standalone"` على الواجهات الخمس | `output: 'standalone'` كان مفعَّلاً دائماً في `next.config.mjs` بينما VPS يشغّل `next start` | قصر `output: 'standalone'` على `NEXT_OUTPUT_STANDALONE=1` داخل `deploy/Dockerfile.web` فقط |
+| **1 — PM2 وNext والعزل** | كشف `5432` و`6379` على `0.0.0.0`/`[::]`، و`404` على `marketing.sahabaccounting.com` | إعداد PostgreSQL/Redis الافتراضي وعدم مزامنة `/etc/nginx/sites-available/erpcloud` | إنشاء `deploy/vps/sync-host.sh` لعزل `5432`/`6379` على `127.0.0.1` ومزامنة Nginx، وقيد `127.0.0.1` في ملفات `docker-compose.yml` |
+| **2 — الـAPI والقاعدة** | `api.sahabaccounting.com/api/docs` يُعيد `200` في الإنتاج بدلاً من `404` | `.env.example` كان يثبّت `OPENAPI_ENABLED=true` حتّى مع `NODE_ENV=production` | جعل الافتراضي مغلقاً في الإنتاج عبر `isOpenApiEnabled()` وتثبيت `OPENAPI_ENABLED: 'false'` في `ecosystem.config.cjs` وتعليقها في `.env.example` |
+| **2 — الـAPI والقاعدة** | `unhandledRejection: Called end on pool more than once` عند إيقاف `@erp/api` | اجتماع `enableShutdownHooks()` مع معالجات `SIGINT`/`SIGTERM` استدعى `pool.end()` مرّتين | جعل `DatabaseHandle.close()` أحاديَّ التنفيذ (idempotent) في `packages/database/src/client.ts` وتوحيد مسار الإغلاق في `apps/api/src/main.ts`، مع إبقاء مقبض `keepAlive` في `erp-worker` عند غياب Redis |
+| **2 — الـAPI والقاعدة** | `DeprecationWarning: Calling client.query() when the client is already executing a query` | استخدام `Promise.all` لاستعلامات متوازية على نفس عميل المعاملة `DrizzleTx` | تسلسل جميع المواضع العشرة عبر 8 خدمات في `apps/api/src/modules/*` |
+| **2 — الـAPI والقاعدة** | سيل `ECONNREFUSED 127.0.0.1:3000` من الواجهات نحو `/api/v1/*` | تشغيل الواجهات بالتوازي مع بدء `erp-api` قبل جهوزيته (ومع `AUTO_MIGRATE` المكرّر) | تفعيل `AUTO_MIGRATE=false` لـ`erp-api` في PM2 وترتيب `deploy.sh`: تشغيل `erp-api` + `erp-worker` ← انتظار `GET /health/ready = 200` ← تشغيل الواجهات الخمس |
+| **3 — الواجهات والوكيل** | `portal.sahabaccounting.com/` يُعيد `307` بدلاً من `200` | `apps/customer-portal/app/page.tsx` كان يستدعي `redirect('/portal')` | تصدير صفحة البوابة مباشرةً من `/` بحالة `200` مع إبقاء `/portal` متوافقاً |
+| **3 — الواجهات والوكيل** | `Failed to proxy https://localhost:3002/not-found-view/ar ... EPROTO` | تطبيع `NextURL` لعنوان `127.0.0.1` إلى `localhost` خلف `X-Forwarded-Proto: https` جعل Next يظنّ التحويل وكيلاً خارجياً عبر TLS | إضافة `skipMiddlewareUrlNormalize: true` في `apps/marketing/next.config.mjs` وبناء إعادة كتابة 404 من `request.url` في `apps/marketing/middleware.ts` |
+| **3 — الواجهات والوكيل** | استثناءات RSC (`digest: '1475072765'` و`'7226853'`) وتجاوب الموبايل | `new URL(siteUrl)` بلا حماية عند إدخال نطاق مجرّد في `site.url`، وترتيب وسائط `.auth-page` على شاشات الهاتف | تطبيع `site.url` عبر `parseMetadataBase()` وفي `content.service.ts`، وتوحيد `API_PROXY_TARGET` في `problem-report.ts`، وتصحيح تجاوب `.auth-page` على الهاتف (`390×844`) في `staff` و`platform-admin` |
+
+### أوامر تطبيق الترقية على الخادم الحالي (`VPS`)
+
+```bash
+cd ~/ERP_Cloud_test   # أو ~/ERP_Cloud حسب مسار المستودع على الخادم
+git pull --ff-only origin arena/4c98c7f3-erp-cloud
+
+# لو كانت OPENAPI_ENABLED=true منسوخة قديماً في .env، عطّلها في الإنتاج:
+sed -i 's/^OPENAPI_ENABLED=true/# OPENAPI_ENABLED=false/' .env
+
+sudo ./deploy/vps/sync-host.sh
+./deploy/vps/deploy.sh
+./deploy/vps/smoke.sh sahabaccounting.com
+```
+

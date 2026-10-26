@@ -12,7 +12,7 @@ import { SiteShellLayout } from '../components/site/shell';
 import { JsonLd } from '../components/site/pieces';
 import { fetchShell } from '../lib/content';
 import { dir, localeFromPath, t, DEFAULT_LOCALE } from '../lib/i18n';
-import { absoluteUrl, fallbackSite, organizationJsonLd, softwareJsonLd } from '../lib/site';
+import { absoluteUrl, fallbackSite, organizationJsonLd, parseMetadataBase, softwareJsonLd } from '../lib/site';
 
 /**
  * P-M1 — تخطيط الموقع: هويّة `<html>` + القشرة + البيانات المنظَّمة.
@@ -35,7 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: shell.brandName, template: `%s · ${shell.brandName}` },
     description,
     applicationName: shell.brandName,
-    metadataBase: shell.siteUrl ? new URL(shell.siteUrl) : undefined,
+    metadataBase: parseMetadataBase(shell.siteUrl),
     openGraph: {
       title: shell.brandName,
       description,
