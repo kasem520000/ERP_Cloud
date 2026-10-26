@@ -1,4 +1,4 @@
-# قائمة تحقق واجهات — مستأجر verify2026 (أُنشئت 2026-10-25T20:22:50.286Z)
+# قائمة تحقق واجهات — مستأجر verify2026 (أُنشئت 2026-10-25T23:56:54.294Z)
 
 > وُلِّدت آلياً بواسطة `pnpm verify-seed` (apps/api/scripts/verify-seed.ts).
 > القيم أدناه مأخوذة من قاعدة البيانات وردود تقارير API **بعد** توليد الحركات.
@@ -40,7 +40,7 @@
 ## روابط سريعة
 
 - staff: http://localhost:3001
-- بوابة العميل: http://127.0.0.1:3004
+- بوابة العميل: http://localhost:3004
 - المخابز/المندوب: http://localhost:3005/rep
 - API: http://127.0.0.1:3000/api/v1
 
@@ -57,8 +57,8 @@
 | المحاسب | accountant@verify2026.test / Acct-Qz7-2026$Local | صلاحيات محاسب |
 | أمين الصندوق | cashier@verify2026.test / Cash-Qz7-2026$Local |  |
 | المندوب (تطبيق المخابز) | rep@verify2026.test / Van-Qz7-2026$Local | يدخل http://localhost:3005/rep |
-| بوابة العميل | portal-customer@verify2026.test / Port-Qz7-2026$Local | يدخل http://127.0.0.1:3004 |
-| بوابة المورد | portal-supplier@verify2026.test / Supp-Qz7-2026$Local | http://127.0.0.1:3004 أو شاشة المورد |
+| بوابة العميل | portal-customer@verify2026.test / Port-Qz7-2026$Local | يدخل http://localhost:3004 |
+| بوابة المورد | portal-supplier@verify2026.test / Supp-Qz7-2026$Local | http://localhost:3004 أو شاشة المورد |
 
 ### 2. الشركة والمستخدمون والمندوب
 
@@ -341,7 +341,7 @@
 
 ### 21. بوابة العميل (تطبيق منفصل)
 
-`http://127.0.0.1:3004/auth/login`
+`http://localhost:3004/auth/login`
 
 | ماذا أتحقق | القيمة المتوقعة | ملاحظة |
 |---|---|---|

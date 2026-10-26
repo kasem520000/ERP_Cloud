@@ -39,8 +39,25 @@ for (const key of RECOMMENDED) {
   console.log(`  ${status === 'MISSING' ? '-' : '✓'} ${key.padEnd(26)} ${status}`);
 }
 
-console.log('\nRuntime:');
-for (const key of ['NODE_ENV', 'PORT', 'STAFF_PORT', 'MARKETING_PORT', 'PLATFORM_ADMIN_PORT', 'CUSTOMER_PORTAL_PORT', 'BAKERY_PORT', 'NEXT_PUBLIC_API_BASE_URL', 'CORS_ALLOWED_ORIGINS']) {
+console.log('\nRuntime & Public Surfaces:');
+for (const key of [
+  'NODE_ENV',
+  'PORT',
+  'STAFF_PORT',
+  'MARKETING_PORT',
+  'PLATFORM_ADMIN_PORT',
+  'CUSTOMER_PORTAL_PORT',
+  'BAKERY_PORT',
+  'PUBLIC_APP_URL',
+  'NEXT_PUBLIC_STAFF_URL',
+  'NEXT_PUBLIC_PORTAL_URL',
+  'NEXT_PUBLIC_PLATFORM_URL',
+  'NEXT_PUBLIC_MARKETING_URL',
+  'NEXT_PUBLIC_BAKERY_URL',
+  'NEXT_PUBLIC_SUPPORT_EMAIL',
+  'NEXT_PUBLIC_API_BASE_URL',
+  'CORS_ALLOWED_ORIGINS',
+]) {
   console.log(`  ${key.padEnd(26)} ${mask(key)}`);
 }
 

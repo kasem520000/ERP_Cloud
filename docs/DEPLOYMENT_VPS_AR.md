@@ -260,11 +260,23 @@ CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
 ```bash
 cd ~/ERP_Cloud
-cp .env.example .env
-chmod 600 .env
-pnpm run env:setup   # يولّد كلمات مرور ومفاتيح قوية، ويكتبها في .env
-pnpm run env:check   # يقول ما ينقص دون طباعة أي سر
+pnpm run env:setup   # ينشئ .env بوضع 0600 ويولّد المفاتيح وكلمات المرور وعناوين sahabaccounting.com
+pnpm run env:check   # يتحقق من اكتمال الإعداد دون طباعة أي سر
 ```
+
+**عناوين الأسطح العامة المُولَّدة تلقائياً في `.env`:**
+
+```dotenv
+PUBLIC_APP_URL=https://sahabaccounting.com
+NEXT_PUBLIC_STAFF_URL=https://staff.sahabaccounting.com
+NEXT_PUBLIC_PORTAL_URL=https://portal.sahabaccounting.com
+NEXT_PUBLIC_PLATFORM_URL=https://admin.sahabaccounting.com
+NEXT_PUBLIC_MARKETING_URL=https://sahabaccounting.com
+NEXT_PUBLIC_BAKERY_URL=https://bakery.sahabaccounting.com
+NEXT_PUBLIC_SUPPORT_EMAIL=support@sahabaccounting.com
+```
+
+> للتطوير المحلي على منافذ `localhost` فقط يمكن تمرير `pnpm run env:setup -- --force --local`.
 
 **قيم الإنتاج التي تُغيّر السلوك** (كلها موثّقة في `.env.example`):
 
@@ -276,7 +288,7 @@ WEB_HOST=127.0.0.1
 # الوكيل الوحيد الموثوق هو Nginx على loopback. لا تستخدم `true` هنا أبداً:
 # يثق بكل X-Forwarded-For، فيتجاوز المهاجم سقف IP بعناوين وهمية.
 TRUST_PROXY=loopback
-CORS_ALLOWED_ORIGINS=https://api.sahabaccounting.com
+CORS_ALLOWED_ORIGINS=https://sahabaccounting.com,https://staff.sahabaccounting.com,https://portal.sahabaccounting.com,https://admin.sahabaccounting.com,https://bakery.sahabaccounting.com
 OPENAPI_ENABLED=false
 SIGNUP_ENABLED=true           # تفعيل التسجيل الذاتي للمشتركين الجدد من الموقع التسويقي
 PASSWORD_BREACH_CHECK=enforce

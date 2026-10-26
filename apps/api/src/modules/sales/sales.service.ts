@@ -541,6 +541,32 @@ export class SalesService {
   }
 
   async createInTx(tx: DrizzleTx, tenantId: string, input: SalesInvoiceInput): Promise<string> {
+    const givenWarehouseId = input.warehouseId?.trim() || '';
+    let resolvedBranchId = input.branchId?.trim() || '';
+    if (givenWarehouseId && !resolvedBranchId) {
+      const whRow = await tx.execute(
+        sql`SELECT branch_id FROM warehouses WHERE tenant_id = ${tenantId}::uuid AND id = ${givenWarehouseId}::uuid AND deleted_at IS NULL LIMIT 1`,
+      );
+      resolvedBranchId = String((whRow.rows[0] as { branch_id?: string } | undefined)?.branch_id ?? '');
+    }
+    if (!resolvedBranchId) {
+      const brRow = await tx.execute(
+        sql`SELECT id FROM branches WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL ORDER BY is_default DESC, created_at ASC LIMIT 1`,
+      );
+      resolvedBranchId = String((brRow.rows[0] as { id?: string } | undefined)?.id ?? '');
+    }
+    if (!resolvedBranchId) {
+      throw new DomainError(
+        errorCodes.VALIDATION_FAILED,
+        'Sales invoice requires an active branch',
+        422,
+      );
+    }
+    input.branchId = resolvedBranchId;
+    if (!input.partyId && (input as { customerId?: string }).customerId) {
+      input.partyId = (input as { customerId?: string }).customerId;
+    }
+
     const totals = await this.prepareLines(tx, tenantId, input);
     // R9 — كل مركزٍ مُسمّى (رأساً أو على سطر) يُفحَص قبل أي كتابة: مركزُ مستأجرٍ آخر ليس
     // مركزاً عندنا، والرسالة تسمّي الحقل. الفحص هنا في مسار الإنشاء الوحيد فيمرّ منه كل

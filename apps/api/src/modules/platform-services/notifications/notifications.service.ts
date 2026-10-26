@@ -187,6 +187,13 @@ export class NotificationsService {
         COALESCE(m.is_owner, false) AS is_owner,
         EXISTS (
           SELECT 1
+          FROM membership_roles mr
+          JOIN role_permissions rp ON rp.role_id = mr.role_id
+          WHERE mr.membership_id = m.id
+            AND rp.permission_code IN ('van_sales.closing.approve', 'van_sales.load.manage', '*')
+        ) AS has_mgmt_perm,
+        EXISTS (
+          SELECT 1
           FROM employees e
           JOIN salesmen s ON s.employee_id = e.id
           WHERE e.tenant_id = m.tenant_id
@@ -201,38 +208,46 @@ export class NotificationsService {
       LIMIT 1
     `);
     const scopeRow = (scopeResult.rows?.[0] ?? null) as
-      | { is_owner?: boolean; is_rep?: boolean }
+      | { is_owner?: boolean; has_mgmt_perm?: boolean; is_rep?: boolean }
       | null;
     if (!scopeRow) return undefined;
 
-    const isOwner = scopeRow.is_owner === true;
+    const isManagement = scopeRow.is_owner === true || scopeRow.has_mgmt_perm === true;
     const isRep = scopeRow.is_rep === true;
 
-    if (isRep && !isOwner) {
+    // 1) مندوب توزيع ميداني (بلا صفة مالك أو صلاحية إدارة توزيع): يرى فقط إشعارات عهدته وإشعاراته الشخصية،
+    //    ولا يرى أبداً إشعارات الإدارة والمحاسبة والاعتمادات والدعم والباقات.
+    if (isRep && !isManagement) {
       return sql`(
         ${notifications.type} NOT IN (
           'van_sales_closing_request',
           'van_sales_receipt_confirmed',
-          'van_sales_receipt_discrepancy'
+          'van_sales_receipt_discrepancy',
+          'settings.updated',
+          'payment.received',
+          'support_ticket_reply',
+          'marketplace_addon_approved',
+          'marketplace_addon_rejected',
+          'announcement'
         )
+        AND ${notifications.type} NOT LIKE 'approval.%'
         AND COALESCE(${notifications.payload}->>'audience', '') <> 'management'
       )`;
     }
 
-    if (!isRep) {
-      return sql`(
-        ${notifications.type} NOT IN (
-          'van_sales_supply_pending_receipt',
-          'van_sales_load_canceled'
-        )
-        AND (
-          ${notifications.type} <> 'van_sales_closing_approved'
-          OR COALESCE(${notifications.payload}->>'audience', '') = 'management'
-        )
-      )`;
-    }
-
-    return undefined;
+    // 2) الإدارة والمحاسبة (حتى لو رُبط الحساب الإداري تجريبياً ببطاقة مندوب):
+    //    صندوق الإدارة يعرض إشعارات الإدارة فقط ولا يخلط معها إشعارات عهدة المندوب الفردية.
+    return sql`(
+      ${notifications.type} NOT IN (
+        'van_sales_supply_pending_receipt',
+        'van_sales_load_canceled'
+      )
+      AND COALESCE(${notifications.payload}->>'audience', '') <> 'rep'
+      AND (
+        ${notifications.type} <> 'van_sales_closing_approved'
+        OR COALESCE(${notifications.payload}->>'audience', '') = 'management'
+      )
+    )`;
   }
 
   private async loadOwned(
@@ -241,6 +256,7 @@ export class NotificationsService {
     membershipId: string,
     id: string,
   ): Promise<NotificationRow> {
+    const visibility = await this.vanSalesAudienceFilterInTx(tx, tenantId, membershipId);
     const [row] = await tx
       .select()
       .from(notifications)
@@ -249,6 +265,7 @@ export class NotificationsService {
           eq(notifications.id, id),
           eq(notifications.tenantId, tenantId),
           eq(notifications.membershipId, membershipId),
+          visibility,
         ),
       )
       .limit(1);

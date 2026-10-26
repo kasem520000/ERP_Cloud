@@ -7833,12 +7833,17 @@ export class VanSalesService {
           FROM notifications n
           WHERE n.tenant_id = ${tenantId}::uuid
             AND n.membership_id = ${membershipId}::uuid
-            AND n.type NOT IN (
-              'van_sales_closing_request',
-              'van_sales_receipt_confirmed',
-              'van_sales_receipt_discrepancy'
+            AND (
+              COALESCE(n.payload->>'audience', '') = 'rep'
+              OR (
+                n.type IN (
+                  'van_sales_supply_pending_receipt',
+                  'van_sales_load_canceled',
+                  'van_sales_closing_approved'
+                )
+                AND COALESCE(n.payload->>'audience', '') <> 'management'
+              )
             )
-            AND COALESCE(n.payload->>'audience', '') <> 'management'
           ORDER BY n.created_at DESC
           LIMIT 20
         `),
@@ -7917,12 +7922,17 @@ export class VanSalesService {
                  (SELECT COUNT(*)::int FROM notifications n
                    WHERE n.tenant_id = ${tenantId}::uuid
                      AND n.membership_id = ${membershipId}::uuid
-                     AND n.type NOT IN (
-                       'van_sales_closing_request',
-                       'van_sales_receipt_confirmed',
-                       'van_sales_receipt_discrepancy'
-                     )
-                     AND COALESCE(n.payload->>'audience', '') <> 'management') AS notifications
+                     AND (
+                       COALESCE(n.payload->>'audience', '') = 'rep'
+                       OR (
+                         n.type IN (
+                           'van_sales_supply_pending_receipt',
+                           'van_sales_load_canceled',
+                           'van_sales_closing_approved'
+                         )
+                         AND COALESCE(n.payload->>'audience', '') <> 'management'
+                       )
+                     )) AS notifications
         `),
       );
 

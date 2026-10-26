@@ -29,6 +29,7 @@ import {
   SUBMISSION_KEY_MAX_LENGTH,
 } from '@erp/web-core/idempotency';
 import type { VanQueueOperation, VanQueueRecord, VanQueueStatus } from '@erp/web-core/offline-db';
+
 import { formatRequiredPermissionsAr } from './permissions-ar';
 
 /** رموزُ الصلاحية كما في `van-sales.controller.ts` — حرفًا، فإخفاءُ الزرّ ليس ضبطًا. */

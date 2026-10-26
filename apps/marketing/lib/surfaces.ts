@@ -10,12 +10,13 @@
  *
  * An empty base means "same origin" — the split-domain deployment sets all three.
  */
-export type Surface = 'staff' | 'portal' | 'platform';
+export type Surface = 'staff' | 'portal' | 'platform' | 'bakery';
 
 const BASES: Record<Surface, string> = {
   staff: process.env.NEXT_PUBLIC_STAFF_URL ?? '',
   portal: process.env.NEXT_PUBLIC_PORTAL_URL ?? '',
   platform: process.env.NEXT_PUBLIC_PLATFORM_URL ?? '',
+  bakery: process.env.NEXT_PUBLIC_BAKERY_URL ?? '',
 };
 
 export function surfaceHref(surface: Surface, path: string): string {

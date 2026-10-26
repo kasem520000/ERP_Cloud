@@ -1,11 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
 
-import { extractEffectiveSettings } from '../app/settings/general/page';
+import { describe, expect, it } from 'vitest';
+import { permissionRegistry } from '@erp/contracts';
+
+import { extractEffectiveSettings } from '../app/settings/general/settings-helpers';
 import { allScreens } from '../lib/navigation';
 import { describePermissionAr } from '../lib/permissions-ar';
-import { permissionRegistry } from '@erp/contracts';
 
 describe('general settings payload unwrapping (Item 3)', () => {
   it('unwraps { settings, registry } from GET /api/v1/settings without leaking nested settings/registry keys', () => {

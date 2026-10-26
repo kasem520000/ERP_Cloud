@@ -26,6 +26,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 const target = join(root, '.env');
 const force = process.argv.includes('--force');
+const localUrls = process.argv.includes('--local');
 
 if (existsSync(target) && !force) {
   console.log(`.env already exists at ${target} — nothing to do (use --force to regenerate).`);
@@ -79,12 +80,41 @@ const seedPasswords = {
 const templatePath = join(root, '.env.example');
 let content = existsSync(templatePath) ? readFileSync(templatePath, 'utf8') : '';
 
+const surfaceUrls = localUrls
+  ? {
+      PUBLIC_APP_URL: 'http://localhost:3002',
+      NEXT_PUBLIC_STAFF_URL: 'http://localhost:3001',
+      NEXT_PUBLIC_PORTAL_URL: 'http://localhost:3004',
+      NEXT_PUBLIC_PLATFORM_URL: 'http://localhost:3003',
+      NEXT_PUBLIC_MARKETING_URL: 'http://localhost:3002',
+      NEXT_PUBLIC_BAKERY_URL: 'http://localhost:3005',
+      NEXT_PUBLIC_SUPPORT_EMAIL: 'support@sahabaccounting.com',
+      CUSTOMER_PUBLIC_URL: 'http://localhost:3004',
+      CONSOLE_PUBLIC_URL: 'http://localhost:3003',
+      CORS_ALLOWED_ORIGINS:
+        'http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:3004,http://localhost:3005',
+    }
+  : {
+      PUBLIC_APP_URL: 'https://sahabaccounting.com',
+      NEXT_PUBLIC_STAFF_URL: 'https://staff.sahabaccounting.com',
+      NEXT_PUBLIC_PORTAL_URL: 'https://portal.sahabaccounting.com',
+      NEXT_PUBLIC_PLATFORM_URL: 'https://admin.sahabaccounting.com',
+      NEXT_PUBLIC_MARKETING_URL: 'https://sahabaccounting.com',
+      NEXT_PUBLIC_BAKERY_URL: 'https://bakery.sahabaccounting.com',
+      NEXT_PUBLIC_SUPPORT_EMAIL: 'support@sahabaccounting.com',
+      CUSTOMER_PUBLIC_URL: 'https://portal.sahabaccounting.com',
+      CONSOLE_PUBLIC_URL: 'https://admin.sahabaccounting.com',
+      CORS_ALLOWED_ORIGINS:
+        'https://sahabaccounting.com,https://staff.sahabaccounting.com,https://portal.sahabaccounting.com,https://admin.sahabaccounting.com,https://bakery.sahabaccounting.com',
+    };
+
 const replacements = {
   JWT_PRIVATE_KEY: `"${escape(privateKey)}"`,
   JWT_PUBLIC_KEY: `"${escape(publicKey)}"`,
   DATA_ENC_KEY: dataEncKey,
   FILE_URL_SIGNING_SECRET: fileSigningSecret,
   COMPAT_KEY_PEPPER: compatPepper,
+  ...surfaceUrls,
   ...seedPasswords,
 };
 

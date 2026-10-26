@@ -179,7 +179,7 @@ export default function RepsPage() {
           <p className="ui-page-sub">
             بطاقةُ المندوب الرسمية بما ينقصها قبل أن يعمل: موظفٌ وحسابُ دخولٍ نشط ومستودعُ سيارة وصلاحياتُ
             الخطّ. والكتابةُ الوحيدة هنا ربطُ حساب الدخول عبر كتّاب المنصّة — أمّا البطاقة نفسها فتُنشأ
-            وتُعدَّل في <span dir="ltr">apps/staff</span> على المسار <code dir="ltr">/sales/salesmen</code>.
+            وتُعدَّل من لوحة الإدارة والمبيعات (بطاقة المندوبين).
           </p>
         </div>
         <div className="ui-page-actions">
@@ -297,7 +297,7 @@ export default function RepsPage() {
                     {summary.outstandingCashTotal.toFixed(4)}
                   </dd>
                   <dd className="m-0 text-xs text-muted">
-                    ‏expected_cash − collected_cash على الأوامر المفتوحة
+                    المتوقّع ناقص المحصّل على الأوامر المفتوحة
                   </dd>
                 </div>
               </dl>
@@ -561,7 +561,7 @@ export default function RepsPage() {
                     ))}
                   </select>
                   <span className="text-[11.5px] font-normal text-muted">
-                    البطاقة نفسها تُنشأ وتُعدَّل في <span dir="ltr">apps/staff</span> — لا نسخةَ كتابةٍ ثانية
+                    البطاقة نفسها تُنشأ وتُعدَّل من لوحة الإدارة والمبيعات — لا نسخةَ كتابةٍ ثانية
                     هنا.
                   </span>
                 </label>
@@ -678,8 +678,8 @@ export default function RepsPage() {
               </ul>
               <p className="m-0 mt-3 text-[12px] text-muted">
                 الدور: {numberText(receipt?.roleName)} — وحالة العضوية:{' '}
-                {membershipStatusLabel(receipt?.status ?? null)}. والصلاحياتُ تُمنح من شاشة الأدوار في{' '}
-                <span dir="ltr">apps/staff</span>، لا من هنا.
+                {membershipStatusLabel(receipt?.status ?? null)}. والصلاحياتُ تُمنح من شاشة الأدوار في
+                لوحة الإدارة، لا من هنا.
               </p>
             </CardBody>
           </Card>
@@ -691,22 +691,20 @@ export default function RepsPage() {
             <CardBody>
               <ul className="m-0 grid list-none gap-2 p-0 text-[12.5px] text-muted">
                 <li>
-                  إنشاءُ بطاقة مندوب أو تعديلُها أو حذفُها ونِسبُ العمولة وربطُ الموظف يدويًّا:{' '}
-                  <span dir="ltr">POST/PATCH /sales/salesmen</span> في <span dir="ltr">apps/staff</span> عند —
-                  كاتبٌ واحد للبطاقة.
+                  إنشاءُ بطاقة مندوب أو تعديلُها أو حذفُها ونِسبُ العمولة وربطُ الموظف يدويًّا يتمّ من شاشة
+                  مندوبي المبيعات في لوحة الإدارة — كاتبٌ واحد للبطاقة.
                 </li>
                 <li>
                   نطاقُ الفروع على العضوية غير معروض: الخادم يُطبّقه عند <strong>إنشاء</strong> العضوية فقط
                   ويتجاهله عند إعادة استعمال حسابٍ قائم، فعرضُه وعدٌ بشيءٍ لا يفعله في الحالة الشائعة.
                 </li>
                 <li>
-                  لا كلمةُ مرور تُنشأ ولا تُصفَّر هنا: الحسابُ الجديد <span dir="ltr">invited</span> بلا كلمة
-                  مرور، ورابطُ التفعيل من منصّة الهويّة — وربطُ الأجهزة وتسليمُ الجلسة في المرحلة ٤ (واجهة
-                  المندوب المحمولة).
+                  لا كلمةُ مرور تُنشأ ولا تُصفَّر هنا: الحسابُ الجديد يُنشأ في حالة «بانتظار قبول الدعوة» بلا كلمة
+                  مرور، ورابطُ التفعيل من منصّة الهويّة.
                 </li>
                 <li>
                   النِّسبُ المعروضة هي ما خزّنه الخادم على البطاقة؛ أمّا حسابُ مبالغ العمولة فرهنٌ بالرواتب
-                  والمبيعات في <span dir="ltr">apps/staff</span> ولا يُحسب هنا.
+                  والمبيعات في لوحة الإدارة ولا يُحسب هنا.
                 </li>
                 <li>
                   الأدوارُ وصلاحياتها تُمنح من شاشة الأدوار في لوحة الإدارة؛ وهذه الشاشة

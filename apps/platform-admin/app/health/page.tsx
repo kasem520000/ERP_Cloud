@@ -158,13 +158,16 @@ export default function HealthPage() {
           </div>
 
           {/* probes grid */}
-          <div className="ui-kpi-strip mt-3">
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {data.probes.map((probe, _index) => {
               const up = probe.status === 'up';
               const down = probe.status === 'down';
               const notConfigured = probe.status === 'not_configured';
               return (
-                <div key={probe.name} className="ui-kpi-cell">
+                <div
+                  key={probe.name}
+                  className="overflow-hidden rounded-[10px] border border-line bg-surface p-3.5 shadow-1"
+                >
                   <div className="flex items-center gap-2.5">
                     <span
                       className={`grid size-9 flex-none place-items-center rounded-lg ${

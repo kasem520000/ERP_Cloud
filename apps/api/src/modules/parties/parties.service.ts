@@ -93,7 +93,37 @@ export class PartiesService {
     return decorated ?? row;
   }
   async update(tenantId: string, id: string, input: Partial<PartyInput>) { await withTenantTx(this.database.db, tenantId, (tx) => tx.update(parties).set({ ...input, updatedAt: new Date(), version: sql`${parties.version} + 1` }).where(and(eq(parties.tenantId, tenantId), eq(parties.id, id), isNull(parties.deletedAt)))); return this.get(tenantId, id); }
-  async create(tenantId: string, input: PartyInput) { const id = newId(); const code = await withTenantTx(this.database.db, tenantId, async (tx) => { const result = await tx.execute(sql`SELECT COALESCE(MAX(CAST(code AS INTEGER)), 0) + 1 AS next FROM parties WHERE tenant_id = ${tenantId} AND code ~ '^[0-9]+$'`); return String(Number((result.rows[0] as { next: string }).next).toString().padStart(6, '0')); }); await withTenantTx(this.database.db, tenantId, (tx) => tx.insert(parties).values({ id, tenantId, code, ...input, creditLimit: input.creditLimit ?? '0' })); return this.get(tenantId, id); }
+  async create(tenantId: string, input: PartyInput) {
+    const resolvedName = (
+      input?.name ??
+      (input as { nameAr?: string } | undefined)?.nameAr ??
+      ''
+    ).trim();
+    if (!resolvedName) {
+      throw new DomainError(errorCodes.VALIDATION_FAILED, 'Party name is required', 422);
+    }
+    const id = newId();
+    const explicitCode = (input as { code?: string } | undefined)?.code?.trim();
+    const code = await withTenantTx(this.database.db, tenantId, async (tx) => {
+      if (explicitCode) return explicitCode;
+      const result = await tx.execute(
+        sql`SELECT COALESCE(MAX(CAST(code AS INTEGER)), 0) + 1 AS next FROM parties WHERE tenant_id = ${tenantId} AND code ~ '^[0-9]+$'`,
+      );
+      return String(Number((result.rows[0] as { next: string }).next).toString().padStart(6, '0'));
+    });
+    const { nameAr: _ignoredNameAr, ...restInput } = input as PartyInput & { nameAr?: string };
+    await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx.insert(parties).values({
+        id,
+        tenantId,
+        ...restInput,
+        code,
+        name: resolvedName,
+        creditLimit: input.creditLimit ?? '0',
+      }),
+    );
+    return this.get(tenantId, id);
+  }
   /**
    * 🗑️ حذف عميل — `frmCustomers`. A party with a balance stays: the refusal protects the
    * ledger, not the row.

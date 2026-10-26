@@ -1064,7 +1064,7 @@ export default function SalesPage() {
                   </Button>
                 ) : null}
                 <span className="text-[12px] text-muted">
-                  الإيصال الحراريّ ٨٠مم في <span dir="ltr">apps/staff</span> — ومُصيِّر هذه الورقة الرسميّة
+                  الإيصال الحراريّ ٨٠مم في لوحة الإدارة ونقطة البيع — ومُصيِّر هذه الورقة الرسميّة
                   مشتركٌ بين اللوحتين.
                 </span>
               </div>

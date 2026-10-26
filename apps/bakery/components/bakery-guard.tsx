@@ -7,11 +7,12 @@ import { Button, ThemeToggle } from '@erp/ui';
 import { apiData } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
-import { BAKERY_APP_CODE, licenceVerdict } from '../lib/licence';
+import { licenceVerdict } from '../lib/licence';
 import { BAKERY_MODULES, isRepScoped, moduleForPath, visibleModules } from '../lib/navigation';
 
 import { LicenceWall } from './licence-wall';
 import { BakeryLogoMark, BakeryModuleIcon } from './module-icon';
+import { BakeryNotificationBell } from './notification-bell';
 
 /**
  * قشرة واجهة المخابز **وبوابةُ ترخيصها** في آن: لا تُرسم الشاشة ولا يُعرض التنقّل قبل أن
@@ -179,7 +180,7 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
           <div className="flex flex-wrap items-center gap-2">
             <span
               className="bak-badge ok"
-              title={`الباقة القطاعية ${BAKERY_APP_CODE} مفعَّلة لهذه المنشأة (تُقرأ من جلسة دخولك)`}
+              title="الباقة القطاعية «المخابز والتوزيع» مفعَّلة لهذه المنشأة (تُقرأ من جلسة دخولك)"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <rect x="5" y="11" width="14" height="9" rx="2" />
@@ -187,6 +188,7 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
               </svg>
               الباقة مرخَّصة
             </span>
+            <BakeryNotificationBell />
             <ThemeToggle compact />
             <span className="bak-topbar-user text-[12px] text-muted">
               {me?.user.fullName} · {me?.membership.tenantCode}

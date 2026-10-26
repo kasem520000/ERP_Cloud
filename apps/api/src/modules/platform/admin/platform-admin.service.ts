@@ -243,14 +243,31 @@ export class PlatformAdminService {
     input: CreateTenantInput,
     options: { subscription: 'active' | 'requested' },
   ) {
-    const code = input.code.trim().toLowerCase();
+    const code = (input?.code ?? '').trim().toLowerCase();
+    const tenantName = (input?.name ?? '').trim();
+    const ownerEmail = (input?.ownerEmail ?? '').trim().toLowerCase();
+    const ownerFullName = (
+      input?.ownerFullName ??
+      (input as { ownerName?: string } | undefined)?.ownerName ??
+      ''
+    ).trim();
+
     if (!/^[a-z0-9][a-z0-9-]{1,62}$/.test(code)) {
       throw new DomainError(errorCodes.VALIDATION_FAILED, 'Tenant code must be 2–63 lowercase letters, digits or dashes', 422);
+    }
+    if (tenantName.length < 2) {
+      throw new DomainError(errorCodes.VALIDATION_FAILED, 'Tenant name is required', 422);
+    }
+    if (!ownerEmail || !ownerEmail.includes('@')) {
+      throw new DomainError(errorCodes.VALIDATION_FAILED, 'A valid owner email is required', 422);
+    }
+    if (ownerFullName.length < 2) {
+      throw new DomainError(errorCodes.VALIDATION_FAILED, 'Owner full name is required', 422);
     }
 
     let passwordHash: string | undefined;
     if (input.ownerPassword) {
-      await this.passwords.assertPolicy(input.ownerPassword, { email: input.ownerEmail });
+      await this.passwords.assertPolicy(input.ownerPassword, { email: ownerEmail });
       passwordHash = await this.passwords.hash(input.ownerPassword);
     }
 
@@ -266,7 +283,7 @@ export class PlatformAdminService {
 
       await tx.execute(sql`
         INSERT INTO tenants (id, code, name, status, base_currency, timezone, country_code)
-        VALUES (${tenantId}, ${code}, ${input.name.trim()}, 'active',
+        VALUES (${tenantId}, ${code}, ${tenantName}, 'active',
                 ${input.baseCurrency ?? 'SAR'}, ${input.timezone ?? 'Asia/Riyadh'}, ${input.countryCode ?? 'SA'})
       `);
 
@@ -276,7 +293,7 @@ export class PlatformAdminService {
 
       const userRow = await tx.execute(sql`
         INSERT INTO users (id, email, full_name, status, password_hash, must_change_password, password_changed_at)
-        VALUES (${userId}, ${input.ownerEmail.trim().toLowerCase()}, ${input.ownerFullName.trim()},
+        VALUES (${userId}, ${ownerEmail}, ${ownerFullName},
                 ${passwordHash ? 'active' : 'invited'}, ${passwordHash ?? null}, ${!passwordHash},
                 ${passwordHash ? sql`now()` : sql`NULL`})
         ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name
@@ -286,7 +303,7 @@ export class PlatformAdminService {
 
       await tx.execute(sql`
         INSERT INTO memberships (id, tenant_id, user_id, display_name, status, is_owner)
-        VALUES (${membershipId}, ${tenantId}, ${ownerUserId}, ${input.ownerFullName.trim()}, 'active', true)
+        VALUES (${membershipId}, ${tenantId}, ${ownerUserId}, ${ownerFullName}, 'active', true)
       `);
 
       // Baseline roles + permissions, identical to the seed path.

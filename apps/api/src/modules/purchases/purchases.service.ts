@@ -139,11 +139,38 @@ export class PurchasesService {
   }
 
   async create(tenantId: string, input: PurchaseInvoiceInput) {
-    if (!input.lines.length && !input.headerTotals) {
+    if (!input.lines?.length && !input.headerTotals) {
       throw new DomainError('PURCHASE_LINES_REQUIRED', 'At least one purchase line is required unless a header draft is explicitly requested', 422);
     }
     const id = newId();
     await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const givenWarehouseId = input.warehouseId?.trim() || '';
+      let resolvedBranchId = input.branchId?.trim() || '';
+      if (givenWarehouseId && !resolvedBranchId) {
+        const whRow = await tx.execute(
+          sql`SELECT branch_id FROM warehouses WHERE tenant_id = ${tenantId}::uuid AND id = ${givenWarehouseId}::uuid AND deleted_at IS NULL LIMIT 1`,
+        );
+        resolvedBranchId = String((whRow.rows[0] as { branch_id?: string } | undefined)?.branch_id ?? '');
+      }
+      if (!resolvedBranchId) {
+        const brRow = await tx.execute(
+          sql`SELECT id FROM branches WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL ORDER BY is_default DESC, created_at ASC LIMIT 1`,
+        );
+        resolvedBranchId = String((brRow.rows[0] as { id?: string } | undefined)?.id ?? '');
+      }
+      if (!resolvedBranchId) {
+        throw new DomainError(
+          errorCodes.VALIDATION_FAILED,
+          'Purchase invoice requires an active branch',
+          422,
+        );
+      }
+      input.branchId = resolvedBranchId;
+      const aliasSupplierId = (input as { supplierId?: string }).supplierId;
+      if (!input.partyId && aliasSupplierId) {
+        input.partyId = aliasSupplierId;
+      }
+
       // ACC-107 / ACC-108 (R33 — P-M17): tenant money policy — rounding to the currency minor
       // unit and the default VAT treatment — applies to supplier invoices exactly as to sales.
       const policy = await readTenantMoneyPolicy(tx, tenantId);

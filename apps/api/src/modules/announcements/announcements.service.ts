@@ -460,8 +460,21 @@ export class AnnouncementsService {
               FROM memberships m
               JOIN users u ON u.id = m.user_id
              WHERE m.tenant_id = ${tenant.id}
+               AND m.deleted_at IS NULL
                AND m.status = 'active'
                AND m.kind = 'staff'
+               AND (
+                 m.is_owner = true
+                 OR NOT EXISTS (
+                   SELECT 1
+                   FROM employees e
+                   JOIN salesmen s ON s.employee_id = e.id
+                   WHERE e.tenant_id = m.tenant_id
+                     AND e.membership_id = m.id
+                     AND e.deleted_at IS NULL
+                     AND s.active = true
+                 )
+               )
           `);
           let created = 0;
           for (const raw of members.rows as Array<Record<string, unknown>>) {

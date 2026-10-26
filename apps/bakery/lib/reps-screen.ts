@@ -23,6 +23,7 @@
  * الشائعة — وهو من شؤون الهويّة في شاشة العضويات.
  */
 import Decimal from 'decimal.js';
+
 import { formatRequiredPermissionsAr } from './permissions-ar';
 
 /** القراءة محميّةٌ بصلاحية رؤية الخطّ، وربطُ الحساب بعملُ مكتبٍ خلفيّ لا يملكه المندوب. */

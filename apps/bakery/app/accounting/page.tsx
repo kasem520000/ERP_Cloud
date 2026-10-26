@@ -102,7 +102,7 @@ export default function AccountingHandoffPage() {
 
         <Card>
           <CardHeader
-            subtitle="لكلٍّ مسارٌ حقيقيّ في apps/staff/app — ويُقاس وجودُه في الاختبار."
+            subtitle="روابط مباشرة إلى شاشات المحاسبة المعتمدة في لوحة الإدارة والمحاسبة."
             title="وجهاتُ المحاسبة التفصيلية"
           />
           <CardBody>

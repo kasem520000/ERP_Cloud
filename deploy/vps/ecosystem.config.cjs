@@ -65,6 +65,8 @@ module.exports = {
         PORT: '3000',
         API_HOST: '127.0.0.1',
         API_PROXY_TARGET: 'http://127.0.0.1:3000',
+        // على VPS تعمل عملية `erp-worker` مستقلة؛ تعطيل العامل المدمج يمنع ازدواج السحب.
+        EMBEDDED_WORKER: '0',
         // خلف Nginx على loopback فقط: الوكيل الوحيد الموثوق.
         TRUST_PROXY: 'loopback',
       },

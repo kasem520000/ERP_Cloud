@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SETTINGS_UPDATED_NOTIFICATION } from '@erp/contracts';
+import { newId, withTenantTx } from '@erp/database';
+import { sql } from 'drizzle-orm';
 
 import { ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -135,5 +137,131 @@ describe('notifications (PHASE_04 §5.4)', () => {
     expect(inbox.status).toBe(200);
     const types = (inbox.body.data as Array<{ type: string }>).map((row) => row.type);
     expect(types).not.toContain(SETTINGS_UPDATED_NOTIFICATION);
+  });
+
+  it('strictly isolates Management vs. Sales Rep notifications (even on dual-role memberships)', async () => {
+    const rep = await createActor(ctx, {
+      tenantCode: 'notif-a',
+      tenantId: admin.tenantId,
+      email: 'field-rep@notif-a.test',
+      permissions: ['tenant.notification.view', 'van_sales.view'],
+      isOwner: false,
+    });
+    const supervisor = await createActor(ctx, {
+      tenantCode: 'notif-a',
+      tenantId: admin.tenantId,
+      email: 'van-supervisor@notif-a.test',
+      permissions: ['tenant.notification.view', 'van_sales.closing.approve'],
+      isOwner: false,
+    });
+
+    const empRepId = newId();
+    const empSupId = newId();
+    await withTenantTx(ctx.handle.db, admin.tenantId, async (tx) => {
+      await tx.execute(sql`
+        INSERT INTO employees (id, tenant_id, employee_no, name, membership_id, status)
+        VALUES
+          (${empRepId}::uuid, ${admin.tenantId}::uuid, 'EMP-REP-N1', 'مندوب ميداني', ${rep.membershipId}::uuid, 'active'),
+          (${empSupId}::uuid, ${admin.tenantId}::uuid, 'EMP-SUP-N1', 'مشرف توزيع', ${supervisor.membershipId}::uuid, 'active')
+      `);
+      await tx.execute(sql`
+        INSERT INTO salesmen (id, tenant_id, name, active, employee_id)
+        VALUES
+          (${newId()}::uuid, ${admin.tenantId}::uuid, 'مندوب ميداني', true, ${empRepId}::uuid),
+          (${newId()}::uuid, ${admin.tenantId}::uuid, 'مشرف توزيع', true, ${empSupId}::uuid)
+      `);
+    });
+
+    // Seed mixed notifications onto `rep`
+    const postTo = async (membershipId: string, type: string, payload: Record<string, unknown> = {}) => {
+      const res = await api(ctx.server, 'post', '/api/v1/notifications', {
+        token: admin.token,
+        body: { membershipId, type, payload },
+      });
+      expect(res.status).toBe(201);
+      return (res.body.data as { id: string }).id;
+    };
+
+    const repAllowedIds = [
+      await postTo(rep.membershipId, 'van_sales_supply_pending_receipt', {
+        audience: 'rep',
+        title: 'أمر تحميل جديد بانتظار استلامك',
+      }),
+      await postTo(rep.membershipId, 'van_sales_load_canceled', {
+        audience: 'rep',
+        title: 'تم إلغاء أمر تحميل',
+      }),
+      await postTo(rep.membershipId, 'van_sales_closing_approved', {
+        audience: 'rep',
+        title: 'تم اعتماد إقفال العهدة',
+      }),
+    ];
+
+    const repBlockedIds = [
+      await postTo(rep.membershipId, 'van_sales_closing_request', {
+        audience: 'management',
+        title: 'طلب اعتماد إقفال عهدة مندوب',
+      }),
+      await postTo(rep.membershipId, 'van_sales_receipt_discrepancy', {
+        audience: 'management',
+        title: 'فرق كمية عند استلام حمولة',
+      }),
+      await postTo(rep.membershipId, SETTINGS_UPDATED_NOTIFICATION, { key: 'company.name' }),
+      await postTo(rep.membershipId, 'payment.received', { amount: '500.00' }),
+      await postTo(rep.membershipId, 'support_ticket_reply', { ticketId: 'T-1' }),
+      await postTo(rep.membershipId, 'approval.requested', { docType: 'journal' }),
+      await postTo(rep.membershipId, 'announcement', { title: 'إعلان إداري' }),
+    ];
+
+    const repInbox = await api(ctx.server, 'get', '/api/v1/notifications?limit=50', { token: rep.token });
+    expect(repInbox.status).toBe(200);
+    const repInboxIds = (repInbox.body.data as Array<{ id: string }>).map((row) => row.id);
+    expect(repInboxIds.sort()).toEqual([...repAllowedIds].sort());
+    expect((repInbox.body.meta as { unread: number }).unread).toBe(3);
+
+    // Rep cannot fetch or mark-read a blocked management notification by ID
+    for (const blockedId of repBlockedIds) {
+      expect((await api(ctx.server, 'get', `/api/v1/notifications/${blockedId}`, { token: rep.token })).status).toBe(
+        404,
+      );
+      expect(
+        (await api(ctx.server, 'post', `/api/v1/notifications/${blockedId}/read`, { token: rep.token })).status,
+      ).toBe(404);
+    }
+
+    // Seed mixed notifications onto `supervisor` (management user who also has a salesman card)
+    const supAllowedIds = [
+      await postTo(supervisor.membershipId, 'van_sales_closing_request', {
+        audience: 'management',
+        title: 'طلب اعتماد إقفال عهدة مندوب',
+      }),
+      await postTo(supervisor.membershipId, 'van_sales_closing_approved', {
+        audience: 'management',
+        title: 'تم اعتماد إقفال العهدة',
+      }),
+      await postTo(supervisor.membershipId, SETTINGS_UPDATED_NOTIFICATION, { key: 'company.name' }),
+    ];
+    const supBlockedRepIds = [
+      await postTo(supervisor.membershipId, 'van_sales_supply_pending_receipt', {
+        audience: 'rep',
+        title: 'أمر تحميل جديد بانتظار استلامك',
+      }),
+      await postTo(supervisor.membershipId, 'van_sales_closing_approved', {
+        audience: 'rep',
+        title: 'تم اعتماد إقفال العهدة للمندوب',
+      }),
+    ];
+
+    const supInbox = await api(ctx.server, 'get', '/api/v1/notifications?limit=50', {
+      token: supervisor.token,
+    });
+    expect(supInbox.status).toBe(200);
+    const supInboxIds = (supInbox.body.data as Array<{ id: string }>).map((row) => row.id);
+    for (const allowedId of supAllowedIds) {
+      expect(supInboxIds).toContain(allowedId);
+    }
+    for (const blockedRepId of supBlockedRepIds) {
+      expect(supInboxIds).not.toContain(blockedRepId);
+    }
   });
 });

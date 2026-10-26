@@ -15,7 +15,6 @@ import {
   invoiceModeLabel,
   invoiceStatusLabel,
   loadOrderBlockReason,
-  OVERRIDE_PERMISSIONS,
   partyOpenDebt,
   paymentMethodLabel,
   priceAgreement,

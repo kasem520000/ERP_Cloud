@@ -121,10 +121,17 @@ describe('إعداد Nginx (deploy/vps/nginx-erpcloud.conf)', () => {
     }
   });
 
-  it('الجذر يوجّه إلى التسويق بدل 404، والغريب يُقطع بـ444', () => {
+  it('الجذر يخدم واجهة التسويق مباشرةً وwww يوجّه إليه، والغريب يُقطع بـ444', () => {
     const rootBlock = tls.find((entry) => entry.names.includes('sahabaccounting.com'));
     expect(rootBlock).toBeDefined();
-    expect(rootBlock!.body).toContain('return 301 https://marketing.sahabaccounting.com$request_uri;');
+    expect(rootBlock!.body).toContain('proxy_pass http://127.0.0.1:3002;');
+
+    const wwwBlock = tls.find((entry) => entry.names.includes('www.sahabaccounting.com'));
+    expect(wwwBlock).toBeDefined();
+    expect(wwwBlock!.body).toContain('return 301 https://sahabaccounting.com$request_uri;');
+
+    const adminBlock = tls.find((entry) => entry.names.includes('admin.sahabaccounting.com'));
+    expect(adminBlock!.body).toContain('client_max_body_size 68m;');
 
     const fallback = blocks.find((entry) => entry.body.includes('default_server'));
     expect(fallback).toBeDefined();
@@ -204,6 +211,7 @@ describe('إعداد PM2 (deploy/vps/ecosystem.config.cjs)', () => {
     const api = byName('erp-api')!;
     expect(api.env.PORT).toBe('3000');
     expect(api.env.API_HOST).toBe('127.0.0.1');
+    expect(api.env.EMBEDDED_WORKER).toBe('0');
 
     const ports: Record<string, string> = {
       'erp-staff': '3001',
@@ -328,11 +336,18 @@ describe('فحص ما بعد النشر (deploy/vps/smoke.sh)', () => {
 });
 
 describe('توثيق البيئة والبناء', () => {
-  it('.env.example يشرح WEB_HOST وAPI_PROXY_TARGET', () => {
+  it('.env.example يشرح WEB_HOST وAPI_PROXY_TARGET ويضبط عناوين sahabaccounting.com للإنتاج', () => {
     const env = read('.env.example');
     expect(env).toContain('WEB_HOST');
     expect(env).toContain('API_PROXY_TARGET');
     expect(env).toContain('TRUST_PROXY');
+    expect(env).toContain('PUBLIC_APP_URL=https://sahabaccounting.com');
+    expect(env).toContain('NEXT_PUBLIC_STAFF_URL=https://staff.sahabaccounting.com');
+    expect(env).toContain('NEXT_PUBLIC_PORTAL_URL=https://portal.sahabaccounting.com');
+    expect(env).toContain('NEXT_PUBLIC_PLATFORM_URL=https://admin.sahabaccounting.com');
+    expect(env).toContain('NEXT_PUBLIC_MARKETING_URL=https://sahabaccounting.com');
+    expect(env).toContain('NEXT_PUBLIC_BAKERY_URL=https://bakery.sahabaccounting.com');
+    expect(env).toContain('NEXT_PUBLIC_SUPPORT_EMAIL=support@sahabaccounting.com');
   });
 
   it('كل واجهة تُوكّل افتراضياً إلى 127.0.0.1:3000 لا إلى منفذها', () => {
