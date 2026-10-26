@@ -1,8 +1,9 @@
 'use client';
 
 import { FormActions, FormGrid, Panel } from '@erp/ui';
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { Save } from 'lucide-react';
+import { Building2, Printer, Save } from 'lucide-react';
 
 import { ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { Button } from '../../../components/ui/button';
@@ -239,7 +240,38 @@ const KEY_LABELS: Record<string, string> = {
   'purchases.padding': 'عدد أصفار فواتير المشتريات',
   'purchases.start_at': 'رقم بداية فواتير المشتريات',
   'van_sales.policy.allowInternalDeliveryWithoutTax': 'السماح بإشعار تسليم داخلي دون ضريبة (التوزيع)',
+  'report.return_policy': 'نص سياسة الاسترجاع والاستبدال في الفواتير',
+  'report.default_notes': 'ملاحظات الفواتير الافتراضية',
+  'report.field_ar': 'مجال عمل المنشأة بالعربية (ترويسة التقارير)',
+  'report.field_en': 'مجال عمل المنشأة بالإنجليزية (ترويسة التقارير)',
+  'report.address_ar': 'عنوان المنشأة المختصر بالعربية (ترويسة وتذييل التقارير)',
+  'report.address_en': 'عنوان المنشأة المختصر بالإنجليزية (ترويسة الفواتير A4)',
+  'report.crn': 'الرقم الموحد (700) / السجل الفرعي في جدول العنوان الوطني',
+  'report.bank1_name': 'البنك الأول في الفواتير الضريبية A4',
+  'report.bank1_iban': 'آيبان / حساب البنك الأول',
+  'report.bank2_name': 'البنك الثاني في الفواتير الضريبية A4',
+  'report.bank2_iban': 'آيبان / حساب البنك الثاني',
+  'report.bank3_name': 'البنك الثالث في الفواتير الضريبية A4',
+  'report.bank3_iban': 'آيبان / حساب البنك الثالث',
+  'report.stamp_url': 'رابط صورة ختم المنشأة الرسمي',
 };
+
+const REPORT_DATA_KEYS = [
+  'report.return_policy',
+  'report.default_notes',
+  'report.field_ar',
+  'report.field_en',
+  'report.address_ar',
+  'report.address_en',
+  'report.crn',
+  'report.bank1_name',
+  'report.bank1_iban',
+  'report.bank2_name',
+  'report.bank2_iban',
+  'report.bank3_name',
+  'report.bank3_iban',
+  'report.stamp_url',
+] as const;
 
 export default function GeneralSettingsPage() {
   const settings = useQuery<SettingsPayload>(() => apiData<SettingsPayload>('/settings'), []);
@@ -247,7 +279,8 @@ export default function GeneralSettingsPage() {
   const [policyDraft, setPolicyDraft] = useState<Record<string, string>>({});
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [numberingDraft, setNumberingDraft] = useState<Record<string, string>>({});
-  const [busySection, setBusySection] = useState<'policies' | 'numbering' | 'cashier' | null>(null);
+  const [reportDraft, setReportDraft] = useState<Record<string, string>>({});
+  const [busySection, setBusySection] = useState<'policies' | 'numbering' | 'cashier' | 'reports' | null>(null);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>();
 
   const effectiveSettings = useMemo(() => extractEffectiveSettings(settings.data), [settings.data]);
@@ -284,6 +317,13 @@ export default function GeneralSettingsPage() {
       }
     }
     setNumberingDraft(nextNumbering);
+
+    const nextReport: Record<string, string> = {};
+    for (const key of REPORT_DATA_KEYS) {
+      const value = effectiveSettings[key];
+      nextReport[key] = value === undefined || value === null ? '' : String(value);
+    }
+    setReportDraft(nextReport);
   }, [settings.status, effectiveSettings]);
 
   async function savePolicies() {
@@ -404,6 +444,23 @@ export default function GeneralSettingsPage() {
     }
   }
 
+  async function saveReportData() {
+    setBusySection('reports');
+    setNotice(undefined);
+    try {
+      for (const key of REPORT_DATA_KEYS) {
+        const raw = (reportDraft[key] ?? '').trim();
+        await apiPut(`/settings/${encodeURIComponent(key)}`, { value: raw });
+      }
+      await settings.reload();
+      setNotice({ kind: 'ok', text: 'تم حفظ بيانات التقارير والفواتير وسياسة الإرجاع بنجاح.' });
+    } catch (error) {
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر حفظ بيانات التقارير والفواتير') });
+    } finally {
+      setBusySection(null);
+    }
+  }
+
   const entries = useMemo(
     () =>
       Object.entries(effectiveSettings)
@@ -429,10 +486,10 @@ export default function GeneralSettingsPage() {
     return String(value);
   }
 
-  return (
+      return (
     <Screen
       title="إعدادات عامة"
-      subtitle="السياسات العامة للمنشأة، ترقيم المستندات، وإعدادات الكاشير والمبيعات."
+      subtitle="السياسات العامة للمنشأة، ترقيم المستندات، إعدادات الكاشير، وبيانات التقارير والفواتير وسياسة الإرجاع."
       crumbs={['الإعدادات', 'إعدادات عامة']}
       actions={
         <Button variant="secondary" onClick={() => void settings.reload()}>
@@ -601,6 +658,184 @@ export default function GeneralSettingsPage() {
               onClick={() => void saveCasher()}
             >
               حفظ إعدادات الكاشير
+            </Button>
+          </FormActions>
+        </Panel>
+      )}
+
+      {settings.status === 'success' && (
+        <Panel
+          title="بيانات التقارير والفواتير وسياسة الإرجاع"
+          hint="تظهر هذه الحقول تلقائياً في فواتير الكاشير الحرارية (80 مم) والفواتير الضريبية والتقارير الرسمية (A4) في الويب وبوابة العملاء وتطبيقات أندرويد."
+        >
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 px-4 py-3 text-xs text-muted">
+            <span>
+              يُقرأ الاسم الرسمي، الشعار، الرقم الضريبي، السجل التجاري، والعنوان الوطني التفصيلي (الشارع · الحي · المدينة · رقم المبنى · الرمز البريدي) من بطاقة المنشأة مباشرةً.
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/organization/company" className="btn btn-secondary btn-sm inline-flex items-center gap-1.5">
+                <Building2 size={14} /> بطاقة المنشأة والعنوان الوطني
+              </Link>
+              <Link href="/settings/printing" className="btn btn-ghost btn-sm inline-flex items-center gap-1.5">
+                <Printer size={14} /> خيارات الطباعة والورق
+              </Link>
+            </div>
+          </div>
+
+          <FormGrid cols={2}>
+            <Labeled
+              label="نص سياسة الاسترجاع والاستبدال"
+              hint="يُطبع في أسفل إيصال الكاشير (80 مم) والفاتورة الضريبية (A4)."
+            >
+              <textarea
+                rows={4}
+                className="input min-h-[96px]"
+                value={reportDraft['report.return_policy'] ?? ''}
+                onChange={(e) =>
+                  setReportDraft((cur) => ({ ...cur, 'report.return_policy': e.target.value }))
+                }
+                placeholder="مثال: البضاعة المباعة تُسترجع أو تُستبدل خلال 7 أيام من تاريخ الفاتورة بشرط إحضار أصل الفاتورة وسلامة الغلاف الأصلي..."
+              />
+            </Labeled>
+
+            <Labeled
+              label="ملاحظات الفواتير الافتراضية"
+              hint="تظهر في خانة الملاحظات عندما لا تُكتب ملاحظة خاصة على المستند."
+            >
+              <textarea
+                rows={4}
+                className="input min-h-[96px]"
+                value={reportDraft['report.default_notes'] ?? ''}
+                onChange={(e) =>
+                  setReportDraft((cur) => ({ ...cur, 'report.default_notes': e.target.value }))
+                }
+                placeholder="مثال: نشكركم لتعاملكم معنا — يُرجى مراجعة الأصناف والكميات قبل مغادرة الفرع."
+              />
+            </Labeled>
+          </FormGrid>
+
+          <FormGrid cols={2} className="mt-4">
+            <Labeled label="مجال عمل المنشأة بالعربية (ترويسة التقارير)" hint="يظهر أسفل اسم المنشأة العربي في ترويسة A4.">
+              <input
+                className="input"
+                value={reportDraft['report.field_ar'] ?? ''}
+                onChange={(e) => setReportDraft((cur) => ({ ...cur, 'report.field_ar': e.target.value }))}
+                placeholder="مثال: للتجارة العامة والمواد الغذائية والتوريدات"
+              />
+            </Labeled>
+            <Labeled label="مجال عمل المنشأة بالإنجليزية (Business Activity)" hint="يظهر في الجهة اليسرى من ترويسة A4.">
+              <input
+                dir="ltr"
+                className="input"
+                value={reportDraft['report.field_en'] ?? ''}
+                onChange={(e) => setReportDraft((cur) => ({ ...cur, 'report.field_en': e.target.value }))}
+                placeholder="General Trading & Foodstuff Supply"
+              />
+            </Labeled>
+            <Labeled label="عنوان المنشأة المختصر بالعربية" hint="يظهر في ترويسة الكاشير وتذييل تقارير A4.">
+              <input
+                className="input"
+                value={reportDraft['report.address_ar'] ?? ''}
+                onChange={(e) => setReportDraft((cur) => ({ ...cur, 'report.address_ar': e.target.value }))}
+                placeholder="مثال: المملكة العربية السعودية - الرياض - حي العليا - طريق الملك فهد"
+              />
+            </Labeled>
+            <Labeled label="عنوان المنشأة المختصر بالإنجليزية" hint="يظهر في الجهة اليسرى من ترويسة فاتورة A4.">
+              <input
+                dir="ltr"
+                className="input"
+                value={reportDraft['report.address_en'] ?? ''}
+                onChange={(e) => setReportDraft((cur) => ({ ...cur, 'report.address_en': e.target.value }))}
+                placeholder="Riyadh - Al Olaya Dist. - King Fahd Rd."
+              />
+            </Labeled>
+            <Labeled label="الرقم الموحد (700) / السجل الفرعي (CRN)" hint="يُعرض في الخانة الثامنة لجدول العنوان الوطني للمنشأة.">
+              <input
+                dir="ltr"
+                className="input"
+                value={reportDraft['report.crn'] ?? ''}
+                onChange={(e) => setReportDraft((cur) => ({ ...cur, 'report.crn': e.target.value }))}
+                placeholder="7001234567"
+              />
+            </Labeled>
+            <Labeled label="رابط صورة ختم المنشأة (اختياري)" hint="تُعرض داخل مربع «الختم» أسفل الفاتورة الضريبية A4.">
+              <input
+                dir="ltr"
+                className="input"
+                value={reportDraft['report.stamp_url'] ?? ''}
+                onChange={(e) => setReportDraft((cur) => ({ ...cur, 'report.stamp_url': e.target.value }))}
+                placeholder="https://..."
+              />
+            </Labeled>
+          </FormGrid>
+
+          <div className="mt-5 mb-2 text-sm font-bold text-ink">
+            الحسابات البنكية المطبوعة في ترويسة فواتير A4
+            <span className="mr-2 text-xs font-normal text-muted">تظهر حتى 3 حسابات بنكية (اسم البنك + رقم الآيبان) في ترويسة الفاتورة الضريبية.</span>
+          </div>
+          <FormGrid cols={2}>
+            <Labeled label="اسم البنك الأول">
+              <input
+                className="input"
+                value={reportDraft['report.bank1_name'] ?? ''}
+                onChange={(e) => setReportDraft((cur) => ({ ...cur, 'report.bank1_name': e.target.value }))}
+                placeholder="مثال: مصرف الراجحي"
+              />
+            </Labeled>
+            <Labeled label="آيبان / حساب البنك الأول">
+              <input
+                dir="ltr"
+                className="input"
+                value={reportDraft['report.bank1_iban'] ?? ''}
+                onChange={(e) => setReportDraft((cur) => ({ ...cur, 'report.bank1_iban': e.target.value }))}
+                placeholder="SA00 0000 0000 0000 0000 0000"
+              />
+            </Labeled>
+            <Labeled label="اسم البنك الثاني">
+              <input
+                className="input"
+                value={reportDraft['report.bank2_name'] ?? ''}
+                onChange={(e) => setReportDraft((cur) => ({ ...cur, 'report.bank2_name': e.target.value }))}
+                placeholder="مثال: البنك الأهلي السعودي"
+              />
+            </Labeled>
+            <Labeled label="آيبان / حساب البنك الثاني">
+              <input
+                dir="ltr"
+                className="input"
+                value={reportDraft['report.bank2_iban'] ?? ''}
+                onChange={(e) => setReportDraft((cur) => ({ ...cur, 'report.bank2_iban': e.target.value }))}
+                placeholder="SA00 0000 0000 0000 0000 0000"
+              />
+            </Labeled>
+            <Labeled label="اسم البنك الثالث">
+              <input
+                className="input"
+                value={reportDraft['report.bank3_name'] ?? ''}
+                onChange={(e) => setReportDraft((cur) => ({ ...cur, 'report.bank3_name': e.target.value }))}
+                placeholder="مثال: بنك الرياض"
+              />
+            </Labeled>
+            <Labeled label="آيبان / حساب البنك الثالث">
+              <input
+                dir="ltr"
+                className="input"
+                value={reportDraft['report.bank3_iban'] ?? ''}
+                onChange={(e) => setReportDraft((cur) => ({ ...cur, 'report.bank3_iban': e.target.value }))}
+                placeholder="SA00 0000 0000 0000 0000 0000"
+              />
+            </Labeled>
+          </FormGrid>
+
+          <FormActions note="تُحفظ البيانات فوراً وتنعكس في جميع قوالب طباعة الكاشير وتقارير A4 والتطبيقات.">
+            <Button
+              variant="primary"
+              icon={<Save size={15} />}
+              loading={busySection === 'reports'}
+              disabled={busySection !== null}
+              onClick={() => void saveReportData()}
+            >
+              حفظ بيانات التقارير وسياسة الإرجاع
             </Button>
           </FormActions>
         </Panel>

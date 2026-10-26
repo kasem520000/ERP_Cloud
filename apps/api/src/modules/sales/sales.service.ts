@@ -41,6 +41,7 @@ import { readTenantMoneyPolicy } from '../../common/tenant-money-policy.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { getRequestContext } from '../../request-context/request-context.js';
 import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
+import { buildQrPayload } from '../einvoicing/zatca/qr.js';
 import { DomainEventsService } from '../../events/domain-events.service.js';
 import { WebhookPublisher } from '../developer/webhook-publisher.service.js';
 import { UsageService } from '../usage/index.js';
@@ -330,14 +331,24 @@ export class SalesService {
     let partyName: string | null = null;
     let partyTaxNo: string | null = null;
     let partyCode: string | null = null;
+    let partyPhone: string | null = null;
+    let partyAddressRaw: Record<string, unknown> | null = null;
     if (invoice.partyId) {
       const [party] = await tx
-        .select({ name: parties.name, taxNo: parties.taxNo, code: parties.code })
+        .select({
+          name: parties.name,
+          taxNo: parties.taxNo,
+          code: parties.code,
+          phone: parties.phone,
+          address: parties.address,
+        })
         .from(parties)
         .where(and(eq(parties.tenantId, tenantId), eq(parties.id, invoice.partyId)));
       partyName = party?.name ?? null;
       partyTaxNo = party?.taxNo ?? null;
       partyCode = party?.code ?? null;
+      partyPhone = party?.phone ?? null;
+      partyAddressRaw = (party?.address as Record<string, unknown> | null) ?? null;
     }
     const isStandardTaxInvoice = Boolean(
       partyTaxNo &&
@@ -345,11 +356,47 @@ export class SalesService {
         partyName !== 'عميل عام' &&
         partyCode !== 'CUST-GEN',
     );
-    // 🧾 الرمز يُعاد كما أصدرته وحدة الفوترة الإلكترونية (`zatca_qr`) فقط: حمولة TLV
-    // تُبنى محليًّا بلا توقيع ولا مفتاح عام ليست فاتورةً إلكترونية، وكانت هنا تحمل اسم
-    // بائع ورقم ضريبي ثابتين لا يخصّان المستأجر — فالأصدق أن يعود `null` وتقول الشاشة
-    // «لم تُصدر بعد» بدل رمزٍ يفشل أيُّ ماسح.
-    const qrCode = invoice.zatcaQr || null;
+    // العنوان الوطني للعميل يُعرض فقط إذا كان للعميل رقم ضريبي مسجّل
+    const customerNationalAddress = isStandardTaxInvoice ? partyAddressRaw : null;
+    const taxInvoiceTypeLabelAr =
+      invoice.kind === 'sale_return'
+        ? isStandardTaxInvoice
+          ? 'إشعار دائن ضريبي'
+          : 'إشعار دائن ضريبي مبسط'
+        : isStandardTaxInvoice
+          ? 'فاتورة ضريبية'
+          : 'فاتورة ضريبية مبسطة';
+
+    // الكيو آر إلزامي: إذا أُرسلت/وُقّعت الفاتورة في الزاتكا نستخدم حمولة المرحلة الثانية (`zatca_qr`)،
+    // وإلا نولّد حمولة المرحلة الأولى الرسمية (TLV Tags 1..5) من بيانات المنشأة الفعلية.
+    const storedPhase2Qr = invoice.zatcaQr && String(invoice.zatcaQr).trim().length > 0 ? String(invoice.zatcaQr).trim() : null;
+    let qrCode: string;
+    let zatcaPhase: 1 | 2;
+    if (storedPhase2Qr) {
+      qrCode = storedPhase2Qr;
+      zatcaPhase = 2;
+    } else {
+      const companyRes = await tx.execute(sql`
+        SELECT COALESCE(cp.name_ar, t.name, 'المنشأة') AS name_ar,
+               COALESCE(cp.tax_no, '') AS tax_no
+          FROM tenants t
+          LEFT JOIN company_profiles cp ON cp.tenant_id = t.id
+         WHERE t.id = ${tenantId}::uuid
+         LIMIT 1
+      `);
+      const compRow = (companyRes.rows[0] ?? {}) as { name_ar?: string; tax_no?: string };
+      const ts = new Date(
+        (invoice.postedAt ?? invoice.createdAt ?? new Date()) as string | Date,
+      ).toISOString();
+      qrCode = buildQrPayload({
+        sellerName: String(compRow.name_ar || 'المنشأة'),
+        vatNo: String(compRow.tax_no || ''),
+        timestamp: ts,
+        grandTotal: new Decimal(invoice.total ?? 0).toFixed(2),
+        vatTotal: new Decimal(invoice.taxTotal ?? 0).toFixed(2),
+      });
+      zatcaPhase = 1;
+    }
 
     // UI-008: احتساب الكميات المرتجعة والمتبقية القابلة للإرجاع لكل سطر
     const returnedMap = new Map<string, Decimal>();
@@ -393,10 +440,13 @@ export class SalesService {
     return {
       ...invoice,
       qrCode,
+      zatcaPhase,
       partyName,
       partyTaxNo,
+      partyPhone,
+      customerNationalAddress,
       taxInvoiceType: isStandardTaxInvoice ? 'standard' : 'simplified',
-      taxInvoiceTypeLabelAr: isStandardTaxInvoice ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة',
+      taxInvoiceTypeLabelAr,
       lines: linesWithReturns,
       payments,
     };

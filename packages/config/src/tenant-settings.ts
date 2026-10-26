@@ -210,6 +210,70 @@ export const tenantSettingsRegistry: readonly TenantSettingDefinition[] = [
   define('feature.projects', 'projects', 'Projects & contracting pack.', z.boolean(), false),
   define('feature.hrm', 'hrm', 'Human resources & payroll pack.', z.boolean(), false),
   define('feature.niche', 'niche', 'Niche verticals pack (optical, marine, vehicles).', z.boolean(), false),
+
+  // --- Report & Invoice Header / Footer / Return Policy Data (rptInv & rptInvA4) --
+  define(
+    'report.return_policy',
+    'reporting',
+    'Return & exchange policy text printed at the bottom of POS and A4 invoices (?msg).',
+    z.string().max(2000),
+    '',
+  ),
+  define(
+    'report.default_notes',
+    'reporting',
+    'Default notes printed on POS and A4 invoices when document notes are empty (?note).',
+    z.string().max(1000),
+    '',
+  ),
+  define(
+    'report.field_ar',
+    'reporting',
+    'Business activity line in Arabic printed under company name (FieldA).',
+    z.string().max(240),
+    '',
+  ),
+  define(
+    'report.field_en',
+    'reporting',
+    'Business activity line in English printed under company name (FieldE).',
+    z.string().max(240),
+    '',
+  ),
+  define(
+    'report.address_ar',
+    'reporting',
+    'Short company address in Arabic printed in headers and footers (txtAddress).',
+    z.string().max(300),
+    '',
+  ),
+  define(
+    'report.address_en',
+    'reporting',
+    'Short company address in English printed in A4 invoice header (txtaddressen).',
+    z.string().max(300),
+    '',
+  ),
+  define(
+    'report.crn',
+    'reporting',
+    'Unified National Number / CRN displayed in the National Address grid.',
+    z.string().max(60),
+    '',
+  ),
+  define('report.bank1_name', 'reporting', 'Primary bank name printed on A4 invoices (bank1).', z.string().max(120), ''),
+  define('report.bank1_iban', 'reporting', 'Primary bank IBAN / account printed on A4 invoices (acc1).', z.string().max(80), ''),
+  define('report.bank2_name', 'reporting', 'Second bank name printed on A4 invoices (bank2).', z.string().max(120), ''),
+  define('report.bank2_iban', 'reporting', 'Second bank IBAN / account printed on A4 invoices (acc2).', z.string().max(80), ''),
+  define('report.bank3_name', 'reporting', 'Third bank name printed on A4 invoices (bank3).', z.string().max(120), ''),
+  define('report.bank3_iban', 'reporting', 'Third bank IBAN / account printed on A4 invoices (acc3).', z.string().max(80), ''),
+  define(
+    'report.stamp_url',
+    'reporting',
+    'Company stamp image URL printed in the signature block of A4 invoices.',
+    z.string().max(600),
+    '',
+  ),
 ] as const;
 
 const registryByKey = new Map(tenantSettingsRegistry.map((entry) => [entry.key, entry]));

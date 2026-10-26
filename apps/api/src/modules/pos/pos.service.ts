@@ -185,19 +185,46 @@ export class PosService {
    */
   async posSettings(tenantId: string) {
     await this.ensureEnabled(tenantId);
-    const stored = await withTenantTx(this.database.db, tenantId, async (tx) => {
+    const { stored, companyRow } = await withTenantTx(this.database.db, tenantId, async (tx) => {
       const rows = await tx
         .select({ key: tenantSettings.key, value: tenantSettings.value })
         .from(tenantSettings)
-        .where(and(eq(tenantSettings.tenantId, tenantId), sql`${tenantSettings.key} like 'pos.%'`));
-      return new Map(rows.map((row) => [row.key, row.value as string | boolean | number | null]));
+        .where(
+          and(
+            eq(tenantSettings.tenantId, tenantId),
+            sql`(${tenantSettings.key} like 'pos.%' OR ${tenantSettings.key} like 'report.%')`,
+          ),
+        );
+      const compRes = await tx.execute(sql`
+        SELECT cp.name_ar, cp.name_en, cp.tax_no, cp.cr_no, cp.email, cp.phones, cp.address
+          FROM company_profiles cp
+         WHERE cp.tenant_id = ${tenantId}::uuid
+         LIMIT 1
+      `);
+      return {
+        stored: new Map(rows.map((row) => [row.key, row.value as string | boolean | number | null])),
+        companyRow: (compRes.rows[0] ?? null) as Record<string, unknown> | null,
+      };
     });
     const resolved = resolveTenantSettings(stored);
+    const settingsSlice = Object.fromEntries(
+      Object.entries(resolved).filter(([key]) => key.startsWith('pos.') || key.startsWith('report.')),
+    ) as Record<string, unknown>;
     return {
-      data: Object.fromEntries(Object.entries(resolved).filter(([key]) => key.startsWith('pos.'))) as Record<
-        string,
-        string | boolean | number | null
-      >,
+      data: {
+        ...settingsSlice,
+        company: companyRow
+          ? {
+              nameAr: String(companyRow.name_ar ?? ''),
+              nameEn: String(companyRow.name_en ?? ''),
+              taxNo: String(companyRow.tax_no ?? ''),
+              crNo: String(companyRow.cr_no ?? ''),
+              email: String(companyRow.email ?? ''),
+              phones: Array.isArray(companyRow.phones) ? (companyRow.phones as string[]) : [],
+              address: (companyRow.address as Record<string, unknown> | null) ?? null,
+            }
+          : null,
+      },
     };
   }
 
@@ -1764,6 +1791,13 @@ export class PosService {
         shiftId: shiftId ?? null,
         change,
         tendered: tendered ? tendered.toFixed(4) : null,
+        qrCode: invoice.qrCode,
+        zatcaPhase: invoice.zatcaPhase,
+        taxInvoiceType: invoice.taxInvoiceType,
+        taxInvoiceTypeLabelAr: invoice.taxInvoiceTypeLabelAr,
+        partyName: invoice.partyName,
+        partyTaxNo: invoice.partyTaxNo,
+        customerNationalAddress: invoice.customerNationalAddress,
       },
     };
   }

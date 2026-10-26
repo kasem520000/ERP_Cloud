@@ -8123,6 +8123,8 @@ export class VanSalesService {
         await tx.execute(sql`
           SELECT d.*, si.number AS invoice_number, si.status AS invoice_status,
                  si.total::text AS invoice_total, si.paid_total::text AS invoice_paid,
+                 si.zatca_qr AS invoice_zatca_qr, si.zatca_status AS invoice_zatca_status,
+                 si.posted_at AS invoice_posted_at,
                  COALESCE(p.name, d.customer_name, 'عميل نقدي') AS customer_name_resolved,
                  p.tax_no AS customer_tax_no_resolved, p.phone AS customer_phone,
                  p.address::text AS customer_address,
@@ -8147,12 +8149,25 @@ export class VanSalesService {
 
       const company = first(
         await tx.execute(sql`
-          SELECT cp.name_ar, cp.name_en, cp.tax_no, cp.cr_no, cp.email, cp.phones::text,
+          SELECT COALESCE(cp.name_ar, t.name, 'المنشأة') AS name_ar,
+                 cp.name_en, cp.tax_no, cp.cr_no, cp.email, cp.phones::text,
                  cp.address::text
-          FROM company_profiles cp
-          WHERE cp.tenant_id = ${tenantId}::uuid
+          FROM tenants t
+          LEFT JOIN company_profiles cp ON cp.tenant_id = t.id
+          WHERE t.id = ${tenantId}::uuid
           LIMIT 1
         `),
+      );
+
+      const reportSettingRows = await tx.execute(sql`
+        SELECT key, value FROM tenant_settings
+        WHERE tenant_id = ${tenantId}::uuid AND key LIKE 'report.%'
+      `);
+      const reportMap = new Map<string, string>(
+        (reportSettingRows.rows as Array<{ key: string; value: unknown }>).map((r) => [
+          r.key,
+          typeof r.value === 'string' ? r.value : r.value == null ? '' : String(r.value),
+        ]),
       );
 
       const lines: Array<Record<string, unknown>> = [];
@@ -8184,17 +8199,80 @@ export class VanSalesService {
 
       const invoiceMode = str(doc.invoice_mode);
       const appliesVat = invoiceMode === 'zatca_tax';
+      const resolvedCustomerTaxNo = str(doc.customer_tax_no_resolved ?? doc.customer_tax_no ?? '').trim();
+      const resolvedCustomerName = str(doc.customer_name_resolved);
+      const hasCustomerTax =
+        resolvedCustomerTaxNo.length > 0 && resolvedCustomerName !== 'عميل عام';
+      const parsedCustomerAddress = (() => {
+        if (!hasCustomerTax) return null;
+        try {
+          return JSON.parse(str(doc.customer_address ?? 'null')) as Record<string, unknown> | null;
+        } catch {
+          return null;
+        }
+      })();
+      const documentKind = str(doc.document_kind ?? 'sale');
+      const invoiceTitleAr = !appliesVat
+        ? 'إشعار تسليم / فاتورة توزيع داخلية'
+        : documentKind === 'return'
+          ? hasCustomerTax
+            ? 'إشعار دائن ضريبي'
+            : 'إشعار دائن ضريبي مبسط'
+          : hasCustomerTax
+            ? 'فاتورة ضريبية'
+            : 'فاتورة ضريبية مبسطة';
+
+      const phase2Qr = str(doc.invoice_zatca_qr ?? '').trim();
+      const storedPhase1Qr = str(doc.zatca_qr_tlv ?? doc.qr_payload ?? '').trim();
+      let resolvedQrPayload: string;
+      let zatcaPhase: 1 | 2;
+      if (phase2Qr.length > 0) {
+        resolvedQrPayload = phase2Qr;
+        zatcaPhase = 2;
+      } else if (storedPhase1Qr.length > 0) {
+        resolvedQrPayload = storedPhase1Qr;
+        zatcaPhase = 1;
+      } else {
+        const ts = new Date(
+          String(doc.invoice_posted_at ?? doc.created_at ?? new Date().toISOString()),
+        ).toISOString();
+        resolvedQrPayload = buildQrPayload({
+          sellerName: str(company?.name_ar ?? 'المنشأة') || 'المنشأة',
+          vatNo: str(company?.tax_no ?? ''),
+          timestamp: ts,
+          grandTotal: dec(doc.total).toFixed(2),
+          vatTotal: appliesVat ? dec(doc.tax_total).toFixed(2) : '0.00',
+        });
+        zatcaPhase = 1;
+      }
+
+      const banks = [1, 2, 3]
+        .map((n) => ({
+          name: (reportMap.get(`report.bank${n}_name`) ?? '').trim(),
+          iban: (reportMap.get(`report.bank${n}_iban`) ?? '').trim(),
+        }))
+        .filter((b) => b.name || b.iban);
+
       const base = {
         documentId: str(doc.id),
         documentNumber: str(doc.number),
+        documentKind,
         /** رقم الفاتورة الرسمية — the number the accountant and ZATCA know. */
         invoiceNumber: doc.invoice_number ? str(doc.invoice_number) : null,
         invoiceStatus: doc.invoice_status ? str(doc.invoice_status) : null,
+        zatcaStatus: doc.invoice_zatca_status ? str(doc.invoice_zatca_status) : null,
+        zatcaPhase,
+        invoiceTitleAr,
         saleDate: str(doc.doc_date),
         companyName: str(company?.name_ar ?? ''),
         companyNameEn: str(company?.name_en ?? ''),
         companyTaxNo: str(company?.tax_no ?? ''),
         companyCrNo: str(company?.cr_no ?? ''),
+        companyCrn: (reportMap.get('report.crn') ?? '').trim(),
+        companyFieldAr: (reportMap.get('report.field_ar') ?? '').trim(),
+        companyFieldEn: (reportMap.get('report.field_en') ?? '').trim(),
+        companyAddressAr: (reportMap.get('report.address_ar') ?? '').trim(),
+        companyAddressEn: (reportMap.get('report.address_en') ?? '').trim(),
         companyEmail: str(company?.email ?? ''),
         companyPhones: (() => {
           try {
@@ -8210,10 +8288,13 @@ export class VanSalesService {
             return null;
           }
         })(),
-        customerName: str(doc.customer_name_resolved),
-        customerTaxNo: str(doc.customer_tax_no_resolved ?? doc.customer_tax_no ?? ''),
+        banks,
+        returnPolicy: (reportMap.get('report.return_policy') ?? '').trim(),
+        customerName: resolvedCustomerName,
+        customerTaxNo: resolvedCustomerTaxNo,
         customerPhone: str(doc.customer_phone ?? ''),
         customerMobile: str(doc.customer_mobile ?? ''),
+        customerAddress: parsedCustomerAddress,
         salesmanName: str(doc.salesman_name),
         salesmanMobile: str(doc.salesman_mobile ?? ''),
         vanWarehouseName: str(doc.van_warehouse_name),
@@ -8231,8 +8312,8 @@ export class VanSalesService {
         paidAmount: dec(doc.paid_amount).toFixed(2),
         outstandingAmount: Decimal.max(0, dec(doc.total).minus(dec(doc.paid_amount))).toFixed(2),
         bonusQtyTotal: bonusQty.toFixed(3),
-        qrPayload: str(doc.zatca_qr_tlv ?? doc.qr_payload ?? ''),
-        notes: str(doc.notes ?? ''),
+        qrPayload: resolvedQrPayload,
+        notes: str(doc.notes ?? '').trim() || (reportMap.get('report.default_notes') ?? '').trim(),
         /**
          * تاريخ ووقت الطباعة — its own fact, stamped when the sheet is rendered, never the
          * sale date. A document reprinted next month must say so.
