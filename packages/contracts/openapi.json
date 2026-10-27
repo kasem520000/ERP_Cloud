@@ -141,6 +141,43 @@
         ]
       }
     },
+    "/api/v1/platform/backups/import": {
+      "post": {
+        "operationId": "PlatformBackupsController_importBackup",
+        "parameters": [
+          {
+            "name": "fileName",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "note",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Imported and verified backup row ready for restore"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload and import an external backup dump (.ndjson, .gz, or encrypted .enc)",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
     "/api/v1/platform/backups/preflight": {
       "get": {
         "operationId": "PlatformBackupsController_preflight",
@@ -693,6 +730,210 @@
           }
         ],
         "summary": "Download a data export with its signed capability",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
+    "/api/v1/platform/google-drive/status": {
+      "get": {
+        "operationId": "PlatformBackupsController_googleDriveStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "وضع جوجل درايف (متصل/غير متصل/لم يُربَط قط)",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
+    "/api/v1/platform/google-drive/connect": {
+      "post": {
+        "operationId": "PlatformBackupsController_googleDriveConnect",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "ربط حساب جوجل درايف عبر OAuth2",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
+    "/api/v1/platform/google-drive/disconnect": {
+      "post": {
+        "operationId": "PlatformBackupsController_googleDriveDisconnect",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "قطع اتصال جوجل درايف",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
+    "/api/v1/platform/google-drive/upload": {
+      "post": {
+        "operationId": "PlatformBackupsController_googleDriveUpload",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "رفع نسخة إلى جوجل درايف",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
+    "/api/v1/platform/google-drive/files": {
+      "get": {
+        "operationId": "PlatformBackupsController_googleDriveListFiles",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "قائمة الملفات المرفوعة إلى جوجل درايف",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
+    "/api/v1/platform/google-drive/files/{id}/download": {
+      "get": {
+        "operationId": "PlatformBackupsController_googleDriveDownload",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "تنزيل ملف من جوجل درايف (JSON)",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
+    "/api/v1/platform/google-drive/files/{id}": {
+      "delete": {
+        "operationId": "PlatformBackupsController_googleDriveDeleteFile",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "حذف ملف من جوجل درايف",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
+    "/api/v1/platform/google-drive/files/{id}/restore": {
+      "post": {
+        "operationId": "PlatformBackupsController_googleDriveRestore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "استعادة البيانات من ملف جوجل درايف",
         "tags": [
           "platform-backups"
         ]
@@ -6134,6 +6375,82 @@
         ]
       }
     },
+    "/api/v1/platform/problems/server/{id}": {
+      "get": {
+        "operationId": "PlatformConsoleController_getServerProblem",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Full server problem event detail including stack and traceId",
+        "tags": [
+          "platform-console"
+        ]
+      },
+      "delete": {
+        "operationId": "PlatformConsoleController_deleteServerProblem",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dismiss a resolved server problem event",
+        "tags": [
+          "platform-console"
+        ]
+      }
+    },
+    "/api/v1/platform/problems/server": {
+      "delete": {
+        "operationId": "PlatformConsoleController_clearServerProblems",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clear resolved server problem events",
+        "tags": [
+          "platform-console"
+        ]
+      }
+    },
     "/api/v1/platform/settings": {
       "get": {
         "operationId": "PlatformConsoleController_settings",
@@ -7031,6 +7348,65 @@
           }
         ],
         "summary": "شبكة الاستخدام عبر العملاء، أو لقطة عميلٍ واحد",
+        "tags": [
+          "platform-usage"
+        ]
+      }
+    },
+    "/api/v1/platform/usage/requests": {
+      "get": {
+        "operationId": "PlatformUsageController_listRequests",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "pending | approved | rejected",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "طلبات المنشآت لاعتماد رفع الحصص وتفعيل المزايا وترقية الباقات",
+        "tags": [
+          "platform-usage"
+        ]
+      }
+    },
+    "/api/v1/platform/usage/requests/{id}/review": {
+      "post": {
+        "operationId": "PlatformUsageController_reviewRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "اعتماد أو رفض طلب حصة/ترقية منشأة مع تطبيق الحصة المعتمدة تلقائياً",
         "tags": [
           "platform-usage"
         ]
@@ -10149,7 +10525,65 @@
             "bearer": []
           }
         ],
-        "summary": "استهلاك منشأتي مقابل حدودها",
+        "summary": "استهلاك منشأتي مقابل حدودها وباقتها الحالية",
+        "tags": [
+          "usage"
+        ]
+      }
+    },
+    "/api/v1/usage/plans": {
+      "get": {
+        "operationId": "UsageController_plans",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "الباقات النشطة المتاحة لطلب الترقية من المنشأة",
+        "tags": [
+          "usage"
+        ]
+      }
+    },
+    "/api/v1/usage/requests": {
+      "get": {
+        "operationId": "UsageController_listRequests",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "طلبات المنشأة لرفع الحصص أو تفعيل المزايا أو ترقية الباقة",
+        "tags": [
+          "usage"
+        ]
+      },
+      "post": {
+        "operationId": "UsageController_createRequest",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "تقديم طلب لإدارة المنصة لاعتماد رفع حصة أو تفعيل ميزة أو ترقية باقة",
         "tags": [
           "usage"
         ]
@@ -10628,6 +11062,27 @@
     "/api/v1/organization/catalog/tax-groups/{id}": {
       "patch": {
         "operationId": "CatalogController_updateTaxGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Catalog"
+        ]
+      },
+      "delete": {
+        "operationId": "CatalogController_removeTaxGroup",
         "parameters": [
           {
             "name": "id",
@@ -11345,6 +11800,30 @@
         ]
       }
     },
+    "/api/v1/fiscal-periods/{id}/close-preflight": {
+      "get": {
+        "operationId": "AccountingController_periodClosePreflight",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "MF-05 — checks that block or warn before closing the period",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
     "/api/v1/fiscal-periods/{id}/reopen": {
       "post": {
         "operationId": "AccountingController_reopenPeriod",
@@ -11680,6 +12159,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "withBalances",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -11884,6 +12371,78 @@
         ]
       }
     },
+    "/api/v1/fiscal-years/{id}/close-preview": {
+      "get": {
+        "operationId": "AccountingController_previewYearClose",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "MF-04 — preview the year-end close (net income, lines, open periods)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/fiscal-years/{id}/close": {
+      "post": {
+        "operationId": "AccountingController_closeFiscalYear",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "MF-04 — close the fiscal year: post the closing entry and open the next year",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/fiscal-years/{id}/reopen": {
+      "post": {
+        "operationId": "AccountingController_reopenFiscalYear",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "MF-04 — reopen a closed fiscal year by reversing its closing entry (reason required)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
     "/api/v1/journal-entries": {
       "get": {
         "operationId": "AccountingController_listJournalEntries",
@@ -12069,6 +12628,856 @@
         },
         "tags": [
           "accounting"
+        ]
+      }
+    },
+    "/api/v1/amortization-schedules": {
+      "post": {
+        "operationId": "AmortizationController_createSchedule",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "إنشاء جدول إطفاء/استحقاق من سند صرف أو فاتورة شراء أو بمفرده",
+        "tags": [
+          "accounting"
+        ]
+      },
+      "get": {
+        "operationId": "AmortizationController_listSchedules",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "قوائم الجداول بأرصدتها (مقدّم/مستحق)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/amortization-schedules/{id}/generate": {
+      "post": {
+        "operationId": "AmortizationController_generateSchedule",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "توليد قيد قسط فترة معيّنة (مرفوض مع تكرار أو فترة مغلقة)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/asset-categories": {
+      "post": {
+        "operationId": "FixedAssetsController_createCategory",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "تعريف فئة أصول ثابتة (حسابات + طريقة الإهلاك + العمر)",
+        "tags": [
+          "accounting"
+        ]
+      },
+      "get": {
+        "operationId": "FixedAssetsController_listCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/fixed-assets": {
+      "post": {
+        "operationId": "FixedAssetsController_createAsset",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "تسجيل أصل (يدوي/من قيد/من فاتورة شراء مع انقلال اختياري)",
+        "tags": [
+          "accounting"
+        ]
+      },
+      "get": {
+        "operationId": "FixedAssetsController_listAssets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "سجل الأصول بأرصدته المشتقة (مُهلك/صافي)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/fixed-assets/depreciation-runs": {
+      "post": {
+        "operationId": "FixedAssetsController_createRun",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "معاينة تشغيل إهلاك شهر (بلا قيد — يُرحَّل بخطوة منفصلة)",
+        "tags": [
+          "accounting"
+        ]
+      },
+      "get": {
+        "operationId": "FixedAssetsController_listRuns",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/fixed-assets/depreciation-runs/{id}": {
+      "get": {
+        "operationId": "FixedAssetsController_getRun",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/fixed-assets/depreciation-runs/{id}/post": {
+      "post": {
+        "operationId": "FixedAssetsController_postRun",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "ترحيل تشغيل الإهلاك (قيد واحد مجمَّع — بلا تكرار وبلا فترة مغلقة)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/statements/fixed-asset-register": {
+      "get": {
+        "operationId": "FixedAssetsController_registerStatement",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "تقرير سجل الأصول الثابتة (تكلفة/مُهلك/صافي)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/statements/depreciation-movement": {
+      "get": {
+        "operationId": "FixedAssetsController_movementStatement",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "تقرير حركة الإهلاك (أسطر التشغيلات المرحَّلة)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/fx-revaluation-runs": {
+      "post": {
+        "operationId": "FxRevaluationController_run",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "تشغيل إعادة تقييم عملاتي ليوم: قيد غير محقَّق + عكسه الآلي (صفر بلا قيد)",
+        "tags": [
+          "accounting"
+        ]
+      },
+      "get": {
+        "operationId": "FxRevaluationController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "سجل عمليات إعادة التقييم",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/accounting/fx-revaluation-runs/{id}": {
+      "get": {
+        "operationId": "FxRevaluationController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "تفاصيل تشغيل إعادة تقييم (القيود واللقطة)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/tax/filings": {
+      "post": {
+        "operationId": "TaxFilingsController_file",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "تقديم إقرار ضريبي: يجمّد التقرير ويقيّد الصافي ويقفل الفترة",
+        "tags": [
+          "tax"
+        ]
+      },
+      "get": {
+        "operationId": "TaxFilingsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "سجل الإقرارات المقدَّمة",
+        "tags": [
+          "tax"
+        ]
+      }
+    },
+    "/api/v1/tax/filings/{id}": {
+      "get": {
+        "operationId": "TaxFilingsController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "تفاصيل إقرار مقدَّم (اللقطة المجمَّدة)",
+        "tags": [
+          "tax"
+        ]
+      }
+    },
+    "/api/v1/reports": {
+      "get": {
+        "operationId": "ReportingController_catalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/layouts": {
+      "get": {
+        "operationId": "ReportingController_listLayouts",
+        "parameters": [
+          {
+            "name": "report_key",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      },
+      "post": {
+        "operationId": "ReportingController_createLayout",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/layouts/{id}": {
+      "patch": {
+        "operationId": "ReportingController_updateLayout",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      },
+      "delete": {
+        "operationId": "ReportingController_deleteLayout",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/print-settings": {
+      "get": {
+        "operationId": "ReportingController_listPrintSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/print-settings/{scope}": {
+      "put": {
+        "operationId": "ReportingController_writePrintSettings",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      },
+      "delete": {
+        "operationId": "ReportingController_resetPrintSettings",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      },
+      "get": {
+        "operationId": "ReportingController_readPrintSettings",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/printable-templates": {
+      "get": {
+        "operationId": "ReportingController_printableTemplates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/printable-templates/preview": {
+      "post": {
+        "operationId": "ReportingController_previewTemplate",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/printer-links": {
+      "get": {
+        "operationId": "ReportingController_listPrinterLinks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      },
+      "post": {
+        "operationId": "ReportingController_createPrinterLink",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/printer-links/{id}": {
+      "put": {
+        "operationId": "ReportingController_updatePrinterLink",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      },
+      "delete": {
+        "operationId": "ReportingController_deletePrinterLink",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/print/invoices/{id}": {
+      "get": {
+        "operationId": "ReportingController_invoicePrint",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "paper",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "copies",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/print/purchase-invoices/{id}": {
+      "get": {
+        "operationId": "ReportingController_purchaseInvoicePrint",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "paper",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "copies",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/print/vouchers/{id}": {
+      "get": {
+        "operationId": "ReportingController_voucherPrint",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "copies",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/print/journal-entries/{id}": {
+      "get": {
+        "operationId": "ReportingController_journalPrint",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "copies",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/print/shifts/{id}": {
+      "get": {
+        "operationId": "ReportingController_shiftPrint",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "paper",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "copies",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/print/{key}": {
+      "get": {
+        "operationId": "ReportingController_printReport",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/{key}": {
+      "get": {
+        "operationId": "ReportingController_run",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/{key}/export": {
+      "post": {
+        "operationId": "ReportingController_export",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
         ]
       }
     },
@@ -12800,6 +14209,1571 @@
         },
         "tags": [
           "Parties"
+        ]
+      }
+    },
+    "/api/v1/ar-reminders": {
+      "get": {
+        "operationId": "CollectionController_listRules",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Collection"
+        ]
+      },
+      "post": {
+        "operationId": "CollectionController_createRule",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Collection"
+        ]
+      }
+    },
+    "/api/v1/ar-reminders/{id}": {
+      "patch": {
+        "operationId": "CollectionController_updateRule",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Collection"
+        ]
+      }
+    },
+    "/api/v1/parties/{id}/send-reminder": {
+      "post": {
+        "operationId": "CollectionController_sendReminder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Collection"
+        ]
+      }
+    },
+    "/api/v1/ar-provisions": {
+      "post": {
+        "operationId": "CollectionController_createProvision",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Collection"
+        ]
+      },
+      "get": {
+        "operationId": "CollectionController_listProvisions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Collection"
+        ]
+      }
+    },
+    "/api/v1/ar-writeoffs": {
+      "post": {
+        "operationId": "CollectionController_createWriteoff",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Collection"
+        ]
+      },
+      "get": {
+        "operationId": "CollectionController_listWriteoffs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Collection"
+        ]
+      }
+    },
+    "/api/v1/ar-writeoffs/{id}/approve": {
+      "post": {
+        "operationId": "CollectionController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Collection"
+        ]
+      }
+    },
+    "/api/v1/ar-writeoffs/{id}/recovery": {
+      "post": {
+        "operationId": "CollectionController_recovery",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Collection"
+        ]
+      }
+    },
+    "/api/v1/vouchers": {
+      "get": {
+        "operationId": "TreasuryController_vouchers",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      },
+      "post": {
+        "operationId": "TreasuryController_createVoucher",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/vouchers/{id}": {
+      "get": {
+        "operationId": "TreasuryController_getVoucher",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      },
+      "patch": {
+        "operationId": "TreasuryController_updateVoucher",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/vouchers/{id}/post": {
+      "post": {
+        "operationId": "TreasuryController_postVoucher",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/vouchers/{id}/void": {
+      "post": {
+        "operationId": "TreasuryController_voidVoucher",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/vouchers/{id}/cheque": {
+      "post": {
+        "operationId": "TreasuryController_cheque",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/cash-transfers": {
+      "get": {
+        "operationId": "TreasuryController_transfers",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "number",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      },
+      "post": {
+        "operationId": "TreasuryController_createTransfer",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/cash-transfers/{id}/send": {
+      "post": {
+        "operationId": "TreasuryController_sendTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/cash-transfers/{id}/receive": {
+      "post": {
+        "operationId": "TreasuryController_receiveTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/cash-transfers/{id}/cancel": {
+      "post": {
+        "operationId": "TreasuryController_cancelTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/expense-types": {
+      "get": {
+        "operationId": "TreasuryController_expenseTypes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      },
+      "post": {
+        "operationId": "TreasuryController_createExpenseType",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/expense-types/{id}": {
+      "patch": {
+        "operationId": "TreasuryController_updateExpenseType",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      },
+      "delete": {
+        "operationId": "TreasuryController_deleteExpenseType",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/shift-closes/open": {
+      "post": {
+        "operationId": "TreasuryController_openShift",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/shift-closes/current": {
+      "get": {
+        "operationId": "TreasuryController_currentShift",
+        "parameters": [
+          {
+            "name": "branch_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/shift-closes": {
+      "get": {
+        "operationId": "TreasuryController_history",
+        "parameters": [
+          {
+            "name": "branch_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/shift-closes/{id}/close": {
+      "post": {
+        "operationId": "TreasuryController_closeShift",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/shift-closes/day-closes": {
+      "get": {
+        "operationId": "TreasuryController_dayCloses",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "membership_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/shift-closes/{id}": {
+      "get": {
+        "operationId": "TreasuryController_shiftClose",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/shift-closes/{id}/post": {
+      "post": {
+        "operationId": "TreasuryController_postShiftClose",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/shift-closes/{id}/print-data": {
+      "get": {
+        "operationId": "TreasuryController_printShift",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/cash-locations/{id}/movements": {
+      "get": {
+        "operationId": "TreasuryController_movements",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromTime",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "toTime",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "all",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/cash-locations/{id}/balance": {
+      "get": {
+        "operationId": "TreasuryController_cashLocationBalance",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currency",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/cash-locations/{id}/recalc-balance": {
+      "post": {
+        "operationId": "TreasuryController_recalcBalance",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currency",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/cash-locations/{id}/recalc": {
+      "post": {
+        "operationId": "TreasuryController_recalc",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currency",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Treasury"
+        ]
+      }
+    },
+    "/api/v1/fixed-assets/{id}/disposals": {
+      "post": {
+        "operationId": "AssetDisposalController_createDisposal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "بيع (عائد ⇐ سند قبض) أو تخفيض أصل ثابت — كامل أو بنسبة",
+        "tags": [
+          "accounting"
+        ]
+      },
+      "get": {
+        "operationId": "AssetDisposalController_listDisposals",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
+    "/api/v1/whatsapp/settings": {
+      "get": {
+        "operationId": "WhatsappController_settings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Whatsapp"
+        ]
+      },
+      "put": {
+        "operationId": "WhatsappController_save",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Whatsapp"
+        ]
+      }
+    },
+    "/api/v1/whatsapp/test": {
+      "post": {
+        "operationId": "WhatsappController_test",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Whatsapp"
+        ]
+      }
+    },
+    "/api/v1/whatsapp/send": {
+      "post": {
+        "operationId": "WhatsappController_send",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Whatsapp"
+        ]
+      }
+    },
+    "/api/v1/whatsapp/messages": {
+      "get": {
+        "operationId": "WhatsappController_messages",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invoiceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Whatsapp"
+        ]
+      }
+    },
+    "/api/v1/sales/invoices": {
+      "get": {
+        "operationId": "SalesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      },
+      "post": {
+        "operationId": "SalesController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/invoices/{id}": {
+      "get": {
+        "operationId": "SalesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      },
+      "patch": {
+        "operationId": "SalesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/invoices/{id}/print-data": {
+      "get": {
+        "operationId": "SalesController_printData",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/invoices/{id}/post": {
+      "post": {
+        "operationId": "SalesController_post",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/invoices/{id}/void": {
+      "post": {
+        "operationId": "SalesController_void",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/invoices/{id}/payments": {
+      "post": {
+        "operationId": "SalesController_payment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/invoices/{id}/return": {
+      "post": {
+        "operationId": "SalesController_returnFrom",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/invoices/{id}/adjustment-notes": {
+      "post": {
+        "operationId": "SalesController_note",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/adjustment-notes": {
+      "get": {
+        "operationId": "SalesController_notes",
+        "parameters": [
+          {
+            "name": "kind",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/adjustment-notes/{id}/post": {
+      "post": {
+        "operationId": "SalesController_postNote",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/offers/{id}/evaluate": {
+      "post": {
+        "operationId": "SalesController_evaluateOffer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/quotations": {
+      "get": {
+        "operationId": "SalesController_quotations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      },
+      "post": {
+        "operationId": "SalesController_createQuotation",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/quotations/{id}/convert": {
+      "post": {
+        "operationId": "SalesController_convertQuotation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/offers": {
+      "get": {
+        "operationId": "SalesController_offers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      },
+      "post": {
+        "operationId": "SalesController_createOffer",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/salesmen": {
+      "get": {
+        "operationId": "SalesController_salesmen",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      },
+      "post": {
+        "operationId": "SalesController_createSalesman",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/cash-customers": {
+      "get": {
+        "operationId": "SalesController_cashCustomers",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mobile",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/salesmen/{id}": {
+      "patch": {
+        "operationId": "SalesController_updateSalesman",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      },
+      "delete": {
+        "operationId": "SalesController_deleteSalesman",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/salesmen/commissions": {
+      "get": {
+        "operationId": "SalesController_salesmanCommissions",
+        "parameters": [
+          {
+            "name": "salesman_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "all_salesmen",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "all_period",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Sales"
         ]
       }
     },
@@ -14501,522 +17475,6 @@
         ]
       }
     },
-    "/api/v1/sales/invoices": {
-      "get": {
-        "operationId": "SalesController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      },
-      "post": {
-        "operationId": "SalesController_create",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/invoices/{id}": {
-      "get": {
-        "operationId": "SalesController_get",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      },
-      "patch": {
-        "operationId": "SalesController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/invoices/{id}/print-data": {
-      "get": {
-        "operationId": "SalesController_printData",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/invoices/{id}/post": {
-      "post": {
-        "operationId": "SalesController_post",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/invoices/{id}/void": {
-      "post": {
-        "operationId": "SalesController_void",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/invoices/{id}/payments": {
-      "post": {
-        "operationId": "SalesController_payment",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/invoices/{id}/return": {
-      "post": {
-        "operationId": "SalesController_returnFrom",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/invoices/{id}/adjustment-notes": {
-      "post": {
-        "operationId": "SalesController_note",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/adjustment-notes": {
-      "get": {
-        "operationId": "SalesController_notes",
-        "parameters": [
-          {
-            "name": "kind",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/adjustment-notes/{id}/post": {
-      "post": {
-        "operationId": "SalesController_postNote",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/offers/{id}/evaluate": {
-      "post": {
-        "operationId": "SalesController_evaluateOffer",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/quotations": {
-      "get": {
-        "operationId": "SalesController_quotations",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      },
-      "post": {
-        "operationId": "SalesController_createQuotation",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/quotations/{id}/convert": {
-      "post": {
-        "operationId": "SalesController_convertQuotation",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/offers": {
-      "get": {
-        "operationId": "SalesController_offers",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      },
-      "post": {
-        "operationId": "SalesController_createOffer",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/salesmen": {
-      "get": {
-        "operationId": "SalesController_salesmen",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      },
-      "post": {
-        "operationId": "SalesController_createSalesman",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/cash-customers": {
-      "get": {
-        "operationId": "SalesController_cashCustomers",
-        "parameters": [
-          {
-            "name": "name",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "mobile",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/salesmen/{id}": {
-      "patch": {
-        "operationId": "SalesController_updateSalesman",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      },
-      "delete": {
-        "operationId": "SalesController_deleteSalesman",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
-    "/api/v1/sales/salesmen/commissions": {
-      "get": {
-        "operationId": "SalesController_salesmanCommissions",
-        "parameters": [
-          {
-            "name": "salesman_id",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "all_salesmen",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "all_period",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "from",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "to",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "branch_id",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Sales"
-        ]
-      }
-    },
     "/api/v1/einvoice/settings": {
       "get": {
         "operationId": "EinvoicingController_settings",
@@ -15732,708 +18190,6 @@
         ]
       }
     },
-    "/api/v1/vouchers": {
-      "get": {
-        "operationId": "TreasuryController_vouchers",
-        "parameters": [
-          {
-            "name": "from",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "to",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      },
-      "post": {
-        "operationId": "TreasuryController_createVoucher",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/vouchers/{id}": {
-      "get": {
-        "operationId": "TreasuryController_getVoucher",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      },
-      "patch": {
-        "operationId": "TreasuryController_updateVoucher",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/vouchers/{id}/post": {
-      "post": {
-        "operationId": "TreasuryController_postVoucher",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/vouchers/{id}/void": {
-      "post": {
-        "operationId": "TreasuryController_voidVoucher",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/vouchers/{id}/cheque": {
-      "post": {
-        "operationId": "TreasuryController_cheque",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/cash-transfers": {
-      "get": {
-        "operationId": "TreasuryController_transfers",
-        "parameters": [
-          {
-            "name": "status",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "number",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "from",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "to",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      },
-      "post": {
-        "operationId": "TreasuryController_createTransfer",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/cash-transfers/{id}/send": {
-      "post": {
-        "operationId": "TreasuryController_sendTransfer",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/cash-transfers/{id}/receive": {
-      "post": {
-        "operationId": "TreasuryController_receiveTransfer",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/cash-transfers/{id}/cancel": {
-      "post": {
-        "operationId": "TreasuryController_cancelTransfer",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/expense-types": {
-      "get": {
-        "operationId": "TreasuryController_expenseTypes",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      },
-      "post": {
-        "operationId": "TreasuryController_createExpenseType",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/expense-types/{id}": {
-      "patch": {
-        "operationId": "TreasuryController_updateExpenseType",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      },
-      "delete": {
-        "operationId": "TreasuryController_deleteExpenseType",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/shift-closes/open": {
-      "post": {
-        "operationId": "TreasuryController_openShift",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/shift-closes/current": {
-      "get": {
-        "operationId": "TreasuryController_currentShift",
-        "parameters": [
-          {
-            "name": "branch_id",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "user_id",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/shift-closes": {
-      "get": {
-        "operationId": "TreasuryController_history",
-        "parameters": [
-          {
-            "name": "branch_id",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/shift-closes/{id}/close": {
-      "post": {
-        "operationId": "TreasuryController_closeShift",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/shift-closes/day-closes": {
-      "get": {
-        "operationId": "TreasuryController_dayCloses",
-        "parameters": [
-          {
-            "name": "from",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "to",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "user_id",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "membership_id",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "branch_id",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/shift-closes/{id}": {
-      "get": {
-        "operationId": "TreasuryController_shiftClose",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/shift-closes/{id}/post": {
-      "post": {
-        "operationId": "TreasuryController_postShiftClose",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/shift-closes/{id}/print-data": {
-      "get": {
-        "operationId": "TreasuryController_printShift",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/cash-locations/{id}/movements": {
-      "get": {
-        "operationId": "TreasuryController_movements",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "from",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "to",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "fromTime",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "toTime",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "all",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/cash-locations/{id}/balance": {
-      "get": {
-        "operationId": "TreasuryController_cashLocationBalance",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "currency",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
-    "/api/v1/cash-locations/{id}/recalc-balance": {
-      "post": {
-        "operationId": "TreasuryController_recalc",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "currency",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Treasury"
-        ]
-      }
-    },
     "/api/v1/treasury/bank-accounts": {
       "get": {
         "operationId": "BankFeedsController_bankAccounts",
@@ -16705,6 +18461,83 @@
           },
           {
             "name": "lineId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      }
+    },
+    "/api/v1/treasury/bank-statements/{id}/lines/{lineId}/expense": {
+      "post": {
+        "operationId": "BankFeedsController_lineExpense",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lineId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      }
+    },
+    "/api/v1/treasury/bank-statements/{id}/approve": {
+      "post": {
+        "operationId": "BankFeedsController_approveStatement",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      }
+    },
+    "/api/v1/treasury/bank-statements/{id}/unapprove": {
+      "post": {
+        "operationId": "BankFeedsController_unapproveStatement",
+        "parameters": [
+          {
+            "name": "id",
             "required": true,
             "in": "path",
             "schema": {
@@ -17211,6 +19044,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "paper",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -17288,432 +19129,6 @@
         },
         "tags": [
           "Portal"
-        ]
-      }
-    },
-    "/api/v1/reports": {
-      "get": {
-        "operationId": "ReportingController_catalog",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/layouts": {
-      "get": {
-        "operationId": "ReportingController_listLayouts",
-        "parameters": [
-          {
-            "name": "report_key",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      },
-      "post": {
-        "operationId": "ReportingController_createLayout",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/layouts/{id}": {
-      "patch": {
-        "operationId": "ReportingController_updateLayout",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      },
-      "delete": {
-        "operationId": "ReportingController_deleteLayout",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/print-settings": {
-      "get": {
-        "operationId": "ReportingController_listPrintSettings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/print-settings/{scope}": {
-      "put": {
-        "operationId": "ReportingController_writePrintSettings",
-        "parameters": [
-          {
-            "name": "scope",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      },
-      "delete": {
-        "operationId": "ReportingController_resetPrintSettings",
-        "parameters": [
-          {
-            "name": "scope",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      },
-      "get": {
-        "operationId": "ReportingController_readPrintSettings",
-        "parameters": [
-          {
-            "name": "scope",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/printer-links": {
-      "get": {
-        "operationId": "ReportingController_listPrinterLinks",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      },
-      "post": {
-        "operationId": "ReportingController_createPrinterLink",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/printer-links/{id}": {
-      "put": {
-        "operationId": "ReportingController_updatePrinterLink",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      },
-      "delete": {
-        "operationId": "ReportingController_deletePrinterLink",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/print/invoices/{id}": {
-      "get": {
-        "operationId": "ReportingController_invoicePrint",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/print/purchase-invoices/{id}": {
-      "get": {
-        "operationId": "ReportingController_purchaseInvoicePrint",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/print/vouchers/{id}": {
-      "get": {
-        "operationId": "ReportingController_voucherPrint",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/print/journal-entries/{id}": {
-      "get": {
-        "operationId": "ReportingController_journalPrint",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/print/shifts/{id}": {
-      "get": {
-        "operationId": "ReportingController_shiftPrint",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/print/{key}": {
-      "get": {
-        "operationId": "ReportingController_printReport",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/{key}": {
-      "get": {
-        "operationId": "ReportingController_run",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
-        ]
-      }
-    },
-    "/api/v1/reports/{key}/export": {
-      "post": {
-        "operationId": "ReportingController_export",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Reporting"
         ]
       }
     },
@@ -18943,99 +20358,6 @@
         },
         "tags": [
           "Crm"
-        ]
-      }
-    },
-    "/api/v1/whatsapp/settings": {
-      "get": {
-        "operationId": "WhatsappController_settings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Whatsapp"
-        ]
-      },
-      "put": {
-        "operationId": "WhatsappController_save",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Whatsapp"
-        ]
-      }
-    },
-    "/api/v1/whatsapp/test": {
-      "post": {
-        "operationId": "WhatsappController_test",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Whatsapp"
-        ]
-      }
-    },
-    "/api/v1/whatsapp/send": {
-      "post": {
-        "operationId": "WhatsappController_send",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Whatsapp"
-        ]
-      }
-    },
-    "/api/v1/whatsapp/messages": {
-      "get": {
-        "operationId": "WhatsappController_messages",
-        "parameters": [
-          {
-            "name": "status",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "invoiceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Whatsapp"
         ]
       }
     },
@@ -20638,6 +21960,29 @@
         ]
       }
     },
+    "/api/v1/hrm/employees/{id}/account": {
+      "post": {
+        "operationId": "HrmController_ensureEmployeeAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
     "/api/v1/hrm/attendance/import": {
       "post": {
         "operationId": "HrmController_importAttendance",
@@ -20973,6 +22318,97 @@
         ],
         "responses": {
           "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/eosb-policy": {
+      "get": {
+        "operationId": "HrmController_eosbPolicy",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      },
+      "patch": {
+        "operationId": "HrmController_updateEosbPolicy",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/eosb/preview": {
+      "post": {
+        "operationId": "HrmController_eosbPreview",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/eosb/post": {
+      "post": {
+        "operationId": "HrmController_eosbPost",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/eosb/reverse": {
+      "post": {
+        "operationId": "HrmController_eosbReverse",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/eosb/accruals": {
+      "get": {
+        "operationId": "HrmController_eosbAccruals",
+        "parameters": [
+          {
+            "name": "yearMonth",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         },
@@ -25853,6 +27289,29 @@
         ]
       }
     },
+    "/api/v1/payments/links/{id}": {
+      "get": {
+        "operationId": "PaymentLinksController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PaymentLinks"
+        ]
+      }
+    },
     "/api/v1/payments/links/{id}/send": {
       "post": {
         "operationId": "PaymentLinksController_send",
@@ -26553,6 +28012,34 @@
         "parameters": [],
         "responses": {
           "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}": {
+      "get": {
+        "operationId": "VanSalesController_readLoadOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         },
