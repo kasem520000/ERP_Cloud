@@ -220,6 +220,10 @@ export default function VanSalesRepPage() {
   const [closingCash, setClosingCash] = useState('0');
   const [closingActualRemaining, setClosingActualRemaining] = useState('0');
   const [closingNotes, setClosingNotes] = useState('');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'receipts' | 'sale' | 'documents' | 'collections' | 'balances' | 'closing'
+  >('overview');
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const load = useCallback(async () => {
     const [meRes, custRes] = await Promise.allSettled([
@@ -302,9 +306,18 @@ export default function VanSalesRepPage() {
       subtitle="عهدتك وأرصدة سيارتك الرسمية، توريداتك بانتظار التأكيد، فواتيرك وتحصيلاتك، وإغلاق ورديتك — كلها من حسابك أنت."
       crumbs={['توزيع المناديب والمخابز', 'تطبيق المندوب']}
       actions={
-        <button type="button" className="btn sm" onClick={() => void load()} disabled={busy}>
-          تحديث
-        </button>
+        <div className="row" style={{ gap: 8 }}>
+          <button
+            type="button"
+            className="btn sm"
+            onClick={() => setDrawerOpen((prev) => !prev)}
+          >
+            ☰ أقسام المندوب
+          </button>
+          <button type="button" className="btn sm" onClick={() => void load()} disabled={busy}>
+            تحديث
+          </button>
+        </div>
       }
     >
       {notice ? <Notice notice={notice} /> : null}
@@ -316,7 +329,76 @@ export default function VanSalesRepPage() {
       ) : null}
 
       {data?.isRep ? (
-        <div className="grid gap-4">
+        <div
+          style={{
+            display: 'grid',
+            gap: 16,
+            gridTemplateColumns: 'minmax(220px, 250px) minmax(0, 1fr)',
+            alignItems: 'start',
+          }}
+          className="max-lg:!grid-cols-1"
+        >
+          {drawerOpen ? (
+            <div role="dialog" aria-modal="true" className="modal-backdrop" style={backdropStyle}>
+              <Panel title="القائمة الجانبية لتطبيق المندوب" style={{ width: 'min(340px, 100%)' }}>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  {[
+                    { key: 'overview', label: 'ملخص الوردية والوصول السريع' },
+                    { key: 'receipts', label: `استلام التوريدات (${data.pendingReceipts.length})` },
+                    { key: 'sale', label: `فاتورة بيع جديدة (${saleableLoads.length})` },
+                    { key: 'documents', label: `الفواتير والمستندات (${data.documents.length})` },
+                    { key: 'collections', label: `سجل التحصيلات (${data.collections.length})` },
+                    { key: 'balances', label: `أرصدة السيارة (${data.balances.length})` },
+                    { key: 'closing', label: `إغلاق الوردية (${openLoads.length})` },
+                  ].map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className={`btn ${activeTab === item.key ? 'primary' : ''}`}
+                      style={{ justifyContent: 'flex-start' }}
+                      onClick={() => {
+                        setActiveTab(item.key as typeof activeTab);
+                        setDrawerOpen(false);
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                  <button type="button" className="btn" onClick={() => setDrawerOpen(false)}>
+                    إغلاق القائمة
+                  </button>
+                </div>
+              </Panel>
+            </div>
+          ) : null}
+
+          <Panel title="أقسام عمل المندوب" className="max-lg:hidden" style={{ position: 'sticky', top: 16 }}>
+            <div style={{ display: 'grid', gap: 6 }}>
+              {[
+                { key: 'overview', label: 'ملخص الوردية' },
+                { key: 'receipts', label: `استلام التوريدات (${data.pendingReceipts.length})` },
+                { key: 'sale', label: `فاتورة بيع جديدة (${saleableLoads.length})` },
+                { key: 'documents', label: `الفواتير والمستندات (${data.documents.length})` },
+                { key: 'collections', label: `سجل التحصيلات (${data.collections.length})` },
+                { key: 'balances', label: `أرصدة السيارة (${data.balances.length})` },
+                { key: 'closing', label: `إغلاق الوردية (${openLoads.length})` },
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={`btn sm ${activeTab === item.key ? 'primary' : ''}`}
+                  style={{ justifyContent: 'space-between', width: '100%' }}
+                  onClick={() => setActiveTab(item.key as typeof activeTab)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </Panel>
+
+          <div className="grid gap-4">
+          {activeTab === 'overview' ? (
+          <>
           {/* البطاقة والعهدات */}
           <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
             <Panel>
@@ -403,7 +485,36 @@ export default function VanSalesRepPage() {
             </Panel>
           ) : null}
 
-          {/* التوريدات بانتظار تأكيدك */}
+          <Panel title="الوصول السريع لأقسام العمل">
+            <div
+              className="grid gap-3"
+              style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}
+            >
+              <button type="button" className="btn primary" onClick={() => setActiveTab('sale')}>
+                + فاتورة بيع جديدة ({saleableLoads.length})
+              </button>
+              <button type="button" className="btn" onClick={() => setActiveTab('receipts')}>
+                استلام التوريدات ({data.pendingReceipts.length})
+              </button>
+              <button type="button" className="btn" onClick={() => setActiveTab('documents')}>
+                الفواتير والتحصيل ({data.documents.length})
+              </button>
+              <button type="button" className="btn" onClick={() => setActiveTab('balances')}>
+                أرصدة السيارة ({data.balances.length})
+              </button>
+              <button type="button" className="btn" onClick={() => setActiveTab('collections')}>
+                سجل التحصيلات ({data.collections.length})
+              </button>
+              <button type="button" className="btn" onClick={() => setActiveTab('closing')}>
+                إغلاق الوردية ({openLoads.length})
+              </button>
+            </div>
+          </Panel>
+          </>
+          ) : null}
+
+          {activeTab === 'receipts' ? (
+          /* التوريدات بانتظار تأكيدك */
           <Panel
             title={<>توريدات بانتظار تأكيد استلامك ( {data.pendingReceipts.length} )</>}
             hint={
@@ -485,8 +596,10 @@ export default function VanSalesRepPage() {
               rowKey={(row) => row.id}
             />
           </Panel>
+          ) : null}
 
-          {/* أرصدة سيارتك الرسمية */}
+          {activeTab === 'balances' ? (
+          /* أرصدة سيارتك الرسمية */
           <Panel title="أرصدة أصناف سيارتك (من دفتر المخزون الرسمي)" flush>
             <Table
               bare
@@ -538,8 +651,10 @@ export default function VanSalesRepPage() {
               rowKey={(row) => `${row.warehouseId}-${row.itemId}`}
             />
           </Panel>
+          ) : null}
 
-          {/* إصدار فاتورة بيع */}
+          {activeTab === 'sale' ? (
+          /* إصدار فاتورة بيع */
           <form
             style={{ display: 'grid', gap: 12 }}
             onSubmit={(event) => {
@@ -698,8 +813,10 @@ export default function VanSalesRepPage() {
               </div>
             </Panel>
           </form>
+          ) : null}
 
-          {/* سجل الفواتير والتحصيل */}
+          {activeTab === 'documents' ? (
+          /* سجل الفواتير والتحصيل */
           <Panel title="فواتيرك ومستنداتك" flush>
             <div className="muted small">
               {windowNote(data.windows, 'documents', DOCUMENTS_WINDOW_FALLBACK, {
@@ -799,8 +916,10 @@ export default function VanSalesRepPage() {
               rowKey={(row) => row.id}
             />
           </Panel>
+          ) : null}
 
-          {/* التحصيلات */}
+          {activeTab === 'collections' ? (
+          /* التحصيلات */
           <Panel title="ما حصّلته" flush>
             <div className="muted small">
               {windowNote(data.windows, 'collections', COLLECTIONS_WINDOW_FALLBACK, {
@@ -849,8 +968,10 @@ export default function VanSalesRepPage() {
               rowKey={(row) => row.id}
             />
           </Panel>
+          ) : null}
 
-          {/* إغلاق الوردية */}
+          {activeTab === 'closing' ? (
+          /* إغلاق الوردية */
           <Panel title="إغلاق الوردية وتصفية العهدة" flush>
             <div className="muted small">
               {windowNote(data.windows, 'loadOrders', LOAD_ORDERS_WINDOW_FALLBACK, {
@@ -976,6 +1097,8 @@ export default function VanSalesRepPage() {
               rowKey={(row) => row.id}
             />
           </Panel>
+          ) : null}
+          </div>
         </div>
       ) : null}
 

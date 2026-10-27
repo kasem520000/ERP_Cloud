@@ -252,6 +252,33 @@ describe('Android apps (`android-bakery` & `android-rep`) cloud contract & accou
     expect(bakeryRepo).toContain('(?:sheet|pos-sheet)');
   });
 
+  it('structures android-rep with RTL ModalNavigationDrawer and dedicated multi-screen field sections', () => {
+    const mainActivity = fs.readFileSync(path.join(REP_SRC, 'MainActivity.kt'), 'utf8');
+    expect(mainActivity).toContain('class MainActivity : FragmentActivity()');
+    expect(mainActivity).toContain('InvoicePrint.attachActivity(this)');
+    expect(mainActivity).toContain('ModalNavigationDrawer');
+    expect(mainActivity).toContain('LayoutDirection.Rtl');
+    expect(mainActivity).toContain('CUSTODY');
+    expect(mainActivity).toContain('DOCUMENTS');
+
+    const custody = fs.readFileSync(path.join(REP_SRC, 'ui/screens/CustodyOverviewScreen.kt'), 'utf8');
+    expect(custody).toContain('fun CustodyOverviewScreen(');
+    expect(custody).toContain('pendingReceipts');
+
+    const docs = fs.readFileSync(path.join(REP_SRC, 'ui/screens/DocumentsScreen.kt'), 'utf8');
+    expect(docs).toContain('fun DocumentsScreen(');
+    expect(docs).toContain('onPrint(doc.id)');
+
+    const workspace = fs.readFileSync(path.join(REP_SRC, 'ui/screens/WorkspaceScreen.kt'), 'utf8');
+    expect(workspace).toContain('fun WorkspaceScreen(');
+    expect(workspace).toContain('onCustody');
+    expect(workspace).toContain('onDocuments');
+    expect(workspace).toContain('vm.refreshAll()');
+
+    const queue = fs.readFileSync(path.join(REP_SRC, 'ui/screens/QueueScreen.kt'), 'utf8');
+    expect(queue).toContain('vm.replayQueue()');
+  });
+
   it('maintains balanced braces and parentheses across all Kotlin source files in both Android apps', () => {
     const allKt = [...walkFiles(BAKERY_SRC, '.kt'), ...walkFiles(REP_SRC, '.kt')];
     for (const file of allKt) {

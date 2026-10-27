@@ -9,37 +9,41 @@ import { useSession } from '@erp/web-core/session';
 import { BootCard } from '@erp/web-core/session-gate';
 
 import { licenceVerdict } from '../lib/licence';
-import { BAKERY_MODULES, isRepScoped, moduleForPath, visibleModules } from '../lib/navigation';
+import {
+  BAKERY_MODULES,
+  groupedVisibleModules,
+  isRepScoped,
+  moduleForPath,
+  visibleModules,
+  type BakeryGroupKey,
+} from '../lib/navigation';
 
 import { LicenceWall } from './licence-wall';
 import { BakeryLogoMark, BakeryModuleIcon } from './module-icon';
 import { BakeryNotificationBell } from './notification-bell';
 
+const REP_SUB_LINKS = [
+  { key: 'overview', labelAr: 'ملخص الوردية', href: '/rep?section=overview' },
+  { key: 'receipts', labelAr: 'استلام التوريدات', href: '/rep?section=receipts' },
+  { key: 'sale', labelAr: 'فاتورة بيع جديدة', href: '/rep?section=sale' },
+  { key: 'returns', labelAr: 'مرتجع مبيعات', href: '/rep?section=returns' },
+  { key: 'collection', labelAr: 'تحصيل الذمم', href: '/rep?section=collection' },
+  { key: 'documents', labelAr: 'الفواتير والطباعة', href: '/rep?section=documents' },
+  { key: 'custody', labelAr: 'أرصدة وأوامر السيارة', href: '/rep?section=custody' },
+  { key: 'closing', labelAr: 'إقفال الوردية', href: '/rep?section=closing' },
+  { key: 'queue', labelAr: 'طابور عدم الاتصال', href: '/rep?section=queue' },
+] as const;
+
 /**
- * قشرة واجهة المخابز **وبوابةُ ترخيصها** في آن: لا تُرسم الشاشة ولا يُعرض التنقّل قبل أن
- * تقول `/me` إنّ باقة `bakery_distribution` مفعَّلة للمنشأة.
- *
- * وثلاث حالاتٍ لا رابعة:
- *   • `loading` — الجلسة لم تُحلّ بعد: قولٌ صريح بلا هيكلٍ عظميّ يدّعي بيانات.
- *   • `licensed` — القشرة: شريطٌ جانبيّ بالوحدات (المبنيّة روابط، والمخطَّطة نصّ بنقطتها)،
- *     وشريطٌ علويّ بالهوية والباقة والخروج.
- *   • غير ذلك — `LicenceWall`: رفضٌ مُعلَّل (أو «تعذّر التأكّد» مع إعادة المحاولة).
- *
- * وحدّ الوصول هنا **ترخيصٌ لا صلاحية**: الصلاحيات يفرضها الخادم على كلّ نداء
- * (‏`@RequiresPermission`)، والقائمة تُصفّى بها كي لا تعرض ما سيُرفض — وهذا الترتيب مقصود:
- * إخفاءُ زرٍّ ليس ضابطاً، والضابطُ في `apps/api`.
+ * قشرة واجهة المخابز الشاملة وبوابةُ ترخيصها، مع قائمة جانبية منظّمة في ١٣ مجموعةً
+ * مطابقةً لبنية تطبيق المخابز على أندرويد وبحثٍ فوريّ وروابطَ فرعية لتطبيق المندوب.
  */
 export function BakeryGuard({ children }: { children: React.ReactNode }) {
   const { can, me, reload, signOut, status } = useSession();
   const pathname = usePathname() ?? '';
   const [drawerOpen, setDrawerOpen] = useState(false);
-  /**
-   * هل صاحبُ الجلسة مندوبٌ محصور؟ — يُسأل الخادمُ (`GET /van-sales/me`) ولا يُخمَّن من
-   * الأذونات: فالحجبُ في الخادم يقع على **حاملِ بطاقةِ `salesmen`** بلا إذنِ إدارة،
-   * وكاتبُ المكتب الذي يملك `van_sales.view` وحدها ولا بطاقةَ له يُفتح له كلّ شيء. فلو
-   * خمّنّا من الأذونات لحجبنا عنه شاشاتٍ تعمل — وكذبٌ في هذه الجهة كالكذب في الأخرى.
-   * وعند تعذّر السؤال لا يُحجب شيء: فالخادمُ يبقى هو الرافض، والقائمةُ لا تمنح.
-   */
+  const [navQuery, setNavQuery] = useState('');
+  const [collapsedGroups, setCollapsedGroups] = useState<Partial<Record<BakeryGroupKey, boolean>>>({});
   const [repFacts, setRepFacts] = useState<{ isRep: boolean; salesmanName: string | null } | null>(null);
   const canVan = can('van_sales.view');
 
@@ -78,9 +82,14 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
 
   const repScoped = isRepScoped(repFacts?.isRep === true, me?.permissions ?? []);
   const modules = visibleModules(can, BAKERY_MODULES, { repScoped });
+  const grouped = groupedVisibleModules(can, BAKERY_MODULES, { repScoped, query: navQuery });
   const hasPlanned = modules.some((module) => module.status !== 'ready');
   const active = moduleForPath(pathname);
   const tenantName = me?.membership.tenantName ?? me?.membership.displayName ?? 'الإنتاج والتوزيع';
+
+  const toggleGroup = (key: BakeryGroupKey) => {
+    setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   return (
     <div className="bak-shell">
@@ -99,51 +108,94 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
             <BakeryLogoMark size={22} />
           </span>
           <span>
-            المخابز
+            المخابز والتوزيع
             <small>{tenantName}</small>
           </span>
         </div>
 
+        <input
+          aria-label="بحث في شاشات النظام"
+          className="bak-nav-search"
+          onChange={(event) => setNavQuery(event.target.value)}
+          placeholder="ابحث في الشاشات…"
+          type="search"
+          value={navQuery}
+        />
+
         <nav aria-label="وحدات واجهة المخابز" className="bak-nav">
-          <p className="bak-nav-title">الوحدات</p>
-          {modules.map((module) => {
-            const href = module.href;
-            if (!href) {
-              return (
-                <span className="bak-nav-item" key={module.key} title={`${module.phaseAr} — ${module.summaryAr}`}>
-                  <span aria-hidden="true" className={`bak-dot ${module.status}`} />
-                  <span aria-hidden="true" className="bak-nav-icon">
-                    <BakeryModuleIcon moduleKey={module.key} />
-                  </span>
-                  {module.labelAr}
-                </span>
-              );
-            }
-            const isActive = pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
+          {grouped.map(({ group, items }) => {
+            const containsActive = items.some((m) => m.key === active?.key);
+            const isOpen = Boolean(navQuery.trim()) || containsActive || !collapsedGroups[group.key];
             return (
-              <Link
-                className={`bak-nav-link ${isActive ? 'active' : ''}`}
-                href={href}
-                key={module.key}
-                onClick={() => setDrawerOpen(false)}
-                title={module.summaryAr}
-              >
-                <span aria-hidden="true" className={`bak-dot ${module.status}`} />
-                <span aria-hidden="true" className="bak-nav-icon">
-                  <BakeryModuleIcon moduleKey={module.key} />
-                </span>
-                {module.labelAr}
-              </Link>
+              <div className="bak-nav-group" key={group.key}>
+                <button
+                  aria-expanded={isOpen}
+                  className="bak-nav-group-btn"
+                  onClick={() => toggleGroup(group.key)}
+                  type="button"
+                >
+                  <span>{group.labelAr}</span>
+                  <span className="bak-nav-group-count">{items.length}</span>
+                </button>
+                {isOpen &&
+                  items.map((module) => {
+                    const href = module.href;
+                    if (!href) {
+                      return (
+                        <span
+                          className="bak-nav-item"
+                          key={module.key}
+                          title={`${module.phaseAr} — ${module.summaryAr}`}
+                        >
+                          <span aria-hidden="true" className={`bak-dot ${module.status}`} />
+                          <span aria-hidden="true" className="bak-nav-icon">
+                            <BakeryModuleIcon moduleKey={module.key} />
+                          </span>
+                          {module.labelAr}
+                        </span>
+                      );
+                    }
+                    const isActive =
+                      pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
+                    return (
+                      <div key={module.key}>
+                        <Link
+                          className={`bak-nav-link ${isActive ? 'active' : ''}`}
+                          href={href}
+                          onClick={() => setDrawerOpen(false)}
+                          title={module.summaryAr}
+                        >
+                          <span aria-hidden="true" className={`bak-dot ${module.status}`} />
+                          <span aria-hidden="true" className="bak-nav-icon">
+                            <BakeryModuleIcon moduleKey={module.key} />
+                          </span>
+                          {module.labelAr}
+                        </Link>
+                        {module.key === 'rep-app' && (isActive || repScoped) ? (
+                          <div className="bak-nav-sublinks">
+                            {REP_SUB_LINKS.map((sub) => (
+                              <Link
+                                className="bak-nav-sublink"
+                                href={sub.href}
+                                key={sub.key}
+                                onClick={() => setDrawerOpen(false)}
+                              >
+                                • {sub.labelAr}
+                              </Link>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+              </div>
             );
           })}
         </nav>
 
-        {/* الوسيلةُ تُقال فقط إن كان لها معنى: فبعد ٢٠ج صارت الوحداتُ كلّها مبنيّة، وبقاءُ
-            «مخطَّط» بجانب «١١ من ١١ وحدة مبنيّة» تناقضٌ يُقرأ ولا يُفسَّر (ولصقةُ صاحبِ
-            العمل أظهرتهما معًا). */}
         <div className="bak-legend">
           <span>
-            <span className="bak-dot ready" /> مبنيّ
+            <span className="bak-dot ready" /> مبنيّ ({modules.length})
           </span>
           {hasPlanned ? (
             <span>
@@ -164,13 +216,22 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
               onClick={() => setDrawerOpen((open) => !open)}
               size="sm"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                aria-hidden
+              >
                 <path d="M4 7h16M4 12h16M4 17h16" />
               </svg>
             </Button>
             <nav aria-label="موقعك في الواجهة" className="bak-crumbs">
               <Link href="/">المخابز</Link>
- {active && active.href !== '/' ? ` ${active.labelAr}` : ''}
+              {active && active.href !== '/' ? ` / ${active.labelAr}` : ''}
             </nav>
           </div>
 
@@ -179,7 +240,17 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
               className="bak-badge ok"
               title="الباقة القطاعية «المخابز والتوزيع» مفعَّلة لهذه المنشأة (تُقرأ من جلسة دخولك)"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
                 <rect x="5" y="11" width="14" height="9" rx="2" />
                 <path d="M8 11V8a4 4 0 0 1 7.8-1.2" />
               </svg>

@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import {
+  BAKERY_GROUPS,
   BAKERY_MODULES,
+  groupedVisibleModules,
   isRepScoped,
   moduleForPath,
   readyModules,
@@ -149,25 +151,53 @@ describe('خريطة وحدات واجهة المخابز', () => {
     }
 
     expect(readyModules().map((module) => module.key).sort()).toEqual([
-      /**
-       * الشريحة ٢٠: بُنيت الوحدتان الأخيرتان (`/treasury` قراءةٌ في خزينة الخطّ، و
-       * ‏`/accounting` رابطُ تسليمِ جلسة إلى لوحة staff) فصارت القائمةُ إحدى عشرة — والحكمُ
-       * الأول («مبنيّة ⇔ صفحةٌ فعلًا» في الطرفين) هو الذي يثبت أنّ الإعلانين ليسا قشرة:
-       * فلو حُذفت `app/treasury/page.tsx` لسقط معه.
-       */
       'accounting',
+      'adjustments',
+      'ai-assistant',
+      'ai-settings',
+      'cash-boxes',
+      'categories',
+      'change-password',
       'collection',
+      'counts',
       'custody',
       'distribution',
+      'employee-account',
+      'employees',
+      'inventory',
+      'inventory-vouchers',
+      'items',
+      'notifications',
+      'org',
       'overview',
+      'parties',
+      'payroll',
+      'policy',
+      'pos',
+      'prices',
+      'printers',
       'production',
-      // ‏الترتيبُ codepoint لا أبجديّ: ‏'rep-app' (شرطةٌ 0x2D) قبل 'reports' (‏o) قبل 'reps' (‏s).
+      'purchases',
       'rep-app',
       'reports',
       'reps',
+      'roles',
       'sales',
+      'sales-invoices',
+      'sales-registry',
+      'support',
+      'system-reports',
+      'tax-filings',
       'treasury',
+      'treasury-vouchers',
+      'units',
+      'users',
     ]);
+
+    expect(BAKERY_GROUPS.length).toBe(13);
+    const grouped = groupedVisibleModules(() => true);
+    expect(grouped.length).toBe(13);
+    expect(grouped.reduce((sum, g) => sum + g.items.length, 0)).toBe(BAKERY_MODULES.length);
     /**
      * ‏واجهةُ المندوب بُنيت (الشريحة ١٤ب) فصار مسارُها `/rep` ومرحلتُها «مبنيّة» — وحكمُ
      * «مبنيّة ⇔ صفحةٌ فعلًا» أعلاه هو ما يثبت أنّ الإعلانَ ليس قشرة: فلو حُذفت
