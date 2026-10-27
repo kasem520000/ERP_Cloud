@@ -2,25 +2,54 @@
 
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import {
+  QuickLoginPanel,
+  RememberMeCheckbox,
+  useQuickLogin,
+} from '@erp/web-core/quick-login';
 
 import { login } from '../lib/api';
 
 export function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const quickLogin = useQuickLogin('portal');
 
   async function submit(event: FormEvent<globalThis.HTMLFormElement>) {
     event.preventDefault();
     setError('');
     setLoading(true);
     const form = new FormData(event.currentTarget);
+    const tenantCode = String(form.get('tenantCode')).trim();
+    const email = String(form.get('email')).trim();
+    const password = String(form.get('password'));
     try {
-      const session = await login({
-        tenantCode: String(form.get('tenantCode')).trim(),
-        email: String(form.get('email')).trim(),
-        password: String(form.get('password')),
-      });
+      const session = await login({ tenantCode, email, password });
+      await quickLogin.persistIfRemembered({ tenantCode, email, password });
       // A portal login handed out by the supplier starts as a one-time password.
+      globalThis.location.assign(session.mustChangePassword ? '/auth/change-password' : '/portal');
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : 'تعذر تسجيل الدخول');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitQuickLogin() {
+    setError('');
+    setLoading(true);
+    try {
+      const secret = await quickLogin.loadSecret();
+      if (!secret) {
+        await quickLogin.forget();
+        setError('انتهت صلاحية البيانات المحفوظة على هذا الجهاز — يرجى تسجيل الدخول مرة واحدة لحفظها مجدداً.');
+        return;
+      }
+      const session = await login({
+        tenantCode: secret.tenantCode,
+        email: secret.email,
+        password: secret.password,
+      });
       globalThis.location.assign(session.mustChangePassword ? '/auth/change-password' : '/portal');
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : 'تعذر تسجيل الدخول');
@@ -31,9 +60,20 @@ export function LoginForm() {
 
   return (
     <form className="form" onSubmit={submit} noValidate>
+      <QuickLoginPanel
+        meta={quickLogin.meta}
+        busy={loading}
+        onQuickSignIn={() => void submitQuickLogin()}
+        onForget={() => void quickLogin.forget()}
+      />
       <input className="input" name="tenantCode" placeholder="رمز الشركة (المورد)" aria-label="tenant" required />
       <input className="input" name="email" type="email" placeholder="البريد الإلكتروني" aria-label="email" required />
       <input className="input" name="password" type="password" placeholder="كلمة المرور" aria-label="password" required />
+      <RememberMeCheckbox
+        checked={quickLogin.rememberMe}
+        onChange={quickLogin.setRememberMe}
+        disabled={loading}
+      />
       {error ? (
         <p role="alert" className="muted">
           {error}

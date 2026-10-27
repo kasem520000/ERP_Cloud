@@ -1,7 +1,13 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import {
+  QuickLoginPanel,
+  RememberMeCheckbox,
+  useQuickLogin,
+  type QuickLoginSecret,
+} from '@erp/web-core/quick-login';
 
 import { ApiError, apiPost } from '../lib/api';
 import { useLang } from '../lib/i18n';
@@ -43,6 +49,8 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
   );
   const [notice, setNotice] = useState<string | undefined>();
   const justJoined = params.get('joined') === '1';
+  const quickLogin = useQuickLogin('staff');
+  const pendingQuickSecretRef = useRef<QuickLoginSecret | null>(null);
 
   useEffect(() => {
     if (urlResetToken) {
@@ -55,22 +63,59 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
     setBusy(true);
     setError(undefined);
     setNotice(undefined);
+    const activeQuick = pendingQuickSecretRef.current;
+    const targetTenant = activeQuick ? activeQuick.tenantCode.trim() : tenantCode.trim();
+    const targetEmail = activeQuick ? activeQuick.email.trim() : email.trim();
+    const targetPassword = activeQuick ? activeQuick.password : password;
     try {
-      await signIn(email.trim(), password, tenantCode.trim(), code);
+      await signIn(targetEmail, targetPassword, targetTenant, code);
+      if (!activeQuick) {
+        await quickLogin.persistIfRemembered({
+          tenantCode: targetTenant,
+          email: targetEmail,
+          password: targetPassword,
+        });
+      }
+      pendingQuickSecretRef.current = null;
     } catch (caught) {
       if (caught instanceof ApiError) {
         if (caught.code === 'MFA_REQUIRED') {
           setStep('mfa');
-        } else if (caught.status === 401) setError(t(step === 'mfa' ? 'mfa.error.invalid' : 'login.error.invalid'));
-        else if (caught.status === 423) setError(t('login.error.suspended'));
-        else if (caught.status === 429) setError(t('login.error.rateLimited'));
-        else setError(caught.message);
+        } else {
+          pendingQuickSecretRef.current = null;
+          if (caught.status === 401) setError(t(step === 'mfa' ? 'mfa.error.invalid' : 'login.error.invalid'));
+          else if (caught.status === 423) setError(t('login.error.suspended'));
+          else if (caught.status === 429) setError(t('login.error.rateLimited'));
+          else setError(caught.message);
+        }
       } else {
+        pendingQuickSecretRef.current = null;
         setError(t('login.error.unreachable'));
       }
     } finally {
       setBusy(false);
     }
+  }
+
+  async function attemptQuickLogin() {
+    setBusy(true);
+    setError(undefined);
+    setNotice(undefined);
+    try {
+      const secret = await quickLogin.loadSecret();
+      if (!secret) {
+        await quickLogin.forget();
+        setError('انتهت صلاحية البيانات المحفوظة على هذا الجهاز — يرجى تسجيل الدخول مرة واحدة لحفظها مجدداً.');
+        setBusy(false);
+        return;
+      }
+      pendingQuickSecretRef.current = secret;
+    } catch {
+      setBusy(false);
+      setError('تعذّر قراءة بيانات الدخول السريع المحفوظة.');
+      return;
+    }
+    await attempt();
   }
 
   async function submitForgot() {
@@ -185,6 +230,13 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
 
         {step === 'credentials' && (
           <>
+            <QuickLoginPanel
+              meta={quickLogin.meta}
+              busy={busy}
+              onQuickSignIn={() => void attemptQuickLogin()}
+              onForget={() => void quickLogin.forget()}
+            />
+
             <label className="field">
               <span>{t('login.tenantCode')}</span>
               <input
@@ -245,6 +297,12 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
                 dir="ltr"
               />
             </label>
+
+            <RememberMeCheckbox
+              checked={quickLogin.rememberMe}
+              onChange={quickLogin.setRememberMe}
+              disabled={busy}
+            />
           </>
         )}
 
@@ -378,6 +436,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
             className="btn block"
             type="button"
             onClick={() => {
+              pendingQuickSecretRef.current = null;
               setStep('credentials');
               setMfaCode('');
               setError(undefined);

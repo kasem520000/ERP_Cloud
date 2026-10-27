@@ -35,6 +35,28 @@ export class ReportingController {
   @Delete('print-settings/:scope') @RequiresPermission('reporting.layout.manage') async resetPrintSettings(@Param('scope') scope: string) { return { data: await this.printSettings.reset(getTenantContext().tenantId, scope) }; }
   @Get('print-settings/:scope') @RequiresPermission('reporting.view') readPrintSettings(@Param('scope') scope: string) { return this.printSettings.read(getTenantContext().tenantId, scope); }
 
+  // 🧾 قائمة كل ما يُطبع في النظام: إيصال الكاشير، الفواتير، المرتجعات، السندات، القيود،
+  // إغلاق الوردية، ثم كل تقرير مسجّل — مع أعمدة التصميم الافتراضية وأقسامه وتوقيعاته.
+  // هي التي تملأ «اسم التقرير» في شاشة إعدادات الطباعة، فيختار المستخدم قالباً ويعدّله.
+  @Get('printable-templates') @RequiresPermission('reporting.view') printableTemplates() {
+    return this.printSettings.listPrintableTemplates(getTenantContext().tenantId);
+  }
+
+  // 👁️ معاينة القالب قبل الحفظ — تُرسم على الخادم بنفس دوال الطباعة، فيرى المستخدم
+  // الورقة الحقيقية لا صورةً تقريبية، ويجرّب تعديلاته غير المحفوظة عبر `draft`.
+  @Post('printable-templates/preview') @RequiresPermission('reporting.view') async previewTemplate(
+    @Body() body: { scope?: string; draft?: PrintSettingsInput },
+  ) {
+    const tenantId = getTenantContext().tenantId;
+    const scope = this.printSettings.parseScope(body?.scope ?? 'default');
+    const merged = await this.printSettings.mergeDraft(tenantId, scope, body?.draft);
+    if (scope.startsWith('report:')) {
+      const key = scope.slice('report:'.length);
+      return this.reporting.printable(tenantId, key, {}, tryGetAuthContext()?.userId, merged);
+    }
+    return { html: await this.print.samplePreview(tenantId, scope, merged) };
+  }
+
   // 📑 ربط الطابعات بالتقارير — `PrinterSettings` L2163-L2180 (`Inv_Id, PrintName, Printer, RptUrl, RptName`)
   @Get('printer-links') @RequiresPermission('reporting.view') listPrinterLinks() { return this.printerLinks.list(getTenantContext().tenantId); }
   @Post('printer-links') @RequiresPermission('reporting.layout.manage') async createPrinterLink(@Body() body: PrinterLinkInput) { return { data: await this.printerLinks.create(getTenantContext().tenantId, body) }; }

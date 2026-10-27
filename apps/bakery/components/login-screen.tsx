@@ -1,8 +1,14 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError, apiErrorText, apiPost } from '@erp/web-core/api';
+import {
+  QuickLoginPanel,
+  RememberMeCheckbox,
+  useQuickLogin,
+  type QuickLoginSecret,
+} from '@erp/web-core/quick-login';
 import { useSession } from '@erp/web-core/session';
 import { handoffAction } from '@erp/web-core/token-bridge';
 
@@ -38,6 +44,8 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
     initialError ?? (handoffFailed ? HANDOFF_FAILED_AR : undefined),
   );
   const [notice, setNotice] = useState<string | undefined>();
+  const quickLogin = useQuickLogin('bakery');
+  const pendingQuickSecretRef = useRef<QuickLoginSecret | null>(null);
 
   useEffect(() => {
     if (urlResetToken) {
@@ -50,17 +58,51 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
     setBusy(true);
     setError(undefined);
     setNotice(undefined);
+    const activeQuick = pendingQuickSecretRef.current;
+    const targetTenant = activeQuick ? activeQuick.tenantCode.trim() : tenantCode.trim();
+    const targetEmail = activeQuick ? activeQuick.email.trim() : email.trim();
+    const targetPassword = activeQuick ? activeQuick.password : password;
     try {
-      await signIn(email.trim(), password, tenantCode.trim(), code);
+      await signIn(targetEmail, targetPassword, targetTenant, code);
+      if (!activeQuick) {
+        await quickLogin.persistIfRemembered({
+          tenantCode: targetTenant,
+          email: targetEmail,
+          password: targetPassword,
+        });
+      }
+      pendingQuickSecretRef.current = null;
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === 'MFA_REQUIRED') {
         setStep('mfa');
       } else {
+        pendingQuickSecretRef.current = null;
         setError(apiErrorText(caught, 'تعذّر تسجيل الدخول. تحقّق من رمز الشركة والبريد وكلمة المرور.'));
       }
     } finally {
       setBusy(false);
     }
+  }
+
+  async function attemptQuickLogin() {
+    setBusy(true);
+    setError(undefined);
+    setNotice(undefined);
+    try {
+      const secret = await quickLogin.loadSecret();
+      if (!secret) {
+        await quickLogin.forget();
+        setError('انتهت صلاحية البيانات المحفوظة على هذا الجهاز — يرجى تسجيل الدخول مرة واحدة لحفظها مجدداً.');
+        setBusy(false);
+        return;
+      }
+      pendingQuickSecretRef.current = secret;
+    } catch {
+      setBusy(false);
+      setError('تعذّر قراءة بيانات الدخول السريع المحفوظة.');
+      return;
+    }
+    await attempt();
   }
 
   async function submitForgot() {
@@ -185,6 +227,13 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
 
         {step === 'credentials' && (
           <>
+            <QuickLoginPanel
+              meta={quickLogin.meta}
+              busy={busy}
+              onQuickSignIn={() => void attemptQuickLogin()}
+              onForget={() => void quickLogin.forget()}
+            />
+
             <label className="field">
               <span>رمز الشركة</span>
               <input
@@ -245,6 +294,12 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
                 dir="ltr"
               />
             </label>
+
+            <RememberMeCheckbox
+              checked={quickLogin.rememberMe}
+              onChange={quickLogin.setRememberMe}
+              disabled={busy}
+            />
           </>
         )}
 
@@ -377,6 +432,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
             className="btn block"
             type="button"
             onClick={() => {
+              pendingQuickSecretRef.current = null;
               setStep('credentials');
               setMfaCode('');
               setError(undefined);

@@ -1,7 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import {
+  QuickLoginPanel,
+  RememberMeCheckbox,
+  useQuickLogin,
+  type QuickLoginSecret,
+} from '@erp/web-core/quick-login';
 
 import { login, PortalError, storeToken } from '../lib/api';
 import { surfaceHref } from '../lib/surfaces';
@@ -28,6 +34,8 @@ export function SmartLogin() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
+  const quickLogin = useQuickLogin('marketing');
+  const pendingQuickSecretRef = useRef<QuickLoginSecret | null>(null);
 
   async function detect(token: string): Promise<WhoAmI> {
     const headers = { authorization: `Bearer ${token}` };
@@ -93,12 +101,27 @@ export function SmartLogin() {
       }
 
       const mfaRaw = String(form.get('mfaCode') ?? '').trim();
+      const activeQuick = pendingQuickSecretRef.current;
+      const targetTenant = activeQuick ? activeQuick.tenantCode.trim() : String(form.get('tenantCode')).trim();
+      const targetEmail = activeQuick ? activeQuick.email.trim() : String(form.get('email')).trim();
+      const targetPassword = activeQuick ? activeQuick.password : String(form.get('password'));
+      const effectiveTarget = activeQuick?.staffTarget ?? staffTarget;
+
       const session = await login({
-        tenantCode: String(form.get('tenantCode')).trim(),
-        email: String(form.get('email')).trim(),
-        password: String(form.get('password')),
+        tenantCode: targetTenant,
+        email: targetEmail,
+        password: targetPassword,
         ...(mfaRaw ? { mfaCode: mfaRaw } : {}),
       });
+      if (!activeQuick) {
+        await quickLogin.persistIfRemembered({
+          tenantCode: targetTenant,
+          email: targetEmail,
+          password: targetPassword,
+          staffTarget: effectiveTarget,
+        });
+      }
+      pendingQuickSecretRef.current = null;
       storeToken(session.accessToken);
       const target = await detect(session.accessToken);
 
@@ -114,7 +137,7 @@ export function SmartLogin() {
       const code = ((await minted.json()) as { data: { code: string } }).data.code;
       const bridge = `handoff=${encodeURIComponent(code)}`;
       if (target.kind === 'staff') {
-        if (staffTarget === 'bakery') {
+        if (effectiveTarget === 'bakery') {
           const path = target.mustChangePassword ? '/change-password' : '/';
           globalThis.location.assign(`${surfaceHref('bakery', path)}?${bridge}`);
         } else {
@@ -132,6 +155,66 @@ export function SmartLogin() {
         setNeedsMfa(true);
         setError('MFA_REQUIRED');
       } else {
+        pendingQuickSecretRef.current = null;
+        setError(loginError instanceof Error ? loginError.message : 'تعذر تسجيل الدخول');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitQuickLogin() {
+    setError('');
+    setNotice('');
+    setLoading(true);
+    try {
+      const secret = await quickLogin.loadSecret();
+      if (!secret) {
+        await quickLogin.forget();
+        setError('انتهت صلاحية البيانات المحفوظة على هذا الجهاز — يرجى تسجيل الدخول مرة واحدة لحفظها مجدداً.');
+        return;
+      }
+      pendingQuickSecretRef.current = secret;
+      const effectiveTarget = secret.staffTarget ?? staffTarget;
+      const session = await login({
+        tenantCode: secret.tenantCode.trim(),
+        email: secret.email.trim(),
+        password: secret.password,
+      });
+      pendingQuickSecretRef.current = null;
+      storeToken(session.accessToken);
+      const target = await detect(session.accessToken);
+      const minted = await fetch(`${baseUrl}/auth/handoff`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${session.accessToken}` },
+        body: JSON.stringify({}),
+      });
+      if (!minted.ok) {
+        setError('تعذر تجهيز الجلسة. أعد المحاولة.');
+        return;
+      }
+      const code = ((await minted.json()) as { data: { code: string } }).data.code;
+      const bridge = `handoff=${encodeURIComponent(code)}`;
+      if (target.kind === 'staff') {
+        const destSurface = effectiveTarget === 'bakery' ? 'bakery' : 'staff';
+        const path = target.mustChangePassword
+          ? destSurface === 'bakery'
+            ? '/change-password'
+            : '/settings/change-password'
+          : '/';
+        globalThis.location.assign(`${surfaceHref(destSurface, path)}?${bridge}`);
+      } else if (target.kind === 'portal') {
+        const path = session.mustChangePassword ? '/auth/change-password' : '/portal';
+        globalThis.location.assign(`${surfaceHref('portal', path)}?${bridge}`);
+      } else {
+        setError('تعذر تحديد نوع الحساب. تواصل مع المورد أو إدارة المنصة.');
+      }
+    } catch (loginError) {
+      if (loginError instanceof PortalError && loginError.code === 'MFA_REQUIRED') {
+        setNeedsMfa(true);
+        setError('MFA_REQUIRED');
+      } else {
+        pendingQuickSecretRef.current = null;
         setError(loginError instanceof Error ? loginError.message : 'تعذر تسجيل الدخول');
       }
     } finally {
@@ -149,6 +232,13 @@ export function SmartLogin() {
 
       {mode === 'login' && (
         <>
+          <QuickLoginPanel
+            meta={quickLogin.meta}
+            busy={loading}
+            onQuickSignIn={() => void submitQuickLogin()}
+            onForget={() => void quickLogin.forget()}
+          />
+
           <div className="login-target-tabs" role="radiogroup" aria-label="وجهة الدخول للموظفين">
             <button
               type="button"
@@ -165,9 +255,14 @@ export function SmartLogin() {
               نظام المخابز ونقاط البيع
             </button>
           </div>
-          <input className="input" name="tenantCode" placeholder="رمز المنشأة" aria-label="tenant" required />
-          <input className="input" name="email" type="email" placeholder="البريد الإلكتروني" aria-label="email" required />
-          <input className="input" name="password" type="password" placeholder="كلمة المرور" aria-label="password" required />
+          <input className="input" name="tenantCode" placeholder="رمز المنشأة" aria-label="tenant" required={!pendingQuickSecretRef.current} />
+          <input className="input" name="email" type="email" placeholder="البريد الإلكتروني" aria-label="email" required={!pendingQuickSecretRef.current} />
+          <input className="input" name="password" type="password" placeholder="كلمة المرور" aria-label="password" required={!pendingQuickSecretRef.current} />
+          <RememberMeCheckbox
+            checked={quickLogin.rememberMe}
+            onChange={quickLogin.setRememberMe}
+            disabled={loading}
+          />
           {needsMfa ? (
             <input
               className="input mono"

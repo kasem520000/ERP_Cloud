@@ -8,7 +8,7 @@ import { withTenantTx, type DatabaseHandle } from '@erp/database';
 import { isRealCalendarDay } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 
-import { PrintSettingsService, reportScope } from './print-settings.service.js';
+import { PrintSettingsService, reportScope, type PrintSettings } from './print-settings.service.js';
 import { PrintTemplatesService } from './print-templates.service.js';
 import {
   REPORT_DEFINITIONS,
@@ -220,7 +220,13 @@ export class ReportingService {
    * filters, the grid, «💰 إجمالي…» and the signature strip «أعده · راجعه · المدير»
    * (`footer.repx` inside `RptSalesInPeriod1/2.repx`).
    */
-  async printable(tenantId: string, key: string, params: Record<string, string | undefined> = {}, userId?: string): Promise<{ html: string }> {
+  async printable(
+    tenantId: string,
+    key: string,
+    params: Record<string, string | undefined> = {},
+    userId?: string,
+    override?: PrintSettings,
+  ): Promise<{ html: string }> {
     const report = await this.run(tenantId, key, params);
     const definition = reportByKey.get(key)!;
     const captions = await this.filterCaptions(tenantId, definition.params, report.params as Record<string, string>);
@@ -242,7 +248,13 @@ export class ReportingService {
         emptyAr: definition.emptyAr,
         signature: definition.signature ?? false,
         // 🖨️ كيف تُطبع هذه الورقة — `Print.cs` `Printing()` reads the same fields.
-        print: await this.printOptionsFor(tenantId, key, params),
+        print: override
+          ? {
+              settings: override,
+              copies: override.printNo,
+              paper: (override.printType === 2 ? 'small' : 'a4') as 'a4' | 'small',
+            }
+          : await this.printOptionsFor(tenantId, key, params),
       },
       userId,
     );

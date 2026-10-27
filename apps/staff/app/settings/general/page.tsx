@@ -673,7 +673,7 @@ export default function GeneralSettingsPage() {
               يُقرأ الاسم الرسمي، الشعار، الرقم الضريبي، السجل التجاري، والعنوان الوطني التفصيلي (الشارع · الحي · المدينة · رقم المبنى · الرمز البريدي) من بطاقة المنشأة مباشرةً.
             </span>
             <div className="flex flex-wrap gap-2">
-              <Link href="/organization/company" className="btn btn-secondary btn-sm inline-flex items-center gap-1.5">
+              <Link href="/settings/company" className="btn btn-secondary btn-sm inline-flex items-center gap-1.5">
                 <Building2 size={14} /> بطاقة المنشأة والعنوان الوطني
               </Link>
               <Link href="/settings/printing" className="btn btn-ghost btn-sm inline-flex items-center gap-1.5">

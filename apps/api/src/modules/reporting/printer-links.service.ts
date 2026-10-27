@@ -7,7 +7,12 @@ import { printerReportLinks, withTenantTx, type DatabaseHandle } from '@erp/data
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 
-import { PrintSettingsService, REPORT_SCOPE_PREFIX, PRINT_SCOPES } from './print-settings.service.js';
+import {
+  docSpecByScope,
+  PrintSettingsService,
+  REPORT_SCOPE_PREFIX,
+  PRINT_SCOPES,
+} from './print-settings.service.js';
 import { reportByKey } from './report-catalog.js';
 
 export const printerLinkInputSchema = z.object({
@@ -38,10 +43,11 @@ export class PrinterLinksService {
     private readonly printSettings: PrintSettingsService,
   ) {}
 
-  /** Validate scope: fixed name or report:<key> */
+  /** Validate scope: fixed name, doc:<docKey>, or report:<key> */
   parseScope(raw: string): string {
     const value = (raw ?? '').trim();
     if (PRINT_SCOPES.includes(value as any)) return value;
+    if (docSpecByScope.has(value)) return value;
     if (value.startsWith(REPORT_SCOPE_PREFIX)) {
       const key = value.slice(REPORT_SCOPE_PREFIX.length);
       if (!reportByKey.has(key)) throw new DomainError('REPORT_NOT_FOUND', 'Report key is not registered', 404);
@@ -144,9 +150,13 @@ export class PrinterLinksService {
       contracts: 'عقود',
       reports: 'تقارير',
     };
-    const label = row.scope.startsWith('report:')
-      ? `تقرير:${row.scope.slice(7)}`
-      : scopeLabels[row.scope] ?? row.scope;
+    const docSpec = docSpecByScope.get(row.scope);
+    const reportDef = row.scope.startsWith('report:') ? reportByKey.get(row.scope.slice(7)) : undefined;
+    const label = docSpec
+      ? docSpec.titleAr
+      : row.scope.startsWith('report:')
+        ? reportDef?.titleAr ?? `تقرير:${row.scope.slice(7)}`
+        : scopeLabels[row.scope] ?? row.scope;
     return {
       id: row.id,
       scope: row.scope,

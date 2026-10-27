@@ -16,6 +16,21 @@ import {
   type PrintSettings,
   type PrintTemplate,
 } from './print-settings.service.js';
+import {
+  composeSections,
+  customFieldsHtml,
+  customHeaderLinesHtml,
+  customTermsHtml,
+  customTitles,
+  escapeText,
+  logoSizeCss,
+  paperCss,
+  qrSizeCss,
+  resolveColumns,
+  signatureLabels,
+  watermarkHtml,
+  type WorksheetSection,
+} from './print-design.js';
 import { amountInArabicWords } from './tafqeet.js';
 
 export type ReportPrintOptions = {
@@ -68,9 +83,12 @@ export class PrintTemplatesService {
   // ------------------------------------------------------------------ documents
 
   async salesInvoice(tenantId: string, id: string, query: DocumentPrintQuery = {}) {
-    const basePrint = await this.settingsFor(tenantId, 'sales');
-    const print = applyQueryOverrides(basePrint, query);
-    const paper: 'a4' | 'small' = print.printType === 2 ? 'small' : 'a4';
+    const basePrint = applyQueryOverrides(await this.settingsFor(tenantId, 'sales'), query);
+    const docScopes = await this.readDocScopes(tenantId, [
+      'doc:pos_receipt',
+      'doc:sales_invoice',
+      'doc:sales_return',
+    ]);
 
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const company = await this.company(tx, tenantId);
@@ -117,8 +135,6 @@ export class PrintTemplatesService {
            ORDER BY l.line_no
         `),
       );
-      lines = this.sortByPrintItemType(lines, print.printItemType);
-
       const payments = rows(
         await tx.execute(sql`
           SELECT method, amount, reference FROM invoice_payments
@@ -128,6 +144,17 @@ export class PrintTemplatesService {
       );
 
       const isReturn = str(invoice.kind) === 'sale_return' || str(invoice.kind) === 'return';
+      // 🧩 قالب المستند: إيصال الكاشير / فاتورة مبيعات / إشعار دائن — لكلٍّ تصميمه المستقل،
+      // وما لم يُخصَّص يرجع إلى «مبيعات» ثم «الإفتراضي» كما كان.
+      const docScope =
+        basePrint.printType === 2
+          ? 'doc:pos_receipt'
+          : isReturn
+            ? 'doc:sales_return'
+            : 'doc:sales_invoice';
+      const print = applyDocSettings(basePrint, docScopes.get(docScope));
+      const paper: 'a4' | 'small' = print.printType === 2 ? 'small' : 'a4';
+      lines = this.sortByPrintItemType(lines, print.printItemType);
       const kindTitle = SALES_KIND_TITLES[str(invoice.kind)] ?? 'فاتورة مبيعات';
       const customerTaxNo = str(invoice.party_tax_no).trim();
       const customerName = str(invoice.party_name) || str(invoice.cash_customer_name) || 'عميل نقدي';
@@ -227,6 +254,8 @@ export class PrintTemplatesService {
             notes: docNotes,
             returnPolicy,
             showHeader: print.printHeader,
+            showSignatures: print.showSignatures,
+            design: print.designConfig,
           }),
         });
       }
@@ -278,7 +307,8 @@ export class PrintTemplatesService {
   }
 
   async purchaseInvoice(tenantId: string, id: string, query: DocumentPrintQuery = {}) {
-    const print = applyQueryOverrides(await this.settingsFor(tenantId, 'purchases'), query);
+    const baseP = applyQueryOverrides(await this.settingsFor(tenantId, 'purchases'), query);
+    const docScopes = await this.readDocScopes(tenantId, ['doc:purchase_invoice', 'doc:purchase_return']);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const company = await this.company(tx, tenantId);
       const invoice = first(
@@ -305,9 +335,13 @@ export class PrintTemplatesService {
            ORDER BY l.line_no
         `),
       );
-      lines = this.sortByPrintItemType(lines, print.printItemType);
 
       const isReturn = str(invoice.kind) === 'purchase_return' || str(invoice.kind) === 'return';
+      const print = applyDocSettings(
+        baseP,
+        docScopes.get(isReturn ? 'doc:purchase_return' : 'doc:purchase_invoice'),
+      );
+      lines = this.sortByPrintItemType(lines, print.printItemType);
       const kindTitle = isReturn ? 'مردود مشتريات' : 'فاتورة مشتريات';
       const supplierTaxNo = str(invoice.party_tax_no).trim();
       return this.documentPage(print, company, {
@@ -350,14 +384,18 @@ export class PrintTemplatesService {
             payments: [],
             qrApplicable: false,
           })}
-          ${this.signatures(['المورد', 'أمين المستودع', 'المحاسب'])}
+          ${customFieldsHtml(print.designConfig, 'above_table')}
+          ${this.signatures(signatureLabels(print.designConfig, ['المورد', 'أمين المستودع', 'المحاسب']))}
+          ${customFieldsHtml(print.designConfig, 'below_table')}
+          ${customTermsHtml(print.designConfig)}
         `,
       });
     });
   }
 
   async voucher(tenantId: string, id: string, query: DocumentPrintQuery = {}) {
-    const print = applyQueryOverrides(await this.settingsFor(tenantId, 'default'), query);
+    const baseV = applyQueryOverrides(await this.settingsFor(tenantId, 'default'), query);
+    const docScopes = await this.readDocScopes(tenantId, ['doc:receipt_voucher', 'doc:payment_voucher']);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const company = await this.company(tx, tenantId);
       const voucher = first(
@@ -377,6 +415,10 @@ export class PrintTemplatesService {
       if (!voucher) throw new DomainError('NOT_FOUND', 'Voucher was not found', 404);
 
       const isReceipt = str(voucher.kind) === 'receipt';
+      const print = applyDocSettings(
+        baseV,
+        docScopes.get(isReceipt ? 'doc:receipt_voucher' : 'doc:payment_voucher'),
+      );
       const currency = str(voucher.currency) || 'SAR';
       const voucherAmount = str(voucher.amount);
       const label = isReceipt ? 'سند قبض' : 'سند صرف';
@@ -411,14 +453,25 @@ export class PrintTemplatesService {
             ${str(voucher.cost_center_name) ? `<div class="kv"><span>مركز التكلفة</span><b>${escapeHtml(`${str(voucher.cost_center_code)} — ${str(voucher.cost_center_name)}`)}</b></div>` : ''}
             ${new Decimal(str(voucher.vat_amount) || '0').gt(0) ? `<div class="kv"><span>منها ضريبة القيمة المضافة</span><b>${escapeHtml(money(str(voucher.vat_amount)))}</b></div>` : ''}
           </section>
-          ${this.signatures([isReceipt ? 'المستلم' : 'المستفيد', 'أمين الصندوق', 'المدير المالي'])}
+          ${customFieldsHtml(print.designConfig, 'meta')}
+          ${customFieldsHtml(print.designConfig, 'below_table')}
+          ${this.signatures(
+            signatureLabels(print.designConfig, [
+              isReceipt ? 'المستلم' : 'المستفيد',
+              'أمين الصندوق',
+              'المدير المالي',
+            ]),
+          )}
+          ${customTermsHtml(print.designConfig)}
         `,
       });
     });
   }
 
   async journalEntry(tenantId: string, id: string, query: DocumentPrintQuery = {}) {
-    const print = applyQueryOverrides(await this.settingsFor(tenantId, 'default'), query);
+    const baseJ = applyQueryOverrides(await this.settingsFor(tenantId, 'default'), query);
+    const docScopes = await this.readDocScopes(tenantId, ['doc:journal_entry']);
+    const print = applyDocSettings(baseJ, docScopes.get('doc:journal_entry'));
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const company = await this.company(tx, tenantId);
       const entry = first(
@@ -487,14 +540,18 @@ export class PrintTemplatesService {
             </tfoot>
           </table>
           <p class="words">فقط ${escapeHtml(amountInArabicWords(debit.toFixed(2), 'SAR'))}</p>
-          ${this.signatures(['المحاسب', 'المراجع', 'المدير المالي'])}
+          ${customFieldsHtml(print.designConfig, 'below_table')}
+          ${this.signatures(signatureLabels(print.designConfig, ['المحاسب', 'المراجع', 'المدير المالي']))}
+          ${customTermsHtml(print.designConfig)}
         `,
       });
     });
   }
 
   async shiftClose(tenantId: string, id: string, query: DocumentPrintQuery = {}) {
-    const print = applyQueryOverrides(await this.settingsFor(tenantId, 'reports'), query);
+    const baseS = applyQueryOverrides(await this.settingsFor(tenantId, 'reports'), query);
+    const docScopes = await this.readDocScopes(tenantId, ['doc:shift_close']);
+    const print = applyDocSettings(baseS, docScopes.get('doc:shift_close'));
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const company = await this.company(tx, tenantId);
       const shift = first(
@@ -556,7 +613,9 @@ export class PrintTemplatesService {
                  </tbody></table>`
               : ''
           }
-          ${this.signatures(['الكاشير', 'المشرف', 'المحاسب'])}
+          ${customFieldsHtml(print.designConfig, 'below_table')}
+          ${this.signatures(signatureLabels(print.designConfig, ['الكاشير', 'المشرف', 'المحاسب']))}
+          ${customTermsHtml(print.designConfig)}
         `,
       });
     });
@@ -583,34 +642,9 @@ export class PrintTemplatesService {
   ) {
     const company = await withTenantTx(this.database.db, tenantId, async (tx) => this.company(tx, tenantId));
     const userName = userId ? await this.userName(tenantId, userId) : null;
-    const head = report.columns.map((column) => `<th>${escapeHtml(column.labelAr)}</th>`).join('');
-    const body = report.rows.length
-      ? report.rows
-          .map(
-            (row, index) =>
-              `<tr><td class="num">${index + 1}</td>${report.columns
-                .map((column) =>
-                  column.qr
-                    ? `<td class="qr-cell">${this.reportQr(row[column.key] ?? '')}</td>`
-                    : `<td${column.numeric ? ' class="num"' : ''}>${escapeHtml(cellText(row[column.key] ?? '', column.numeric))}</td>`,
-                )
-                .join('')}</tr>`,
-          )
-          .join('')
-      : `<tr><td class="empty" colspan="${report.columns.length + 1}">${escapeHtml(report.emptyAr ?? 'لا توجد بيانات ضمن معايير البحث المحددة.')}</td></tr>`;
-    const hasTotals = Object.keys(report.totals).length > 0;
-    const footer = hasTotals
-      ? `<tfoot><tr><th>الإجمالي</th>${report.columns
-          .map(
-            (column) =>
-              column.qr
-                ? '<th></th>'
-                : `<th class="num">${report.totals[column.key] ? escapeHtml(money(report.totals[column.key]!)) : ''}</th>`,
-          )
-          .join('')}</tr></tfoot>`
-      : '';
 
     const settings = report.print?.settings;
+    const design = settings?.designConfig;
     const copies = Math.min(50, Math.max(1, report.print?.copies ?? 1));
     const paper = report.print?.paper ?? 'a4';
     const showHeader = settings?.printHeader !== false;
@@ -621,14 +655,52 @@ export class PrintTemplatesService {
     const image = (src: string, alt: string) =>
       src ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" />` : '';
 
-    const sheet = `
-        ${
-          showHeader
-            ? this.renderRepxLetterhead(company, settings?.headerImageUrl ?? '')
-            : ''
-        }
-        <div class="repx-report-banner">
-          <div class="doc-title">${escapeHtml(report.titleAr)}</div>
+    const columns = resolveColumns(design, report.columns.map((column) => ({ key: column.key, labelAr: column.labelAr })))
+      .map((column) => {
+        const source = report.columns.find((entry) => entry.key === column.key)!;
+        return { ...source, labelAr: column.labelAr };
+      });
+    const head = columns.map((column) => `<th>${escapeHtml(column.labelAr)}</th>`).join('');
+    const body = report.rows.length
+      ? report.rows
+          .map(
+            (row, index) =>
+              `<tr><td class="num">${index + 1}</td>${columns
+                .map((column) =>
+                  column.qr
+                    ? `<td class="qr-cell">${this.reportQr(row[column.key] ?? '')}</td>`
+                    : `<td${column.numeric ? ' class="num"' : ''}>${escapeHtml(cellText(row[column.key] ?? '', column.numeric))}</td>`,
+                )
+                .join('')}</tr>`,
+          )
+          .join('')
+      : `<tr><td class="empty" colspan="${columns.length + 1}">${escapeHtml(report.emptyAr ?? 'لا توجد بيانات ضمن معايير البحث المحددة.')}</td></tr>`;
+    const hasTotals = Object.keys(report.totals).length > 0;
+    const footer = hasTotals
+      ? `<tfoot><tr><th>الإجمالي</th>${columns
+          .map(
+            (column) =>
+              column.qr
+                ? '<th></th>'
+                : `<th class="num">${report.totals[column.key] ? escapeHtml(money(report.totals[column.key]!)) : ''}</th>`,
+          )
+          .join('')}</tr></tfoot>`
+      : '';
+
+    const titles = customTitles(design);
+    const reportTitle = titles.titleAr || report.titleAr;
+    const signatureStrip = signatureLabels(design, ['أعده', 'راجعه', 'المدير']);
+
+    const sections: WorksheetSection[] = [
+      {
+        key: 'letterhead',
+        html: showHeader ? this.renderRepxLetterhead(company, settings?.headerImageUrl ?? '') : '',
+      },
+      {
+        key: 'titleBanner',
+        html: `<div class="repx-report-banner">
+          <div class="doc-title">${escapeHtml(reportTitle)}</div>
+          ${titles.subtitleAr ? `<div class="doc-title-en">${escapeHtml(titles.subtitleAr)}</div>` : ''}
           <div class="repx-report-meta">
             ${report.captions.map((caption) => `<span>${escapeHtml(caption)}</span>`).join('')}
             <span>عدد السجلات: ${report.rows.length}</span>
@@ -636,13 +708,20 @@ export class PrintTemplatesService {
             <span>طُبع في: ${escapeHtml(dateTimeText(report.generatedAt))}</span>
             ${copies > 1 ? `<span>عدد النسخ: ${copies}</span>` : ''}
           </div>
-        </div>
-        <table class="lines report">
+        </div>`,
+      },
+      { key: 'customTop', html: `${customHeaderLinesHtml(design)}${customFieldsHtml(design, 'above_table')}` },
+      {
+        key: 'linesTable',
+        html: `<table class="lines report">
           <thead><tr><th>#</th>${head}</tr></thead>
           <tbody>${body}</tbody>
           ${footer}
-        </table>
-        ${
+        </table>`,
+      },
+      {
+        key: 'totalsAndQr',
+        html: `${
           report.grandTotal?.length
             ? `<div class="totals-strip">${report.grandTotal
                 .map(
@@ -653,14 +732,22 @@ export class PrintTemplatesService {
             : ''
         }
         ${note ? `<div class="doc-note"><b>ملاحظات التقرير:</b> ${escapeHtml(note).replace(/\n/g, '<br />')}</div>` : ''}
-        ${
+        ${stamp ? `<div class="doc-stamp">${image(stamp, 'الختم')}</div>` : ''}`,
+      },
+      { key: 'customBottom', html: `${customFieldsHtml(design, 'below_table')}${customTermsHtml(design)}` },
+      {
+        key: 'signatures',
+        html:
           report.signature && showSignatures
-            ? `<table class="signatures"><tr><td>أعده</td><td>راجعه</td><td>المدير</td></tr><tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr></table>`
-            : ''
-        }
-        ${stamp ? `<div class="doc-stamp">${image(stamp, 'الختم')}</div>` : ''}
-        ${showFooter ? this.renderRepxFooter(company, settings?.footerImageUrl ?? '') : ''}
-      `;
+            ? `<table class="signatures"><tr>${signatureStrip
+                .map((label) => `<td>${escapeHtml(label)}</td>`)
+                .join('')}</tr><tr>${signatureStrip.map(() => '<td>&nbsp;</td>').join('')}</tr></table>`
+            : '',
+      },
+      { key: 'footer', html: showFooter ? this.renderRepxFooter(company, settings?.footerImageUrl ?? '') : '' },
+    ];
+
+    const sheet = composeSections(design, sections);
 
     const sheets =
       copies === 1
@@ -670,19 +757,21 @@ export class PrintTemplatesService {
       .filter(Boolean)
       .map((name) => escapeHtml(name!));
     const toolbar = [
-      printers.length ? `🖨️ ${printers.join(' · ')}` : '',
-      copies > 1 ? `🔢 عدد النسخ: ${copies}` : '',
-      paper === 'small' ? '🧾 ورق صغير' : '📄 ورقة A4',
+      printers.length ? `الطابعات: ${printers.join(' · ')}` : '',
+      copies > 1 ? `عدد النسخ: ${copies}` : '',
+      paper === 'small' ? `ورق صغير ${design?.paperWidthMm === 58 ? 58 : 80}mm` : 'ورقة A4',
     ]
       .filter(Boolean)
       .join(' — ');
 
     return this.page({
-      title: report.titleAr,
-      landscape: true,
+      title: reportTitle,
+      // اتجاه الورقة: التصميم يحكم؛ والتقارير أفقية افتراضياً كما كانت.
+      landscape: design?.orientation ? design.orientation === 'landscape' : true,
       paper,
       toolbar,
       style: printStyle(settings, company.brandColor),
+      design,
       body: sheets,
     });
   }
@@ -743,163 +832,208 @@ export class PrintTemplatesService {
       ? this.renderNationalAddressGrid('العنوان الوطني للعميل', inv.customerAddress, '', true)
       : '';
 
+    // 🧩 التصميم: أعمدة الجدول وترتيبها وتسمياتها من `designConfig`، والقيم نفسها من المستند.
+    const design = print.designConfig;
+    const columns = resolveColumns(design, [
+      { key: 'no', labelAr: 'م<br/><small>No</small>' },
+      { key: 'sku', labelAr: 'الكود<br/><small>Code</small>' },
+      { key: 'description', labelAr: 'اسم الصنف / البيان<br/><small>Description</small>' },
+      { key: 'unit', labelAr: 'الوحدة<br/><small>Unit</small>' },
+      { key: 'qty', labelAr: 'الكمية<br/><small>Qty</small>' },
+      { key: 'unitPrice', labelAr: 'السعر<br/><small>Price</small>' },
+      { key: 'gross', labelAr: 'الإجمالي<br/><small>Gross</small>' },
+      { key: 'discount', labelAr: 'الخصم<br/><small>Disc.</small>' },
+      { key: 'vat', labelAr: 'الضريبة<br/><small>VAT</small>' },
+      { key: 'netTotal', labelAr: 'الصافي<br/><small>Net Total</small>' },
+    ]);
+    const columnCell = (line: Record<string, unknown>, key: string, idx: number): string => {
+      const qtyDec = new Decimal(str(line.quantity) || '0');
+      const priceDec = new Decimal(str(line.unit_price) || '0');
+      const grossLine = qtyDec.mul(priceDec);
+      switch (key) {
+        case 'no':
+          return `<td class="num center">${escapeHtml(str(line.line_no || idx + 1))}</td>`;
+        case 'sku':
+          return `<td class="num center">${escapeHtml(str(line.sku) || '—')}</td>`;
+        case 'description':
+          return `<td><b>${escapeHtml(str(line.label))}</b></td>`;
+        case 'unit':
+          return `<td class="center">${escapeHtml(str(line.unit_label || line.unit_code) || '—')}</td>`;
+        case 'qty':
+          return `<td class="num center">${escapeHtml(qty(str(line.quantity)))}</td>`;
+        case 'unitPrice':
+          return `<td class="num">${escapeHtml(money(str(line.unit_price)))}</td>`;
+        case 'gross':
+          return `<td class="num">${escapeHtml(money(grossLine.toFixed(2)))}</td>`;
+        case 'discount':
+          return `<td class="num">${escapeHtml(money(str(line.discount_amount)))}</td>`;
+        case 'vat':
+          return `<td class="num">${escapeHtml(money(str(line.tax)))}</td>`;
+        case 'netTotal':
+          return `<td class="num bold-cell">${escapeHtml(money(str(line.total)))}</td>`;
+        default:
+          return '<td></td>';
+      }
+    };
+
     const lineRows = inv.lines.length
       ? inv.lines
-          .map((line, idx) => {
-            const qtyDec = new Decimal(str(line.quantity) || '0');
-            const priceDec = new Decimal(str(line.unit_price) || '0');
-            const grossLine = qtyDec.mul(priceDec);
-            return `<tr>
-              <td class="num center">${escapeHtml(str(line.line_no || idx + 1))}</td>
-              <td class="num center">${escapeHtml(str(line.sku) || '—')}</td>
-              <td><b>${escapeHtml(str(line.label))}</b></td>
-              <td class="center">${escapeHtml(str(line.unit_label || line.unit_code) || '—')}</td>
-              <td class="num center">${escapeHtml(qty(str(line.quantity)))}</td>
-              <td class="num">${escapeHtml(money(str(line.unit_price)))}</td>
-              <td class="num">${escapeHtml(money(grossLine.toFixed(2)))}</td>
-              <td class="num">${escapeHtml(money(str(line.discount_amount)))}</td>
-              <td class="num">${escapeHtml(money(str(line.tax)))}</td>
-              <td class="num bold-cell">${escapeHtml(money(str(line.total)))}</td>
-            </tr>`;
-          })
+          .map((line, idx) =>
+            `<tr>${columns.map((column) => columnCell(line, column.key, idx)).join('')}</tr>`,
+          )
           .join('')
-      : `<tr><td colspan="10" class="empty">لا توجد بنود على هذه الفاتورة.</td></tr>`;
+      : `<tr><td colspan="${columns.length}" class="empty">لا توجد بنود على هذه الفاتورة.</td></tr>`;
 
-    return `
-      ${
-        print.printHeader !== false
-          ? `${this.renderRepxLetterhead(company, print.headerImageUrl, true)}${companyAddrGrid}`
-          : ''
-      }
+    const signLabels = signatureLabels(design, [
+      'المستلم — Receiver',
+      'الختم — Official Stamp',
+      'البائع / المحاسب — Seller',
+    ]);
+    const signCells = signLabels.map((label, index) => {
+      const isStamp = /الختم|stamp/i.test(label);
+      const value = isStamp
+        ? stampSrc
+          ? `<img src="${escapeHtml(stampSrc)}" alt="الختم" class="stamp-inline" />`
+          : '&nbsp;'
+        : index === signLabels.length - 1
+          ? escapeHtml(inv.salesmanName || inv.cashierName || '') || '&nbsp;'
+          : '&nbsp;';
+      return `<td><div class="sign-label">${escapeHtml(label)}</div><div class="sign-space">${value}</div></td>`;
+    });
 
-      <div class="repx-title-banner">
-        <div class="doc-title">${escapeHtml(inv.invoiceTitleAr)}</div>
-        <div class="doc-title-en">${escapeHtml(inv.invoiceTitleEn)}</div>
-      </div>
-
-      <table class="repx-meta-grid">
-        <tr>
-          <th>رقم الفاتورة</th>
-          <td dir="ltr"><b>${escapeHtml(inv.number)}</b></td>
-          <th>نوع السداد</th>
-          <td>${escapeHtml(inv.paymentMethodLabel)}</td>
-          <th>التاريخ والوقت</th>
-          <td dir="ltr">${escapeHtml(`${inv.date} ${inv.time}`.trim())}</td>
-        </tr>
-        <tr>
-          <th>الفرع / نقطة البيع</th>
-          <td>${escapeHtml(inv.branchName || 'الفرع الرئيسي')}</td>
-          <th>تاريخ التوريد</th>
-          <td dir="ltr">${escapeHtml(inv.supplyDate)}</td>
-          <th>الحالة / المرجع</th>
-          <td>${escapeHtml(inv.referenceNo ? `${inv.status} — ${inv.referenceNo}` : inv.status)}</td>
-        </tr>
-      </table>
-
-      <section class="party repx-customer-box">
-        <div class="repx-box-head">بيانات العميل / المشتري — Customer Details</div>
-        <table class="repx-meta-grid inner">
+    const sections: WorksheetSection[] = [
+      {
+        key: 'letterhead',
+        html:
+          print.printHeader !== false
+            ? this.renderRepxLetterhead(company, print.headerImageUrl, design?.showCompanyBanks !== false)
+            : '',
+      },
+      {
+        key: 'nationalAddress',
+        html:
+          print.printHeader !== false && design?.showNationalAddress !== false ? companyAddrGrid : '',
+      },
+      {
+        key: 'titleBanner',
+        html: `<div class="repx-title-banner">
+          <div class="doc-title">${escapeHtml(customTitles(design).titleAr || inv.invoiceTitleAr)}</div>
+          <div class="doc-title-en">${escapeHtml(customTitles(design).subtitleAr || inv.invoiceTitleEn)}</div>
+        </div>`,
+      },
+      {
+        key: 'metaGrid',
+        html: design?.showMetaGrid === false ? '' : `<table class="repx-meta-grid">
           <tr>
-            <th>اسم العميل</th>
-            <td><b>${escapeHtml(inv.customerName)}</b>${inv.customerCode ? ` <span class="sku" style="display:inline" dir="ltr">(${escapeHtml(inv.customerCode)})</span>` : ''}</td>
-            ${inv.customerTaxNo ? `<th>الرقم الضريبي للعميل</th><td dir="ltr"><b>${escapeHtml(inv.customerTaxNo)}</b></td>` : '<th>نوع الفاتورة</th><td>مبسطة (مستهلك نهائي)</td>'}
+            <th>رقم الفاتورة</th>
+            <td dir="ltr"><b>${escapeHtml(inv.number)}</b></td>
+            <th>نوع السداد</th>
+            <td>${escapeHtml(inv.paymentMethodLabel)}</td>
+            <th>التاريخ والوقت</th>
+            <td dir="ltr">${escapeHtml(`${inv.date} ${inv.time}`.trim())}</td>
           </tr>
           <tr>
-            <th>الجوال / الهاتف</th>
-            <td dir="ltr">${escapeHtml(inv.customerPhone || '—')}</td>
-            <th>المندوب / البائع</th>
-            <td>${escapeHtml(inv.salesmanName || inv.cashierName || '—')}</td>
+            <th>الفرع / نقطة البيع</th>
+            <td>${escapeHtml(inv.branchName || 'الفرع الرئيسي')}</td>
+            <th>تاريخ التوريد</th>
+            <td dir="ltr">${escapeHtml(inv.supplyDate)}</td>
+            <th>الحالة / المرجع</th>
+            <td>${escapeHtml(inv.referenceNo ? `${inv.status} — ${inv.referenceNo}` : inv.status)}</td>
           </tr>
-        </table>
-        ${customerAddrGrid}
-      </section>
-
-      <table class="lines repx-inv-lines">
-        <thead>
-          <tr>
-            <th style="width:32px">م<br/><small>No</small></th>
-            <th style="width:76px">الكود<br/><small>Code</small></th>
-            <th>اسم الصنف / البيان<br/><small>Description</small></th>
-            <th style="width:58px">الوحدة<br/><small>Unit</small></th>
-            <th style="width:58px">الكمية<br/><small>Qty</small></th>
-            <th style="width:74px">السعر<br/><small>Price</small></th>
-            <th style="width:80px">الإجمالي<br/><small>Gross</small></th>
-            <th style="width:66px">الخصم<br/><small>Disc.</small></th>
-            <th style="width:74px">الضريبة<br/><small>VAT</small></th>
-            <th style="width:86px">الصافي<br/><small>Net Total</small></th>
-          </tr>
-        </thead>
-        <tbody>${lineRows}</tbody>
-      </table>
-
-      <section class="repx-bottom-split">
-        <div class="repx-bottom-right">
-          <div class="repx-qr-and-words">
-            ${this.qrBlock(inv.qrPayload, inv.zatcaStatus, true, inv.isPhaseTwo)}
-            <div class="repx-words-stack">
-              <p class="words"><b>المبلغ بالحروف:</b> فقط ${escapeHtml(amountInArabicWords(inv.total, inv.currency))}</p>
-              ${
-                inv.payments.length
-                  ? `<table class="pay"><thead><tr><th>طريقة الدفع</th><th>المبلغ</th></tr></thead><tbody>
-                      ${inv.payments
-                        .map(
-                          (row) =>
-                            `<tr><td>${escapeHtml(row.method)}${row.reference ? ` — ${escapeHtml(row.reference)}` : ''}</td><td class="num">${escapeHtml(money(row.amount))}</td></tr>`,
-                        )
-                        .join('')}
-                     </tbody></table>`
-                  : ''
-              }
-              ${inv.notes ? `<div class="repx-note-box"><b>ملاحظات:</b> ${escapeHtml(inv.notes).replace(/\n/g, '<br/>')}</div>` : ''}
+          </table>
+          ${customFieldsHtml(design, 'meta')}`,
+      },
+      {
+        key: 'partyBox',
+        html: design?.showPartyBox === false ? '' : `<section class="party repx-customer-box">
+          <div class="repx-box-head">بيانات العميل / المشتري — Customer Details</div>
+          <table class="repx-meta-grid inner">
+            <tr>
+              <th>اسم العميل</th>
+              <td><b>${escapeHtml(inv.customerName)}</b>${inv.customerCode ? ` <span class="sku" style="display:inline" dir="ltr">(${escapeHtml(inv.customerCode)})</span>` : ''}</td>
+              ${inv.customerTaxNo ? `<th>الرقم الضريبي للعميل</th><td dir="ltr"><b>${escapeHtml(inv.customerTaxNo)}</b></td>` : '<th>نوع الفاتورة</th><td>مبسطة (مستهلك نهائي)</td>'}
+            </tr>
+            <tr>
+              <th>الجوال / الهاتف</th>
+              <td dir="ltr">${escapeHtml(inv.customerPhone || '—')}</td>
+              <th>المندوب / البائع</th>
+              <td>${escapeHtml(inv.salesmanName || inv.cashierName || '—')}</td>
+            </tr>
+          </table>
+          ${customerAddrGrid}
+        </section>`,
+      },
+      { key: 'customTop', html: `${customHeaderLinesHtml(design)}${customFieldsHtml(design, 'above_table')}` },
+      {
+        key: 'linesTable',
+        html: `<table class="lines repx-inv-lines">
+          <thead><tr>${columns.map((column) => `<th>${column.labelAr}</th>`).join('')}</tr></thead>
+          <tbody>${lineRows}</tbody>
+        </table>`,
+      },
+      {
+        key: 'totalsAndQr',
+        html: `<section class="repx-bottom-split">
+          <div class="repx-bottom-right">
+            <div class="repx-qr-and-words">
+              ${this.qrBlock(inv.qrPayload, inv.zatcaStatus, true, inv.isPhaseTwo)}
+              <div class="repx-words-stack">
+                ${design?.showTafqeet === false ? '' : `<p class="words"><b>المبلغ بالحروف:</b> فقط ${escapeHtml(amountInArabicWords(inv.total, inv.currency))}</p>`}
+                ${
+                  inv.payments.length
+                    ? `<table class="pay"><thead><tr><th>طريقة الدفع</th><th>المبلغ</th></tr></thead><tbody>
+                        ${inv.payments
+                          .map(
+                            (row) =>
+                              `<tr><td>${escapeHtml(row.method)}${row.reference ? ` — ${escapeHtml(row.reference)}` : ''}</td><td class="num">${escapeHtml(money(row.amount))}</td></tr>`,
+                          )
+                          .join('')}
+                       </tbody></table>`
+                    : ''
+                }
+                ${inv.notes ? `<div class="repx-note-box"><b>ملاحظات:</b> ${escapeHtml(inv.notes).replace(/\n/g, '<br/>')}</div>` : ''}
+              </div>
             </div>
+            ${
+              inv.returnPolicy && design?.showReturnPolicy !== false
+                ? `<div class="repx-policy-box"><b>سياسة الاسترجاع والاستبدال:</b><div>${escapeHtml(inv.returnPolicy).replace(/\n/g, '<br/>')}</div></div>`
+                : ''
+            }
           </div>
-          ${
-            inv.returnPolicy
-              ? `<div class="repx-policy-box"><b>سياسة الاسترجاع والاستبدال:</b><div>${escapeHtml(inv.returnPolicy).replace(/\n/g, '<br/>')}</div></div>`
-              : ''
-          }
-        </div>
 
-        <table class="totals-table repx-totals-box">
-          <tr><th>الإجمالي قبل الخصم والضريبة</th><td class="num">${escapeHtml(money(grossBeforeDiscount.toFixed(2)))}</td></tr>
-          <tr><th>مجموع الخصومات</th><td class="num">${escapeHtml(money(inv.discount))}</td></tr>
-          <tr><th>الإجمالي الخاضع للضريبة</th><td class="num">${escapeHtml(money(inv.subtotal))}</td></tr>
-          <tr><th>ضريبة القيمة المضافة (15%)</th><td class="num">${escapeHtml(money(inv.tax))}</td></tr>
-          ${
-            inv.extraTax && !new Decimal(inv.extraTax || '0').isZero()
-              ? `<tr><th>ضريبة إضافية</th><td class="num">${escapeHtml(money(inv.extraTax))}</td></tr>`
-              : ''
-          }
-          ${
-            inv.withholding && !new Decimal(inv.withholding || '0').isZero()
-              ? `<tr><th>الاستقطاع</th><td class="num">${escapeHtml(money(inv.withholding))}</td></tr>`
-              : ''
-          }
-          <tr class="grand"><th>الصافي شامل الضريبة (${escapeHtml(inv.currency)})</th><td class="num">${escapeHtml(money(inv.total))}</td></tr>
-          <tr><th>المدفوع</th><td class="num">${escapeHtml(money(inv.paid))}</td></tr>
-          <tr><th>المتبقي</th><td class="num">${escapeHtml(money(due.toFixed(2)))}</td></tr>
-        </table>
-      </section>
+          <table class="totals-table repx-totals-box">
+            <tr><th>الإجمالي قبل الخصم والضريبة</th><td class="num">${escapeHtml(money(grossBeforeDiscount.toFixed(2)))}</td></tr>
+            <tr><th>مجموع الخصومات</th><td class="num">${escapeHtml(money(inv.discount))}</td></tr>
+            <tr><th>الإجمالي الخاضع للضريبة</th><td class="num">${escapeHtml(money(inv.subtotal))}</td></tr>
+            <tr><th>ضريبة القيمة المضافة (15%)</th><td class="num">${escapeHtml(money(inv.tax))}</td></tr>
+            ${
+              inv.extraTax && !new Decimal(inv.extraTax || '0').isZero()
+                ? `<tr><th>ضريبة إضافية</th><td class="num">${escapeHtml(money(inv.extraTax))}</td></tr>`
+                : ''
+            }
+            ${
+              inv.withholding && !new Decimal(inv.withholding || '0').isZero()
+                ? `<tr><th>الاستقطاع</th><td class="num">${escapeHtml(money(inv.withholding))}</td></tr>`
+                : ''
+            }
+            <tr class="grand"><th>الصافي شامل الضريبة (${escapeHtml(inv.currency)})</th><td class="num">${escapeHtml(money(inv.total))}</td></tr>
+            <tr><th>المدفوع</th><td class="num">${escapeHtml(money(inv.paid))}</td></tr>
+            <tr><th>المتبقي</th><td class="num">${escapeHtml(money(due.toFixed(2)))}</td></tr>
+          </table>
+        </section>`,
+      },
+      { key: 'customBottom', html: `${customFieldsHtml(design, 'below_table')}${customTermsHtml(design)}` },
+      {
+        key: 'signatures',
+        html: print.showSignatures === false ? '' : `<table class="repx-sign-strip"><tr>${signCells.join('')}</tr></table>`,
+      },
+      {
+        key: 'footer',
+        html: print.printFooter === true ? this.renderRepxFooter(company, print.footerImageUrl) : '',
+      },
+    ];
 
-      <table class="repx-sign-strip">
-        <tr>
-          <td>
-            <div class="sign-label">المستلم — Receiver</div>
-            <div class="sign-space">&nbsp;</div>
-          </td>
-          <td>
-            <div class="sign-label">الختم — Official Stamp</div>
-            <div class="sign-space">${stampSrc ? `<img src="${escapeHtml(stampSrc)}" alt="الختم" class="stamp-inline" />` : '&nbsp;'}</div>
-          </td>
-          <td>
-            <div class="sign-label">البائع / المحاسب — Seller</div>
-            <div class="sign-space">${escapeHtml(inv.salesmanName || inv.cashierName || '')}</div>
-          </td>
-        </tr>
-      </table>
-
-      ${print.printFooter === true ? this.renderRepxFooter(company, print.footerImageUrl) : ''}
-    `;
+    return composeSections(design, sections);
   }
 
   /**
@@ -934,30 +1068,56 @@ export class PrintTemplatesService {
       notes: string;
       returnPolicy: string;
       showHeader: boolean;
+      showSignatures?: boolean;
+      design?: import('./print-settings.service.js').PrintDesignConfig;
     },
   ) {
     const due = Decimal.max(0, new Decimal(rec.total || '0').minus(rec.paid || '0'));
     const companyAddrText = company.addressAr || nationalAddressText(company.address);
     const customerAddrText = rec.customerTaxNo ? nationalAddressText(rec.customerAddress as Record<string, string> | null) : '';
+    const design = rec.design;
+    const titles = customTitles(design);
 
+    const columns = resolveColumns(design, [
+      { key: 'description', labelAr: 'الصنف' },
+      { key: 'qty', labelAr: 'الكمية' },
+      { key: 'unitPrice', labelAr: 'السعر' },
+      { key: 'netTotal', labelAr: 'الإجمالي' },
+    ]);
+    const columnCell = (line: Record<string, unknown>, key: string): string => {
+      switch (key) {
+        case 'description': {
+          const lineUnit = str(line.unit_label || line.unit_code);
+          return `<td class="pos-item-col"><b>${escapeHtml(str(line.label))}</b>${
+            lineUnit ? `<div class="pos-sub">${escapeHtml(lineUnit)}</div>` : ''
+          }</td>`;
+        }
+        case 'qty':
+          return `<td class="num center">${escapeHtml(qty(str(line.quantity)))}</td>`;
+        case 'unitPrice':
+          return `<td class="num">${escapeHtml(money(str(line.unit_price)))}</td>`;
+        case 'netTotal':
+          return `<td class="num bold-cell">${escapeHtml(money(str(line.total)))}</td>`;
+        case 'sku':
+          return `<td class="num center">${escapeHtml(str(line.sku) || '—')}</td>`;
+        case 'unit':
+          return `<td class="center">${escapeHtml(str(line.unit_label || line.unit_code) || '—')}</td>`;
+        case 'discount':
+          return `<td class="num">${escapeHtml(money(str(line.discount_amount)))}</td>`;
+        case 'vat':
+          return `<td class="num">${escapeHtml(money(str(line.tax)))}</td>`;
+        default:
+          return '<td></td>';
+      }
+    };
     const itemsRows = rec.lines
-      .map((line) => {
-        const lineUnit = str(line.unit_label || line.unit_code);
-        return `<tr>
-          <td class="pos-item-col">
-            <b>${escapeHtml(str(line.label))}</b>
-            ${lineUnit ? `<div class="pos-sub">${escapeHtml(lineUnit)}</div>` : ''}
-          </td>
-          <td class="num center">${escapeHtml(qty(str(line.quantity)))}</td>
-          <td class="num">${escapeHtml(money(str(line.unit_price)))}</td>
-          <td class="num bold-cell">${escapeHtml(money(str(line.total)))}</td>
-        </tr>`;
-      })
+      .map((line) => `<tr>${columns.map((column) => columnCell(line, column.key)).join('')}</tr>`)
       .join('');
 
-    return `
-      <div class="pos-receipt">
-        ${
+    const sections: WorksheetSection[] = [
+      {
+        key: 'letterhead',
+        html:
           rec.showHeader !== false
             ? `<div class="pos-head company">
                 <div class="pos-logo">${company.logoHtml}</div>
@@ -968,16 +1128,20 @@ export class PrintTemplatesService {
                 ${company.crNo ? `<div class="pos-sub">السجل التجاري: <b dir="ltr">${escapeHtml(company.crNo)}</b></div>` : ''}
                 ${company.phones.length ? `<div class="pos-sub" dir="ltr">${escapeHtml(company.phones.join(' - '))}</div>` : ''}
                 ${companyAddrText ? `<div class="pos-sub">${escapeHtml(companyAddrText)}</div>` : ''}
+                ${customHeaderLinesHtml(design)}
               </div>`
-            : ''
-        }
-
-        <div class="pos-title-box">
-          <div class="doc-title">${escapeHtml(rec.invoiceTitleAr)}</div>
-          <div class="pos-title-en">${escapeHtml(rec.invoiceTitleEn)}</div>
-        </div>
-
-        <table class="pos-meta-table">
+            : '',
+      },
+      {
+        key: 'titleBanner',
+        html: `<div class="pos-title-box">
+          <div class="doc-title">${escapeHtml(titles.titleAr || rec.invoiceTitleAr)}</div>
+          <div class="pos-title-en">${escapeHtml(titles.subtitleAr || rec.invoiceTitleEn)}</div>
+        </div>`,
+      },
+      {
+        key: 'metaGrid',
+        html: design?.showMetaGrid === false ? '' : `<table class="pos-meta-table">
           <tr>
             <th>رقم الفاتورة</th>
             <td dir="ltr"><b>${escapeHtml(rec.number)}</b></td>
@@ -999,27 +1163,30 @@ export class PrintTemplatesService {
               : ''
           }
         </table>
-
-        <div class="pos-customer-box">
+        ${customFieldsHtml(design, 'meta')}`,
+      },
+      {
+        key: 'partyBox',
+        html: design?.showPartyBox === false ? '' : `<div class="pos-customer-box">
           <div><span>العميل:</span> <b>${escapeHtml(rec.customerName)}</b></div>
           ${rec.customerPhone ? `<div><span>جوال العميل:</span> <b dir="ltr">${escapeHtml(rec.customerPhone)}</b></div>` : ''}
           ${rec.customerTaxNo ? `<div><span>الرقم الضريبي للعميل:</span> <b dir="ltr">${escapeHtml(rec.customerTaxNo)}</b></div>` : ''}
           ${customerAddrText ? `<div data-national-address><span>العنوان الوطني للعميل:</span> <b>${escapeHtml(customerAddrText)}</b></div>` : ''}
-        </div>
-
-        <table class="lines pos-lines">
+        </div>`,
+      },
+      { key: 'customTop', html: `${customFieldsHtml(design, 'above_table')}` },
+      {
+        key: 'linesTable',
+        html: `<table class="lines pos-lines">
           <thead>
-            <tr>
-              <th>الصنف</th>
-              <th style="width:42px">الكمية</th>
-              <th style="width:54px">السعر</th>
-              <th style="width:62px">الإجمالي</th>
-            </tr>
+            <tr>${columns.map((column) => `<th>${column.labelAr}</th>`).join('')}</tr>
           </thead>
           <tbody>${itemsRows}</tbody>
-        </table>
-
-        <table class="pos-totals-table">
+        </table>`,
+      },
+      {
+        key: 'totalsAndQr',
+        html: `<table class="pos-totals-table">
           <tr><th>الإجمالي قبل الضريبة</th><td class="num">${escapeHtml(money(rec.subtotal))}</td></tr>
           ${
             !new Decimal(rec.discount || '0').isZero()
@@ -1032,20 +1199,33 @@ export class PrintTemplatesService {
           ${!due.isZero() ? `<tr><th>المتبقي</th><td class="num">${escapeHtml(money(due.toFixed(2)))}</td></tr>` : ''}
         </table>
 
-        <p class="pos-words">فقط ${escapeHtml(amountInArabicWords(rec.total, rec.currency))}</p>
+        ${design?.showTafqeet === false ? '' : `<p class="pos-words">فقط ${escapeHtml(amountInArabicWords(rec.total, rec.currency))}</p>`}
 
         ${rec.notes ? `<div class="pos-note"><b>ملاحظات:</b> ${escapeHtml(rec.notes).replace(/\n/g, '<br/>')}</div>` : ''}
         ${
-          rec.returnPolicy
+          rec.returnPolicy && design?.showReturnPolicy !== false
             ? `<div class="pos-policy"><b>سياسة الاسترجاع والاستبدال:</b><div>${escapeHtml(rec.returnPolicy).replace(/\n/g, '<br/>')}</div></div>`
             : ''
         }
 
         <div class="pos-qr-wrap">
           ${this.qrBlock(rec.qrPayload, rec.zatcaStatus, true, rec.isPhaseTwo)}
-        </div>
-      </div>
-    `;
+        </div>`,
+      },
+      { key: 'customBottom', html: `${customFieldsHtml(design, 'below_table')}${customTermsHtml(design)}` },
+      {
+        key: 'signatures',
+        html:
+          rec.showSignatures === false
+            ? ''
+            : `<div class="pos-sign">${signatureLabels(design, ['الكاشير', 'المستلم'])
+                .map((label) => `<span>${escapeHtml(label)}</span>`)
+                .join('')}</div>`,
+      },
+      { key: 'footer', html: '' },
+    ];
+
+    return composeSections(design, sections);
   }
 
   /**
@@ -1190,6 +1370,339 @@ export class PrintTemplatesService {
   }
 
   // -------------------------------------------------------------------- pieces
+
+  // ------------------------------------------------------------------ previews
+
+  /**
+   * 👁️ معاينة القالب — تُرسم بنفس دوال الطباعة الحقيقية ونفس CSS، ببيانات نموذجية
+   * صريحة. ولهذا فما تراه في الإعدادات هو ما يخرج من الطابعة بعد الحفظ، لا صورةً
+   * تسويقية تفترق عن الورقة عند أول تغيير.
+   */
+  async samplePreview(tenantId: string, rawScope: string, printSettings: PrintSettings): Promise<string> {
+    const company = await withTenantTx(this.database.db, tenantId, async (tx) => this.company(tx, tenantId));
+    const print = { ...printSettings, scope: rawScope };
+    const sampleLines = SAMPLE_LINES;
+    const subtotal = '582.00';
+    const tax = '87.30';
+    const total = '669.30';
+
+    // إيصال الكاشير يُطبع على ورق حراري افتراضياً، لكن اختيار «A4» في الشاشة يجب أن
+    // يُغيّر المقاس فعلاً — وإلا بدا الخيار كأنه لا يفعل شيئاً (وهو ما شكا منه المستخدم).
+    const posOnA4 = print.printType === 1;
+    if ((rawScope === 'doc:pos_receipt' || rawScope === 'pos') && !posOnA4) {
+      return this.documentPage({ ...print, printType: 2 }, company, {
+        title: 'معاينة إيصال الكاشير',
+        suppressAutoStampAndFooter: true,
+        body: this.renderPosReceipt80mm(company, {
+          invoiceTitleAr: 'فاتورة ضريبية مبسطة',
+          invoiceTitleEn: 'Simplified Tax Invoice',
+          number: 'SI-000042',
+          dateTime: `${dateText(new Date())} ${timeText(new Date())}`,
+          branchName: 'الفرع الرئيسي',
+          warehouseName: 'المستودع الرئيسي',
+          salesmanName: 'سالم العتيبي',
+          cashierName: 'أحمد الشمري',
+          paymentMethodLabel: 'نقداً',
+          customerName: 'عميل نقدي',
+          customerTaxNo: '',
+          customerPhone: '',
+          customerAddress: null,
+          lines: sampleLines,
+          currency: 'SAR',
+          subtotal,
+          discount: '0.00',
+          tax,
+          total,
+          paid: total,
+          qrPayload: SAMPLE_QR_PAYLOAD,
+          isPhaseTwo: false,
+          zatcaStatus: 'prepared',
+          notes: 'نموذج معاينة — لا يُحتسب في أي سجل مالي.',
+          returnPolicy: company.returnPolicy || 'تُسترجع البضاعة خلال 7 أيام بشرط إحضار أصل الفاتورة.',
+          showHeader: print.printHeader,
+          showSignatures: print.showSignatures,
+          design: print.designConfig,
+        }),
+      });
+    }
+
+    if (rawScope === 'doc:receipt_voucher' || rawScope === 'doc:payment_voucher') {
+      const isReceipt = rawScope === 'doc:receipt_voucher';
+      const label = isReceipt ? 'سند قبض' : 'سند صرف';
+      return this.documentPage(print, company, {
+        title: `معاينة ${label}`,
+        body: `
+          ${this.header(
+            company,
+            {
+              docTitle: label,
+              docTitleEn: isReceipt ? 'Receipt Voucher' : 'Payment Voucher',
+              number: isReceipt ? 'RV-000118' : 'PV-000207',
+              date: dateText(new Date()),
+              status: 'مرحّلة',
+              extra: [
+                ['الفرع', 'الفرع الرئيسي'],
+                ['الصندوق / البنك', 'الصندوق الرئيسي'],
+                ['طريقة الدفع', 'نقداً'],
+              ],
+            },
+            print.printHeader,
+          )}
+          <section class="panel">
+            <div class="kv"><span>${isReceipt ? 'استلمنا من السيد' : 'صرفنا إلى السيد'}</span><b>مؤسسة النخبة للتجارة</b></div>
+            <div class="kv"><span>مبلغاً وقدره</span><b>1,250.75 SAR</b></div>
+            <div class="kv words"><span>فقط</span><b>${escapeHtml(amountInArabicWords('1250.75', 'SAR'))}</b></div>
+            <div class="kv"><span>وذلك عن</span><b>${isReceipt ? 'دفعة من عميل' : 'مصروف تشغيلي'}</b></div>
+          </section>
+          ${customFieldsHtml(print.designConfig, 'below_table')}
+          ${this.signatures(
+            signatureLabels(print.designConfig, [
+              isReceipt ? 'المستلم' : 'المستفيد',
+              'أمين الصندوق',
+              'المدير المالي',
+            ]),
+          )}
+          ${customTermsHtml(print.designConfig)}
+        `,
+      });
+    }
+
+    if (rawScope === 'doc:journal_entry') {
+      const lines = [
+        ['1', '1101 — الصندوق الرئيسي', 'دفعة نقدية من عميل', 'الرياض', 'مؤسسة النخبة', '1,250.75', ''],
+        ['2', '1201 — العملاء', 'تسوية ذمة عميل', '', 'مؤسسة النخبة', '', '1,250.75'],
+      ];
+      return this.documentPage(print, company, {
+        title: 'معاينة سند قيد',
+        body: `
+          ${this.header(
+            company,
+            {
+              docTitle: 'سند قيد',
+              docTitleEn: 'Journal Voucher',
+              number: 'JV-000901',
+              date: dateText(new Date()),
+              status: 'مرحّلة',
+              extra: [
+                ['الفرع', 'الفرع الرئيسي'],
+                ['البيان', 'تحصيل دفعة من عميل'],
+              ],
+            },
+            print.printHeader,
+          )}
+          <table class="lines">
+            <thead>
+              <tr><th>#</th><th>الحساب</th><th>البيان</th><th>مركز التكلفة</th><th>الجهة</th><th>مدين</th><th>دائن</th></tr>
+            </thead>
+            <tbody>
+              ${lines
+                .map(
+                  (row) => `<tr>
+                    <td class="num">${row[0]}</td><td>${escapeHtml(row[1]!)}</td><td>${escapeHtml(row[2]!)}</td>
+                    <td>${escapeHtml(row[3]!)}</td><td>${escapeHtml(row[4]!)}</td>
+                    <td class="num">${escapeHtml(row[5]!)}</td><td class="num">${escapeHtml(row[6]!)}</td>
+                  </tr>`,
+                )
+                .join('')}
+            </tbody>
+            <tfoot><tr><th colspan="5">الإجمالي</th><th class="num">1,250.75</th><th class="num">1,250.75</th></tr></tfoot>
+          </table>
+          <p class="words">فقط ${escapeHtml(amountInArabicWords('1250.75', 'SAR'))}</p>
+          ${customFieldsHtml(print.designConfig, 'below_table')}
+          ${this.signatures(signatureLabels(print.designConfig, ['المحاسب', 'المراجع', 'المدير المالي']))}
+          ${customTermsHtml(print.designConfig)}
+        `,
+      });
+    }
+
+    if (rawScope === 'doc:shift_close') {
+      return this.documentPage(print, company, {
+        title: 'معاينة إغلاق اليومية',
+        body: `
+          ${this.header(
+            company,
+            {
+              docTitle: 'إغلاق اليومية',
+              docTitleEn: 'Shift Close',
+              number: 'SH-000034',
+              date: dateText(new Date()),
+              status: 'مغلقة',
+              extra: [
+                ['الفرع', 'الفرع الرئيسي'],
+                ['الفتح', dateTimeText(new Date(Date.now() - 8 * 3600_000))],
+                ['الإغلاق', dateTimeText(new Date())],
+              ],
+            },
+            print.printHeader,
+          )}
+          <section class="panel">
+            <div class="kv"><span>النقد المتوقع</span><b>4,850.00</b></div>
+            <div class="kv"><span>النقد المعدود</span><b>4,850.00</b></div>
+            <div class="kv"><span>الفرق</span><b>0.00 (مطابق)</b></div>
+          </section>
+          ${customFieldsHtml(print.designConfig, 'below_table')}
+          ${this.signatures(signatureLabels(print.designConfig, ['الكاشير', 'المشرف', 'المحاسب']))}
+          ${customTermsHtml(print.designConfig)}
+        `,
+      });
+    }
+
+    if (
+      rawScope === 'doc:purchase_invoice' ||
+      rawScope === 'doc:purchase_return' ||
+      rawScope === 'purchases'
+    ) {
+      const isReturn = rawScope === 'doc:purchase_return';
+      const kindTitle = isReturn ? 'مردود مشتريات' : 'فاتورة مشتريات';
+      return this.documentPage(print, company, {
+        title: `معاينة ${kindTitle}`,
+        body: `
+          ${this.header(
+            company,
+            {
+              docTitle: kindTitle,
+              docTitleEn: isReturn ? 'Purchase Return' : 'Purchase Invoice',
+              number: isReturn ? 'PR-000011' : 'PI-000356',
+              date: dateText(new Date()),
+              status: 'مرحّلة',
+              extra: [
+                ['الفرع', 'الفرع الرئيسي'],
+                ['المستودع', 'المستودع الرئيسي'],
+                ['مرجع المورد', 'SUP-8842'],
+              ],
+            },
+            print.printHeader,
+          )}
+          ${this.partyBlock('بيانات المورد', {
+            name: 'شركة الوفرة للتوريدات',
+            code: 'SUP-004',
+            taxNo: '310000000000021',
+            phone: '0112345678',
+            address: null,
+          })}
+          ${this.linesTable(sampleLines)}
+          ${this.totalsBlock({
+            currency: 'SAR',
+            subtotal,
+            discount: '0.00',
+            tax,
+            total,
+            paid: total,
+            payments: [],
+            qrApplicable: false,
+          })}
+          ${customFieldsHtml(print.designConfig, 'above_table')}
+          ${this.signatures(signatureLabels(print.designConfig, ['المورد', 'أمين المستودع', 'المحاسب']))}
+          ${customFieldsHtml(print.designConfig, 'below_table')}
+          ${customTermsHtml(print.designConfig)}
+        `,
+      });
+    }
+
+    if (rawScope === 'reports' || rawScope.startsWith('report:')) {
+      return this.reportSheet(tenantId, {
+        titleAr: 'معاينة تقرير — فواتير المبيعات',
+        columns: [
+          { key: 'number', labelAr: 'رقم الفاتورة', numeric: false },
+          { key: 'date', labelAr: 'التاريخ', numeric: false },
+          { key: 'customer', labelAr: 'العميل', numeric: false },
+          { key: 'net', labelAr: 'الصافي', numeric: true },
+          { key: 'vat', labelAr: 'الضريبة', numeric: true },
+          { key: 'total', labelAr: 'الإجمالي', numeric: true },
+        ],
+        rows: [
+          { number: 'SI-000041', date: '2026-10-20', customer: 'مؤسسة النخبة', net: '582.00', vat: '87.30', total: '669.30' },
+          { number: 'SI-000042', date: '2026-10-21', customer: 'عميل نقدي', net: '145.00', vat: '21.75', total: '166.75' },
+        ],
+        totals: { net: '727.00', vat: '109.05', total: '836.05' },
+        grandTotal: [{ labelAr: 'إجمالي صافي البيع', amount: '727.00' }],
+        captions: ['الفترة: من 2026-10-01 إلى 2026-10-31', 'الفرع: الفرع الرئيسي'],
+        generatedAt: new Date().toISOString(),
+        signature: true,
+        print: { settings: print, copies: 1, paper: print.printType === 2 ? 'small' : 'a4' },
+      });
+    }
+
+    // الفاتورة الضريبية A4 — القالب الافتراضي لبقية النطاقات.
+    return this.documentPage(print, company, {
+      title: 'معاينة الفاتورة الضريبية',
+      suppressAutoStampAndFooter: true,
+      body:
+        print.printType === 2
+          ? this.renderPosReceipt80mm(company, {
+              invoiceTitleAr: 'فاتورة ضريبية مبسطة',
+              invoiceTitleEn: 'Simplified Tax Invoice',
+              number: 'SI-000042',
+              dateTime: `${dateText(new Date())} ${timeText(new Date())}`,
+              branchName: 'الفرع الرئيسي',
+              warehouseName: 'المستودع الرئيسي',
+              salesmanName: 'سالم العتيبي',
+              cashierName: 'أحمد الشمري',
+              paymentMethodLabel: 'نقداً',
+              customerName: 'عميل نقدي',
+              customerTaxNo: '',
+              customerPhone: '',
+              customerAddress: null,
+              lines: sampleLines,
+              currency: 'SAR',
+              subtotal,
+              discount: '0.00',
+              tax,
+              total,
+              paid: total,
+              qrPayload: SAMPLE_QR_PAYLOAD,
+              isPhaseTwo: false,
+              zatcaStatus: 'prepared',
+              notes: 'نموذج معاينة — لا يُحتسب في أي سجل مالي.',
+              returnPolicy: company.returnPolicy,
+              showHeader: print.printHeader,
+              showSignatures: print.showSignatures,
+              design: print.designConfig,
+            })
+          : this.renderSalesInvoiceA4(company, print, {
+              invoiceTitleAr: 'فاتورة ضريبية',
+              invoiceTitleEn: 'Tax Invoice',
+              number: 'SI-000042',
+              date: dateText(new Date()),
+              time: timeText(new Date()),
+              supplyDate: dateText(new Date()),
+              status: 'مرحّلة',
+              branchName: 'الفرع الرئيسي',
+              warehouseName: 'المستودع الرئيسي',
+              salesmanName: 'سالم العتيبي',
+              cashierName: 'أحمد الشمري',
+              referenceNo: 'PO-9921',
+              paymentMethodLabel: 'نقداً',
+              customerName: 'مؤسسة النخبة للتجارة',
+              customerCode: 'CUST-018',
+              customerTaxNo: '310000000000012',
+              customerPhone: '0551234567',
+              customerAddress: {
+                building: '4532',
+                street: 'طريق الملك فهد',
+                district: 'حي العليا',
+                city: 'الرياض',
+                postal: '12211',
+                additional: '2135',
+              },
+              lines: sampleLines,
+              currency: 'SAR',
+              subtotal,
+              discount: '0.00',
+              tax,
+              extraTax: '0.00',
+              withholding: '0.00',
+              total,
+              paid: total,
+              payments: [{ method: 'نقداً', amount: total, reference: '' }],
+              qrPayload: SAMPLE_QR_PAYLOAD,
+              isPhaseTwo: false,
+              zatcaStatus: 'prepared',
+              notes: 'نموذج معاينة — لا يُحتسب في أي سجل مالي.',
+              returnPolicy: company.returnPolicy,
+            }),
+    });
+  }
 
   private async company(tx: Tx, tenantId: string) {
     const profile = first(
@@ -1449,9 +1962,11 @@ export class PrintTemplatesService {
       .filter(Boolean)
       .map((name) => escapeHtml(name!));
     const toolbar = [
-      printers.length ? `🖨️ ${printers.join(' · ')}` : '',
-      copies > 1 ? `🔢 عدد النسخ: ${copies}` : '',
-      paper === 'small' ? '🧾 ورق صغير (80mm)' : '📄 ورقة A4',
+      printers.length ? `الطابعات: ${printers.join(' · ')}` : '',
+      copies > 1 ? `عدد النسخ: ${copies}` : '',
+      paper === 'small'
+        ? `ورق صغير ${print.designConfig.paperWidthMm === 58 ? 58 : 80}mm`
+        : 'ورقة A4',
     ]
       .filter(Boolean)
       .join(' — ');
@@ -1461,6 +1976,7 @@ export class PrintTemplatesService {
       paper,
       toolbar,
       style: printStyle(print, company.brandColor),
+      design: print.designConfig,
       body: copies === 1 ? body : Array.from({ length: copies }, () => body).join(''),
     });
   }
@@ -1500,6 +2016,14 @@ export class PrintTemplatesService {
     return this.printSettings.effective(tenantId, [scope, 'default']);
   }
 
+  /** 🧩 قوالب المستندات — تُقرأ مرة واحدة قبل فتح معاملة القراءة اندماجاً مع `effective`. */
+  private async readDocScopes(tenantId: string, scopes: string[]) {
+    const entries = await Promise.all(
+      scopes.map(async (scope) => [scope, await this.printSettings.read(tenantId, scope)] as const),
+    );
+    return new Map(entries.filter((entry): entry is readonly [string, PrintSettings] => entry[1].saved));
+  }
+
   private page({
     title,
     body,
@@ -1507,6 +2031,7 @@ export class PrintTemplatesService {
     paper = 'a4',
     toolbar,
     style,
+    design,
   }: {
     title: string;
     body: string;
@@ -1514,7 +2039,9 @@ export class PrintTemplatesService {
     toolbar?: string;
     style?: PrintStyle;
     paper?: 'a4' | 'small';
+    design?: import('./print-settings.service.js').PrintDesignConfig;
   }) {
+    const sheet = paperCss(paper === 'small' ? 2 : 1, design, landscape === true);
     return `<!doctype html>
 <html dir="rtl" lang="ar">
 <head>
@@ -1522,10 +2049,10 @@ export class PrintTemplatesService {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(title)}</title>
 <style>
-  @page { size: ${paper === 'small' ? '80mm auto' : `A4${landscape ? ' landscape' : ''}`}; margin: ${paper === 'small' ? '2.5mm' : '10mm'}; }
+  @page { size: ${sheet.size}; margin: ${sheet.margin}; }
   * { box-sizing: border-box; }
   body { font-family: inherit; color: #111; margin: 0; padding: 14px; background: #f4f5f7; font-size: calc(11.5px * var(--scale)); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .sheet { background: #fff; max-width: ${paper === 'small' ? '80mm' : landscape ? '297mm' : '210mm'}; margin: 0 auto; padding: ${paper === 'small' ? '3mm 3.5mm' : '10mm 11mm'}; box-shadow: 0 1px 8px rgba(0,0,0,.12); }
+  .sheet { background: #fff; max-width: ${sheet.maxWidth}; margin: 0 auto; padding: ${sheet.padding}; box-shadow: 0 1px 8px rgba(0,0,0,.12); position: relative; }
   .sheet.small { font-size: 0.92em; }
   .copy + .copy { page-break-before: always; margin-top: 12mm; }
   .brand-logo { max-height: 76px; max-width: 145px; object-fit: contain; display: block; margin: 0 auto; }
@@ -1582,7 +2109,7 @@ export class PrintTemplatesService {
   /* ── جداول البنود ── */
   table.lines { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
   table.lines th, table.lines td { border: 1px solid #333; padding: 4px 6px; }
-  table.lines thead th { background: #dfe3e8; font-weight: 700; text-align: center; line-height: 1.2; }
+  table.lines thead th { background: var(--head-bg, #dfe3e8); font-weight: 700; text-align: center; line-height: 1.2; }
   table.lines thead th small { font-weight: 600; color: #444; font-size: 0.82em; }
   table.lines tfoot th { background: #eef0f3; }
   .center { text-align: center !important; }
@@ -1657,6 +2184,22 @@ export class PrintTemplatesService {
   .pos-meta-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; font-size: 0.9em; }
   .pos-meta-table th, .pos-meta-table td { border: 1px solid #000; padding: 2px 4px; }
   .pos-meta-table th { background: #f0f1f4; font-weight: 700; text-align: right; white-space: nowrap; }
+  /* 🧾 الورق الحراري أضيق من أن يحمل خانات «الآن»: الأعمدة تنكسر بدل أن تفيض خارج الورقة. */
+  .sheet.small .pos-meta-table th, .sheet.small .repx-meta-grid th { white-space: normal; }
+  .sheet.small .pos-meta-table td, .sheet.small .pos-meta-table th { word-break: break-word; font-size: 0.86em; padding: 2px 3px; }
+  .sheet.small .pos-lines th, .sheet.small .pos-lines td { padding: 2px 3px !important; word-break: break-word; }
+  .sheet.paper-58 { font-size: 9.6px; padding: 2mm 2.5mm; }
+  .sheet.paper-58 .pos-meta-table, .sheet.paper-58 .pos-totals-table { font-size: 0.84em; }
+  .sheet.paper-58 .pos-head h1 { font-size: 1.12em; }
+  .sheet.paper-58 .pos-lines th, .sheet.paper-58 .pos-lines td { font-size: 0.82em; }
+  .sheet.paper-58 .pos-title-box .doc-title { font-size: 1em; }
+  .sheet.paper-58 .pos-words, .sheet.paper-58 .pos-note, .sheet.paper-58 .pos-policy { font-size: 0.8em; }
+  /* أعمدة الإيصال بأعراضٍ ثابتة: الورق الحراري لا يحتمل جدولاً يعيد توزيع نفسه. */
+  .sheet.small .pos-lines td.pos-item-col { word-break: break-word; }
+  .sheet.paper-58 .pos-lines { table-layout: fixed; }
+  .sheet.paper-58 .pos-lines th:nth-child(2), .sheet.paper-58 .pos-lines td:nth-child(2) { width: 15%; }
+  .sheet.paper-58 .pos-lines th:nth-child(3), .sheet.paper-58 .pos-lines td:nth-child(3) { width: 20%; }
+  .sheet.paper-58 .pos-lines th:nth-child(4), .sheet.paper-58 .pos-lines td:nth-child(4) { width: 25%; }
   .pos-customer-box { border: 1px solid #000; padding: 4px 6px; margin-bottom: 5px; font-size: 0.9em; line-height: 1.4; }
   .pos-lines th, .pos-lines td { border: 1px solid #000 !important; padding: 3px 4px !important; font-size: 0.92em; }
   .pos-lines thead th { background: #e5e7eb !important; }
@@ -1668,6 +2211,8 @@ export class PrintTemplatesService {
   .pos-note, .pos-policy { border: 1px solid #000; padding: 4px 5px; margin-bottom: 5px; font-size: 0.86em; line-height: 1.35; }
   .pos-qr-wrap { text-align: center; margin-top: 6px; padding-top: 4px; border-top: 1px dashed #000; }
   .pos-qr-wrap .qr svg { width: 150px; height: 150px; }
+  .pos-sign { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; padding-top: 4px; border-top: 1px dashed #000; font-size: 0.82em; font-weight: 700; }
+  .pos-sign span { flex: 1; text-align: center; }
 
   /* ── القوالب الثلاثة (classic / modern / minimal) ── */
   body.tpl-modern .sheet { border-top: 5px solid var(--accent); }
@@ -1677,6 +2222,24 @@ export class PrintTemplatesService {
   body.tpl-minimal .sheet { box-shadow: none; border: 1px solid #eee; }
   body.tpl-minimal table.lines thead th, body.tpl-minimal table.lines tfoot th { background: #fff; }
 
+  .design-watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 0; }
+  .design-watermark::before { content: attr(data-text); }
+  .design-watermark { font-size: 3.2em; font-weight: 800; color: rgba(17, 24, 39, 0.08); transform: rotate(-28deg); letter-spacing: 4px; white-space: nowrap; overflow: hidden; }
+  .sheet > * { position: relative; z-index: 1; }
+  .design-head-lines { text-align: center; font-size: 0.92em; color: #222; margin-bottom: 4px; }
+  .design-terms { border: 1px solid #333; padding: 5px 8px; font-size: 0.88em; margin-top: 6px; background: #fafafa; line-height: 1.45; }
+  .design-custom-fields { margin-bottom: 6px; }
+  .brand-logo { max-height: var(--logo-size, 76px); }
+  .qr svg, .pos-qr-wrap .qr svg { width: var(--qr-size, 118px); height: var(--qr-size, 118px); }
+  .pos-qr-wrap .qr svg { width: var(--qr-size, 150px); height: var(--qr-size, 150px); }
+  body[data-logo='right'] .repx-lh-center { order: -1; }
+  body[data-logo='left'] .repx-lh-center { order: 2; }
+  body[data-logo='hidden'] .repx-lh-center { display: none; }
+  body[data-tbl='striped'] table.lines tbody tr:nth-child(even) { background: #f7f8fa; }
+  body[data-tbl='clean'] table.lines th,
+  body[data-tbl='clean'] table.lines td { border-left: 0; border-right: 0; border-top: 0; }
+  body[data-tbl='clean'] table.lines thead th { background: transparent; border-bottom: 2px solid var(--accent); }
+
   @media print {
     body { background: #fff; padding: 0; }
     .sheet { box-shadow: none; margin: 0; max-width: none; }
@@ -1684,13 +2247,20 @@ export class PrintTemplatesService {
   }
 </style>
 </head>
-<body class="tpl-${escapeHtml(style?.template ?? 'classic')}" style="${[
+<body class="tpl-${escapeHtml(style?.template ?? 'classic')}" data-tbl="${escapeHtml(design?.tableStyle ?? 'grid')}" data-logo="${escapeHtml(design?.logoPosition ?? 'center')}" style="${[
       `--scale:${(style?.scale ?? 1).toFixed(2)}`,
       style?.accent ? `--accent:${escapeHtml(style.accent)}` : '--accent:#111',
       `font-family:${FONT_STACKS[style?.fontFamily ?? 'segoe']}`,
-    ].join(';')}">
+      logoSizeCss(design),
+      qrSizeCss(design),
+      design?.headerBgColor && /^#[0-9a-fA-F]{6}$/.test(design.headerBgColor)
+        ? `--head-bg:${design.headerBgColor}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(';')}">
   <div class="toolbar"><button type="button" onclick="window.print()">طباعة</button>${toolbar ? `<span class="toolbar-note">${toolbar}</span>` : ''}</div>
-  <div class="sheet${paper === 'small' ? ' small' : ''}">${body}</div>
+  <div class="sheet${sheet.isSmall ? ' small' : ''}${sheet.isSmall && design?.paperWidthMm === 58 ? ' paper-58' : ''}">${watermarkHtml(design)}${body}</div>
 </body>
 </html>`;
   }
@@ -1698,7 +2268,74 @@ export class PrintTemplatesService {
 
 // ---------------------------------------------------------------------- helpers
 
+const SAMPLE_LINES: Array<Record<string, unknown>> = [
+  {
+    line_no: 1,
+    sku: 'RICE-5',
+    label: 'أرز بسمتي ٥ كجم',
+    item_name: 'أرز بسمتي ٥ كجم',
+    unit_label: 'حبة',
+    unit_code: 'PCS',
+    quantity: '12',
+    unit_price: '27.50',
+    discount_amount: '0.00',
+    tax: '49.50',
+    net: '330.00',
+    total: '379.50',
+  },
+  {
+    line_no: 2,
+    sku: 'OIL-1',
+    label: 'زيت زيتون ١ لتر',
+    item_name: 'زيت زيتون ١ لتر',
+    unit_label: 'عبوة',
+    unit_code: 'BTL',
+    quantity: '6',
+    unit_price: '42.00',
+    discount_amount: '0.00',
+    tax: '37.80',
+    net: '252.00',
+    total: '289.80',
+  },
+];
+
+/** حمولة QR لعيّنةٍ تجريبية — وسوم المرحلة الأولى (TLV 1..5) بترميز Base64. */
+const SAMPLE_QR_PAYLOAD = buildQrPayload({
+  sellerName: 'مؤسسة الأفق للتجارة',
+  vatNo: '310000000000003',
+  timestamp: '2026-10-20T10:15:00Z',
+  grandTotal: '669.30',
+  vatTotal: '87.30',
+});
+
 type Tx = Parameters<Parameters<typeof withTenantTx>[2]>[0];
+
+/**
+ * دمج قالب المستند المحفوظ فوق إعدادات القسم، ثم تطبيق تجاوزات سطر الاستعلام بعده
+ * (فالورق والنسخ المطلوبان لهذه الطبعة يسبقان المحفوظ).
+ */
+function applyDocSettings(base: PrintSettings, doc: PrintSettings | undefined): PrintSettings {
+  if (!doc) return base;
+  return {
+    ...base,
+    template: doc.template,
+    accentColor: doc.accentColor,
+    fontFamily: doc.fontFamily,
+    fontScale: doc.fontScale,
+    showSignatures: doc.showSignatures,
+    printHeader: doc.printHeader,
+    printFooter: doc.printFooter,
+    printStamp: doc.printStamp,
+    printItemType: doc.printItemType,
+    note: doc.note || base.note,
+    headerImageUrl: doc.headerImageUrl,
+    footerImageUrl: doc.footerImageUrl,
+    stampImageUrl: doc.stampImageUrl,
+    casherPrinter: doc.casherPrinter || base.casherPrinter,
+    kitchenPrinter: doc.kitchenPrinter || base.kitchenPrinter,
+    designConfig: doc.designConfig,
+  };
+}
 
 function applyQueryOverrides(base: PrintSettings, query: DocumentPrintQuery): PrintSettings {
   const next = { ...base };

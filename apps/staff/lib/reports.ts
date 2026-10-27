@@ -152,8 +152,40 @@ export type PrintSettings = {
   fontScale: number;
   /** ✒️ سطر التوقيعات في التقارير. */
   showSignatures: boolean;
+  /** 🧩 تصميم الورقة التفصيلي: الأعمدة والأقسام والحقول والتوقيعات والعلامة المائية. */
+  designConfig: PrintDesignConfig;
   /** False when the row is still the desktop's default rather than a saved one. */
   saved: boolean;
+};
+
+export type PrintDesignColumn = { key: string; labelAr?: string; visible: boolean };
+export type PrintCustomField = { label: string; value: string; placement: 'meta' | 'above_table' | 'below_table' };
+
+/** 🧩 مفردات التصميم — مطابقة لـ`printDesignConfigSchema` في الخادم حرفاً بحرف. */
+export type PrintDesignConfig = {
+  paperWidthMm?: 80 | 58;
+  orientation?: 'auto' | 'portrait' | 'landscape';
+  marginMm?: number;
+  tableStyle?: 'grid' | 'striped' | 'clean';
+  headerBgColor?: string;
+  logoSizePx?: number;
+  logoPosition?: 'center' | 'right' | 'left' | 'hidden';
+  qrSizePx?: number;
+  showNationalAddress?: boolean;
+  showCompanyBanks?: boolean;
+  showMetaGrid?: boolean;
+  showPartyBox?: boolean;
+  showTafqeet?: boolean;
+  showReturnPolicy?: boolean;
+  sectionOrder?: string[];
+  columns?: PrintDesignColumn[];
+  customTitleAr?: string;
+  customSubtitleAr?: string;
+  customHeaderLines?: string[];
+  customFields?: PrintCustomField[];
+  customTerms?: string;
+  signatureLabels?: string[];
+  watermarkText?: string;
 };
 
 /**
@@ -200,6 +232,30 @@ export const createPrinterLink = (input: { scope: string; printName: string; pri
 export const updatePrinterLink = (id: string, input: Partial<{ scope: string; printName: string; printerName: string; rptUrl: string; rptName: string }>) =>
   apiPut<PrinterLink>(`/reports/printer-links/${encodeURIComponent(id)}`, input);
 export const deletePrinterLink = (id: string) => apiDelete<unknown>(`/reports/printer-links/${encodeURIComponent(id)}`);
+
+/**
+ * 🧾 كل ما يُطبع في النظام — إيصال الكاشير، الفواتير، المرتجعات، السندات، القيود،
+ * إغلاق الوردية، ثم كل تقرير مسجّل. هي قائمة «اسم التقرير» في شاشة إعدادات الطباعة:
+ * يختار المستخدم القالب فيظهر تصميمه أسفله ليعدّله.
+ */
+export type PrintableTemplateEntry = {
+  scope: string;
+  titleAr: string;
+  group: string;
+  groupLabelAr: string;
+  hintAr: string;
+  saved: boolean;
+  defaultPrintType: 1 | 2;
+  defaultColumns: Array<{ key: string; labelAr: string }>;
+  defaultSections: Array<{ key: string; labelAr: string }>;
+  defaultSignatures: string[];
+};
+
+export const fetchPrintableTemplates = () => apiData<PrintableTemplateEntry[]>('/reports/printable-templates');
+
+/** 👁️ معاينة القالب من الخادم — بنفس دوال الطباعة، فما تراه هو ما يخرج من الطابعة. */
+export const previewPrintableTemplate = (scope: string, draft: Partial<PrintSettings>) =>
+  apiPost<{ html: string }>('/reports/printable-templates/preview', { scope, draft });
 
 export type ExportFormat = 'csv' | 'xlsx' | 'pdf';
 

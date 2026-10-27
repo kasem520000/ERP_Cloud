@@ -22,5 +22,6 @@ export * from './surface-policy';
 export * from './sync-engine';
 export * from './sync';
 export * from './token-bridge';
+export * from './quick-login';
 export * from './use-query';
 export * from './use-submission-key';

@@ -1,4 +1,4 @@
-# قائمة تحقق واجهات — مستأجر verify2026 (أُنشئت 2026-10-26T07:28:55.592Z)
+# قائمة تحقق واجهات — مستأجر verify2026 (أُنشئت 2026-10-27T04:21:22.037Z)
 
 > وُلِّدت آلياً بواسطة `pnpm verify-seed` (apps/api/scripts/verify-seed.ts).
 > القيم أدناه مأخوذة من قاعدة البيانات وردود تقارير API **بعد** توليد الحركات.
@@ -285,12 +285,12 @@
 | إجماليات التقرير (totals) | income=230443.80، outcome=440.00 | افتح الرابط بحساب المالك |
 | صف 1 | seq: 1 | operation: رصيد سابق | doc_no: — | day: 2025-12-31 | income: 0.00 | outcome: 0.00 | balance: 0.00 | note:  | s_all: 230003.80 | s_period: 230003.80 | s_count: 1 |  |
 | صف 2 | seq: 2 | operation: قيد اليومية | doc_no: JE-000001 | day: 2026-01-01 | income: 230000.00 | outcome: 0.00 | balance: 230000.00 | note: قيد افتتاحي — رأس المال | s_all: 0 | s_period: 0 | s_count: 1 |  |
-| صف 3 | seq: 3 | operation: قيد مبيعات | doc_no: JE-000003 | day: 2026-10-26 | income: 115.00 | outcome: 0.00 | balance: 230115.00 | note: Sales invoice SI-000001 | s_all: 0 | s_period: 0 | s_count: 1 |  |
-| صف 4 | seq: 4 | operation: قيد اليومية | doc_no: JE-000006 | day: 2026-10-26 | income: 100.00 | outcome: 0.00 | balance: 230215.00 | note: سداد دفعة فاتورة مبيعات SI-000002 | s_all: 0 | s_period: 0 | s_count: 1 |  |
-| صف 5 | seq: 5 | operation: سند صرف | doc_no: JE-000007 | day: 2026-10-26 | income: 0.00 | outcome: 300.00 | balance: 229915.00 | note: سداد فاتورة مشتريات PI-000001 | s_all: 0 | s_period: 0 | s_count: 1 |  |
-| صف 6 | seq: 6 | operation: سند صرف | doc_no: JE-000008 | day: 2026-10-26 | income: 0.00 | outcome: 40.00 | balance: 229875.00 | note: VRF مصروف رسوم بنكية 40 | s_all: 0 | s_period: 0 | s_count: 1 |  |
-| صف 7 | seq: 7 | operation: سند قبض | doc_no: JE-000009 | day: 2026-10-26 | income: 115.00 | outcome: 0.00 | balance: 229990.00 | note: VRF قبض إيراد بضريبة 115 | s_all: 0 | s_period: 0 | s_count: 1 |  |
-| صف 8 | seq: 8 | operation: قيد اليومية | doc_no: JE-000010 | day: 2026-10-26 | income: 0.00 | outcome: 100.00 | balance: 229890.00 | note: ارسال مناقلة CT-000001 | s_all: 0 | s_period: 0 | s_count: 1 |  |
+| صف 3 | seq: 3 | operation: قيد مبيعات | doc_no: JE-000003 | day: 2026-10-27 | income: 115.00 | outcome: 0.00 | balance: 230115.00 | note: Sales invoice SI-000001 | s_all: 0 | s_period: 0 | s_count: 1 |  |
+| صف 4 | seq: 4 | operation: قيد اليومية | doc_no: JE-000006 | day: 2026-10-27 | income: 100.00 | outcome: 0.00 | balance: 230215.00 | note: سداد دفعة فاتورة مبيعات SI-000002 | s_all: 0 | s_period: 0 | s_count: 1 |  |
+| صف 5 | seq: 5 | operation: سند صرف | doc_no: JE-000007 | day: 2026-10-27 | income: 0.00 | outcome: 300.00 | balance: 229915.00 | note: سداد فاتورة مشتريات PI-000001 | s_all: 0 | s_period: 0 | s_count: 1 |  |
+| صف 6 | seq: 6 | operation: سند صرف | doc_no: JE-000008 | day: 2026-10-27 | income: 0.00 | outcome: 40.00 | balance: 229875.00 | note: VRF مصروف رسوم بنكية 40 | s_all: 0 | s_period: 0 | s_count: 1 |  |
+| صف 7 | seq: 7 | operation: سند قبض | doc_no: JE-000009 | day: 2026-10-27 | income: 115.00 | outcome: 0.00 | balance: 229990.00 | note: VRF قبض إيراد بضريبة 115 | s_all: 0 | s_period: 0 | s_count: 1 |  |
+| صف 8 | seq: 8 | operation: قيد اليومية | doc_no: JE-000010 | day: 2026-10-27 | income: 0.00 | outcome: 100.00 | balance: 229890.00 | note: ارسال مناقلة CT-000001 | s_all: 0 | s_period: 0 | s_count: 1 |  |
 | … | و2 صفاً آخر في التقرير الكلي |  |
 
 ### 17. تقرير inventory-valuation

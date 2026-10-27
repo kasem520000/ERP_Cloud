@@ -1,4 +1,4 @@
-import { boolean, index, integer, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { baseAuditColumns } from '../columns.js';
 
@@ -81,6 +81,8 @@ export const printSettings = pgTable(
     fontScale: integer('font_scale').notNull().default(100),
     /** ✒️ سطر التوقيعات في التقارير. */
     showSignatures: boolean('show_signatures').notNull().default(true),
+    /** 🧩 إعدادات التصميم المتقدمة للقالب (ترتيب الأقسام والأعمدة، الهوامش، الإضافات، التوقيعات). */
+    designConfig: jsonb('design_config').$type<Record<string, unknown>>().notNull().default({}),
     ...baseAuditColumns(),
   },
   (table) => ({
