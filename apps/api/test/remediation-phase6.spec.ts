@@ -20,7 +20,7 @@ describe('Remediation Phase 6 — Installments, Projects Progress Billing, Contr
   let warehouseAId = '';
   let warehouseBId = '';
   let cashLocationId = '';
-  let cashAccountId = '';
+  let _cashAccountId = '';
   let customerId = '';
   let contractorId = '';
   let itemId = '';
@@ -136,7 +136,7 @@ describe('Remediation Phase 6 — Installments, Projects Progress Billing, Contr
     };
 
     const cashAcc = existingAccounts.find((a) => a.code === '1211' || a.type === 'asset');
-    cashAccountId = cashAcc?.id ?? (await ensureAcc('1111001', 'صندوق المرحلة 6', 'asset'));
+    _cashAccountId = cashAcc?.id ?? (await ensureAcc('1111001', 'صندوق المرحلة 6', 'asset'));
     arAccountId = await ensureAcc('1231001', 'عملاء المشاريع', 'asset');
     retentionAccountId = await ensureAcc('1231002', 'محتجز عملاء مشاريع', 'asset');
     revenueAccountId = await ensureAcc('4111001', 'إيرادات مشاريع', 'revenue');

@@ -18,13 +18,17 @@ import globals from 'globals';
  * Recorded in docs/change-log/CHANGE-REQUESTS.md (CR-001, non-structural).
  */
 const MONEY_IDENTIFIER = '/^(price|amount|total|balance|cost|rate)$/i';
+/**
+ * الحارسُ يطارد **`number` العائم** لا الاسم: `Decimal` والنصوصُ المالية والعدّادات
+ * (أشهرُ الإطفاء، بايتاتُ النسخة الاحتياطية) كانت كلُّها تُلوَّن بالأحمر لأنّ الاسم فقط هو
+ * ما يُطابَق. فصار الاختيارُ على موضعين يُثبتان العوم: إعلانٌ صريحٌ `: number`، أو تحويلٌ
+ * صريحٌ بـ`Number(...)`. وما عداهما — `let total: Decimal` و`const total = '669.30'` —
+ * هو الشكلُ الذي يطلبه العقد نفسه (PROJECT_CONTRACT §3).
+ */
 const MONEY_SELECTOR = [
-  `Identifier[name=${MONEY_IDENTIFIER}]`,
-  ':not(Property > Identifier.key)',
-  ':not(MemberExpression > Identifier.property)',
-  ':not(TSPropertySignature > Identifier.key)',
-  ':not(TSMethodSignature > Identifier.key)',
-].join('');
+  `Identifier[name=${MONEY_IDENTIFIER}][typeAnnotation.typeAnnotation.type='TSNumberKeyword']`,
+  `VariableDeclarator[init.callee.name='Number'] > Identifier[name=${MONEY_IDENTIFIER}]`,
+].join(', ');
 
 export default [
   {
@@ -99,7 +103,7 @@ export default [
       // The base rule does not understand TypeScript parameter properties
       // (`constructor(public readonly status: number)`), so the typed variant replaces it.
       'no-unused-vars': 'off',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
   {

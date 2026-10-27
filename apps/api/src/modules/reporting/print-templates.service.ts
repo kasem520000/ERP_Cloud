@@ -22,7 +22,6 @@ import {
   customHeaderLinesHtml,
   customTermsHtml,
   customTitles,
-  escapeText,
   logoSizeCss,
   paperCss,
   qrSizeCss,

@@ -1,7 +1,6 @@
 import { Decimal } from 'decimal.js';
 
 // Decimal.js requires numeric precision arguments; monetary values remain Decimal/string based.
-/* eslint-disable no-restricted-syntax */
 
 export type InventoryPool = { quantity: Decimal; value: Decimal };
 

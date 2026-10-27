@@ -1,4 +1,4 @@
-/* eslint-disable no-restricted-syntax, import/order */
+/* eslint-disable import/order */
 import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 
 import { getTenantContext } from '../platform/context/tenant-context.js';

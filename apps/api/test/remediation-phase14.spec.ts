@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import Decimal from 'decimal.js';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
 import { todayIso } from '../src/common/server-date.js';
@@ -27,7 +26,7 @@ describe('Remediation Phase 14 — Return price guards, collection commission, p
   let safe1Id = '';
   let safe2Id = '';
   let salesmanId = '';
-  let periodId = '';
+  let _periodId = '';
   let catId = '';
   let unitId = '';
 
@@ -227,7 +226,7 @@ describe('Remediation Phase 14 — Return price guards, collection commission, p
     const activePeriod =
       periodList.find((p: any) => p.startDate <= today && p.endDate >= today) ??
       periodList[0];
-    periodId = activePeriod?.id;
+    _periodId = activePeriod?.id;
 
     // Salesman with 5% collection commission
     const smRes = await req('post', '/api/v1/sales/salesmen', {

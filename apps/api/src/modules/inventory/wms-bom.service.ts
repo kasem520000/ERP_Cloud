@@ -135,7 +135,7 @@ function positiveDecimal(value: string, code: string, message: string) {
   }
 }
 
-function moneyText(value: string | undefined): string | undefined {
+function _moneyText(value: string | undefined): string | undefined {
   if (value === undefined || value.trim() === '') return undefined;
   try {
     const parsed = new Decimal(value);

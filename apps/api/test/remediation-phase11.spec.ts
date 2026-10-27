@@ -26,7 +26,7 @@ describe('Remediation Phase 11 — Shift Reversal Integrity, Profile Fallback, A
   let itemId = '';
   let cashLocationId = '';
   let branch2CashAccountId = '';
-  let branch2CashLocationId = '';
+  let _branch2CashLocationId = '';
   let fiscalPeriodId = '';
   let testDate = '';
   const year = new Date().getUTCFullYear();
@@ -182,7 +182,7 @@ describe('Remediation Phase 11 — Shift Reversal Integrity, Profile Fallback, A
       kind: 'safe',
     });
     expect(safe2Res.status).toBe(201);
-    branch2CashLocationId = String(data(safe2Res.body).id);
+    _branch2CashLocationId = String(data(safe2Res.body).id);
 
     // Fiscal period
     const fpRes = await req('post', '/api/v1/fiscal-years', {

@@ -22,7 +22,7 @@ import { createTestApp, type TestApp } from './test-app.js';
 describe('R38 — equity changes statement, comparative params, balance-sheet opening (MF-32 subset)', () => {
   let ctx: TestApp;
   let actor: Actor;
-  let yearId = '';
+  let _yearId = '';
 
   const data = (body: Record<string, unknown>): Record<string, unknown> => (body.data ?? body) as Record<string, unknown>;
   const rows = (body: unknown): Array<Record<string, unknown>> => {
@@ -64,7 +64,7 @@ describe('R38 — equity changes statement, comparative params, balance-sheet op
     const year = new Date().getUTCFullYear();
     const fy = await req('post', '/fiscal-years', { code: `FY${year}`, name: `FY ${year}`, startDate: `${year}-01-01`, endDate: `${year}-12-31` });
     expect(fy.status, JSON.stringify(fy.body)).toBe(201);
-    yearId = String(data(fy.body).id ?? '');
+    _yearId = String(data(fy.body).id ?? '');
   }, 240_000);
 
   afterAll(async () => {

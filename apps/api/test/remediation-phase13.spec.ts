@@ -25,7 +25,7 @@ describe('Remediation Phase 13 — Negative stock setting, sales line validation
   let warehouse2Id = '';
   let customerId = '';
   let itemId = '';
-  let periodId = '';
+  let _periodId = '';
 
   const data = (body: any) => (body?.data ?? body);
 
@@ -177,7 +177,7 @@ describe('Remediation Phase 13 — Negative stock setting, sales line validation
     const activePeriod =
       periodList.find((p: any) => p.startDate <= today && p.endDate >= today) ??
       periodList[0];
-    periodId = activePeriod?.id;
+    _periodId = activePeriod?.id;
   });
 
   afterAll(async () => {

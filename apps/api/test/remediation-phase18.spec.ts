@@ -27,8 +27,8 @@ describe('Remediation Phase 18 — Van Sales Remediations (ACC-151, ACC-152, ACC
   let branchId = '';
   let warehouseId = '';
   let vanWarehouseId = '';
-  let cashLocationId = '';
-  let periodId = '';
+  let _cashLocationId = '';
+  let _periodId = '';
   let customerId = '';
   let itemId = '';
   let salesmanId = '';
@@ -84,7 +84,7 @@ describe('Remediation Phase 18 — Van Sales Remediations (ACC-151, ACC-152, ACC
     const defaults = await provisioning.provisionOrgDefaults(actor.tenantId);
     branchId = defaults.branchId;
     warehouseId = defaults.warehouseId;
-    cashLocationId = defaults.cashLocationId;
+    _cashLocationId = defaults.cashLocationId;
 
     const year = new Date().getUTCFullYear();
     const fyRes = await req('post', '/api/v1/fiscal-years', {
@@ -94,7 +94,7 @@ describe('Remediation Phase 18 — Van Sales Remediations (ACC-151, ACC-152, ACC
       endDate: `${year}-12-31`,
     });
     const pList = data(fyRes.body)?.periods ?? [];
-    periodId = pList[0]?.id ?? '';
+    _periodId = pList[0]?.id ?? '';
 
     // Set company profile with tax number for ZATCA mode
     await req('put', '/api/v1/company-profile', {

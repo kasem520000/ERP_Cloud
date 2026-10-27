@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import Decimal from 'decimal.js';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
 import { todayIso } from '../src/common/server-date.js';
@@ -23,7 +22,7 @@ describe('Remediation Phase 15 — Bin code validation, bin receive stock limits
   let supplierId = '';
   let serialItemId = '';
   let regularItemId = '';
-  let periodId = '';
+  let _periodId = '';
 
   const data = (body: any) => (body?.data ?? body);
 
@@ -110,7 +109,7 @@ describe('Remediation Phase 15 — Bin code validation, bin receive stock limits
     const activePeriod =
       periodList.find((p: any) => p.startDate <= today && p.endDate >= today) ??
       periodList[0];
-    periodId = activePeriod?.id;
+    _periodId = activePeriod?.id;
 
     // Customer
     const cust = await req('post', '/api/v1/parties', {

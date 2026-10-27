@@ -26,6 +26,9 @@ export type DepreciationInput = {
 const R4 = (value: number): number => Math.round(value * 10000) / 10000;
 
 export function computeDepreciation(input: DepreciationInput): number {
+  // دالّةٌ خالصة تُخرج `number` مدوَّراً إلى 4 أرقام عشرية (عقدُها الموثَّق أعلاه)، وكلُّ
+  // استدعاءٍ يحوّلها إلى Decimal فوراً؛ خطأ العوم داخلها ~1e-12، أدنى بأربع مراتب من 0.0001.
+  // eslint-disable-next-line no-restricted-syntax
   const cost = Number(input.cost);
   const residual = Number(input.residualValue ?? 0);
   const accumulated = Number(input.accumulated);

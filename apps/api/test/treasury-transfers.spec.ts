@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { sql } from 'drizzle-orm';
+import { withTenantTx } from '@erp/database';
 
 import {
   ALL_ORGANIZATION_PERMISSIONS,
@@ -8,8 +10,6 @@ import {
 } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
-import { sql } from 'drizzle-orm';
-import { withTenantTx } from '@erp/database';
 
 /**
  * Phase 06 part six — مناقلة (`Form_WPF/frmSafesTransfer.xaml`).

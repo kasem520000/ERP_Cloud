@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-syntax */
 import { Inject, Injectable, Optional, type OnModuleInit } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { alias } from 'drizzle-orm/pg-core';

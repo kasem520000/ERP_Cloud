@@ -24,8 +24,8 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { Client } from 'pg';
 
+import { Client } from 'pg';
 import { env } from '@erp/config';
 import {
   seedDemoData,
@@ -697,7 +697,6 @@ async function goldenPath(I: Ids): Promise<Row> {
 }
 
 // ───────────────────────────────────────────────────────────── expectations
-const CTRL = ['1211001', '1221001', '12310001', '22111001', '2222001', '3110001', '4200001', '3200004', '1270001', '1270003', '4100001', '4100002', '4100003', '3121004'];
 
 async function controlBalances(T: string): Promise<Record<string, { d: number; c: number }>> {
   const rows = await q(
@@ -1598,14 +1597,14 @@ async function runChecks(I: Ids): Promise<void> {
 }
 
 // ───────────────────────────────────────────────────────────── checklist writer
-function writeChecklist(I: Ids): string {
+function writeChecklist(_I: Ids): string {
   const path = resolve(ROOT, 'docs/accounting-audit/VERIFY_CHECKLIST.md');
   mkdirSync(dirname(path), { recursive: true });
   const failed = checks.filter((c) => !c.ok);
   const L: string[] = [];
   L.push(`# قائمة تحقق واجهات — مستأجر ${TENANT_CODE} (أُنشئت ${new Date().toISOString()})`);
   L.push('');
-  L.push('> وُلِّدت آلياً بواسطة \`pnpm verify-seed\` (apps/api/scripts/verify-seed.ts).');
+  L.push('> وُلِّدت آلياً بواسطة `pnpm verify-seed` (apps/api/scripts/verify-seed.ts).');
   L.push('> القيم أدناه مأخوذة من قاعدة البيانات وردود تقارير API **بعد** توليد الحركات.');
   L.push('> عند إيجاد فرق: سجّل (اسم الشاشة / القيمة المتوقعة / الفعلية / الفرق) وأرسلها.');
   L.push('');

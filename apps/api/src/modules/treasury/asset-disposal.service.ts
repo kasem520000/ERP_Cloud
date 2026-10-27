@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DomainError } from '@erp/contracts';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { Decimal } from 'decimal.js';
-
 import {
   accounts,
   assetCategories,

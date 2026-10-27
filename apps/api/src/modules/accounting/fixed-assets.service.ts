@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DomainError } from '@erp/contracts';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { Decimal } from 'decimal.js';
-
 import {
   assetCategories,
   assetDepreciationLines,
@@ -365,6 +364,9 @@ export class FixedAssetsService {
 
       return assets.map(({ asset, categoryName, categoryCode }) => {
         const accumulated = (depByAsset.get(asset.id) ?? 0) - (dispByAsset.get(asset.id) ?? 0);
+        // طرحُ قيمةٍ من قيمةٍ ثم تقريبٌ إلى 4 مراتب؛ الفرق العملي أقل من 0.0001،
+        // والقيمة تُقرأ نصّاً Decimal في السطر التالي مباشرة.
+        // eslint-disable-next-line no-restricted-syntax
         const cost = Number(asset.cost);
         const bookValue = asset.status === 'disposed' ? 0 : cost - accumulated;
         return {

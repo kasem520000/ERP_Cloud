@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-
 import { withOwnerClient } from '@erp/testing';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { computeDepreciation } from '../src/modules/accounting/depreciation-math.js';
 
 import {
   ALL_ORGANIZATION_PERMISSIONS,
@@ -13,7 +13,6 @@ import {
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
 
-import { computeDepreciation } from '../src/modules/accounting/depreciation-math.js';
 
 /**
  * خطة MISSING_FEATURES — دفقة D8، **MF-21: سجل الأصول الثابتة، الإهلاك،
@@ -36,7 +35,7 @@ describe('R42 — fixed assets register & depreciation (MF-21 D8)', () => {
   let actor: Actor;
   let branchId = '';
   let safeLocId = '';
-  let accounts: Array<Record<string, unknown>> = [];
+  let _accounts: Array<Record<string, unknown>> = [];
 
   let faAccount = '';
   let accumAccount = '';
@@ -155,7 +154,7 @@ describe('R42 — fixed assets register & depreciation (MF-21 D8)', () => {
 
     branchId = String(rows((await req('get', '/branches')).body)[0]?.id ?? '');
     expect(branchId).toBeTruthy();
-    accounts = rows((await req('get', '/accounts')).body);
+    _accounts = rows((await req('get', '/accounts')).body);
     const locations = rows((await req('get', '/cash-locations')).body);
     safeLocId = String(locations.find((l) => l.kind === 'safe')?.id ?? locations[0]?.id ?? '');
     expect(safeLocId).toBeTruthy();

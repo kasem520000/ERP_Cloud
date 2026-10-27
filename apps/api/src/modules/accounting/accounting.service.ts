@@ -3456,8 +3456,7 @@ export class AccountingService {
         .where(eq(fiscalPeriods.fiscalYearId, year.id))
         .orderBy(fiscalPeriods.startDate);
       let net = new Decimal(0);
-      /* eslint-disable no-restricted-syntax -- دَين قديم قبل D11: أسماء balance/signed في
-         بلوك Decimal سليم هذا وشرط المراجعة اليدوية خطر أكبر من المنع المؤقت. */
+       
       const lines = income.map((row) => {
         const balance = new Decimal(row.credit).minus(row.debit); // إيراد دائن موجب
         // صافي الدخل = مجموع (دائن−مدين) لكل حسابات الدخل: الخسارة تدخل طبيعياً بمدين
@@ -3473,7 +3472,7 @@ export class AccountingService {
           actionAr: balance.gt(0) ? `دائن ← ${balance.toFixed(4)} (تصفير بمدين)` : `مدين ← ${balance.abs().toFixed(4)} (تصفير بدائن)`,
         };
       });
-      /* eslint-enable no-restricted-syntax */
+       
       const retained =
         income.length > 0
           ? await this.retainedAccountInTx(tx, tenantId).catch((e: unknown) => {
@@ -3547,7 +3546,6 @@ export class AccountingService {
         await tx.update(fiscalPeriods).set({ status: 'open' }).where(eq(fiscalPeriods.id, endPeriod.id));
 
         const lines: Array<{ accountId: string; debit?: string; credit?: string; description: string }> = [];
-        /* eslint-disable no-restricted-syntax -- دَين قديم قبل D11 (نفس بلوك Decimal الأعلى). */
         for (const row of income) {
           const balance = new Decimal(row.debit).minus(row.credit); // موجب = مدين
           // صافي الدخل = مجموع −(مدين−دائن) لكل حسابات الدخل: الإيراد بموجب، والمصروف
@@ -3559,7 +3557,7 @@ export class AccountingService {
         }
         if (net.gt(0)) lines.push({ accountId: retained.id, credit: net.toFixed(4), description: `تحويل صافي دخل ${year.name} إلى الأرباح المحتجزة` });
         else if (net.lt(0)) lines.push({ accountId: retained.id, debit: net.abs().toFixed(4), description: `تحويل صافي خسارة ${year.name} إلى الأرباح المحتجزة` });
-        /* eslint-enable no-restricted-syntax */
+         
 
         const [branch] = await tx
           .select({ id: branches.id })

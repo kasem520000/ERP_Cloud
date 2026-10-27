@@ -11,10 +11,7 @@ import {
 import type { Request, Response } from 'express';
 import {
   platformBackupQuerySchema,
-  googleDriveBackupFileSchema,
   googleDriveConnectSchema,
-  googleDriveConnectionSchema,
-  googleDriveDownloadSchema,
   googleDriveUploadSchema,
   type GoogleDriveBackupFile,
   type GoogleDriveConnectInput,

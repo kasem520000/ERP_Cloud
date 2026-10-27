@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+
 import {
   ALL_ORGANIZATION_PERMISSIONS,
   ALL_PLATFORM_PERMISSIONS,
@@ -17,7 +18,7 @@ describe('Remediation Phase 5 — Salary Payments, Payroll Reversal, Allocations
   let branchId = '';
   let warehouseId = '';
   let cashLocationId = '';
-  let cashAccountId = '';
+  let _cashAccountId = '';
   let customerId = '';
   let supplierId = '';
   let itemId = '';
@@ -115,7 +116,7 @@ describe('Remediation Phase 5 — Salary Payments, Payroll Reversal, Allocations
     const accountsRes = await api(ctx.server, 'get', '/api/v1/accounts', { token: actor.token });
     const allAccounts = rows(accountsRes.body) as Array<{ id: string; code: string; type: string }>;
     const cashAcc = allAccounts.find((a) => a.code === '1211' || a.type === 'asset');
-    cashAccountId = cashAcc!.id;
+    _cashAccountId = cashAcc!.id;
 
     // Create payroll expense and liability accounts
     await api(ctx.server, 'post', '/api/v1/accounts', {

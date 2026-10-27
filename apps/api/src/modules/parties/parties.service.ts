@@ -1,4 +1,4 @@
-/* eslint-disable no-restricted-syntax, import/order */
+/* eslint-disable import/order */
 import { Inject, Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';

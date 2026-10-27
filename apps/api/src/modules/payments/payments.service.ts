@@ -11,7 +11,6 @@ import {
   invoicePayments,
   paymentGatewaySettings,
   paymentGatewayTransactions,
-  salesInvoices,
   vouchers,
   withTenantTx,
   type DatabaseHandle,

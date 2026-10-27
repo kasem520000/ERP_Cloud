@@ -19,10 +19,10 @@ describe('Remediation Phase 8 — Multi-Currency Vouchers, Module Locks, Allocat
   let branchId = '';
   let warehouseId = '';
   let cashLocationId = '';
-  let bankCashLocationId = '';
+  let _bankCashLocationId = '';
   let bankAccountId = '';
   let bankGlAccountId = '';
-  let cashAccountId = '';
+  let _cashAccountId = '';
   let expenseAccountId = '';
   let equityAccountId = '';
   let supplierId = '';
@@ -115,7 +115,7 @@ describe('Remediation Phase 8 — Multi-Currency Vouchers, Module Locks, Allocat
       .filter((a) => a.isPostable !== false);
     const accMap = new Map(existingAccounts.map((a) => [a.code, a]));
 
-    cashAccountId = accMap.get('1211001')?.id ?? (accMap.get('121101')?.id as string);
+    _cashAccountId = accMap.get('1211001')?.id ?? (accMap.get('121101')?.id as string);
     bankGlAccountId = accMap.get('1221001')?.id ?? (accMap.get('122101')?.id as string);
     const expAcc = existingAccounts.find((a) => a.type === 'expense') ?? existingAccounts[0];
     const eqAcc = existingAccounts.find((a) => a.type === 'equity' || a.type === 'revenue') ?? existingAccounts[1];
@@ -130,7 +130,7 @@ describe('Remediation Phase 8 — Multi-Currency Vouchers, Module Locks, Allocat
       currency: 'SAR',
       accountId: bankGlAccountId,
     });
-    bankCashLocationId = data(bankLocRes.body).id as string;
+    _bankCashLocationId = data(bankLocRes.body).id as string;
 
     // Bank Account
     const baRes = await req('post', '/api/v1/treasury/bank-accounts', {

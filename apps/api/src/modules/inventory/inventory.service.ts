@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-syntax */
 import { Inject, Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { and, asc, eq, gte, ilike, inArray, isNull, lte, sql } from 'drizzle-orm';

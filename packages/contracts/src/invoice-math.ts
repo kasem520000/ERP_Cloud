@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-/* eslint-disable no-restricted-syntax */
 
 const decimalString = z.string().regex(/^-?\d+(?:\.\d+)?$/);
 

@@ -59,7 +59,7 @@ describe('Remediation Phase 1 — Accounting Core & Controls (ACC-024, ACC-053, 
       ],
     });
 
-    const year = 2026;
+    const _year = 2026;
     const branch = await api(ctx.server, 'post', '/api/v1/branches', {
       token: actor.token,
       body: { code: 'BR1', nameAr: 'الفرع الرئيسي' },

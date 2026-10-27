@@ -24,11 +24,11 @@ describe('Remediation Phase 12 — R24 Multi-branch sequences, module lock audit
   let warehouse2Id = '';
   let safe1Id = '';
   let cashAccountId = '';
-  let custodyAccountId = '';
-  let diffAccountId = '';
-  let transitAccountId = '';
+  let _custodyAccountId = '';
+  let _diffAccountId = '';
+  let _transitAccountId = '';
   let salesAccountId = '';
-  let vatOutputAccountId = '';
+  let _vatOutputAccountId = '';
   let receivableAccountId = '';
   let itemId = '';
   let customerId = '';
@@ -129,11 +129,11 @@ describe('Remediation Phase 12 — R24 Multi-branch sequences, module lock audit
     const byCode = (c: string) => accs.find((a: any) => a.code.trim() === c)?.id;
 
     cashAccountId = byCode('1211001')!;
-    custodyAccountId = byCode('1211002')!;
-    diffAccountId = byCode('3110004')!;
-    transitAccountId = byCode('1211003')!;
+    _custodyAccountId = byCode('1211002')!;
+    _diffAccountId = byCode('3110004')!;
+    _transitAccountId = byCode('1211003')!;
     salesAccountId = byCode('4100001')!;
-    vatOutputAccountId = byCode('2222001')!;
+    _vatOutputAccountId = byCode('2222001')!;
     receivableAccountId = byCode('12310001')!;
 
     // Customer

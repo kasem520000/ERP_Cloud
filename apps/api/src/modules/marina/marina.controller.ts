@@ -9,7 +9,6 @@
  * `marina.invoice` — the same split as the windows: everyone looks, the harbour master
  * writes, and the cashier invoices.
  */
-/* eslint-disable no-restricted-syntax */
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 
 import { getTenantContext, tryGetAuthContext } from '../platform/context/tenant-context.js';

@@ -19,15 +19,15 @@ describe('Remediation Phase 7 — Financial Statements, Profitability, Customer 
   let branchId = '';
   let warehouseId = '';
   let customerId = '';
-  let supplierId = '';
+  let _supplierId = '';
   let itemId = '';
   let fiscalPeriodId = '';
-  let revenueAccountId = '';
-  let arAccountId = '';
-  let cogsAccountId = '';
+  let _revenueAccountId = '';
+  let _arAccountId = '';
+  let _cogsAccountId = '';
   let inventoryAccountId = '';
-  let cashAccountId = '';
-  let cashLocationId = '';
+  let _cashAccountId = '';
+  let _cashLocationId = '';
   const year = new Date().getUTCFullYear();
 
   const data = (body: Record<string, unknown>): Record<string, unknown> =>
@@ -90,7 +90,7 @@ describe('Remediation Phase 7 — Financial Statements, Profitability, Customer 
     const defaults = await ctx.app.get(OrgProvisioningService).provisionOrgDefaults(actor.tenantId);
     branchId = defaults.branchId;
     warehouseId = defaults.warehouseId;
-    cashLocationId = defaults.cashLocationId;
+    _cashLocationId = defaults.cashLocationId;
 
     // Create fiscal year and get periods
     const fyRes = await req('post', '/api/v1/fiscal-years', {
@@ -125,11 +125,11 @@ describe('Remediation Phase 7 — Financial Statements, Profitability, Customer 
     };
 
     const cashAcc = existingAccounts.find((a) => a.code === '1211' || a.type === 'asset');
-    cashAccountId = cashAcc?.id ?? (await ensureAcc('1111001', 'صندوق المرحلة 7', 'asset'));
-    arAccountId = await ensureAcc('1231001', 'عملاء مرحلة 7', 'asset');
-    revenueAccountId = await ensureAcc('4111001', 'مبيعات مرحلة 7', 'revenue');
+    _cashAccountId = cashAcc?.id ?? (await ensureAcc('1111001', 'صندوق المرحلة 7', 'asset'));
+    _arAccountId = await ensureAcc('1231001', 'عملاء مرحلة 7', 'asset');
+    _revenueAccountId = await ensureAcc('4111001', 'مبيعات مرحلة 7', 'revenue');
     inventoryAccountId = await ensureAcc('1211001', 'مخزون مرحلة 7', 'asset');
-    cogsAccountId = await ensureAcc('5111001', 'تكلفة مبيعات مرحلة 7', 'expense');
+    _cogsAccountId = await ensureAcc('5111001', 'تكلفة مبيعات مرحلة 7', 'expense');
     const adjAccountId = await ensureAcc('5111002', 'تسوية مخزون مرحلة 7', 'expense');
     const openingEquityAccountId = await ensureAcc('3111001', 'رصيد افتتاحي ملكية', 'equity');
     await ensureAcc('2211001', 'موردين مرحلة 7', 'liability');
@@ -157,7 +157,7 @@ describe('Remediation Phase 7 — Financial Statements, Profitability, Customer 
       kind: 'supplier',
       name: 'مورد التقارير المالية',
     });
-    supplierId = (data(suppRes.body) as { id: string }).id;
+    _supplierId = (data(suppRes.body) as { id: string }).id;
 
     // Item Category and Unit
     const catRes = await req('post', '/api/v1/organization/catalog/categories', {
@@ -301,7 +301,7 @@ describe('Remediation Phase 7 — Financial Statements, Profitability, Customer 
     expect(customerFound!.status).toBe('مدين');
 
     // UI-011: Totals should not sum mixed absolute balances
-    const reportDef = cbBody as { meta?: { totals?: string[] } };
+    const _reportDef = cbBody as { meta?: { totals?: string[] } };
     // Totals only defined for debit and credit
     if (cbBody.totals) {
       expect(cbBody.totals.balance).toBeUndefined();
@@ -312,7 +312,7 @@ describe('Remediation Phase 7 — Financial Statements, Profitability, Customer 
     // Balance sheet
     const bsRes = await req('get', '/api/v1/reports/balance-sheet');
     expect(bsRes.status).toBe(200);
-    const bsBody = bsRes.body as { meta?: { totals?: string[] } };
+    const _bsBody = bsRes.body as { meta?: { totals?: string[] } };
 
     // Tax return
     const trRes = await req('get', '/api/v1/reports/vat-return');

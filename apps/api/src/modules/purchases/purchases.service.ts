@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-syntax */
 import { Inject, Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
@@ -8,7 +7,6 @@ import {
   cashLocations,
   inventoryTransactions,
   items,
-  itemSerials,
   journalEntries,
   parties,
   paymentAllocations,

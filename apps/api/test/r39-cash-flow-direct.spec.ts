@@ -57,6 +57,7 @@ describe('R39 — cash-flow statement, direct method (D5b)', () => {
   const money = (n: number): string => n.toFixed(4);
 
   /** سند قبض/صرف: إنشاء (مسودة) ثم ترحيل — القيد يُنشأ بتاريخ السند وفترةه. */
+  // eslint-disable-next-line no-restricted-syntax -- قيمةُ اختبارٍ تُحوَّل إلى نصٍّ في الحال بـ`money()`.
   const voucher = async (kind: 'receipt' | 'payment', counterCode: string, locationId: string, amount: number, date: string) => {
     const created = await req('post', '/vouchers', {
       branchId,
@@ -78,6 +79,7 @@ describe('R39 — cash-flow statement, direct method (D5b)', () => {
   };
 
   /** تحويل نقدي بدوراته الثلاث (إنشاء → إرسال → استلام). */
+  // eslint-disable-next-line no-restricted-syntax -- قيمةُ اختبارٍ تُحوَّل إلى نصٍّ في الحال بـ`money()`.
   const transfer = async (amount: number) => {
     const created = await req('post', '/cash-transfers', {
       branchId,
