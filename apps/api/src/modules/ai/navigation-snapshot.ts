@@ -871,6 +871,27 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     "source": "navigation"
   },
   {
+    "id": "nav:tax-group-card",
+    "title": "بطاقة مجموعة ضريبية",
+    "href": "/inventory/tax-groups",
+    "keywords": [
+      "بطاقة",
+      "مجموعة",
+      "ضريبية",
+      "Tax",
+      "group",
+      "card",
+      "inventory",
+      "tax",
+      "groups"
+    ],
+    "steps": [
+      "افتح «بطاقة مجموعة ضريبية» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
     "id": "nav:item-units",
     "title": "وحدات الصنف والباركود",
     "href": "/inventory/item-units",

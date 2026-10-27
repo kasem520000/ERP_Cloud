@@ -288,12 +288,22 @@ export class WeeklyReportService {
 
 /** `2026-09-06 → 2026-09-12` — والنهاية تُعرض بيومها الأخير المشمول لا بيوم البداية التالي. */
 export function windowLabel(start: Date, end: Date): string {
-  const last = new Date(end.getTime() - 86_400_000);
+  // يومٌ محليّ لا `86_400_000` ملّي: يوم تغيير التوقيت الصيفي 23 أو 25 ساعة، والطرح
+  // بالملّي كان يقفز يوماً أو يعود إليه.
+  const last = new Date(end.getTime());
+  last.setDate(last.getDate() - 1);
   return `${isoDate(start)} → ${isoDate(last)}`;
 }
 
+/**
+ * تاريخ اليوم **بتوقيت الخادم** — لا `toISOString()` الذي يقرأ UTC: على خادم مكة (+03)
+ * منتصفُ ليل الأحد المحلي هو 21:00Z من السبت، فكانت نافذةُ الأسبوع تُعرض بيومٍ سابق
+ * (السبت → الجمعة) في بريد المنصّة وفي شاشة المعاينة.
+ */
 function isoDate(value: Date): string {
-  return value.toISOString().slice(0, 10);
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${value.getFullYear()}-${month}-${day}`;
 }
 
 /** حالة الرسالة → نتيجة المستلم في التقرير. */

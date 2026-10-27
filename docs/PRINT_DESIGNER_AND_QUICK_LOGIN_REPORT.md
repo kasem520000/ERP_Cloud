@@ -152,3 +152,29 @@
 **جديد:** `packages/web-core/src/quick-login.tsx` · `packages/web-core/tests/quick-login.spec.ts` · `apps/api/src/modules/reporting/print-design.ts` · `apps/api/test/print-template-designer.spec.ts` · `apps/staff/app/organization/company/page.tsx` · `apps/staff/tests/quick-login-and-printing.spec.ts` · `packages/database/migrations/0157_*` (+ down).
 
 **معدّل:** `packages/web-core/{package.json,src/index.ts}` · `apps/api/src/modules/reporting/{print-settings,print-templates,printer-links,reporting}.service.ts` + `reporting.controller.ts` · `packages/database/src/schema/printing.ts` · `apps/staff/app/settings/{general,printing}/page.tsx` · `apps/staff/lib/reports.ts` · شاشات دخول `staff` · `bakery` · `platform-admin` · `marketing` · `customer-portal`.
+
+---
+
+## 8) تصفير اختبارات CI بعد الدفع (إصلاحات لاحقة)
+
+بعد دفع `1ab7a2f` سقطت `pnpm verify` في خمسة اختبارات. الأسباب كانت ثلاثة، وأحدها **خطأ برمجي حقيقي** لا اختبارٌ قديم:
+
+### 8.1 لقطة شاشات المساعد (284 مقابل 283)
+- `apps/api/test/ai-help.spec.ts` يقارن شاشات `apps/staff/lib/navigation.ts` بلقطة `apps/api/src/modules/ai/navigation-snapshot.ts`.
+- شاشة «بطاقة مجموعة ضريبية» (`/inventory/tax-groups`) كانت قد أُضيفت إلى `navigation.ts` في مرحلة سابقة، ولم تُولَّد اللقطة بعدها.
+- **الإصلاح:** `node scripts/build-ai-navigation-snapshot.mjs` → **284** شاشة (إضافةٌ صرفة: لا حذف ولا إعادة ترتيب). الاختبار 3/3.
+
+### 8.2 التقرير الأسبوعي: توقيت الخادم مقابل UTC (خطأٌ حقيقي)
+- `windowLabel()` في `weekly-report.service.ts` كان ينسخ التاريخ بـ`toISOString()` أي **بتوقيت UTC**، والنافذة نفسها تُحسب بأيام الخادم المحلية (`weeklyWindow` تستعمل `getDay`/`setHours`).
+- على خادم مكة (+03) منتصفُ ليل الأحد المحلي هو **21:00Z من السبت**، فكان عنوان بريد المنصّة وشاشة المعاينة `/analytics` يقرآن النافذة **بيومٍ سابق** (`السبت → الجمعة` بدل `الأحد → السبت`). لا يظهر في الاختبارات على UTC، ويظهر في الإنتاج على `Asia/Riyadh`.
+- **الإصلاح:** `isoDate()` تُنسّق اليوم **بالتقويم المحلي للخادم** (`getFullYear/getMonth/getDate`)، ويومُ النهاية يُحسب بـ`setDate(-1)` لا بطرح `86_400_000` ملّي (يوم تغيير التوقيت الصيفي 23 أو 25 ساعة).
+- الاختبارات: `wednesday` و«التاسعة والنصف» و«النبضة بلا مستلم» صارت تُبنى بتوقيت الخادم (`new Date(2026, 8, 16, 7, 5)`) كما تفعل الجدولة، وأُضيف فحصٌ يثبّت الإصلاح: `window.start.toISOString() === '2026-09-05T21:00:00.000Z'` مع تسمية `2026-09-06 → 2026-09-12`.
+- `test/weekly-report.spec.ts`: **14/14**.
+
+### 8.3 اختباران كانا أحمرَين قبل هذه الجولة (مُصلَحان)
+- `test/pos-checkout.spec.ts`: كان يثبّت **مجموعة مفاتيح الإعدادات** كاملةً فسقط عند إضافة مفاتيح الطباعة. صار يتحقّق من **وجود** المفاتيح المطلوبة ومن **عدم تسريب** مفاتيح غير مصرَّحة، لا من التطابق الحرفي.
+- `test/report-invoices.spec.ts`: كان يبني `posted_at` بـUTC بينما الفلترة بتوقيت مكة، فيسقط عند تشغيل الخادم على `Asia/Riyadh`. ثُبِّت الطابع الزمني بإزاحة `+03`.
+
+### 8.4 النتيجة
+- حزمة API كاملة: **268 ملفاً / 2165 اختباراً — كلها ناجحة** (0 فاشل).
+- `tsc --noEmit` لـ`@erp/api` نظيف، و`eslint` على الملفات المعدّلة بلا ملاحظات.

@@ -47,8 +47,15 @@ describe('weekly platform report (P-C12 deferred delivery)', () => {
   let tenantOwner: Actor;
 
   const base = '/api/v1';
-  /** لحظة ثابتة داخل الأسبوع: الأربعاء 2026-09-16 — والنافذة 2026-09-06 → 2026-09-12. */
-  const wednesday = new Date('2026-09-16T07:05:00.000Z');
+  /**
+   * لحظة ثابتة داخل الأسبوع: الأربعاء 2026-09-16 — والنافذة 2026-09-06 → 2026-09-12.
+   *
+   * تُبنى **بتوقيت الخادم** لا بـ `…Z`: الجدولة تقرأ `getDay()` و`getHours()` محليّين
+   * (`report.weekly_day/hour` بتوقيت الخادم)، والخادم مضبوط على مكة (+03) في `main.ts`.
+   * التاريخ السابق `2026-09-16T07:05:00.000Z` كان يعني 10:05 محلياً فلا تُعدّ النبضة
+   * في ساعة الإرسال، ولا يقع الاختبار إلا إذا كان الخادم على UTC.
+   */
+  const wednesday = new Date(2026, 8, 16, 7, 5);
 
   const get = (path: string, actor: Actor = owner) =>
     api(ctx.server, 'get', `${base}${path}`, { token: actor.token });
@@ -202,10 +209,22 @@ describe('weekly platform report (P-C12 deferred delivery)', () => {
   // ═══════════════════════════════════════════════ 2. الجدولة
 
   it('لا يرسل في غير وقته', async () => {
-    const nine = new Date('2026-09-16T09:30:00.000Z');
+    // التاسعة والنصف بتوقيت الخادم — بعد ساعة الإرسال (07:00) باليوم نفسه.
+    const nine = new Date(2026, 8, 16, 9, 30);
     const result = await tick(nine);
     expect(result).toEqual({ due: false, sent: 0, skipped: 0, failed: 0 });
     expect(await messages()).toHaveLength(0);
+  });
+
+  it('يعرض نافذة الأسبوع بأيام الخادم لا بأيام UTC', () => {
+    // منتصف ليل الأحد المحلي على خادم مكة (+03) هو 21:00Z من السبت: `toISOString()`
+    // كان يطبع «السبت → الجمعة» في بريد المنصّة وفي شاشة المعاينة. النافذة المحلية
+    // الصحيحة للأربعاء 2026-09-16 هي 2026-09-06 → 2026-09-12.
+    const window = weeklyWindow(new Date(2026, 8, 16, 7, 5));
+    // منتصف ليل الأحد المحلي = 2026-09-05T21:00Z، و`toISOString()` كان يقرؤه «05».
+    expect(window.start.toISOString()).toBe('2026-09-05T21:00:00.000Z');
+    expect(windowLabel(window.start, window.end)).toBe('2026-09-06 → 2026-09-12');
+    expect(windowLabel(new Date(2026, 8, 6), new Date(2026, 8, 13))).toBe('2026-09-06 → 2026-09-12');
   });
 
   it('يرسل في وقته مرّةً واحدة لكل عنوان، برسالةٍ من قالب الحدث', async () => {
@@ -327,7 +346,7 @@ describe('weekly platform report (P-C12 deferred delivery)', () => {
     const before = (await messages()).length;
 
     // الوقت وقتُه، لكن لا مستلم: النبضة تُعلن أنها كانت مستحقّة وأنها لم ترسل شيئاً.
-    const result = await tick(new Date('2026-09-16T07:05:00.000Z'));
+    const result = await tick(new Date(2026, 8, 16, 7, 5));
     expect(result).toEqual({ due: true, sent: 0, skipped: 0, failed: 0 });
 
     const manual = await post('/platform/reports/weekly/run', {});

@@ -582,8 +582,12 @@ describe('التقارير — frmRptInv* · تقارير الفواتير وا�
       );
       expect(original.rows.length, 'لا فواتيرَ مُرحَّلة — فالمثبّتةُ لم تكتب ما يُقصّ').toBeGreaterThan(0);
 
+      // ⏰ والتثبيتُ بالساعة المحلية لا بـUTC: مرشّحا الوقت يقارنان `posted_at` بوقتِ
+      // اليوم في منطقة المنشأة (مكة `Asia/Riyadh`)، فـ`10:00Z` هي `13:00` محلياً وحينها
+      // «من 10:01» يبقى ثلاثة صفوف — وهو ما كان يُسقِط الحكم على أي مثبّتةٍ تعمل بتوقيت
+      // الرياض. `+03` يجعل الحكم على الساعة نفسها التي يقرؤها المرشّح.
       await clock.query(
-        `UPDATE sales_invoices SET posted_at = ($2 || 'T10:00:00Z')::timestamptz
+        `UPDATE sales_invoices SET posted_at = ($2 || 'T10:00:00+03')::timestamptz
          WHERE tenant_id = $1::uuid AND posted_at IS NOT NULL`,
         [actor.tenantId, day],
       );

@@ -698,7 +698,13 @@ describe('POS checkout engine', () => {
     expect(settings.status).toBe(200);
     const values = data(settings.body) as Record<string, unknown>;
     // ⚙️ الستّة التي في `frmCasherSetting.xaml` — لها مفاتيح مُسجَّلة وقيمٌ افتراضية معلنة.
-    expect(Object.keys(values).sort()).toEqual([
+    //
+    // والردّ يحمل فوقها ما تحتاجه واجهة الصندوق فعلاً: بقية مفاتيح `pos.*` (الترقيم
+    // الافتراضي الذي أُضيف لاحقاً)، ومفاتيح `report.*` (سياسة الإرجاع وبيانات الترويسة
+    // التي تُطبع على الإيصال)، وكائن `company` (الاسم والرقم الضريبي والسجل والعنوان).
+    // وما عدا ذلك مرفوض: إعدادات المستأجر الأخرى لا تتسرّب إلى جهاز الكاشير.
+    const keys = Object.keys(values).sort();
+    for (const key of [
       'pos.barcodeAuto',
       'pos.defaultDeliveryFee',
       'pos.defaultInsurance',
@@ -706,7 +712,12 @@ describe('POS checkout engine', () => {
       'pos.requireShift',
       'pos.showGroups',
       'pos.touchScreen',
-    ]);
+    ]) {
+      expect(keys, key).toContain(key);
+    }
+    expect(
+      keys.filter((key) => !key.startsWith('pos.') && !key.startsWith('report.') && key !== 'company'),
+    ).toEqual([]);
     expect(values['pos.barcodeAuto']).toBe(true);
 
     // `feature.pos` هو مفتاح السجلّ: صفٌّ صريح `false` يُطفئ الفوج (كان يُقرأ `pack.pos`
