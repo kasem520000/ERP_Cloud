@@ -507,23 +507,31 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     // و`packages/web-van/src/document-print.ts` (المُصيِّر المشترك بين لوحة staff وواجهة
     // المخابز، رُفع في الشريحة ١٠). فلو أُعيد تسميةُ حقلٍ هنا لسقط هذا القياس وسمّى العميلين،
     // بدل ورقةٍ رسمية تطبع «—» في خانة رقمٍ ضريبيٍّ موجود، أو رمزٍ لا يُرسم لأنّ مفتاحه تغيّر.
-    const printViewKeys = [
+    const repxBaseKeys = [
       'documentId',
       'documentNumber',
+      'documentKind',
       'invoiceNumber',
       'invoiceStatus',
+      'invoiceTitleAr',
       'saleDate',
       'companyName',
       'companyNameEn',
+      'companyFieldAr',
+      'companyFieldEn',
       'companyTaxNo',
       'companyCrNo',
+      'companyCrn',
       'companyEmail',
       'companyPhones',
       'companyAddress',
+      'companyAddressAr',
+      'companyAddressEn',
       'customerName',
       'customerTaxNo',
       'customerPhone',
       'customerMobile',
+      'customerAddress',
       'salesmanName',
       'salesmanMobile',
       'vanWarehouseName',
@@ -542,48 +550,16 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
       'outstandingAmount',
       'bonusQtyTotal',
       'qrPayload',
+      'zatcaPhase',
+      'zatcaStatus',
+      'returnPolicy',
+      'banks',
       'notes',
       'printedAt',
-      'copies',
-      'copiesCount',
-    ].sort();
+    ];
+    const printViewKeys = [...repxBaseKeys, 'copies', 'copiesCount'].sort();
     const printCopyKeys = [
-      'documentId',
-      'documentNumber',
-      'invoiceNumber',
-      'invoiceStatus',
-      'saleDate',
-      'companyName',
-      'companyNameEn',
-      'companyTaxNo',
-      'companyCrNo',
-      'companyEmail',
-      'companyPhones',
-      'companyAddress',
-      'customerName',
-      'customerTaxNo',
-      'customerPhone',
-      'customerMobile',
-      'salesmanName',
-      'salesmanMobile',
-      'vanWarehouseName',
-      'loadOrderNumber',
-      'productionBatchNo',
-      'invoiceMode',
-      'taxPolicyStatus',
-      'paymentMethod',
-      'lines',
-      'subtotal',
-      'discountTotal',
-      'vatRate',
-      'vatTotal',
-      'grandTotal',
-      'paidAmount',
-      'outstandingAmount',
-      'bonusQtyTotal',
-      'qrPayload',
-      'notes',
-      'printedAt',
+      ...repxBaseKeys,
       'copyIndex',
       'kind',
       'copyLabel',
@@ -1545,6 +1521,9 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     expect(readinessAfter.employeeAccountReady).toBe(true);
     expect(readinessAfter.ready).toBe(true);
     expect(readinessAfter.blockingReason).toBeNull();
+    expect((probeAfter.body.data.chargeDebitAccount as { code?: string } | null)?.code).toBe(
+      '2241901',
+    );
 
     /**
      * 🌾 دفعة إنتاج للصنف بتكلفةٍ **معلومة** (4.00): أمر التحميل يأخذ تكلفته من الدفعة
@@ -1599,11 +1578,12 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
       });
       expect(created.status, JSON.stringify(created.body).slice(0, 400)).toBe(201);
       const id = (created.body.data.loadOrders[0] as { id: string }).id;
+      const repActorToken = args.salesmanId === salesmanId ? rep.token : owner.token;
       const receipt = await api(
         ctx.server,
         'post',
         `/api/v1/van-sales/load-orders/${id}/confirm-receipt`,
-        { token: owner.token, body: { receivedQty: args.loadedQty } },
+        { token: repActorToken, body: { receivedQty: args.loadedQty } },
       );
       expect(receipt.status, JSON.stringify(receipt.body).slice(0, 400)).toBe(201);
       const submit = await api(
@@ -1611,7 +1591,7 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
         'post',
         `/api/v1/van-sales/load-orders/${id}/submit-closing`,
         {
-          token: owner.token,
+          token: repActorToken,
           body: {
             returnedQty: '0',
             damagedQty: '0',
@@ -1943,6 +1923,243 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     expect(batchlessLines[0].debit).toBe(costExpected);
     expect(batchlessLines[1].credit).toBe(costExpected);
     expect(await chargeEntryCount(batchless.id)).toBe(1);
+  });
+
+  it('enforces exclusive rep receipt confirmation, multi-order FIFO custody spillover (55 + 50 = 105 kg), and rep debit account in shortage policy', async () => {
+    const multiItemId = newId();
+    await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const refItem = await tx.execute(sql`
+        SELECT category_id::text, base_unit_id::text FROM items
+        WHERE id = ${itemId}::uuid AND tenant_id = ${owner.tenantId}::uuid
+      `);
+      const refRow = (refItem as { rows: Array<{ category_id: string; base_unit_id: string }> })
+        .rows[0]!;
+      await tx.execute(sql`
+        INSERT INTO items (id, tenant_id, sku, name_ar, category_id, base_unit_id, kind, purchase_price, sale_price, track_lot)
+        VALUES (${multiItemId}::uuid, ${owner.tenantId}::uuid, 'SKU-MULTI-FIFO', 'خبز بر شرائح',
+                ${refRow.category_id}::uuid, ${refRow.base_unit_id}::uuid, 'stock', 4.0000, 10.0000, false)
+      `);
+    });
+
+    const prod1 = await api(ctx.server, 'post', '/api/v1/van-sales/production-batches', {
+      token: accountant.token,
+      body: {
+        itemId: multiItemId,
+        warehouseId: mainWarehouseId,
+        producedQty: '200',
+        components: [{ itemId: componentItemId, qty: '200' }],
+        unitCost: '4.00',
+        idempotencyKey: 'multi-fifo-prod-1',
+      },
+    });
+    expect(prod1.status, JSON.stringify(prod1.body).slice(0, 400)).toBe(201);
+    const batch1 = (prod1.body.data.productionBatches[0] as { batchNo: string }).batchNo;
+
+    // 1. Create VLO-1 (100 kg) for linked rep (`otherSalesmanId` -> `otherRep.membershipId`)
+    const load1Res = await api(ctx.server, 'post', '/api/v1/van-sales/load-orders', {
+      token: accountant.token,
+      body: {
+        salesmanId: otherSalesmanId,
+        branchId,
+        warehouseId: mainWarehouseId,
+        vanWarehouseId: otherVanWarehouseId,
+        itemId: multiItemId,
+        productionBatchNo: batch1,
+        loadedQty: '100',
+        idempotencyKey: 'multi-fifo-load-1',
+      },
+    });
+    expect(load1Res.status, JSON.stringify(load1Res.body).slice(0, 400)).toBe(201);
+    const load1 = load1Res.body.data.loadOrders[0] as {
+      id: string;
+      salesmanHasAccount?: boolean;
+    };
+    expect(load1.salesmanHasAccount).toBe(true);
+
+    // Issue 1: Management (`owner` with `*` AND `accountant` with `van_sales.load.manage`) MUST get 403
+    // when trying to confirm or reject receipt on a linked rep's load order.
+    const ownerConfirmAttempt = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${load1.id}/confirm-receipt`,
+      { token: owner.token, body: { receivedQty: '100' } },
+    );
+    expect(ownerConfirmAttempt.status).toBe(403);
+
+    const accountantConfirmAttempt = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${load1.id}/confirm-receipt`,
+      { token: accountant.token, body: { receivedQty: '100' } },
+    );
+    expect(accountantConfirmAttempt.status).toBe(403);
+
+    const ownerRejectAttempt = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${load1.id}/reject-receipt`,
+      { token: owner.token, body: { reason: 'محاولة رفض من الإدارة' } },
+    );
+    expect(ownerRejectAttempt.status).toBe(403);
+
+    // Assigned rep (`otherRep`) confirms receipt -> 201
+    const repConfirm1 = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${load1.id}/confirm-receipt`,
+      { token: otherRep.token, body: { receivedQty: '100', notes: 'استلام المندوب شخصيًا' } },
+    );
+    expect(repConfirm1.status, JSON.stringify(repConfirm1.body).slice(0, 400)).toBe(201);
+
+    // 2. First sale: sell 45 kg from VLO-1 -> status becomes 'in_route' with 55 kg remaining
+    const sale1 = await api(ctx.server, 'post', '/api/v1/van-sales/documents', {
+      token: otherRep.token,
+      body: {
+        loadOrderId: load1.id,
+        partyId,
+        itemId: multiItemId,
+        invoiceMode: 'zatca_tax',
+        paymentMethod: 'cash',
+        cashLocationId,
+        soldQty: '45',
+        unitPrice: '10.00',
+        idempotencyKey: 'multi-fifo-sale-1',
+      },
+    });
+    expect(sale1.status, JSON.stringify(sale1.body).slice(0, 400)).toBe(201);
+
+    // Verify VLO-1 is still in `openLoadOrders` on `/me` with 55 kg remaining and status 'in_route'
+    const repWsAfterSale1 = await api(ctx.server, 'get', '/api/v1/van-sales/me', {
+      token: otherRep.token,
+    });
+    expect(repWsAfterSale1.status).toBe(200);
+    const openAfterSale1 = repWsAfterSale1.body.data.loadOrders as Array<{
+      id: string;
+      status: string;
+      expectedRemainingQty: string;
+    }>;
+    const vlo1AfterSale1 = openAfterSale1.find((o) => o.id === load1.id);
+    expect(vlo1AfterSale1).toBeDefined();
+    expect(vlo1AfterSale1?.status).toBe('in_route');
+    expect(Number(vlo1AfterSale1?.expectedRemainingQty)).toBe(55);
+
+    // 3. Create VLO-2 (50 kg) and confirm receipt as `otherRep` -> total open custody = 55 + 50 = 105 kg
+    const load2Res = await api(ctx.server, 'post', '/api/v1/van-sales/load-orders', {
+      token: accountant.token,
+      body: {
+        salesmanId: otherSalesmanId,
+        branchId,
+        warehouseId: mainWarehouseId,
+        vanWarehouseId: otherVanWarehouseId,
+        itemId: multiItemId,
+        productionBatchNo: batch1,
+        loadedQty: '50',
+        idempotencyKey: 'multi-fifo-load-2',
+      },
+    });
+    expect(load2Res.status, JSON.stringify(load2Res.body).slice(0, 400)).toBe(201);
+    const load2 = load2Res.body.data.loadOrders[0] as { id: string };
+
+    const repConfirm2 = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${load2.id}/confirm-receipt`,
+      { token: otherRep.token, body: { receivedQty: '50' } },
+    );
+    expect(repConfirm2.status, JSON.stringify(repConfirm2.body).slice(0, 400)).toBe(201);
+
+    // 4. Issue 2: Sell 80 kg in ONE document while pointing at VLO-2 (50 kg)!
+    // Must spill 50 kg from VLO-2 + 30 kg from VLO-1 = 80 kg, leaving 25 kg open custody.
+    const sale2 = await api(ctx.server, 'post', '/api/v1/van-sales/documents', {
+      token: otherRep.token,
+      body: {
+        loadOrderId: load2.id,
+        partyId,
+        itemId: multiItemId,
+        invoiceMode: 'zatca_tax',
+        paymentMethod: 'cash',
+        cashLocationId,
+        soldQty: '80',
+        unitPrice: '10.00',
+        idempotencyKey: 'multi-fifo-sale-2',
+      },
+    });
+    expect(sale2.status, JSON.stringify(sale2.body).slice(0, 400)).toBe(201);
+
+    // Official stock balance in `otherVanWarehouseId` for `multiItemId`: 150 - 45 - 80 = 25 kg
+    const vanBalAfter80 = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const r = await tx.execute(sql`
+        SELECT quantity::text AS qty FROM stock_balances
+        WHERE tenant_id = ${owner.tenantId}::uuid
+          AND warehouse_id = ${otherVanWarehouseId}::uuid
+          AND item_id = ${multiItemId}::uuid
+      `);
+      return Number((r as { rows: Array<{ qty: string }> }).rows[0]?.qty ?? 0);
+    });
+    expect(vanBalAfter80).toBe(25);
+
+    // Check individual load orders: VLO-2 has 50 sold (0 remaining), VLO-1 has 45 + 30 = 75 sold (25 remaining)
+    const orderSlices = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const r = await tx.execute(sql`
+        SELECT id::text, sold_qty::text, expected_cash::text, status
+        FROM van_load_orders
+        WHERE tenant_id = ${owner.tenantId}::uuid
+          AND id IN (${load1.id}::uuid, ${load2.id}::uuid)
+      `);
+      return (r as {
+        rows: Array<{ id: string; sold_qty: string; expected_cash: string; status: string }>;
+      }).rows;
+    });
+    const slice1 = orderSlices.find((r) => r.id === load1.id)!;
+    const slice2 = orderSlices.find((r) => r.id === load2.id)!;
+    expect(Number(slice2.sold_qty)).toBe(50);
+    expect(Number(slice1.sold_qty)).toBe(75);
+    expect(slice1.status).toBe('in_route');
+    expect(slice2.status).toBe('in_route');
+    // Total cash sales = (45 + 80) * 10 * 1.15 = 125 * 11.5 = 1437.50 SAR
+    expect(Number(slice1.expected_cash) + Number(slice2.expected_cash)).toBeCloseTo(1437.5, 4);
+
+    // Selling 30 kg (> 25 kg total remaining open custody) must fail with 422 security guard
+    const overSale = await api(ctx.server, 'post', '/api/v1/van-sales/documents', {
+      token: otherRep.token,
+      body: {
+        loadOrderId: load1.id,
+        partyId,
+        itemId: multiItemId,
+        invoiceMode: 'zatca_tax',
+        paymentMethod: 'cash',
+        cashLocationId,
+        soldQty: '30',
+        unitPrice: '10.00',
+        idempotencyKey: 'multi-fifo-oversale',
+      },
+    });
+    expect(overSale.status).toBe(422);
+    expect(String(overSale.body.detail ?? '')).toContain('رفض أمني لمنع خلط بضاعة خارجية');
+
+    // 5. Issue 3: Policy endpoint returns `chargeDebitAccount` pointing to rep's personal ledger account (`2241xxxx`),
+    // distinct from `creditAccount` (`تسويات المخزون`).
+    const policyForRep = await api(
+      ctx.server,
+      'get',
+      `/api/v1/van-sales/policy?salesmanId=${salesmanId}`,
+      { token: accountant.token },
+    );
+    expect(policyForRep.status).toBe(200);
+    const debitAcc = policyForRep.body.data.chargeDebitAccount as {
+      id: string | null;
+      code: string;
+      name: string;
+    };
+    const creditAcc = policyForRep.body.data.chargeCreditAccount as {
+      id: string;
+      code: string;
+      name: string;
+    };
+    expect(debitAcc).toBeTruthy();
+    expect(debitAcc.code.startsWith('2241')).toBe(true);
+    expect(creditAcc).toBeTruthy();
+    expect(debitAcc.code).not.toBe(creditAcc.code);
   });
 
 });

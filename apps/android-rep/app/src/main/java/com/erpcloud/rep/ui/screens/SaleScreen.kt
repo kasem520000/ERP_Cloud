@@ -115,12 +115,31 @@ fun SaleScreen(
         else -> null
     }
 
-    val custodyWarning: String? = remember(loadOrder, soldQty, bonusQty) {
+    val itemOpenOrders = remember(saleable, loadOrder) {
+        val order = loadOrder ?: return@remember emptyList()
+        saleable.filter { row ->
+            if (!order.itemId.isNullOrBlank() && !row.itemId.isNullOrBlank()) {
+                row.itemId == order.itemId
+            } else {
+                row.itemName == order.itemName
+            }
+        }
+    }
+    val totalItemOpenCustody = remember(itemOpenOrders, loadOrder) {
+        if (itemOpenOrders.isEmpty()) {
+            Dec.orZero(loadOrder?.expectedRemainingQty)
+        } else {
+            itemOpenOrders.fold(java.math.BigDecimal.ZERO) { acc, row ->
+                acc.add(Dec.orZero(row.expectedRemainingQty))
+            }
+        }
+    }
+
+    val custodyWarning: String? = remember(loadOrder, totalItemOpenCustody, soldQty, bonusQty) {
         val order = loadOrder ?: return@remember null
         val requested = Dec.orZero(soldQty).add(Dec.orZero(bonusQty))
-        val expected = Dec.orZero(order.expectedRemainingQty)
-        if (requested.signum() > 0 && requested > expected) {
-            "تحذير: المطلوب (${Dec.kg(requested.toPlainString())} كجم) أكبر من المتبقّي المتوقّع (${Dec.kg(order.expectedRemainingQty)} كجم) — الحكم النهائي للخادم."
+        if (requested.signum() > 0 && requested > totalItemOpenCustody) {
+            "تحذير: المطلوب (${Dec.kg(requested.toPlainString())} كجم) أكبر من إجمالي عهدتك المفتوحة لهذا الصنف (${Dec.kg(totalItemOpenCustody.toPlainString())} كجم) — الحكم النهائي للخادم."
         } else null
     }
 
@@ -177,6 +196,13 @@ fun SaleScreen(
                     badge = loadOrder?.let { "${Dec.kg(it.expectedRemainingQty)} كجم" },
                     onClick = { showLoadPicker = true },
                 )
+                if (loadOrder != null && itemOpenOrders.size > 1) {
+                    InfoCallout(
+                        "إجمالي عهدتك المفتوحة من «${loadOrder.itemName}» في السيارة: ${Dec.kg(totalItemOpenCustody.toPlainString())} كجم عبر ${itemOpenOrders.size} أوامر تحميل — متاحٌ للبيع في فاتورة واحدة.",
+                        ChipTone.OK,
+                        Modifier.padding(top = 8.dp),
+                    )
+                }
             }
 
             SectionCard(title = "٢) بياناتُ العميل") {

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Card, CardBody, CardHeader, Input, Table } from '@erp/ui';
 import { apiData, apiErrorText, apiPost, apiPut } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
-import { stockSettlementStatusLabel } from '@erp/web-van/distribution';
+import { loadOrderStatusLabel, stockSettlementStatusLabel } from '@erp/web-van/distribution';
 import {
   buildApprovalPayload,
   buildClosingPayload,
@@ -187,9 +187,13 @@ export default function CustodyPage() {
     setTransitReason('');
     setTransitMode('return');
     setNotes('');
+    const hasShortage = Number(row.shortageQty ?? 0) > 0;
+    const defaultChargeRep =
+      kind === 'approve' &&
+      (row.salaryDeductionApproved === true || (policy?.configured === true && hasShortage));
     setFlags({
       damageInspected: false,
-      salaryDeductionApproved: false,
+      salaryDeductionApproved: defaultChargeRep,
       settleStockAdjustment: false,
       surplusAcknowledged: false,
       selfApprovalOverride: false,
@@ -417,7 +421,9 @@ export default function CustodyPage() {
                 <span className="text-muted" dir="ltr">
                   {summary.explicitPriceText}
                 </span>
-                <span className="font-bold text-ink">الحساب الدائن المربوط (van_shortage_charge)</span>
+                <span className="font-bold text-ink">حساب تحميل العجز (المدين — ذمّة المندوب)</span>
+                <span className="font-semibold text-ink">{summary.debitAccountText}</span>
+                <span className="font-bold text-ink">الحساب الدائن المقابل (عكس فرق الجرد)</span>
                 <span className="text-muted">{summary.creditAccountText}</span>
                 <span className="font-bold text-ink">منع الاعتماد الذاتي</span>
                 <span className="text-muted">{summary.preventSelfApproval ? 'مفعّل' : 'غير مفعّل'}</span>
@@ -496,7 +502,7 @@ export default function CustodyPage() {
                 <Table
                   columns={[
                     { key: 'label', header: 'الأمر', cell: (row) => custodyLabel(row) },
-                    { key: 'status', header: 'الحالة', ltr: true, cell: (row) => row.status ?? '—' },
+                    { key: 'status', header: 'الحالة', cell: (row) => loadOrderStatusLabel(row.status ?? '') },
                     {
                       key: 'custody',
                       header: 'العهدة',
@@ -620,7 +626,7 @@ export default function CustodyPage() {
                 empty={<>لا صفوف في اللوحة بعد.</>}
                 columns={[
                   { key: 'label', header: 'الأمر', cell: (row) => custodyLabel(row) },
-                  { key: 'status', header: 'الحالة', ltr: true, cell: (row) => row.status ?? '—' },
+                  { key: 'status', header: 'الحالة', cell: (row) => loadOrderStatusLabel(row.status ?? '') },
                   {
                     key: 'policy',
                     header: 'سياسة العجز',
@@ -1005,14 +1011,25 @@ export default function CustodyPage() {
                         </div>
                       ) : null}
                       {blockers.length > 0 ? (
-                        <div className="grid gap-1 text-[12.5px] font-semibold text-danger-ink">
-                          {blockers.map((text) => (
-                            <span key={text}>{text}</span>
-                          ))}
-                          <span className="font-normal text-muted">
-                            الخادم يرفض الاعتماد 422 ما دام هذا المانع قائماً — ولا تُغلق العهدة بنصف كتابة.
-                          </span>
-                        </div>
+                        policy?.chargeReadiness?.employeeLinked &&
+                        !policy?.chargeReadiness?.employeeAccountReady &&
+                        policy?.chargeReadiness?.creditAccountMapped &&
+                        blockers.length === 1 ? (
+                          <div className="grid gap-1 text-[12.5px] text-warn-ink">
+                            <span>
+                              سيُنشئ الخادم حساب المندوب تلقائياً تحت ذمم الموظفين (2241xxxx) ويرحّل القيد عليه فور الاعتماد.
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="grid gap-1 text-[12.5px] font-semibold text-danger-ink">
+                            {blockers.map((text) => (
+                              <span key={text}>{text}</span>
+                            ))}
+                            <span className="font-normal text-muted">
+                              الخادم يرفض الاعتماد 422 ما دام هذا المانع قائماً — ولا تُغلق العهدة بنصف كتابة.
+                            </span>
+                          </div>
+                        )
                       ) : null}
                     </div>
 

@@ -15,7 +15,11 @@ import {
 import { useSession } from '@erp/web-core/session';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
 import { buildClosingPayload, type ClosingDraft, type CustodyQuantities } from '@erp/web-van/custody';
-import { buildReceiptPayload, type ReceiptDraft } from '@erp/web-van/distribution';
+import {
+  buildReceiptPayload,
+  loadOrderStatusLabel,
+  type ReceiptDraft,
+} from '@erp/web-van/distribution';
 import type { RepLoadOrderRow, RepPendingReceipt, RepWorkspace } from '@erp/web-van/rep-workspace';
 
 import {
@@ -40,6 +44,7 @@ import {
   actionEndpoint,
   bodyWithIdempotencyKey,
   closingShortageText,
+  itemOpenCustodySummary,
   receiptShortfallText,
   repHeadlineCards,
   repWindowNotes,
@@ -774,6 +779,18 @@ export default function RepAppPage() {
                       ))}
                     </select>
                   </label>
+                  {(() => {
+                    const selectedRow = saleable.find((r) => r.id === saleDraft.loadOrderId);
+                    const summary = itemOpenCustodySummary(data.loadOrders, selectedRow);
+                    if (!summary || summary.orderCount <= 1) return null;
+                    return (
+                      <p className="rep-note" data-tone="ok">
+                        إجمالي عهدتك المفتوحة من «{selectedRow?.itemName}» في السيارة:{' '}
+                        <span className="rep-num">{summary.totalKg}</span> كجم عبر {summary.orderCount} أوامر
+                        تحميل مفتوحة — يمكنك البيع حتى كامل الكمية في فاتورة واحدة.
+                      </p>
+                    );
+                  })()}
                   <label className="rep-field">
                     <span>العميل (بطاقة) — أو اتركه للعميل النقدي</span>
                     <select
@@ -1158,14 +1175,14 @@ export default function RepAppPage() {
                           data-tone={
                             row.status === 'settled'
                               ? 'ok'
-                              : row.status === 'pending_closing'
+                              : row.status === 'pending_closing' || row.status === 'pending_stock_settlement'
                                 ? 'warn'
-                                : row.status === 'loaded'
+                                : row.status === 'loaded' || row.status === 'in_route'
                                   ? undefined
                                   : 'danger'
                           }
                         >
-                          {row.status}
+                          {loadOrderStatusLabel(row.status)}
                         </span>
                       </div>
                       <div className="rep-row-meta">

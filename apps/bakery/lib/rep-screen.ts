@@ -169,12 +169,35 @@ export function repHeadlineCards(workspace: RepWorkspace): HeadlineCard[] {
 }
 
 /**
- * أوامرٌ يُباع منها الآن: حالتُها `loaded` وفيها متبقٍّ **بحسب الخادم**
- * (‏`expectedRemainingQty`). والأوامرُ المصفّاة/الملغاة/بانتظار الاستلام خارجها — فالبيعُ
- * منها يُرفض في الخادم (`VAN_LOAD_ORDER_NOT_RECEIVED`) ومنعُه هنا قولٌ لا ضبط.
+ * أوامرٌ يُباع منها الآن: حالتُها `loaded` أو `in_route` (بعد أوّل عملية بيع يبقى الأمر
+ * مفتوحًا في حالة `in_route` ما دام فيه متبقٍّ) وفيها متبقٍّ **بحسب الخادم**
+ * (‏`expectedRemainingQty`). والأوامرُ المصفّاة/الملغاة/بانتظار الاستلام خارجها.
  */
 export function saleableLoadOrders(rows: readonly RepLoadOrderRow[]): RepLoadOrderRow[] {
-  return rows.filter((row) => row.status === 'loaded' && zero(row.expectedRemainingQty).gt(0));
+  return rows.filter(
+    (row) =>
+      (row.status === 'loaded' || row.status === 'in_route') &&
+      zero(row.expectedRemainingQty).gt(0),
+  );
+}
+
+/**
+ * إجمالي العهدة المفتوحة القابلة للبيع لنفس الصنف في سيارة المندوب عبر أوامر التحميل المفتوحة:
+ * فإذا بقي 55 كجم من أمر سابق واستلم المندوب 50 كجم بأمر جديد صار إجمالي المتاح للبيع 105 كجم.
+ */
+export function itemOpenCustodySummary(
+  rows: readonly RepLoadOrderRow[],
+  selected: RepLoadOrderRow | null | undefined,
+): { totalKg: string; orderCount: number } | null {
+  if (!selected) return null;
+  const open = saleableLoadOrders(rows).filter((row) =>
+    selected.itemId && row.itemId
+      ? row.itemId === selected.itemId
+      : row.itemName === selected.itemName,
+  );
+  if (open.length === 0) return null;
+  const sum = open.reduce((acc, row) => acc.plus(zero(row.expectedRemainingQty)), zero('0'));
+  return { totalKg: sum.toFixed(2), orderCount: open.length };
 }
 
 /** مستنداتٌ يُرجَع منها: صفوفُ البيع وحدها (فالخادمُ يرفض مرتجعَ مرتجع). */

@@ -211,18 +211,20 @@ describe('chargeEvidence — دليلُ ما رُحِّل لا وعدُ السي
 });
 
 describe('policySummary — الأساس وما يتقدّم عليه', () => {
-  it('سياسةٌ مضبوطة بالتكلفة وحسابٌ دائن مربوط', () => {
+  it('سياسةٌ مضبوطة بالتكلفة وحسابُ المندوب المدين والحسابُ الدائن المقابل', () => {
     const policy: ShortagePolicyRow = {
       shortageValuationBasis: 'unit_cost',
       valuationSource: 'unit_cost',
       configured: true,
       preventSelfApproval: true,
+      chargeDebitAccount: { id: 'emp-acc-1', name: 'المندوب خالد', code: '22410001' },
       chargeCreditAccount: { id: 'acc-1', name: 'تسويات المخزون', code: '3121004' },
     };
     expect(policySummary(policy)).toEqual({
       basisText: 'بالتكلفة',
       sourceText: 'بالتكلفة',
       explicitPriceText: '—',
+      debitAccountText: 'المندوب خالد (22410001)',
       creditAccountText: 'تسويات المخزون',
       configured: true,
       preventSelfApproval: true,

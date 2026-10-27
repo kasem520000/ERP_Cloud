@@ -211,6 +211,7 @@ data class LoadOrderDto(
     val shortageChargeAmount: String? = null,
     val awaitingStockSettlement: Boolean = false,
     val awaitingTransitDecision: Boolean = false,
+    val salesmanHasAccount: Boolean = true,
     val maxBonusQty: String = "0",
     val maxBonusPct: String = "0",
     val expectedCash: String = "0",

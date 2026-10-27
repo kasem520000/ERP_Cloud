@@ -730,7 +730,7 @@ export default function DistributionPage() {
                     {
                       key: 'c9',
                       header: 'الحالة',
-                      cell: () => null,
+                      cell: (row) => loadOrderStatusLabel(row.status ?? ''),
                     },
                     {
                       key: 'c10',
@@ -741,25 +741,18 @@ export default function DistributionPage() {
                       key: 'c11',
                       header: 'إجراء',
                       cell: (row) => (
-                        <>
-                          <div className="flex flex-wrap gap-1">
-                            {canConfirmReceipt(row) ? (
-                              <Button onClick={() => openAction(row, 'confirm')} size="sm" variant="ghost">
-                                استلام
-                              </Button>
-                            ) : null}
-                            {canCancelLoadOrder(row) && canManage ? (
-                              <Button onClick={() => openAction(row, 'cancel')} size="sm" variant="ghost">
-                                إلغاء
-                              </Button>
-                            ) : null}
-                            {canConfirmReceipt(row) ? (
-                              <Button onClick={() => openAction(row, 'reject')} size="sm" variant="ghost">
-                                رفض
-                              </Button>
-                            ) : null}
-                          </div>
-                        </>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {canConfirmReceipt(row) ? (
+                            <span className="text-[11.5px] font-medium text-muted">
+                              بانتظار استلام المندوب
+                            </span>
+                          ) : null}
+                          {canCancelLoadOrder(row) && canManage ? (
+                            <Button onClick={() => openAction(row, 'cancel')} size="sm" variant="ghost">
+                              إلغاء
+                            </Button>
+                          ) : null}
+                        </div>
                       ),
                     },
                   ]}
@@ -850,8 +843,9 @@ export default function DistributionPage() {
                 القائمة الجانبية («المبيعات والفواتير» و«التحصيل وسداد الآجل»)، وهذه الشاشة مخصّصة لحركات التحميل والخطوط.
               </li>
               <li>
-                <strong>لا حكم محلي على من يحقّ له التأكيد</strong>: الخادم يفحص أنّ المؤكّد هو المندوب صاحب
-                العهدة أو حامل ، ورفضه (403) يُعرض بنصّه.
+                <strong>تأكيد الاستلام ورفضه حقٌّ حصري للمندوب صاحب العهدة</strong>: لا تُظهر شاشة الإدارة زرّ
+                تأكيد أو رفض الاستلام، والخادم يرفض (403) أي محاولة لتأكيد أو رفض استلام عهدة مندوب له حساب دخول من
+                غير حسابه الشخصي. وللإدارة إلغاء أمر التحميل قبل الاستلام فقط.
               </li>
             </ul>
           </CardBody>

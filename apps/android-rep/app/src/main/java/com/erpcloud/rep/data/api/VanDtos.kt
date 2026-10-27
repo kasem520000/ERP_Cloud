@@ -58,6 +58,7 @@ data class RepLoadOrderRow(
     val number: String = "",
     val loadDate: String = "",
     val status: String = "",
+    val itemId: String? = null,
     val itemName: String = "",
     val productionBatchNo: String = "",
     val loadedQty: String = "0",
@@ -190,10 +191,10 @@ data class RepWorkspace(
     val notifications: List<RepNotificationRow> = emptyList(),
     val message: String? = null,
 ) {
-    /** أوامرُ يُباع منها الآن: `loaded` وفيها متبقٍّ بحسب الخادم (expectedRemainingQty). */
+    /** أوامرُ يُباع منها الآن: `loaded` أو `in_route` (بعد أوّل بيع) وفيها متبقٍّ بحسب الخادم (expectedRemainingQty). */
     val saleableLoadOrders: List<RepLoadOrderRow>
         get() = loadOrders.filter {
-            it.status == "loaded" && Dec.isPositive(it.expectedRemainingQty)
+            (it.status == "loaded" || it.status == "in_route") && Dec.isPositive(it.expectedRemainingQty)
         }
 
     /** مستنداتٌ يُرجَع منها: صفوف البيع غير الملغاة وحدها (فالخادمُ يرفض مرتجعَ مرتجع أو ملغى). */

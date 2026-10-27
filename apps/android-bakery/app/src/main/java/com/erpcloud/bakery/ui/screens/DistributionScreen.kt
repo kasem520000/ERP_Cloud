@@ -158,19 +158,12 @@ private fun LoadOrderCard(
 ) {
     val state by vm.uiState.collectAsState()
     var busy by remember { mutableStateOf(false) }
-    var showReject by remember { mutableStateOf(false) }
     var showCancel by remember { mutableStateOf(false) }
     var showTransit by remember { mutableStateOf(false) }
-    var showConfirm by remember { mutableStateOf(false) }
-    var confirmError by remember { mutableStateOf<String?>(null) }
     // B11: حوارُ السببِ يُفتحُ بعد اختيارِ نمطِ القرارِ (إرجاع/عجز).
     var transitReasonOpen by remember { mutableStateOf(false) }
-    var rejectReason by rememberSaveable(order.id) { mutableStateOf("") }
     var cancelReason by rememberSaveable(order.id) { mutableStateOf("") }
     var transitMode by rememberSaveable(order.id) { mutableStateOf("return") }
-    // B7: الكميّةُ المستلمةُ تُدخلُ فعلًا — لا تُنسخُ من المحمَّلِ نسخًا أعمى.
-    var receivedQtyText by rememberSaveable(order.id) { mutableStateOf(order.loadedQty) }
-    var confirmNotes by rememberSaveable(order.id) { mutableStateOf("") }
 
     val (statusText, tone) = Labels.loadStatus(order.status)
     // الموك-أب 11: «بانتظار الإقفال» محيّدةٌ (NEUTRAL) — لا كهرمانَ التحذير.
@@ -205,11 +198,9 @@ private fun LoadOrderCard(
         Spacer(Modifier.height(10.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (order.awaitingReceipt) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // تأكيدُ الاستلام: المندوبُ صاحبُ العهدة أو إدارةُ التحميل.
-                    DecisionPill("تأكيدُ الاستلام", enabled = !busy) { showConfirm = true }
-                    DecisionPill("رفض", enabled = !busy) { showReject = true }
-                    if ((order.status == "pending_receipt") && state.can("van_sales.load.manage")) {
+                StatusChip("بانتظار تأكيد الاستلام من حساب المندوب الشخصي", ChipTone.WARN)
+                if ((order.status == "pending_receipt") && state.can("van_sales.load.manage")) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         DecisionPill("إلغاء", enabled = !busy) { showCancel = true }
                     }
                 }
@@ -261,39 +252,6 @@ private fun LoadOrderCard(
         MissingPermissionHint("إلغاء أمر التحميل", "van_sales.load.manage")
     }
 
-    if (showReject) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showReject = false },
-            confirmButton = {
-                androidx.compose.material3.TextButton(
-                    onClick = {
-                        showReject = false
-                        busy = true
-                        vm.rejectReceipt(order.id, buildJsonObject { put("reason", rejectReason) }) { busy = false }
-                    },
-                    enabled = !busy,
-                ) { Text("رفضُ الاستلام") }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showReject = false }) { Text("رجوع") }
-            },
-            title = { Text("رفضُ استلام التوريد ${order.number}") },
-            text = {
-                Column {
-                    Text(
-                        "الكميّةُ تبقى رسميًّا في الطريق وتُعاد إلى المصدر بمناقلةِ إرجاع — والسببُ جزءٌ من أثر التدقيق.",
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedTextField(
-                        value = rejectReason,
-                        onValueChange = { rejectReason = it },
-                        label = { Text("سببُ الرفض") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            },
-        )
-    }
     if (showCancel) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showCancel = false },
@@ -323,67 +281,6 @@ private fun LoadOrderCard(
                         label = { Text("سببُ الإلغاء") },
                         modifier = Modifier.fillMaxWidth(),
                     )
-                }
-            },
-        )
-    }
-    // B7: تأكيدُ الاستلام بكميّةٍ فعليةٍ يُدخلها المستلم + ملاحظةٌ اختياريّة.
-    if (showConfirm) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showConfirm = false },
-            confirmButton = {
-                androidx.compose.material3.TextButton(
-                    onClick = {
-                        val entered = Dec.parse(receivedQtyText)
-                        if (entered == null || entered.signum() <= 0) {
-                            confirmError = "الكميّةُ المستلمةُ يجب أن تكون رقمًا موجبًا أكبر من صفر."
-                            return@TextButton
-                        }
-                        showConfirm = false
-                        confirmError = null
-                        busy = true
-                        vm.confirmReceipt(
-                            order.id,
-                            buildJsonObject {
-                                put("receivedQty", Dec.wire(receivedQtyText))
-                                if (confirmNotes.isNotBlank()) put("notes", confirmNotes.trim())
-                            },
-                        ) { busy = false }
-                    },
-                    enabled = !busy,
-                ) { Text("تأكيد") }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showConfirm = false }) { Text("رجوع") }
-            },
-            title = { Text("تأكيدُ استلام ${order.number}") },
-            text = {
-                Column {
-                    KeyValue("المحمَّل (كجم)", Dec.kg(order.loadedQty))
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedTextField(
-                        value = receivedQtyText,
-                        onValueChange = { if (Dec.isValidInput(it)) receivedQtyText = it },
-                        label = { Text("الكميّةُ المستلمة فعليًّا (كجم) *") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        isError = confirmError != null,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    OutlinedTextField(
-                        value = confirmNotes,
-                        onValueChange = { confirmNotes = it },
-                        label = { Text("ملاحظات (اختياريّ)") },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Text(
-                        "ما تُدخلُه هنا هو أساسُ العهدة — الفرقُ عن المحمَّلِ يُسجَّلُ فرقَ عبورٍ يُقرَّرُ لاحقًا.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (confirmError != null) {
-                        Spacer(Modifier.height(6.dp))
-                        StatusChip(confirmError ?: "", ChipTone.DANGER)
-                    }
                 }
             },
         )

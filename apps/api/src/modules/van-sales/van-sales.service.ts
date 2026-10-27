@@ -379,8 +379,14 @@ export class VanSalesService {
         branchId,
         'van_shortage_charge',
       );
+      const stockProfile = branchId
+        ? await this.resolvePostingProfileOrNullInTx(tx, tenantId, branchId, 'stock_voucher')
+        : null;
       const creditAccountId =
-        profile?.shortageChargeAccountId ?? profile?.inventoryAdjustmentAccountId ?? null;
+        profile?.shortageChargeAccountId ??
+        profile?.inventoryAdjustmentAccountId ??
+        stockProfile?.inventoryAdjustmentAccountId ??
+        null;
       const creditAccount = creditAccountId
         ? first(
             await tx.execute(sql`
@@ -390,6 +396,13 @@ export class VanSalesService {
             `),
           )
         : undefined;
+      const employeeRoot = first(
+        await tx.execute(sql`
+          SELECT id::text, name_ar, code FROM accounts
+          WHERE tenant_id = ${tenantId}::uuid AND code = '2241' AND deleted_at IS NULL
+          LIMIT 1
+        `),
+      );
 
       let chargeReadiness: {
         salesmanId: string;
@@ -402,10 +415,12 @@ export class VanSalesService {
         ready: boolean;
         blockingReason: string | null;
       } | null = null;
+      let salesmanDebitAccount: { id: string; name: string; code: string } | null = null;
       if (salesmanId) {
         const employee = first(
           await tx.execute(sql`
-            SELECT e.id::text, e.name, e.employee_account_id::text, a.name_ar AS account_name
+            SELECT e.id::text, e.name, e.employee_account_id::text,
+                   a.name_ar AS account_name, a.code AS account_code
             FROM salesmen s
               JOIN employees e ON e.id = s.employee_id AND e.deleted_at IS NULL
               LEFT JOIN accounts a ON a.id = e.employee_account_id
@@ -413,6 +428,13 @@ export class VanSalesService {
             LIMIT 1
           `),
         );
+        if (employee?.employee_account_id && employee?.account_name) {
+          salesmanDebitAccount = {
+            id: str(employee.employee_account_id),
+            name: str(employee.account_name),
+            code: str(employee.account_code ?? ''),
+          };
+        }
         const employeeLinked = Boolean(employee);
         const employeeAccountReady = Boolean(employee?.employee_account_id);
         const creditAccountMapped = Boolean(creditAccountId);
@@ -455,6 +477,19 @@ export class VanSalesService {
         configured: basis !== 'unconfigured' || Boolean(explicitPrice),
         /** المفاتيح التي تكتبها `PUT /van-sales/policy` — وما عداها قراره في مكانٍ آخر. */
         writableKeys: ['shortageValuationBasis', 'shortageUnitPrice', 'preventSelfApproval'],
+        /**
+         * حساب تحميل العجز (الطرف المدين): يُقيَّد العجز دائماً على حساب المندوب/الموظف الشخصي
+         * في دليل الحسابات تحت جذر حسابات الموظفين (`2241` — موظفين الفرع الرئيسي)، لا على
+         * حساب تسويات المخزون (الذي هو الطرف الدائن المقابل فقط لعكس فرق الجرد).
+         */
+        chargeDebitAccount:
+          salesmanDebitAccount ?? {
+            id: employeeRoot?.id ? str(employeeRoot.id) : null,
+            name: employeeRoot?.name_ar
+              ? `حساب المندوب الشخصي في دليل الحسابات (تحت ${str(employeeRoot.name_ar)})`
+              : 'حساب المندوب الشخصي في دليل الحسابات (ذمم الموظفين)',
+            code: employeeRoot?.code ? `${str(employeeRoot.code)}xxxx` : '2241xxxx',
+          },
         chargeCreditAccount: creditAccount
           ? {
               id: creditAccountId,
@@ -1438,10 +1473,12 @@ export class VanSalesService {
                  l.damage_reason, l.damage_inspected, l.salary_deduction_approved,
                  l.closing_notes, l.closing_submitted_at, l.approved_at, l.settled_at, l.notes,
                  l.salesman_id::text, COALESCE(s.name, 'مندوب توزيع') AS salesman_name,
+                 e_rep.membership_id::text AS salesman_membership_id,
                  l.item_id::text, COALESCE(i.name_ar, i.sku, 'صنف') AS item_name,
                  COALESCE(u_app.full_name, u_app.email) AS approved_by_label
           FROM van_load_orders l
           LEFT JOIN salesmen s ON s.id = l.salesman_id
+          LEFT JOIN employees e_rep ON e_rep.id = s.employee_id AND e_rep.deleted_at IS NULL
           LEFT JOIN items i ON i.id = l.item_id
           LEFT JOIN users u_app ON u_app.id = l.approved_by
           WHERE l.tenant_id = ${tenantId}::uuid AND l.deleted_at IS NULL
@@ -2040,6 +2077,7 @@ export class VanSalesService {
               : null,
             awaitingStockSettlement: str(row.status) === 'pending_stock_settlement',
             awaitingTransitDecision: str(row.stock_settlement_status) === 'pending_transit_decision',
+            salesmanHasAccount: Boolean(row.salesman_membership_id),
             maxBonusQty: dec(row.max_bonus_qty).toFixed(2),
             maxBonusPct: dec(row.max_bonus_pct).toFixed(2),
             expectedCash: dec(row.expected_cash).toFixed(2),
@@ -3726,7 +3764,7 @@ export class VanSalesService {
                  e.membership_id::text AS salesman_membership_id
           FROM van_load_orders l
           LEFT JOIN salesmen s ON s.id = l.salesman_id
-          LEFT JOIN employees e ON e.id = s.employee_id
+          LEFT JOIN employees e ON e.id = s.employee_id AND e.deleted_at IS NULL
           WHERE l.id = ${loadOrderId}::uuid AND l.tenant_id = ${tenantId}::uuid AND l.deleted_at IS NULL
           FOR UPDATE OF l
         `),
@@ -3735,37 +3773,8 @@ export class VanSalesService {
       const salesmanMembershipId = order.salesman_membership_id
         ? str(order.salesman_membership_id)
         : null;
-      /**
-       * من يملك التأكيد — the rep who owns the custody, or a back-office user holding
-       * `van_sales.load.manage` (the accountant confirming on his behalf). A second rep
-       * gets 403: hiding the button is not access control.
-       */
       const isAssignedRep = Boolean(membershipId && salesmanMembershipId === membershipId);
-      if (!isAssignedRep) {
-        const allowed = first(
-          await tx.execute(sql`
-            SELECT 1 AS ok
-            FROM memberships m
-            JOIN membership_roles mr ON mr.membership_id = m.id
-            JOIN role_permissions rp ON rp.role_id = mr.role_id
-            WHERE m.tenant_id = ${tenantId}::uuid
-              AND m.id = ${membershipId ?? ''}::uuid
-              AND m.deleted_at IS NULL
-              AND rp.permission_code IN (${sql.join(
-            [...VAN_SALES_REP_PROXY_PERMISSIONS, ALL_PERMISSIONS].map((code) => sql`${code}`),
-            sql`, `,
-          )})
-            LIMIT 1
-          `),
-        );
-        if (!allowed?.ok) {
-          throw new DomainError(
-            errorCodes.FORBIDDEN,
-            'لا يجوز تأكيد استلام عهدة مندوب آخر — التأكيد من حساب المندوب نفسه أو من المحاسب المخوّل',
-            403,
-          );
-        }
-      }
+      await this.assertReceiptActorInTx(tx, tenantId, membershipId, order);
       /**
        * الحالة تُفحص بعد التفويض — an unauthorised caller is told he is unauthorised, not
        * what state somebody else's custody is in.
@@ -3899,9 +3908,10 @@ export class VanSalesService {
   }
 
   /**
-   * من يملك قرار الاستلام — the rep who owns the custody or a back-office user holding
-   * `van_sales.load.manage` / `van_sales.closing.approve`. Shared by the receipt, the refusal and
-   * the transit-difference decision so the rule cannot drift between them.
+   * من يملك قرار الاستلام أو رفضه — المندوب صاحب العهدة وحده متى كان له حساب دخول مرتبط،
+   * لأنّ الاستلام يُنشئ مسؤوليةً مالية ومخزنية على ذمّة المندوب فلا تملكه الإدارة نيابةً عنه
+   * (وللإدارة إلغاء أمر التحميل قبل الاستلام). ولا يُسمح لوكالة المكتب الخلفي إلا لمندوبٍ ورقيّ
+   * بلا حساب دخول مرتبط أصلاً.
    */
   private async assertReceiptActorInTx(
     tx: DrizzleTx,
@@ -3909,8 +3919,18 @@ export class VanSalesService {
     membershipId: string | null,
     order: Record<string, unknown>,
   ): Promise<void> {
-    if (membershipId && order.salesman_membership_id && str(order.salesman_membership_id) === membershipId) {
-      return;
+    const salesmanMembershipId = order.salesman_membership_id
+      ? str(order.salesman_membership_id)
+      : null;
+    if (salesmanMembershipId) {
+      if (membershipId && membershipId === salesmanMembershipId) {
+        return;
+      }
+      throw new DomainError(
+        errorCodes.FORBIDDEN,
+        'لا يجوز للإدارة أو لمندوب آخر تأكيد أو رفض استلام هذه العهدة — تأكيد الاستلام حقٌّ حصري للمندوب صاحب العهدة من حسابه الشخصي، وللإدارة إلغاء أمر التحميل قبل الاستلام',
+        403,
+      );
     }
     const allowed = first(
       await tx.execute(sql`
@@ -3931,7 +3951,7 @@ export class VanSalesService {
     if (!allowed?.ok) {
       throw new DomainError(
         errorCodes.FORBIDDEN,
-        'لا يجوز التصرف في عهدة مندوب آخر — الإجراء من حساب المندوب نفسه أو من المحاسب المخوّل',
+        'لا يجوز التصرف في عهدة مندوب آخر — الإجراء من حساب المندوب نفسه',
         403,
       );
     }
@@ -3959,7 +3979,7 @@ export class VanSalesService {
                  l.production_batch_no, s.name AS salesman_name, e.membership_id::text AS salesman_membership_id
           FROM van_load_orders l
           LEFT JOIN salesmen s ON s.id = l.salesman_id
-          LEFT JOIN employees e ON e.id = s.employee_id
+          LEFT JOIN employees e ON e.id = s.employee_id AND e.deleted_at IS NULL
           WHERE l.id = ${loadOrderId}::uuid AND l.tenant_id = ${tenantId}::uuid AND l.deleted_at IS NULL
           FOR UPDATE OF l
         `),
@@ -4443,96 +4463,18 @@ export class VanSalesService {
           409,
         );
       }
+      if (!['loaded', 'in_route'].includes(str(loadOrder.status))) {
+        throw new DomainError(
+          errorCodes.VALIDATION_FAILED,
+          'أمر التحميل هذا ليس في حالة عهدة مفتوحة قابلة للبيع (قد يكون ملغيًا أو قيد التصفية)',
+          422,
+        );
+      }
 
       const effectiveItemIdForBalanceCheck =
         body.itemId?.trim() || (loadOrder.item_id ? str(loadOrder.item_id) : null);
-
-      const loaded = dec(loadOrder.received_qty).gt(0)
-        ? dec(loadOrder.received_qty)
-        : dec(loadOrder.loaded_qty);
-      const currentSold = dec(loadOrder.sold_qty);
-      const currentBonus = dec(loadOrder.bonus_qty);
-      const currentReturned = dec(loadOrder.returned_qty);
-      const currentDamaged = dec(loadOrder.damaged_qty);
-      const remaining = loaded
-        .minus(currentSold)
-        .minus(currentBonus)
-        .minus(currentReturned)
-        .minus(currentDamaged);
-      const totalOutThisDoc = soldQty.plus(bonusQty);
-
-      if (totalOutThisDoc.gt(remaining)) {
-        throw new DomainError(
-          errorCodes.VALIDATION_FAILED,
-          `رفض أمني لمنع خلط بضاعة خارجية: الكمية المطلوبة (${totalOutThisDoc.toFixed(2)} كجم) تتجاوز الرصيد المتبقي في سيارة المندوب من دفعة المخبز رقم ${str(loadOrder.production_batch_no)} (${remaining.toFixed(2)} كجم متبقي).`,
-          422,
-          { field: 'soldQty' },
-        );
-      }
-
-      /**
-       * الرصيد الرسمي في مستودع السيارة — the same guard the inventory engine applies,
-       * checked up front so the operator gets a van-sales message naming the custody
-       * instead of a generic `STOCK_INSUFFICIENT` from deep inside the posting engine.
-       */
-      const vanWarehouseId = loadOrder.van_warehouse_id ? str(loadOrder.van_warehouse_id) : null;
-      /**
-       * 🧊 لا بيع من سيارةٍ عليها وردية قيد تسوية الجرد (ولو كان البيع من أمر تحميل آخر):
-       * إخراج كمية الآن يغيّر الرصيد الذي سيُسوَّى ضدّه مستند الجرد، فيمتصّ الفرق حركةً
-       * لم يعتمدها المحاسب.
-       */
-      await this.assertVanWarehouseNotSettlingInTx(tx, tenantId, {
-        vanWarehouseId,
-        itemId: effectiveItemIdForBalanceCheck,
-        exceptLoadOrderId: loadOrderId,
-      });
-      if (vanWarehouseId && effectiveItemIdForBalanceCheck) {
-        const vanBalance = first(
-          await tx.execute(sql`
-            SELECT COALESCE(quantity, 0)::text AS qty
-            FROM stock_balances
-            WHERE tenant_id = ${tenantId}::uuid
-              AND item_id = ${effectiveItemIdForBalanceCheck}::uuid
-              AND warehouse_id = ${vanWarehouseId}::uuid
-          `),
-        );
-        const available = dec(vanBalance?.qty);
-        if (available.lt(totalOutThisDoc)) {
-          throw new DomainError(
-            errorCodes.VALIDATION_FAILED,
-            `الرصيد الرسمي المتوفر في مستودع سيارة المندوب (${available.toFixed(2)}) لا يكفي لبيع (${totalOutThisDoc.toFixed(2)}) — راجع التوريد والاستلام`,
-            422,
-            { field: 'soldQty', available: available.toFixed(4) },
-          );
-        }
-      }
-
+      const effectiveItemId = effectiveItemIdForBalanceCheck;
       const partyId = body.partyId ? str(body.partyId).trim() || null : null;
-      const effectiveItemId =
-        body.itemId?.trim() || (loadOrder.item_id ? str(loadOrder.item_id) : null);
-
-      // 5-Level Price Priority Hierarchy (Phase 5):
-      // 1. Customer + Item active price rule (`van_sales_customer_prices` where item_id = effectiveItemId)
-      // 2. Customer general active price rule (`van_sales_customer_prices` where item_id IS NULL)
-      // 3. Default Price List (`price_list_items` on default `price_lists`)
-      // 4. Item card `sale_price` (`items.sale_price`)
-      // 5. Supplied `body.unitPrice`
-      let customerRule: Record<string, unknown> | undefined;
-      if (partyId) {
-        customerRule = first(
-          await tx.execute(sql`
-            SELECT * FROM van_sales_customer_prices
-            WHERE tenant_id = ${tenantId}::uuid
-              AND party_id = ${partyId}::uuid
-              AND deleted_at IS NULL
-              AND effective_from <= CURRENT_DATE
-              AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
-              AND (${effectiveItemId}::uuid IS NULL OR item_id = ${effectiveItemId}::uuid OR item_id IS NULL)
-            ORDER BY (CASE WHEN item_id IS NOT NULL THEN 0 ELSE 1 END) ASC, updated_at DESC
-            LIMIT 1
-          `),
-        );
-      }
 
       let baseCatalogPrice: Decimal | null = null;
       let itemTaxRate: Decimal | null = null;
@@ -4579,6 +4521,147 @@ export class VanSalesService {
         if (itemCard?.tax_group_id) {
           itemTaxGroupId = str(itemCard.tax_group_id);
         }
+      }
+
+      const calcOrderRemaining = (row: Record<string, unknown>): Decimal => {
+        const ordLoaded = dec(row.received_qty).gt(0)
+          ? dec(row.received_qty)
+          : dec(row.loaded_qty);
+        return Decimal.max(
+          0,
+          ordLoaded
+            .minus(dec(row.sold_qty))
+            .minus(dec(row.bonus_qty))
+            .minus(dec(row.returned_qty))
+            .minus(dec(row.damaged_qty))
+            .plus(Decimal.max(0, dec(row.customer_returned_qty))),
+        );
+      };
+
+      const vanWarehouseId = loadOrder.van_warehouse_id ? str(loadOrder.van_warehouse_id) : null;
+      const primaryRemaining = calcOrderRemaining(loadOrder);
+      const totalOutThisDoc = soldQty.plus(bonusQty);
+
+      /**
+       * تجميعُ العهدة المفتوحة لنفس الصنف في مستودع سيارة المندوب (FIFO Spillover):
+       * متى بقي في سيارة المندوب رصيدٌ من أمر تحميل سابق (مثل 55 كجم من VLO-0001) واستلم
+       * أمرًا جديدًا (مثل 50 كجم من VLO-0002 = 105 كجم إجمالًا)، يبيع المندوب من إجمالي عهدته
+       * المفتوحة حتّى 105 كجم في مستندٍ واحد، مع توزيع المنصرف والمتوقع النقدي عبر أوامر
+       * التحميل المفتوحة بدقّةٍ محاسبية ومخزنية تامّة وبلا تكرارٍ لصفوف الترحيل عند الإغلاق.
+       */
+      let siblingOrders: Record<string, unknown>[] = [];
+      if (totalOutThisDoc.gt(primaryRemaining) && vanWarehouseId && effectiveItemIdForBalanceCheck) {
+        siblingOrders = rows(
+          await tx.execute(sql`
+            SELECT * FROM van_load_orders
+            WHERE tenant_id = ${tenantId}::uuid
+              AND id <> ${loadOrderId}::uuid
+              AND deleted_at IS NULL
+              AND salesman_id = ${str(loadOrder.salesman_id)}::uuid
+              AND van_warehouse_id = ${vanWarehouseId}::uuid
+              AND item_id = ${effectiveItemIdForBalanceCheck}::uuid
+              AND status IN ('loaded', 'in_route')
+              AND (${!itemTrackLot}::boolean OR COALESCE(production_batch_no, '') = ${str(loadOrder.production_batch_no ?? '')})
+            ORDER BY created_at ASC, id ASC
+            FOR UPDATE
+          `),
+        );
+      }
+
+      const candidateOrders = [loadOrder, ...siblingOrders];
+      const totalOpenCustody = candidateOrders.reduce(
+        (sum, ord) => sum.plus(calcOrderRemaining(ord)),
+        new Decimal(0),
+      );
+
+      if (totalOutThisDoc.gt(totalOpenCustody)) {
+        const custodyDetail =
+          siblingOrders.length > 0
+            ? `${totalOpenCustody.toFixed(2)} كجم متبقي عبر ${candidateOrders.length} أوامر تحميل مفتوحة`
+            : `${primaryRemaining.toFixed(2)} كجم متبقي`;
+        throw new DomainError(
+          errorCodes.VALIDATION_FAILED,
+          `رفض أمني لمنع خلط بضاعة خارجية: الكمية المطلوبة (${totalOutThisDoc.toFixed(2)} كجم) تتجاوز الرصيد المتبقي في سيارة المندوب من دفعة المخبز رقم ${str(loadOrder.production_batch_no)} (${custodyDetail}).`,
+          422,
+          { field: 'soldQty' },
+        );
+      }
+
+      const allocationSlices: Array<{
+        order: Record<string, unknown>;
+        soldSlice: Decimal;
+        bonusSlice: Decimal;
+      }> = [];
+      {
+        let remSold = soldQty;
+        let remBonus = bonusQty;
+        for (const ord of candidateOrders) {
+          if (remSold.plus(remBonus).lte(0)) break;
+          const avail = calcOrderRemaining(ord);
+          if (avail.lte(0)) continue;
+          const soldSlice = Decimal.min(avail, remSold);
+          remSold = remSold.minus(soldSlice);
+          const availAfterSold = avail.minus(soldSlice);
+          const bonusSlice = Decimal.min(availAfterSold, remBonus);
+          remBonus = remBonus.minus(bonusSlice);
+          if (soldSlice.plus(bonusSlice).gt(0)) {
+            allocationSlices.push({ order: ord, soldSlice, bonusSlice });
+          }
+        }
+      }
+
+      /**
+       * 🧊 لا بيع من سيارةٍ عليها وردية قيد تسوية الجرد (ولو كان البيع من أمر تحميل آخر):
+       * إخراج كمية الآن يغيّر الرصيد الذي سيُسوَّى ضدّه مستند الجرد، فيمتصّ الفرق حركةً
+       * لم يعتمدها المحاسب.
+       */
+      await this.assertVanWarehouseNotSettlingInTx(tx, tenantId, {
+        vanWarehouseId,
+        itemId: effectiveItemIdForBalanceCheck,
+        exceptLoadOrderId: loadOrderId,
+      });
+      if (vanWarehouseId && effectiveItemIdForBalanceCheck) {
+        const vanBalance = first(
+          await tx.execute(sql`
+            SELECT COALESCE(quantity, 0)::text AS qty
+            FROM stock_balances
+            WHERE tenant_id = ${tenantId}::uuid
+              AND item_id = ${effectiveItemIdForBalanceCheck}::uuid
+              AND warehouse_id = ${vanWarehouseId}::uuid
+          `),
+        );
+        const available = dec(vanBalance?.qty);
+        if (available.lt(totalOutThisDoc)) {
+          throw new DomainError(
+            errorCodes.VALIDATION_FAILED,
+            `الرصيد الرسمي المتوفر في مستودع سيارة المندوب (${available.toFixed(2)}) لا يكفي لبيع (${totalOutThisDoc.toFixed(2)}) — راجع التوريد والاستلام`,
+            422,
+            { field: 'soldQty', available: available.toFixed(4) },
+          );
+        }
+      }
+
+      // 5-Level Price Priority Hierarchy (Phase 5):
+      // 1. Customer + Item active price rule (`van_sales_customer_prices` where item_id = effectiveItemId)
+      // 2. Customer general active price rule (`van_sales_customer_prices` where item_id IS NULL)
+      // 3. Default Price List (`price_list_items` on default `price_lists`)
+      // 4. Item card `sale_price` (`items.sale_price`)
+      // 5. Supplied `body.unitPrice`
+      let customerRule: Record<string, unknown> | undefined;
+      if (partyId) {
+        customerRule = first(
+          await tx.execute(sql`
+            SELECT * FROM van_sales_customer_prices
+            WHERE tenant_id = ${tenantId}::uuid
+              AND party_id = ${partyId}::uuid
+              AND deleted_at IS NULL
+              AND effective_from <= CURRENT_DATE
+              AND (effective_to IS NULL OR effective_to >= CURRENT_DATE)
+              AND (${effectiveItemId}::uuid IS NULL OR item_id = ${effectiveItemId}::uuid OR item_id IS NULL)
+            ORDER BY (CASE WHEN item_id IS NOT NULL THEN 0 ELSE 1 END) ASC, updated_at DESC
+            LIMIT 1
+          `),
+        );
       }
 
       const tierUnitPrice = customerRule ? dec(customerRule.unit_price) : null;
@@ -4631,7 +4714,13 @@ export class VanSalesService {
       }
 
       // Bonus anti-fraud controls
-      const loadMaxBonusRemaining = dec(loadOrder.max_bonus_qty).minus(currentBonus);
+      const loadMaxBonusRemaining = (allocationSlices.length > 0
+        ? allocationSlices.map((s) => s.order)
+        : [loadOrder]
+      ).reduce(
+        (sum, ord) => sum.plus(Decimal.max(0, dec(ord.max_bonus_qty).minus(dec(ord.bonus_qty)))),
+        new Decimal(0),
+      );
       const customerMaxBonusKg = customerRule
         ? dec(customerRule.max_bonus_kg_per_invoice)
         : dec(loadOrder.max_bonus_qty);
@@ -4811,64 +4900,64 @@ export class VanSalesService {
         }
       }
 
-      // Cost & Net Profit calculation
-      const batchRow = first(
-        await tx.execute(sql`
-          SELECT unit_cost::text FROM factory_production_batches
-          WHERE tenant_id = ${tenantId}::uuid
-            AND batch_no = ${str(loadOrder.production_batch_no)}
-            AND deleted_at IS NULL
-          LIMIT 1
-        `),
-      );
-      /**
-       * 💰 سلسلةُ تكلفة المبيعات على مستند التوزيع — ولا تنتهي بصفرٍ مكتوم.
-       *
-       * ما كان: دفعةُ الأمر ← `unit_cost` الأمر ← **صفر**. وأمرٌ بلا دفعةٍ مُسمّاة يحمل
-       * `unit_cost = 0` (مصدرُه الدفعة وحدها)، فكلُّ بيعٍ منه يُكتب بربحٍ صافٍ = الإيراد كلّه في
-       * `van_sales_documents.net_profit`، ومنه يتجمّع `netProfitSar` في تقرير المبيعات المتنقّلة
-       * — هامشٌ بلا تكلفة يُعرض على المالك. وكان الرقم المفبرك (§5.1) يملأ هذه الفجوة أحياناً
-       * **بتكلفة دفعةٍ أخرى**، فأُزيلت الفبركة وبقيت الفجوة: صفرٌ مؤكَّد بدل رقمٍ خاطئ محتمل،
-       * وكلاهما باطل.
-       *
-       * فالتكلفة تُطلب من المصدر الرسمي نفسه الذي تطلب منه مديونية العجز
-       * (‏`resolveStockCostFallbackInTx`: متوسط تكلفة الرصيد في مستودع المصدر ثمّ السيارة، ثمّ
-       * ‏`items.purchase_price`)، ثمّ من متوسط قيمة الحمولة المقدّرة — وهي **تكلفة** منذ إصلاح
-       * §6.3. ولا يمسّ هذا القيدَ الرسمي: تكلفة المبيعات في دفتر الأستاذ يكتبها محرّك المبيعات
-       * (‏`SalesService.postInTx`) من حركة المخزون نفسها، فالمُصلَح هنا مستندُ التوزيع وتقريرُه.
-       *
-       * 🔢 **والسلسلةُ تطلب صنفَ المستند لا صنفَ الأمر وحده** (`effectiveItemId` = صنفُ الطلب
-       * وإلا صنفُ الأمر): فأمرُ تحميلٍ بلا صنفٍ — وعمودُه nullable وبـ`ON DELETE SET NULL`،
-       * فيصير كذلك عند حذف الصنف أو حين تُنشأ الدفعةُ بلا صنف — كان يُسقط الملاذّين معًا
-       * (الرصيد و`purchase_price` keyed على `loadOrder.item_id`) ويترك البيعَ بـ`unit_cost = 0`
-       * وربحٍ = الإيراد كلّه. وفحصُ الرصيد المجاور (`effectiveItemIdForBalanceCheck`) كان
-       * يستعمل صنفَ المستند أصلًا، فالمُصلَحُ هنا يجعل سلسلةَ التكلفة على القاعدة نفسها.
-       * وبقيت حالٌ واحدةٌ لا تكلفةَ فيها (صنفٌ بلا رصيدٍ في المستودعين وبلا `purchase_price`
-       * وأمرٌ بلا قيمة حمولة) وهي مذكورةٌ في تقرير الشريحة بندًا مفتوحًا لا رقمًا مُصلَحًا.
-       */
-      let unitCost = batchRow
-        ? dec(batchRow.unit_cost)
-        : dec(loadOrder.unit_cost).gt(0)
-          ? dec(loadOrder.unit_cost)
-          : new Decimal('0');
-      if (unitCost.lte(0)) {
-        const stockCost = await this.resolveStockCostFallbackInTx(
-          tx,
-          tenantId,
-          loadOrder,
-          effectiveItemId,
+      // Cost & Net Profit calculation across allocated load-order slices
+      const resolveOrderUnitCost = async (ord: Record<string, unknown>): Promise<Decimal> => {
+        const ordBatchRow = first(
+          await tx.execute(sql`
+            SELECT unit_cost::text FROM factory_production_batches
+            WHERE tenant_id = ${tenantId}::uuid
+              AND batch_no = ${str(ord.production_batch_no)}
+              AND deleted_at IS NULL
+            LIMIT 1
+          `),
         );
-        if (stockCost) unitCost = stockCost.price;
-      }
-      if (unitCost.lte(0)) {
-        const loadedQtyOnOrder = dec(loadOrder.loaded_qty);
-        const loadedValueOnOrder = dec(loadOrder.loaded_total_value);
-        if (loadedQtyOnOrder.gt(0) && loadedValueOnOrder.gt(0)) {
-          unitCost = loadedValueOnOrder.div(loadedQtyOnOrder);
+        let ordCost = ordBatchRow
+          ? dec(ordBatchRow.unit_cost)
+          : dec(ord.unit_cost).gt(0)
+            ? dec(ord.unit_cost)
+            : new Decimal('0');
+        if (ordCost.lte(0)) {
+          const stockCost = await this.resolveStockCostFallbackInTx(
+            tx,
+            tenantId,
+            ord,
+            effectiveItemId,
+          );
+          if (stockCost) ordCost = stockCost.price;
+        }
+        if (ordCost.lte(0)) {
+          const loadedQtyOnOrder = dec(ord.loaded_qty);
+          const loadedValueOnOrder = dec(ord.loaded_total_value);
+          if (loadedQtyOnOrder.gt(0) && loadedValueOnOrder.gt(0)) {
+            ordCost = loadedValueOnOrder.div(loadedQtyOnOrder);
+          }
+        }
+        return ordCost;
+      };
+
+      let totalCogs = new Decimal('0');
+      if (allocationSlices.length <= 1) {
+        const singleOrder = allocationSlices[0]?.order ?? loadOrder;
+        const singleCost = await resolveOrderUnitCost(singleOrder);
+        totalCogs = totalOutThisDoc.mul(singleCost);
+      } else {
+        for (const slice of allocationSlices) {
+          const sliceCost = await resolveOrderUnitCost(slice.order);
+          totalCogs = totalCogs.plus(slice.soldSlice.plus(slice.bonusSlice).mul(sliceCost));
         }
       }
-      const totalCogs = soldQty.plus(bonusQty).mul(unitCost);
+      const unitCost = totalOutThisDoc.gt(0) ? totalCogs.div(totalOutThisDoc) : new Decimal('0');
       const netProfit = subtotal.minus(totalCogs);
+      const docPrimaryLoadOrderId = str(allocationSlices[0]?.order.id ?? loadOrderId);
+      const batchSummaryLabel =
+        allocationSlices.length > 1
+          ? Array.from(new Set(allocationSlices.map((s) => str(s.order.production_batch_no)))).join(
+              ' + ',
+            )
+          : str(loadOrder.production_batch_no);
+      const sliceKeysForMetadata = (
+        allocationSlices.length > 0 ? allocationSlices : [{ order: loadOrder }]
+      ).map((s) => str(s.order.id));
 
       const resolvedBranchId = await this.resolveDefaultBranchIdInTx(
         tx,
@@ -4907,7 +4996,7 @@ export class VanSalesService {
         if (soldQty.gt(0)) {
           salesLines.push({
             itemId: effectiveItemId ?? undefined,
-            description: `مبيعات توزيع — دفعة ${str(loadOrder.production_batch_no)} (${number})`,
+            description: `مبيعات توزيع — دفعة ${batchSummaryLabel} (${number})`,
             quantity: soldQty.toFixed(4),
             unitPrice: resolvedUnitPrice.toFixed(4),
             discountAmount: '0.0000',
@@ -4918,8 +5007,9 @@ export class VanSalesService {
               isBonus: false,
               vanDocumentId: docId,
               vanDocumentNumber: number,
-              loadOrderId,
-              productionBatchNo: str(loadOrder.production_batch_no),
+              loadOrderId: docPrimaryLoadOrderId,
+              allocatedLoadOrderIds: sliceKeysForMetadata,
+              productionBatchNo: batchSummaryLabel,
             },
           });
         }
@@ -5055,12 +5145,12 @@ export class VanSalesService {
           customer_bonus_confirmed, customer_confirmation_code, bonus_anomaly, anomaly_reason,
           notes, idempotency_key, created_by
         ) VALUES (
-          ${docId}::uuid, ${tenantId}::uuid, ${resolvedBranchId}::uuid, ${number}, ${loadOrderId}::uuid,
+          ${docId}::uuid, ${tenantId}::uuid, ${resolvedBranchId}::uuid, ${number}, ${docPrimaryLoadOrderId}::uuid,
           ${str(loadOrder.salesman_id)}::uuid, ${partyId}::uuid,
           ${body.customerName?.trim() || null},
           ${effectiveItemId}::uuid,
           ${invoiceMode}, ${invoiceMode}, ${taxPolicyStatus}, ${paymentMethod}, CURRENT_DATE,
-          ${str(loadOrder.production_batch_no)}, ${str(loadOrder.production_batch_no)},
+          ${batchSummaryLabel}, ${batchSummaryLabel},
           ${soldQty.toFixed(4)}::numeric, ${bonusQty.toFixed(4)}::numeric,
           ${body.bonusReason?.trim() || null},
           ${resolvedUnitPrice.toFixed(4)}::numeric,
@@ -5083,15 +5173,52 @@ export class VanSalesService {
       `);
 
       const cashAdd = paymentMethod === 'cash' ? grandTotal : new Decimal('0');
-      await tx.execute(sql`
-        UPDATE van_load_orders
-        SET sold_qty = sold_qty + ${soldQty.toFixed(4)}::numeric,
-            bonus_qty = bonus_qty + ${bonusQty.toFixed(4)}::numeric,
-            expected_cash = expected_cash + ${cashAdd.toFixed(4)}::numeric,
-            status = 'in_route',
-            updated_at = now()
-        WHERE id = ${loadOrderId}::uuid AND tenant_id = ${tenantId}::uuid
-      `);
+      const effectiveSlices =
+        allocationSlices.length > 0
+          ? allocationSlices
+          : [{ order: loadOrder, soldSlice: soldQty, bonusSlice: bonusQty }];
+
+      let cashDistributed = new Decimal('0');
+      const sliceAmounts: Array<{
+        order: Record<string, unknown>;
+        soldSlice: Decimal;
+        bonusSlice: Decimal;
+        cashSlice: Decimal;
+        docShareAmount: Decimal;
+      }> = [];
+      let amountDistributed = new Decimal('0');
+      for (let i = 0; i < effectiveSlices.length; i++) {
+        const s = effectiveSlices[i]!;
+        const isLast = i === effectiveSlices.length - 1;
+        const ratio = soldQty.gt(0)
+          ? s.soldSlice.div(soldQty)
+          : totalOutThisDoc.gt(0)
+            ? s.soldSlice.plus(s.bonusSlice).div(totalOutThisDoc)
+            : new Decimal('1');
+        const cashSlice = isLast
+          ? Decimal.max(0, cashAdd.minus(cashDistributed))
+          : cashAdd.mul(ratio).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+        cashDistributed = cashDistributed.plus(cashSlice);
+
+        const docShareAmount = isLast
+          ? Decimal.max(0, grandTotal.minus(amountDistributed))
+          : grandTotal.mul(ratio).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+        amountDistributed = amountDistributed.plus(docShareAmount);
+
+        sliceAmounts.push({ ...s, cashSlice, docShareAmount });
+      }
+
+      for (const s of sliceAmounts) {
+        await tx.execute(sql`
+          UPDATE van_load_orders
+          SET sold_qty = sold_qty + ${s.soldSlice.toFixed(4)}::numeric,
+              bonus_qty = bonus_qty + ${s.bonusSlice.toFixed(4)}::numeric,
+              expected_cash = expected_cash + ${s.cashSlice.toFixed(4)}::numeric,
+              status = 'in_route',
+              updated_at = now()
+          WHERE id = ${str(s.order.id)}::uuid AND tenant_id = ${tenantId}::uuid
+        `);
+      }
 
       /**
        * أثر الحركة الرسمية — the official `inventory_transactions` the sales engine wrote
@@ -5125,38 +5252,44 @@ export class VanSalesService {
         `);
       }
 
-      if (soldQty.gt(0)) {
-        await tx.execute(sql`
-          INSERT INTO van_stock_movements (
-            id, tenant_id, movement_type, batch_no, load_order_id, salesman_id, party_id, item_id,
-            inventory_transaction_id, qty, unit_price, amount, reason, idempotency_key, actor_user_id
-          ) VALUES (
-            ${newId()}::uuid, ${tenantId}::uuid, 'van_sale', ${str(loadOrder.production_batch_no)},
-            ${loadOrderId}::uuid, ${str(loadOrder.salesman_id)}::uuid, ${partyId}::uuid,
-            ${effectiveItemId}::uuid, ${officialSaleTxId}::uuid,
-            ${soldQty.toFixed(4)}::numeric, ${resolvedUnitPrice.toFixed(4)}::numeric,
-            ${grandTotal.toFixed(4)}::numeric,
-            ${`بيع للعميل بموجب الفاتورة الرسمية ${linkedSalesInvoiceNumber ?? number}`},
-            ${idempotencyKey ? `sale-move:${idempotencyKey}` : null},
-            ${userId}::uuid
-          )
-        `);
-      }
-      if (bonusQty.gt(0)) {
-        await tx.execute(sql`
-          INSERT INTO van_stock_movements (
-            id, tenant_id, movement_type, batch_no, load_order_id, salesman_id, party_id, item_id,
-            inventory_transaction_id, qty, unit_price, amount, reason, idempotency_key, actor_user_id
-          ) VALUES (
-            ${newId()}::uuid, ${tenantId}::uuid, 'van_bonus', ${str(loadOrder.production_batch_no)},
-            ${loadOrderId}::uuid, ${str(loadOrder.salesman_id)}::uuid, ${partyId}::uuid,
-            ${effectiveItemId}::uuid, ${officialSaleTxId}::uuid,
-            ${bonusQty.toFixed(4)}::numeric, 0, 0,
-            ${`كمية مجانية / بونص (${body.bonusReason?.trim() || 'ترويجي'}) في الفاتورة ${linkedSalesInvoiceNumber ?? number} — صُرفت من المخزون بالتكلفة بلا إيراد ولا ضريبة مخرجات`},
-            ${idempotencyKey ? `bonus-move:${idempotencyKey}` : null},
-            ${userId}::uuid
-          )
-        `);
+      for (let i = 0; i < sliceAmounts.length; i++) {
+        const s = sliceAmounts[i]!;
+        const sliceOrderId = str(s.order.id);
+        const sliceBatchNo = str(s.order.production_batch_no);
+        const keySuffix = i === 0 ? '' : `:${i}`;
+        if (s.soldSlice.gt(0)) {
+          await tx.execute(sql`
+            INSERT INTO van_stock_movements (
+              id, tenant_id, movement_type, batch_no, load_order_id, salesman_id, party_id, item_id,
+              inventory_transaction_id, qty, unit_price, amount, reason, idempotency_key, actor_user_id
+            ) VALUES (
+              ${newId()}::uuid, ${tenantId}::uuid, 'van_sale', ${sliceBatchNo},
+              ${sliceOrderId}::uuid, ${str(loadOrder.salesman_id)}::uuid, ${partyId}::uuid,
+              ${effectiveItemId}::uuid, ${officialSaleTxId}::uuid,
+              ${s.soldSlice.toFixed(4)}::numeric, ${resolvedUnitPrice.toFixed(4)}::numeric,
+              ${s.docShareAmount.toFixed(4)}::numeric,
+              ${`بيع للعميل بموجب الفاتورة الرسمية ${linkedSalesInvoiceNumber ?? number}`},
+              ${idempotencyKey ? `sale-move:${idempotencyKey}${keySuffix}` : null},
+              ${userId}::uuid
+            )
+          `);
+        }
+        if (s.bonusSlice.gt(0)) {
+          await tx.execute(sql`
+            INSERT INTO van_stock_movements (
+              id, tenant_id, movement_type, batch_no, load_order_id, salesman_id, party_id, item_id,
+              inventory_transaction_id, qty, unit_price, amount, reason, idempotency_key, actor_user_id
+            ) VALUES (
+              ${newId()}::uuid, ${tenantId}::uuid, 'van_bonus', ${sliceBatchNo},
+              ${sliceOrderId}::uuid, ${str(loadOrder.salesman_id)}::uuid, ${partyId}::uuid,
+              ${effectiveItemId}::uuid, ${officialSaleTxId}::uuid,
+              ${s.bonusSlice.toFixed(4)}::numeric, 0, 0,
+              ${`كمية مجانية / بونص (${body.bonusReason?.trim() || 'ترويجي'}) في الفاتورة ${linkedSalesInvoiceNumber ?? number} — صُرفت من المخزون بالتكلفة بلا إيراد ولا ضريبة مخرجات`},
+              ${idempotencyKey ? `bonus-move:${idempotencyKey}${keySuffix}` : null},
+              ${userId}::uuid
+            )
+          `);
+        }
       }
     });
 
@@ -7790,7 +7923,7 @@ export class VanSalesService {
 
       const loadOrders = rows(
         await tx.execute(sql`
-          SELECT l.id::text, l.number, l.load_date::text, l.status,
+          SELECT l.id::text, l.number, l.load_date::text, l.status, l.item_id::text,
                  l.loaded_qty::text, l.received_qty::text, l.sold_qty::text, l.bonus_qty::text,
                  l.returned_qty::text, l.customer_returned_qty::text, l.damaged_qty::text, l.shortage_qty::text,
                  l.shortage_value::text, l.expected_cash::text, l.collected_cash::text,
@@ -7981,6 +8114,7 @@ export class VanSalesService {
           number: str(row.number),
           loadDate: str(row.load_date),
           status: str(row.status),
+          itemId: row.item_id ? str(row.item_id) : null,
           itemName: str(row.item_name),
           productionBatchNo: str(row.production_batch_no),
           loadedQty: dec(row.loaded_qty).toFixed(4),

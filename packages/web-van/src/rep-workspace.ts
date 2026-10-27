@@ -55,6 +55,7 @@ export type RepLoadOrderRow = {
   number: string;
   loadDate: string;
   status: string;
+  itemId?: string | null;
   itemName: string;
   productionBatchNo: string;
   loadedQty: string;

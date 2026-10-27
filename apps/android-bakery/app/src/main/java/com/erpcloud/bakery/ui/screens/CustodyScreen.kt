@@ -234,8 +234,11 @@ private fun CustodyCard(
         )
     }
     if (showApprove) {
+        val policyBasis = state.dashboard?.policy?.shortageValuationBasis
+        val policyConfigured = !policyBasis.isNullOrBlank() && policyBasis != "unconfigured"
         ApproveDialog(
             order = order,
+            policyConfigured = policyConfigured,
             busy = busy,
             onDismiss = { showApprove = false },
             onSend = { body, onResult ->
@@ -341,6 +344,7 @@ private fun ClosingDialog(
 @Composable
 private fun ApproveDialog(
     order: LoadOrderDto,
+    policyConfigured: Boolean,
     busy: Boolean,
     onDismiss: () -> Unit,
     onSend: (kotlinx.serialization.json.JsonObject, (ActionResult) -> Unit) -> Unit,
@@ -352,7 +356,8 @@ private fun ApproveDialog(
     var vehicleCountQty by rememberSaveable(order.id) { mutableStateOf(order.vehicleCountQty ?: "") }
     var remainingAction by rememberSaveable(order.id) { mutableStateOf(order.remainingAction ?: "return_to_main") }
     var damageInspected by rememberSaveable(order.id) { mutableStateOf(order.damageInspected) }
-    var salaryDeductionApproved by rememberSaveable(order.id) { mutableStateOf(order.salaryDeductionApproved) }
+    val defaultChargeRep = order.salaryDeductionApproved || (policyConfigured && Dec.isPositive(order.shortageQty))
+    var salaryDeductionApproved by rememberSaveable(order.id) { mutableStateOf(defaultChargeRep) }
     var settleStockAdjustment by rememberSaveable(order.id) { mutableStateOf(false) }
     var surplusAcknowledged by rememberSaveable(order.id) { mutableStateOf(false) }
     var notes by rememberSaveable(order.id) { mutableStateOf("") }
@@ -448,7 +453,7 @@ private fun ApproveDialog(
                     )
                 }
                 SwitchRow("فحصُ التالف تمّ (damageInspected)", damageInspected) { damageInspected = it }
-                SwitchRow("تحميلُ قيمة العجز على المندوب (خصمٌ من الراتب)", salaryDeductionApproved) { salaryDeductionApproved = it }
+                SwitchRow("تحميلُ قيمة العجز على حساب المندوب (مديونية موظف — 2241)", salaryDeductionApproved) { salaryDeductionApproved = it }
                 SwitchRow(
                     "تفويضُ ترحيل مستند الجرد الرسميّ (بدونه يبقى مسودةً والعهدةُ معلّقة)",
                     settleStockAdjustment,

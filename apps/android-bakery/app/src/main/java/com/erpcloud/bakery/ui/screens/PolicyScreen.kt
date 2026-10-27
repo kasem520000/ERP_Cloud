@@ -106,9 +106,18 @@ fun PolicyScreen(vm: AppViewModel, onBack: () -> Unit) {
                 if (!policy.configured) {
                     StatusChip("السياسةُ غير مضبوطة — لا يُحمَّل عجزٌ على المندوب قبل ضبطها", ChipTone.WARN)
                 }
-                val account = policy.chargeCreditAccount
-                if (account != null) {
-                    KeyValue("حسابُ تحميل العجز", "${account.name} (${account.code})")
+                val debitAccount = policy.chargeDebitAccount
+                KeyValue(
+                    "حسابُ تحميل العجز (المدين — ذمّة المندوب)",
+                    if (debitAccount != null) {
+                        "${debitAccount.name} (${debitAccount.code})"
+                    } else {
+                        "حساب المندوب الشخصي في دليل الحسابات (ذمم الموظفين — 2241)"
+                    },
+                )
+                val creditAccount = policy.chargeCreditAccount
+                if (creditAccount != null) {
+                    KeyValue("الحسابُ الدائن المقابل (عكس فرق الجرد)", "${creditAccount.name} (${creditAccount.code})")
                 }
                 val readiness = policy.salesmanReadiness
                 if (readiness != null) {

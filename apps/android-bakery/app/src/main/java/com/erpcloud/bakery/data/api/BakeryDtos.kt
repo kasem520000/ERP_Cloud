@@ -126,6 +126,7 @@ data class ShortagePolicyDto(
     val valuationSource: String = "",
     val configured: Boolean = false,
     val writableKeys: List<String> = emptyList(),
+    val chargeDebitAccount: PolicyChargeAccountDto? = null,
     val chargeCreditAccount: PolicyChargeAccountDto? = null,
     val salesmanReadiness: PolicyReadinessDto? = null,
 )

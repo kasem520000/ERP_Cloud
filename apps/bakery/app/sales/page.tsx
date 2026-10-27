@@ -37,6 +37,7 @@ import {
   returnVerdict,
   SALES_MESSAGES,
   saleableLoadOrders,
+  salesmanItemOpenCustody,
   type DocumentDraft,
   type DocumentRow,
   type ReturnDraft,
@@ -488,6 +489,18 @@ export default function SalesPage() {
                           </option>
                         ))}
                       </select>
+                      {(() => {
+                        const sel = saleable.find((r) => r.id === draft.loadOrderId);
+                        if (!sel) return null;
+                        const pool = salesmanItemOpenCustody(loadOrders, sel);
+                        if (pool.orderCount <= 1) return null;
+                        return (
+                          <span className="text-[12px] font-medium text-ok-ink">
+                            إجمالي العهدة المفتوحة للمندوب من هذا الصنف: {pool.totalCustody.toFixed(2)} كجم عبر{' '}
+                            {pool.orderCount} أوامر تحميل — متاحٌ للبيع في فاتورة واحدة.
+                          </span>
+                        );
+                      })()}
                     </label>
 
                     <label className="field">

@@ -286,20 +286,61 @@ export function loadOrderRemaining(row: SaleLoadOrderRow): Decimal {
   return decimalOrZero(row.remainingQty);
 }
 
+const NON_SALEABLE_LOAD_STATUSES = new Set([
+  'settled',
+  'pending_closing',
+  'pending_stock_settlement',
+  'canceled',
+  'rejected',
+  'draft',
+  'pending_receipt',
+]);
+
 /**
- * أوامر التحميل التي يُباع منها الآن: غير مُصفّاة، وأكّد المندوب استلامها، وفيها متبقٍّ.
- * وما استُبعد يُقال سببُه في `loadOrderBlockReason` فلا يختفي أمرٌ بلا تفسير.
+ * أوامر التحميل التي يُباع منها الآن: عهدةٌ مفتوحة (`loaded` / `in_route`)، وأكّد المندوب
+ * استلامها، وفيها متبقٍّ. وما استُبعد يُقال سببُه في `loadOrderBlockReason`.
  */
 export function saleableLoadOrders(rows: SaleLoadOrderRow[]): SaleLoadOrderRow[] {
   return rows.filter(
-    (row) => row.status !== 'settled' && !row.awaitingReceipt && loadOrderRemaining(row).gt(0),
+    (row) =>
+      !NON_SALEABLE_LOAD_STATUSES.has(row.status) &&
+      !row.awaitingReceipt &&
+      loadOrderRemaining(row).gt(0),
   );
+}
+
+/**
+ * إجمالي العهدة المفتوحة لنفس المندوب ونفس الصنف عبر أوامر التحميل المفتوحة:
+ * فلو بقي 55 كجم من أمر سابق واستلم 50 كجم بأمر جديد، فالعهدة المفتوحة المتاحة للبيع 105 كجم.
+ */
+export function salesmanItemOpenCustody(
+  rows: SaleLoadOrderRow[],
+  target: SaleLoadOrderRow,
+): { totalCustody: Decimal; orderCount: number } {
+  const matching = saleableLoadOrders(rows).filter(
+    (row) =>
+      row.salesmanId === target.salesmanId &&
+      (target.itemId ? row.itemId === target.itemId : row.itemName === target.itemName),
+  );
+  if (matching.length === 0) {
+    return { totalCustody: loadOrderRemaining(target), orderCount: 1 };
+  }
+  const totalCustody = matching.reduce(
+    (sum, row) => sum.plus(loadOrderRemaining(row)),
+    new Decimal(0),
+  );
+  return { totalCustody, orderCount: matching.length };
 }
 
 /** لماذا لا يُباع من هذا الأمر — بنصّ الخادم حين يكون الحكم له. */
 export function loadOrderBlockReason(row: SaleLoadOrderRow): string | null {
   if (row.status === 'settled') return SALES_MESSAGES.loadOrderSettled;
-  if (row.awaitingReceipt) return SALES_MESSAGES.loadOrderNotReceived;
+  if (row.awaitingReceipt || row.status === 'draft' || row.status === 'pending_receipt') {
+    return SALES_MESSAGES.loadOrderNotReceived;
+  }
+  if (NON_SALEABLE_LOAD_STATUSES.has(row.status)) {
+    return 'أمر التحميل هذا ليس في حالة عهدة مفتوحة قابلة للبيع (قد يكون ملغيًا أو قيد التصفية)';
+  }
   if (loadOrderRemaining(row).lte(0)) return 'لا متبقّي في هذه العهدة — صُرف كلُّه أو أُقفل';
   return null;
 }
@@ -486,9 +527,14 @@ export function documentVerdict(draft: DocumentDraft, context: DocumentVerdictCo
   if (loadOrder && (sold?.gt(0) ?? false)) {
     const requested = sold?.plus(bonus) ?? new Decimal(0);
     const custody = loadOrderRemaining(loadOrder);
-    if (requested.gt(custody)) {
+    const openPool = salesmanItemOpenCustody(dashboard?.loadOrders ?? [loadOrder], loadOrder);
+    if (requested.gt(openPool.totalCustody)) {
       warnings.push(
-        `الكمية المطلوبة (${requested.toFixed(2)} = مبيع ${sold?.toFixed(2) ?? '0.00'} + مجاني ${bonus.toFixed(2)}) تتجاوز المتبقي في عهدة أمر التحميل (${custody.toFixed(2)}) — والخادم يرفض خلط بضاعةٍ من خارج دفعة المخبز بنصّه: «رفض أمني لمنع خلط بضاعة خارجية…». والحكم النهائي له: فقد يكون في اللوحة ما هو أحدث من قراءتك.`,
+        `الكمية المطلوبة (${requested.toFixed(2)} = مبيع ${sold?.toFixed(2) ?? '0.00'} + مجاني ${bonus.toFixed(2)}) تتجاوز المتبقي في عهدة المندوب المفتوحة (${openPool.totalCustody.toFixed(2)}) — والخادم يرفض خلط بضاعةٍ من خارج دفعة المخبز بنصّه: «رفض أمني لمنع خلط بضاعة خارجية…». والحكم النهائي له: فقد يكون في اللوحة ما هو أحدث من قراءتك.`,
+      );
+    } else if (requested.gt(custody) && openPool.orderCount > 1) {
+      warnings.push(
+        `توزيعٌ تلقائي عبر أوامر العهدة المفتوحة: الكمية المطلوبة (${requested.toFixed(2)} كجم) تتجاوز متبقّي هذا الأمر وحده (${custody.toFixed(2)} كجم)، وسيخصمها الخادم تلقائيًّا من إجمالي عهدة المندوب المفتوحة لنفس الصنف (${openPool.totalCustody.toFixed(2)} كجم عبر ${openPool.orderCount} أوامر تحميل).`,
       );
     }
     // 🎁 سقفَا البونص على أمر التحميل (maxBonusQty/maxBonusPct) — رقابةُ الخادم تطلب عندها

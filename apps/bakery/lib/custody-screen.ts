@@ -112,6 +112,7 @@ export type ShortagePolicyRow = {
   valuationSource?: string | null;
   configured?: boolean | null;
   writableKeys?: string[] | null;
+  chargeDebitAccount?: { id?: string | null; name?: string | null; code?: string | null } | null;
   chargeCreditAccount?: { id?: string | null; name?: string | null; code?: string | null } | null;
   chargeReadiness?: ChargeReadiness | null;
 };
@@ -243,22 +244,32 @@ export function chargeEvidence(row: CustodyRow): {
   };
 }
 
-/** ملخّص السياسة للعرض: الأساس، وما سيتقدّم عليه، والحساب الدائن المربوط. */
+/** ملخّص السياسة للعرض: الأساس، وما سيتقدّم عليه، وحساب تحميل العجز (المدين — ذمّة المندوب) والحساب الدائن المقابل. */
 export function policySummary(policy: ShortagePolicyRow | null | undefined): {
   basisText: string;
   sourceText: string;
   explicitPriceText: string;
+  debitAccountText: string;
   creditAccountText: string;
   configured: boolean;
   preventSelfApproval: boolean;
 } {
   const basis = policy?.shortageValuationBasis ?? null;
   const source = policy?.valuationSource ?? basis;
+  const debitAcc = policy?.chargeDebitAccount;
+  const debitAccountText = !policy
+    ? '—'
+    : debitAcc?.name
+      ? debitAcc.code
+        ? `${debitAcc.name} (${debitAcc.code})`
+        : debitAcc.name
+      : 'حساب المندوب الشخصي في دليل الحسابات (ذمم الموظفين — 2241)';
   return {
     basisText: valuationBasisLabel(basis),
     // ‏سعرٌ صريحٌ مكتوب يتقدّم على الأساس — فقول «الأساس: التكلفة» وحده قد يكون كذباً.
     sourceText: valuationSourceLabel(source),
     explicitPriceText: numberText(policy?.shortageUnitPrice ?? null),
+    debitAccountText,
     creditAccountText: policy?.chargeCreditAccount?.name ?? '—',
     configured: policy?.configured === true,
     preventSelfApproval: policy?.preventSelfApproval === true,

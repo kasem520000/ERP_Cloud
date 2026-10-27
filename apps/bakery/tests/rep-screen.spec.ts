@@ -227,15 +227,17 @@ describe('شاشة المندوب: نوافذُ الخادم، وفحصُ مجا
     expect(bare[3]!.hintAr).toBe('لا عهدةَ مفتوحة.');
   });
 
-  it('ما يُباع منه وما يُرجَع منه من حقول الخادم، لا من حسابٍ محليّ', () => {
+  it('ما يُباع منه وما يُرجَع منه من حقول الخادم، ويبقى الأمر متاحًا بعد أوّل بيع (in_route)', () => {
     const rows = [
-      loadOrder({ id: 'a', status: 'loaded', expectedRemainingQty: '5.0000' }),
+      loadOrder({ id: 'a', status: 'loaded', expectedRemainingQty: '50.0000', itemId: 'item-1', itemName: 'خبز' }),
+      loadOrder({ id: 'a2', status: 'in_route', expectedRemainingQty: '55.0000', itemId: 'item-1', itemName: 'خبز' }),
       loadOrder({ id: 'b', status: 'loaded', expectedRemainingQty: '0.0000' }),
+      loadOrder({ id: 'b2', status: 'in_route', expectedRemainingQty: '0.0000' }),
       loadOrder({ id: 'c', status: 'settled', expectedRemainingQty: '9.0000' }),
       loadOrder({ id: 'd', status: 'pending_receipt', expectedRemainingQty: '10.0000' }),
       loadOrder({ id: 'e', status: 'pending_closing', expectedRemainingQty: '3.0000' }),
     ];
-    expect(saleableLoadOrders(rows).map((row) => row.id)).toEqual(['a']);
+    expect(saleableLoadOrders(rows).map((row) => row.id)).toEqual(['a', 'a2']);
 
     const docs = [document({ id: 's1', documentKind: 'sale' }), document({ id: 'r1', documentKind: 'return' })];
     expect(returnableDocuments(docs).map((row) => row.id)).toEqual(['s1']);

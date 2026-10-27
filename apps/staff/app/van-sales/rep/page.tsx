@@ -56,6 +56,7 @@ type LoadOrder = {
   number: string;
   loadDate: string;
   status: string;
+  itemId?: string | null;
   itemName: string;
   productionBatchNo: string;
   loadedQty: string;
@@ -290,6 +291,9 @@ export default function VanSalesRepPage() {
 
   const openLoads = (data?.loadOrders ?? []).filter(
     (row) => !['settled', 'canceled', 'rejected'].includes(row.status),
+  );
+  const saleableLoads = (data?.loadOrders ?? []).filter(
+    (row) => ['loaded', 'in_route'].includes(row.status) && Number(row.expectedRemainingQty) > 0,
   );
 
   return (
@@ -575,20 +579,31 @@ export default function VanSalesRepPage() {
                     onChange={(e) => setSaleLoadOrderId(e.target.value)}
                   >
                     <option value="">— اختر —</option>
-                    {openLoads.map((row) => (
+                    {saleableLoads.map((row) => (
                       <option key={row.id} value={row.id}>
                         {row.number} · {row.itemName} · متبقٍ{' '}
-                        {(
-                          Number(row.receivedQty) -
-                          Number(row.soldQty) -
-                          Number(row.bonusQty) -
-                          Number(row.returnedQty) -
-                          Number(row.damagedQty)
-                        ).toFixed(2)}{' '}
-                        kg
+                        {Number(row.expectedRemainingQty).toFixed(2)} kg
                       </option>
                     ))}
                   </select>
+                  {(() => {
+                    const sel = saleableLoads.find((r) => r.id === saleLoadOrderId);
+                    if (!sel) return null;
+                    const siblings = saleableLoads.filter((r) =>
+                      sel.itemId && r.itemId ? r.itemId === sel.itemId : r.itemName === sel.itemName,
+                    );
+                    if (siblings.length <= 1) return null;
+                    const totalKg = siblings.reduce(
+                      (s, r) => s + Number(r.expectedRemainingQty || 0),
+                      0,
+                    );
+                    return (
+                      <span className="muted small" style={{ color: 'var(--ok, #0f766e)' }}>
+                        إجمالي عهدتك المفتوحة من «{sel.itemName}» في السيارة: {totalKg.toFixed(2)} كجم عبر{' '}
+                        {siblings.length} أوامر تحميل — متاحٌ للبيع في فاتورة واحدة.
+                      </span>
+                    );
+                  })()}
                 </label>
                 <label className="field">
                   <span>العميل</span>

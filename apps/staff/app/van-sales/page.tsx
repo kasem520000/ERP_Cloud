@@ -196,6 +196,7 @@ type LoadOrder = {
   damageJournalEntryId?: string | null;
   awaitingStockSettlement?: boolean;
   awaitingTransitDecision?: boolean;
+  salesmanHasAccount?: boolean;
   maxBonusQty: string;
   maxBonusPct: string;
   expectedCash: string;
@@ -1067,9 +1068,14 @@ export default function VanSalesPage() {
         : String(load.expectedRemainingQty ?? load.remainingQty ?? '0'),
     );
     setClosingNotes(load.closingNotes || '');
-    // لا يُفتَرَض الفحص ولا الخصم: إقراران صريحان من المحاسب في كل مرة.
+    const policyConfigured =
+      Boolean(data?.policy?.shortageValuationBasis) &&
+      data?.policy?.shortageValuationBasis !== 'unconfigured';
     setClosingDamageInspected(load.damageInspected === true);
-    setClosingSalaryDeduction(load.salaryDeductionApproved === true);
+    setClosingSalaryDeduction(
+      load.salaryDeductionApproved === true ||
+        (policyConfigured && Number(load.shortageQty ?? 0) > 0),
+    );
     // قرار مصير المتبقي لا يُفتَرَض: يُقرأ إن سبق تسجيله، وإلا يبقى بلا اختيار.
     setClosingRemainingAction(
       load.remainingAction === 'return_to_main' || load.remainingAction === 'carry_over'
@@ -2513,14 +2519,18 @@ export default function VanSalesPage() {
                     l.awaitingReceipt ? (
                       <div className="row" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                         <span className="badge warn">{l.loadedQty} kg</span>
-                        <button
-                          type="button"
-                          className="btn sm primary"
-                          disabled={busy}
-                          onClick={() => void confirmLoadReceipt(l.id, l.loadedQty)}
-                        >
-                          تأكيد الاستلام نيابةً عن المندوب
-                        </button>
+                        {l.salesmanHasAccount === false ? (
+                          <button
+                            type="button"
+                            className="btn sm primary"
+                            disabled={busy}
+                            onClick={() => void confirmLoadReceipt(l.id, l.loadedQty)}
+                          >
+                            تأكيد الاستلام (مندوب ورقي بلا حساب)
+                          </button>
+                        ) : (
+                          <span className="muted small">بانتظار تأكيد المندوب من حسابه الشخصي</span>
+                        )}
                       </div>
                     ) : (
                       <>
@@ -2922,13 +2932,13 @@ export default function VanSalesPage() {
                       onChange={(e) => setClosingSalaryDeduction(e.target.checked)}
                     />
                     <span>
-                      إقرار بمراجعة العجز ({modalShortageKg.toFixed(2)} كجم ≈ {modalShortageSar.toFixed(2)}{' '}
-                      ريال) وسببه، وتصفير رصيد عهدة المندوب إلى (0.00 كجم).
+                      اعتماد تحميل العجز ({modalShortageKg.toFixed(2)} كجم ≈ {modalShortageSar.toFixed(2)}{' '}
+                      ريال) على حساب المندوب وتصفير رصيد عهدته بعد التسوية.
                       <br />
                       <span className="muted small">
-                        لا يُنشئ هذا الإقرار أي قيد على راتب المندوب أو ذمته: المعالجة المالية للعجز (أساس
-                        التقييم والحساب المقابل) معلّقة حتى تعتمد السياسة من الإعدادات، ويُكتفى بتسجيل الحالة
-                        «بانتظار اعتماد السياسة».
+                        يُرحِّل هذا الاعتماد قيدًا رسميًا متوازنًا: <strong>مدينًا</strong> على حساب المندوب الشخصي في
+                        دليل الحسابات (تحت ذمم الموظفين 2241)، و<strong>دائنًا</strong> لحساب تسويات المخزون (عكسًا
+                        لفرق الجرد)، وفق أساس تقييم العجز المعتمد في سياسة المنشأة.
                       </span>
                     </span>
                   </label>
@@ -3084,7 +3094,12 @@ export default function VanSalesPage() {
                     >
                       <option value="">— اختر عهدة المندوب —</option>
                       {(data?.loadOrders ?? [])
-                        .filter((l) => l.status !== 'settled')
+                        .filter(
+                          (l) =>
+                            ['loaded', 'in_route'].includes(l.status) &&
+                            !l.awaitingReceipt &&
+                            Number(l.remainingQty) > 0,
+                        )
                         .map((l) => (
                           <option key={l.id} value={l.id}>
                             {l.number} · {l.salesmanName} (متبقي: {l.remainingQty} كجم — دفعة{' '}

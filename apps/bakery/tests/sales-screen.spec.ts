@@ -24,6 +24,7 @@ import {
   returnVerdict,
   SALES_MESSAGES,
   saleableLoadOrders,
+  salesmanItemOpenCustody,
   type CustomerPriceRow,
   type SaleLoadOrderRow,
   type SalesDashboard,
@@ -571,5 +572,32 @@ describe('حمولة المرتجع وحكمه', () => {
     const within = returnVerdict({ documentId: 'doc-1', returnedQty: '5', reason: 'تلف', notes: '' }, [doc()]);
     expect(within.blocked).toEqual([]);
     expect(within.warnings).toEqual([]);
+  });
+
+  it('عهدتان مفتوحتان لنفس المندوب والصنف (55 + 50 = 105 كجم): البيع بـ 80 كجم يُوزَّع تلقائياً، وبـ 110 كجم يُنذر بالرفض الأمني', () => {
+    const orders = [
+      loadOrder({ id: 'vlo-1', status: 'in_route', remainingQty: '55.00', salesmanId: 'sm-1', itemId: 'item-1' }),
+      loadOrder({ id: 'vlo-2', status: 'loaded', remainingQty: '50.00', salesmanId: 'sm-1', itemId: 'item-1' }),
+      loadOrder({ id: 'vlo-closed', status: 'pending_closing', remainingQty: '20.00', salesmanId: 'sm-1', itemId: 'item-1' }),
+    ];
+    expect(saleableLoadOrders(orders).map((r) => r.id)).toEqual(['vlo-1', 'vlo-2']);
+    const pool = salesmanItemOpenCustody(orders, orders[1]!);
+    expect(pool.totalCustody.toFixed(2)).toBe('105.00');
+    expect(pool.orderCount).toBe(2);
+
+    const dash = dashboard({ loadOrders: orders });
+    const ok80 = documentVerdict(
+      { ...emptyDocumentDraft(), loadOrderId: 'vlo-2', soldQty: '80', unitPrice: '1.50' },
+      { canOverride: false, dashboard: dash },
+    );
+    expect(ok80.blocked).toEqual([]);
+    expect(ok80.warnings.some((w) => w.includes('توزيعٌ تلقائي عبر أوامر العهدة المفتوحة'))).toBe(true);
+    expect(ok80.warnings.some((w) => w.includes('رفض أمني لمنع خلط بضاعة خارجية'))).toBe(false);
+
+    const over110 = documentVerdict(
+      { ...emptyDocumentDraft(), loadOrderId: 'vlo-2', soldQty: '110', unitPrice: '1.50' },
+      { canOverride: false, dashboard: dash },
+    );
+    expect(over110.warnings.some((w) => w.includes('رفض أمني لمنع خلط بضاعة خارجية'))).toBe(true);
   });
 });
