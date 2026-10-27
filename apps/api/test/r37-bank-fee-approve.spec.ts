@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
 
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -48,7 +49,7 @@ describe('R37 — bank matching guards, fee voucher from a line, statement appro
     api(ctx.server, method, `/api/v1${path}`, { token: actor.token, body });
 
   const year = new Date().getUTCFullYear();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
 
   /** سند بنكي مُرحَّل بمبلغ واتجاه — لبناء حالات المطابقة. */
   const makeVoucher = async (kind: 'receipt' | 'payment', amount: string): Promise<string> => {

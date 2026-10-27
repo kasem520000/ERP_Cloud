@@ -1,17 +1,9 @@
 import { apiData } from '@erp/web-core/api';
+import { dayInMakkah } from '@erp/web-core/date';
 
 /** تاريخ اليوم بتوقيت مكة المكرمة بصيغة YYYY-MM-DD (متوافق مع الخادم). */
 export function makkahTodayIso(now: Date = new Date()): string {
-  try {
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Asia/Riyadh',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(now);
-  } catch {
-    return now.toISOString().slice(0, 10);
-  }
+  return dayInMakkah(now);
 }
 
 /** تاريخ ووقت مقروء بتوقيت مكة المكرمة. */

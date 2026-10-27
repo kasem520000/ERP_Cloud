@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Panel } from '@erp/ui';
+import { addDaysInMakkah } from '@erp/web-core/date';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -24,7 +25,7 @@ type RotationRun = {
   createdAt: string;
 };
 
-const yearAgo = () => new Date(Date.now() - 400 * 86_400_000).toISOString().slice(0, 10);
+const yearAgo = () => addDaysInMakkah(-400);
 
 /**
  * تدوير البيانات.

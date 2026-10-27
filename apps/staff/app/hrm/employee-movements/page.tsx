@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { Suspense, useState } from 'react';
+import { todayInMakkah } from '@erp/web-core/date';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { StatTile, StatTiles } from '../../../components/ui';
@@ -73,7 +74,7 @@ type Filters = {
 
 const EMPTY: Summary = { total: '0', salesTotal: '0', returnsTotal: '0', invoices: 0, lines: 0 };
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayInMakkah();
 
 function EmployeeMovements() {
   const search = useSearchParams();

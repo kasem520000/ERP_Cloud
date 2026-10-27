@@ -3,6 +3,7 @@ import { newId, withTenantTx } from '@erp/database';
 import { sql } from 'drizzle-orm';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
 
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -551,7 +552,7 @@ describe('Journal reversal consistency — العكس لا يُنحرف المي
         body: {
           branchId,
           fiscalPeriodId: accountRow.fiscal_period_id,
-          date: new Date().toISOString().slice(0, 10),
+          date: todayIso(),
           reason: 'محاولة عكس مسودة',
         },
       },
@@ -564,7 +565,7 @@ describe('Journal reversal consistency — العكس لا يُنحرف المي
     const posted = await api(ctx.server, 'post', '/api/v1/journal-entries', {
       token: actor.token,
       body: {
-        date: new Date().toISOString().slice(0, 10),
+        date: todayIso(),
         branchId,
         description: 'قيد اختبار العكس',
         lines: [
@@ -581,7 +582,7 @@ describe('Journal reversal consistency — العكس لا يُنحرف المي
       body: {
         branchId,
         fiscalPeriodId: accountRow.fiscal_period_id,
-        date: new Date().toISOString().slice(0, 10),
+        date: todayIso(),
         reason: '   ',
       },
     });
@@ -593,7 +594,7 @@ describe('Journal reversal consistency — العكس لا يُنحرف المي
       body: {
         branchId,
         fiscalPeriodId: accountRow.fiscal_period_id,
-        date: new Date().toISOString().slice(0, 10),
+        date: todayIso(),
         reason: 'عكس صحيح',
       },
     });
@@ -605,7 +606,7 @@ describe('Journal reversal consistency — العكس لا يُنحرف المي
       body: {
         branchId,
         fiscalPeriodId: accountRow.fiscal_period_id,
-        date: new Date().toISOString().slice(0, 10),
+        date: todayIso(),
         reason: 'عكس ثانٍ',
       },
     });

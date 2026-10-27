@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { isoDayInTimezone } from '../src/common/server-date.js';
 
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -49,7 +50,7 @@ describe('التقارير — frmRptSalesInPeriod · حركة المبيعات'
   const today = new Date();
   const iso = (offsetDays: number) => {
     const date = new Date(today.getTime() + offsetDays * 86_400_000);
-    return date.toISOString().slice(0, 10);
+    return isoDayInTimezone(date);
   };
   const from = iso(-1);
   const to = iso(1);

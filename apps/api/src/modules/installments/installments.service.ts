@@ -7,6 +7,7 @@ import { installmentContracts, installmentSchedule, tenantSettings, withTenantTx
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { SequencesService } from '../platform-services/index.js';
 import { TreasuryService } from '../treasury/treasury.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 import { generateInstallmentSchedule } from './installment-calculator.js';
 
@@ -20,7 +21,7 @@ export class InstallmentsService {
   async list(tenantId: string) { await this.ensureEnabled(tenantId); return { data: await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(installmentContracts).where(and(eq(installmentContracts.tenantId, tenantId), isNull(installmentContracts.deletedAt))).orderBy(installmentContracts.createdAt)) }; }
   async create(tenantId: string, input: ContractInput) { await this.ensureEnabled(tenantId); const id = newId(); const lines = input.scheduleLines?.length ? input.scheduleLines.map((line, index) => ({ lineNo: index + 1, dueDate: line.dueDate, dueValue: line.dueValue })) : generateInstallmentSchedule({ contractValue: input.contractValue, downPayment: input.downPayment ?? '0', count: input.installmentCount, firstDueDate: input.firstDueDate, periodUnit: input.periodUnit ?? 'months', periodEvery: input.periodEvery ?? 1 }); const expected = new Decimal(input.contractValue).minus(input.downPayment ?? '0'); const actual = lines.reduce((sum, line) => sum.plus(line.dueValue), new Decimal(0)); if (!actual.eq(expected)) throw new DomainError('INSTALLMENT_SCHEDULE_INVALID', 'Schedule total must match contract value less down payment', 422); await withTenantTx(this.database.db, tenantId, async (tx) => { const allocated = await this.sequences.next({ tenantId, branchId: input.branchId, docType: 'installment_contract' }, tx, { prefix: 'IC-', padding: 6 }); await tx.insert(installmentContracts).values({ id, tenantId, branchId: input.branchId, partyId: input.partyId, itemId: input.itemId, sourceInvoiceId: input.sourceInvoiceId, number: allocated.display, contractValue: input.contractValue, downPayment: input.downPayment ?? '0', installmentCount: input.installmentCount, periodUnit: input.periodUnit ?? 'months', periodEvery: input.periodEvery ?? 1, firstDueDate: input.firstDueDate, status: 'active', earlySettlementDiscount: input.earlySettlementDiscount ?? '0', summary: { scheduleSum: lines.reduce((sum, line) => sum.plus(line.dueValue), new Decimal(0)).toFixed(4) } }); await tx.insert(installmentSchedule).values(lines.map((line) => ({ id: newId(), tenantId, contractId: id, lineNo: line.lineNo, dueDate: line.dueDate, dueValue: line.dueValue }))); }); return this.read(tenantId, id); }
   async read(tenantId: string, id: string) { await this.ensureEnabled(tenantId); const [contract] = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(installmentContracts).where(and(eq(installmentContracts.tenantId, tenantId), eq(installmentContracts.id, id))).limit(1)); if (!contract) throw new DomainError('NOT_FOUND', 'Installment contract not found', 404); const schedule = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(installmentSchedule).where(and(eq(installmentSchedule.tenantId, tenantId), eq(installmentSchedule.contractId, id))).orderBy(installmentSchedule.lineNo)); return { data: { ...contract, schedule } }; }
-  async overdue(tenantId: string, asOf = new Date().toISOString().slice(0, 10)) { await this.ensureEnabled(tenantId); return { data: await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(installmentSchedule).where(and(eq(installmentSchedule.tenantId, tenantId), lte(installmentSchedule.dueDate, asOf), sql`paid_value < due_value`)).orderBy(installmentSchedule.dueDate)) }; }
+  async overdue(tenantId: string, asOf = todayIso()) { await this.ensureEnabled(tenantId); return { data: await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(installmentSchedule).where(and(eq(installmentSchedule.tenantId, tenantId), lte(installmentSchedule.dueDate, asOf), sql`paid_value < due_value`)).orderBy(installmentSchedule.dueDate)) }; }
   async collect(tenantId: string, contractId: string, input: CollectInput) {
     await this.ensureEnabled(tenantId);
     const contract = await this.read(tenantId, contractId);
@@ -61,7 +62,7 @@ export class InstallmentsService {
         method: input.method ?? 'cash',
         amount: input.paidValue,
         netAmount: input.paidValue,
-        date: new Date().toISOString().slice(0, 10),
+        date: todayIso(),
         idempotencyKey: `installment:${contractId}:${Date.now()}`,
       });
       if (!voucher) throw new DomainError('INTERNAL', 'Failed to create installment receipt voucher', 500);

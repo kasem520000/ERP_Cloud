@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { todayIso } from '../src/common/server-date.js';
+
 import { ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
@@ -45,7 +47,7 @@ describe('تقرير الرواتب — frmRptSalary', () => {
   const get = (path: string) => api(ctx.server, 'get', `/api/v1${path}`, { token: actor.token });
   const del = (path: string) => api(ctx.server, 'delete', `/api/v1${path}`, { token: actor.token });
 
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => todayIso();
   const report = (query = '') => get(`/hrm/reports/salary${query ? `?${query}` : ''}`);
   const linesOf = async (query = '') => rowsOf(data((await report(query)).body).rows);
 

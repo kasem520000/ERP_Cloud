@@ -2,6 +2,7 @@ import { DomainError } from '@erp/contracts';
 
 import type { SalesInvoiceInput } from '../sales/sales.service.js';
 import type { VoucherInput } from '../treasury/treasury.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 export type LegacySalesInvoiceDto = {
   GlobalID: string;
@@ -56,7 +57,7 @@ export function mapLegacyVoucher(input: LegacyVoucherDto, enumMaps: CompatEnumMa
   if (!input.GlobalID) throw new DomainError('VALIDATION_FAILED', 'Legacy GlobalID is required', 422);
   const kind = resolveEnum('voucherKind', String(input.ReceiptType ?? 'receipt'), enumMaps, { receipt: 'receipt', payment: 'payment', '1': 'receipt', '2': 'payment' }) as 'receipt' | 'payment';
   const method = resolveEnum('payMethod', String(input.PaymentType ?? '1'), enumMaps, defaultPayment);
-  return { legacyId: input.GlobalID, branchId: input.BranchID, cashLocationId: input.SafeID, kind, subtype: 'other', date: input.Date ?? new Date().toISOString().slice(0, 10), partyId: input.PartyID, method: method === 'bank' ? 'bank_transfer' : method as VoucherInput['method'], amount: String(input.Value), referenceNo: input.GlobalID, recipient: input.Notes };
+  return { legacyId: input.GlobalID, branchId: input.BranchID, cashLocationId: input.SafeID, kind, subtype: 'other', date: input.Date ?? todayIso(), partyId: input.PartyID, method: method === 'bank' ? 'bank_transfer' : method as VoucherInput['method'], amount: String(input.Value), referenceNo: input.GlobalID, recipient: input.Notes };
 }
 
 function resolveEnum(name: string, raw: string, enumMaps: CompatEnumMaps, fallback: Record<string, string>): string {

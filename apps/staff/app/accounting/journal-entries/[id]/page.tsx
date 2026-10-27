@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { Panel } from '@erp/ui';
+import { todayInMakkah } from '@erp/web-core/date';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../../components/screen';
 import { Notice } from '../../../../components/data-view';
@@ -123,7 +124,7 @@ export default function JournalEntryPage() {
     setReversing(true);
     setReverseError(null);
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayInMakkah();
       const res = await apiFetch<{ data: { id: string } }>(`/journal-entries/${doc.id}/reverse`, {
         method: 'POST',
         body: JSON.stringify({

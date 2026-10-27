@@ -3,6 +3,8 @@ import { baselineRoles } from '@erp/config';
 import { erpFunctionalRoleCatalog } from '@erp/contracts';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
+
 import {
   ALL_ORGANIZATION_PERMISSIONS,
   ALL_PLATFORM_PERMISSIONS,
@@ -192,7 +194,7 @@ describe('Remediation Phase 11 — Shift Reversal Integrity, Profile Fallback, A
     expect(fpRes.status).toBe(201);
     const periodsRes = await req('get', '/api/v1/fiscal-periods');
     const periodList = rows(periodsRes.body);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const activePeriod =
       periodList.find((p: any) => p.startDate <= today && p.endDate >= today) ??
       periodList[0];

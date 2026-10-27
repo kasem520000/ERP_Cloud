@@ -36,6 +36,7 @@ import { WebhookPublisher } from '../developer/webhook-publisher.service.js';
 import { PostingProfilesService } from '../organization/posting-profiles/posting-profiles.service.js';
 import { getRequestContext } from '../../request-context/request-context.js';
 import { SequencesService } from '../platform-services/index.js';
+import { todayIso } from '../../common/server-date.js';
 
 export type InventoryLine = {
   itemId: string;
@@ -755,7 +756,7 @@ export class InventoryService {
   /** ACC-071 (P-M13): refuse to register a batch whose expiry date is already in the past. */
   private assertLotNotExpiredOnEntry(lotNo: string, expiryDate: string | null | undefined): void {
     if (!expiryDate) return;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     if (expiryDate < today)
       throw new DomainError(
         'LOT_EXPIRED',
@@ -1419,11 +1420,11 @@ export class InventoryService {
         );
         const fiscalPeriodId =
           options.fiscalPeriodId ??
-          (await this.accounting.openPeriodForDateInTx(tx, tenantId, new Date().toISOString().slice(0, 10)));
+          (await this.accounting.openPeriodForDateInTx(tx, tenantId, todayIso()));
         const entry = await this.accounting.postJournalInTx(tx, tenantId, {
           branchId,
           fiscalPeriodId,
-          date: new Date().toISOString().slice(0, 10),
+          date: todayIso(),
           description: `مناقلة ${transfer.number} — إرسال إلى بضاعة تحت التحويل`,
           lines: [
             { accountId: transitAccount, debit: value.toFixed(4), description: 'بضاعة تحت التحويل' },
@@ -1641,11 +1642,11 @@ export class InventoryService {
         );
         const fiscalPeriodId =
           options.fiscalPeriodId ??
-          (await this.accounting.openPeriodForDateInTx(tx, tenantId, new Date().toISOString().slice(0, 10)));
+          (await this.accounting.openPeriodForDateInTx(tx, tenantId, todayIso()));
         const entry = await this.accounting.postJournalInTx(tx, tenantId, {
           branchId,
           fiscalPeriodId,
-          date: new Date().toISOString().slice(0, 10),
+          date: todayIso(),
           description: `مناقلة ${transfer.number} — استلام`,
           lines: [
             { accountId: inventoryAccount, debit: value.toFixed(4), description: 'دخول إلى المخزون' },
@@ -1983,12 +1984,12 @@ export class InventoryService {
         );
         const fiscalPeriodId =
           input.fiscalPeriodId ??
-          (await this.accounting.openPeriodForDateInTx(tx, tenantId, new Date().toISOString().slice(0, 10)));
+          (await this.accounting.openPeriodForDateInTx(tx, tenantId, todayIso()));
         const title = input.mode === 'return' ? 'عودة بضاعة إلى مصدرها' : 'عجز بضاعة تحت التحويل';
         const entry = await this.accounting.postJournalInTx(tx, tenantId, {
           branchId,
           fiscalPeriodId,
-          date: new Date().toISOString().slice(0, 10),
+          date: todayIso(),
           description: `إقفال مناقلة ${transfer.number} — ${title}${input.reason ? `: ${input.reason}` : ''}`,
           lines: [
             {
@@ -2208,7 +2209,7 @@ export class InventoryService {
         422,
         { field: 'cogsAccountId' },
       );
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const fiscalPeriodId = await this.accounting.openPeriodForDateInTx(tx, tenantId, today);
     const amount = correction.abs().toFixed(4);
     const inventoryGains = correction.lt(0); // stock value rose by more than the receipt cost
@@ -2412,7 +2413,7 @@ export class InventoryService {
       if (!lot) continue;
 
       // ACC-071: التحقق من عدم انتهاء صلاحية الدفعة عند الصرف
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayIso();
       const effectiveExpiry = lot.expiryDate || expiryDate;
       if (mode === 'issue' && effectiveExpiry && effectiveExpiry < today) {
         throw new DomainError(
@@ -3116,7 +3117,7 @@ export class InventoryService {
           kind: input.kind,
           number,
           status: 'draft',
-          voucherDate: input.voucherDate ?? new Date().toISOString().slice(0, 10),
+          voucherDate: input.voucherDate ?? todayIso(),
           reason: input.reason,
           counterAccountId: input.counterAccountId ?? null,
           totalCost: draftTotalCost.toFixed(4),
@@ -3786,11 +3787,11 @@ export class InventoryService {
             );
         const fiscalPeriodId =
           options.fiscalPeriodId ??
-          (await this.accounting.openPeriodForDateInTx(tx, tenantId, new Date().toISOString().slice(0, 10)));
+          (await this.accounting.openPeriodForDateInTx(tx, tenantId, todayIso()));
         const entry = await this.accounting.postJournalInTx(tx, tenantId, {
           branchId: adjustment.branchId,
           fiscalPeriodId,
-          date: new Date().toISOString().slice(0, 10),
+          date: todayIso(),
           description: `تسوية مخزنية ${adjustment.number} — ${adjustment.reason}`,
           lines: net.gt(0)
             ? [

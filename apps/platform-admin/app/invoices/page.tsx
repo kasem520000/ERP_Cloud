@@ -4,6 +4,7 @@ import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { FilePlus2 } from 'lucide-react';
 import { useState } from 'react';
+import { todayInMakkah } from '@erp/web-core/date';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
 import { Badge } from '../../components/ui/badge';
@@ -685,7 +686,7 @@ function IssueForm({
   onDone: (issued: Invoice) => void;
   onCancel: () => void;
 }) {
-  const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
+  const [issueDate, setIssueDate] = useState(() => todayInMakkah());
   const [dueInDays, setDueInDays] = useState(14);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);

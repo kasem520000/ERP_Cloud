@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { Suspense, useState } from 'react';
+import { todayInMakkah } from '@erp/web-core/date';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { downloadCsv } from '../../../lib/accounts';
@@ -96,7 +97,7 @@ const EMPTY: Summary = {
   rows: 0,
 };
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayInMakkah();
 
 type Salesman = { id: string; name: string; active?: boolean };
 type Branch = { id: string; nameAr?: string; name?: string };

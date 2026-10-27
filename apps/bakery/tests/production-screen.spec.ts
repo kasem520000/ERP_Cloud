@@ -98,6 +98,9 @@ describe('شاشة الإنتاج — الترجمة بين الخادم وال�
       { itemId: '', qty: '' },
     ]);
     expect(emptyComponentRows(0)).toHaveLength(1); // ‏لا قائمة بلا سطر واحد
-    expect(todayIsoDate(new Date('2026-10-14T21:30:00Z'))).toBe('2026-10-14');
+    // 21:30Z = 00:30 في مكة ⇒ «اليوم» 15 لا 14: الحساب السابق بـ`toISOString()` كان
+    // يؤرّخ مستندات أول ثلاث ساعاتٍ من اليوم بيومٍ سابق. والحدّ الفاصل منتصفُ ليل مكة.
+    expect(todayIsoDate(new Date('2026-10-14T21:30:00Z'))).toBe('2026-10-15');
+    expect(todayIsoDate(new Date('2026-10-14T20:30:00Z'))).toBe('2026-10-14');
   });
 });

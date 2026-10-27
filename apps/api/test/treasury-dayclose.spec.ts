@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { todayIso } from '../src/common/server-date.js';
+
 import {
   ALL_ORGANIZATION_PERMISSIONS,
   ALL_PLATFORM_PERMISSIONS,
@@ -106,7 +108,7 @@ const amt = (value: unknown) => Number(value).toFixed(4);
         branchId,
         kind: 'payment',
         subtype: 'expense',
-        date: new Date().toISOString().slice(0, 10),
+        date: todayIso(),
         cashLocationId: safeId,
         counterAccountId,
         method: 'cash',
@@ -473,7 +475,7 @@ const amt = (value: unknown) => Number(value).toFixed(4);
     expect(list(nobody.body).length).toBe(0);
 
     // 📅 نافذة التاريخ — a shift from yesterday is outside a window that starts today.
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const window = await dayCloses(`?from=${today}&to=${today}`);
     expect(list(window.body).some((row) => (row as { id: string }).id === shiftId)).toBe(true);
     const past = await dayCloses('?from=2001-01-01&to=2001-01-31');

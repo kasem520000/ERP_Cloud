@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { isoDayInTimezone } from '../src/common/server-date.js';
+
 import { ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
@@ -68,7 +70,7 @@ describe('Accounting statement — كشف الحساب', () => {
   const iso = (offsetDays: number) => {
     const at = new Date();
     at.setUTCDate(at.getUTCDate() + offsetDays);
-    return at.toISOString().slice(0, 10);
+    return isoDayInTimezone(at);
   };
 
   const account = async (payload: Record<string, unknown>) => {

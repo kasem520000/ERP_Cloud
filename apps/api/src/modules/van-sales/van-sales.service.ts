@@ -28,6 +28,7 @@ import {
 } from '../platform-services/index.js';
 import { SalesService, type SalesLineInput } from '../sales/sales.service.js';
 import { TreasuryService } from '../treasury/treasury.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 function rows(result: unknown): Array<Record<string, unknown>> {
   return Array.isArray(result)
@@ -2612,7 +2613,7 @@ export class VanSalesService {
         { field: 'scrapReason', scrapQty: scrapQty.toFixed(4) },
       );
     }
-    const productionDate = body.productionDate?.trim() || new Date().toISOString().slice(0, 10);
+    const productionDate = body.productionDate?.trim() || todayIso();
     const idempotencyKey = body.idempotencyKey?.trim() || null;
 
     if (idempotencyKey) {
@@ -3086,7 +3087,7 @@ export class VanSalesService {
       const label =
         String(body.priceTierLabel ?? '').trim() || `شريحة ${unitPrice.toFixed(2)} ريال/كجم`;
       const itemId = body.itemId ? String(body.itemId).trim() || null : null;
-      const effectiveFrom = body.effectiveFrom?.trim() || new Date().toISOString().slice(0, 10);
+      const effectiveFrom = body.effectiveFrom?.trim() || todayIso();
       const effectiveTo = body.effectiveTo?.trim() || null;
       const changeReason = body.changeReason?.trim() || body.notes?.trim() || null;
 
@@ -6094,7 +6095,7 @@ export class VanSalesService {
         const inventoryAccountId = stockProfile?.inventoryAccountId ?? null;
         const adjustmentAccountId = stockProfile?.inventoryAdjustmentAccountId ?? null;
         if (damageValue.gt(0) && damageBranchId && inventoryAccountId && adjustmentAccountId) {
-          const today = new Date().toISOString().slice(0, 10);
+          const today = todayIso();
           const fiscalPeriodId = await this.accounting.openPeriodForDateInTx(tx, tenantId, today);
           const damageEntry = await this.accounting.postJournalInTx(tx, tenantId, {
             branchId: damageBranchId,
@@ -6283,7 +6284,7 @@ export class VanSalesService {
             { field: 'shortageChargeAccountId' },
           );
         }
-        const chargeDate = new Date().toISOString().slice(0, 10);
+        const chargeDate = todayIso();
         const chargePeriodId = await this.accounting.openPeriodForDateInTx(tx, tenantId, chargeDate);
         const chargeAmount = shortageValue.toFixed(4);
         const chargeEntry = await this.accounting.postJournalInTx(tx, tenantId, {
@@ -7511,7 +7512,7 @@ export class VanSalesService {
           branchId,
           kind: 'receipt',
           subtype: doc.party_id ? 'customer' : 'account',
-          date: new Date().toISOString().slice(0, 10),
+          date: todayIso(),
           method: 'cash',
           cashLocationId,
           partyId: doc.party_id ? str(doc.party_id) : undefined,

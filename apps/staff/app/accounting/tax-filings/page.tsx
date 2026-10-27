@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Panel } from '@erp/ui';
+import { dayInMakkah } from '@erp/web-core/date';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { ErrorBox, Loading, Screen } from '../../../components/screen';
@@ -31,7 +32,7 @@ type Filing = {
 type ReportRow = { section: string; line: string; net: string; vat: string; s_net_vat: string };
 type Report = { rows: ReportRow[]; grandTotal: Array<{ key: string; labelAr: string; amount: string }> };
 
-const iso = (date: Date) => date.toISOString().slice(0, 10);
+const iso = (date: Date) => dayInMakkah(date);
 const currentRange = () => {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1);

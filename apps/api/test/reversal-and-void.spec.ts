@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import pg from 'pg';
 
+import { isoDayInTimezone } from '../src/common/server-date.js';
+
 import { ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
@@ -46,7 +48,7 @@ describe('Reversal and void — العكس والإبطال', () => {
   const iso = (offsetDays: number) => {
     const at = new Date();
     at.setUTCDate(at.getUTCDate() + offsetDays);
-    return at.toISOString().slice(0, 10);
+    return isoDayInTimezone(at);
   };
 
   const balanceOf = async (accountId: string) => {

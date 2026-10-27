@@ -19,6 +19,7 @@
     "./sync": "./src/sync.ts",
     "./token-bridge": "./src/token-bridge.tsx",
     "./quick-login": "./src/quick-login.tsx",
+    "./date": "./src/date.ts",
     "./problem-report": "./src/problem-report.ts",
     "./package.json": "./package.json"
   },

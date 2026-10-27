@@ -14,6 +14,7 @@ import {
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { isUniqueViolation } from '../organization/shared/org-support.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
+import { todayIso } from '../../common/server-date.js';
 
 import { AccountingService } from './accounting.service.js';
 
@@ -118,7 +119,7 @@ export class FxRevaluationService {
   }
 
   async createRun(tenantId: string, input: { date?: string; branchId?: string }) {
-    const date = (input.date ?? '').trim() || new Date().toISOString().slice(0, 10);
+    const date = (input.date ?? '').trim() || todayIso();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date))
       throw new DomainError('FX_DATE_INVALID', 'تاريخ التشغيل يجب أن يكون YYYY-MM-DD', 422, { field: 'date' });
     const userId = tryGetAuthContext()?.userId ?? null;

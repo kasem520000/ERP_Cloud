@@ -2,6 +2,7 @@
 
 import { FilterBand, FormSection, Panel } from '@erp/ui';
 import { Suspense, useState } from 'react';
+import { todayInMakkah } from '@erp/web-core/date';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { apiDelete, apiFetch, apiList, apiPatch, apiPost } from '../../../lib/api';
@@ -118,7 +119,7 @@ const METHODS: Array<{ value: string; label: string }> = [
   { value: 'card', label: 'بطاقة' },
 ];
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayInMakkah();
 
 const emptyDraft = (statusId: string, garmentTypeId: string): Draft => ({
   partyId: '',

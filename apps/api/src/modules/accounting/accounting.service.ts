@@ -36,6 +36,7 @@ import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { SequencesService } from '../platform-services/index.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { isUniqueViolation } from '../organization/shared/org-support.js';
+import { todayIso } from '../../common/server-date.js';
 
 export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 
@@ -1618,7 +1619,7 @@ export class AccountingService {
       });
     }
 
-    const date = input.date?.trim() || new Date().toISOString().slice(0, 10);
+    const date = input.date?.trim() || todayIso();
     const branchId = input.branchId ?? original.branchId;
     const fiscalPeriodId =
       input.fiscalPeriodId ?? (await this.openPeriodForDateInTx(tx, tenantId, date));
@@ -1796,7 +1797,7 @@ export class AccountingService {
           fiscalPeriodId = await this.openPeriodForDateInTx(tx, tenantId, date);
         } else {
           // If neither fiscalPeriodId nor date is explicitly passed, auto-resolve from today's open period
-          const today = new Date().toISOString().slice(0, 10);
+          const today = todayIso();
           try {
             fiscalPeriodId = await this.openPeriodForDateInTx(tx, tenantId, today);
             date = today;

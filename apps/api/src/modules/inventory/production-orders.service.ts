@@ -20,6 +20,7 @@ import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { SequencesService } from '../platform-services/index.js';
 import { CatalogService } from '../organization/catalog/catalog.service.js';
 import { PostingProfilesService } from '../organization/posting-profiles/posting-profiles.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 import { InventoryService } from './inventory.service.js';
 import { postProductionJournalInTx } from './production-posting.js';
@@ -46,7 +47,7 @@ export type ProductionOrderInput = {
 };
 
 const dec = (input: string | number | null | undefined) => new Decimal(input ?? 0);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayIso();
 
 /**
  * أمر الإنتاج — turn components into a finished item.

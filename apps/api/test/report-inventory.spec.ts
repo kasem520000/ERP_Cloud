@@ -1,11 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { withOwnerClient } from '@erp/testing';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { isoDayInTimezone } from '../src/common/server-date.js';
 
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
-import { withOwnerClient } from '@erp/testing';
 
 /**
  * Phase 10 part four — 📚 تقارير المخزون والأرقام التسلسلية: seven windows, eight reports.
@@ -66,7 +67,7 @@ describe('التقارير — frmRptInventory · frmRptItems* · frmRptSerial* 
   let productionComponentCost = '0';
 
   const today = new Date();
-  const iso = (offsetDays: number) => new Date(today.getTime() + offsetDays * 86_400_000).toISOString().slice(0, 10);
+  const iso = (offsetDays: number) => isoDayInTimezone(new Date(today.getTime() + offsetDays * 86_400_000));
   /**
    * «باقي أشهر» في التقرير فروقُ أشهرٍ تقويمية لا أياماً مقسومةً على 30
    * (`report-catalog.ts` — `(year×12+month)` للطرفين). وكان السبيك يثبّت `0` لدفعةٍ

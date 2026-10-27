@@ -35,6 +35,7 @@ import { InventoryService, type InventoryLine } from '../inventory/inventory.ser
 import { PostingProfilesService } from '../organization/posting-profiles/posting-profiles.service.js';
 import { SequencesService } from '../platform-services/index.js';
 import { ApprovalService } from '../approvals/approvals.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 /**
  * سطر فاتورة الشراء — و`serialNos` و`batchNo` وتاريخاه (R8) هي أرقام العبوة كما يقرؤها
@@ -653,7 +654,7 @@ export class PurchasesService {
       const docType = locked.kind === 'purchase_return' ? 'purchase_return' : 'purchase_invoice';
       const isReturn = locked.kind === 'purchase_return';
 
-      const today = (posting as any).date?.trim() || new Date().toISOString().slice(0, 10);
+      const today = (posting as any).date?.trim() || todayIso();
       const resolvedFiscalPeriodId = posting.fiscalPeriodId ?? (await this.accounting.openPeriodForDateInTx(tx, tenantId, today));
       // ACC-053 & ACC-103: التحقق من قفل فترة المشتريات فوراً قبل تحريك أي كميات أو أرقام تسلسلية
       await this.accounting.assertModuleUnlocked(tx, tenantId, resolvedFiscalPeriodId, 'purchases');
@@ -1000,7 +1001,7 @@ export class PurchasesService {
     // behind. Like the sales side, voiding now reverses all three legs — journal,
     // stock and status — in one transaction.
     await withTenantTx(this.database.db, tenantId, async (tx) => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayIso();
       const docType = invoice.kind === 'purchase_return' ? 'purchase_return' : 'purchase_invoice';
       const [entry] = await tx
         .select({ id: journalEntries.id })
@@ -1106,7 +1107,7 @@ export class PurchasesService {
           cashLocationId = loc?.id;
         }
         if (!cashLocationId) throw new DomainError('CASH_LOCATION_REQUIRED', 'حدد الصندوق أو البنك الذي يُسدَّد منه (cashLocationId)', 422, { field: 'cashLocationId' });
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayIso();
         const voucher = await this.treasury.createVoucherInTx(tx, tenantId, {
           branchId: locked.branchId,
           kind: 'payment',
@@ -1185,7 +1186,7 @@ export class PurchasesService {
           const vatInputAccountId = mapping.vatInputAccountId;
 
           if (payableAccountId && purchaseReturnAccountId && vatInputAccountId) {
-            const today = new Date().toISOString().slice(0, 10);
+            const today = todayIso();
             const base = money(note.amount).div('1.15').toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
             const vat = money(note.amount).minus(base);
 

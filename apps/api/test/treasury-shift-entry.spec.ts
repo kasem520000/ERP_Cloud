@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { todayIso } from '../src/common/server-date.js';
+
 import {
   ALL_ORGANIZATION_PERMISSIONS,
   ALL_PLATFORM_PERMISSIONS,
@@ -76,7 +78,7 @@ describe('Treasury shift close entry — قيد الإغلاق', () => {
   /** Money arrives as decimal text; `amt` keeps the guard's vocabulary out of the lint. */
 const amt = (value: unknown) => Number(value).toFixed(4);
   const near = (value: number, expected: number) => Math.abs(value - expected) < 0.001;
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => todayIso();
 
   const account = async (payload: Record<string, unknown>) => {
     const created = await api(ctx.server, 'post', '/api/v1/accounts', { token: actor.token, body: payload });

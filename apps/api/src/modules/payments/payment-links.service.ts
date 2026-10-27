@@ -22,6 +22,7 @@ import { MAILER, type MailerPort } from '../platform-services/notifications/mail
 import { SalesService } from '../sales/sales.service.js';
 import { TreasuryService } from '../treasury/treasury.service.js';
 import { setAuditTenantId } from '../../request-context/request-context.js';
+import { todayIso } from '../../common/server-date.js';
 
 import { decryptGatewaySecret, encryptGatewaySecret } from './payments.service.js';
 import {
@@ -399,7 +400,7 @@ export class PaymentLinksService {
           branchId: input.branchId,
           kind: 'receipt',
           subtype: 'customer',
-          date: new Date().toISOString().slice(0, 10),
+          date: todayIso(),
           partyId: input.partyId ?? undefined,
           cashLocationId: input.cashLocationId,
           method: 'card',

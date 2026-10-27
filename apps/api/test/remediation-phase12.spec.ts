@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { baselineRoles } from '@erp/config';
 import { erpFunctionalRoleCatalog } from '@erp/contracts';
+
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
 
 import {
   ALL_ORGANIZATION_PERMISSIONS,
@@ -199,7 +201,7 @@ describe('Remediation Phase 12 — R24 Multi-branch sequences, module lock audit
     expect(fpRes.status).toBe(201);
     const periodsRes = await req('get', '/api/v1/fiscal-periods');
     const periodList = (periodsRes.body as any).data ?? [];
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const activePeriod =
       periodList.find((p: any) => p.startDate <= today && p.endDate >= today) ??
       periodList[0];
@@ -250,7 +252,7 @@ describe('Remediation Phase 12 — R24 Multi-branch sequences, module lock audit
   });
 
   it('ACC-100: Multi-branch manual journal entries generate distinct numbers and enforce unique number constraint', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     // JE Branch 1
     const je1 = await req('post', '/api/v1/journal-entries', {
       branchId: branch1Id,

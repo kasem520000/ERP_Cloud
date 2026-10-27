@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
 
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -101,7 +102,7 @@ describe('Remediation Phase 19 — Portal, Payments & Supplier Remediation (ACC-
     itemId = String(data(itemRes.body).id);
 
     // Seed stock into warehouse
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const vRes = await req('post', '/api/v1/inventory/vouchers', {
       branchId,
       warehouseId,

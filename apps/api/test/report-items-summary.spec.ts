@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { isoDayInTimezone, todayIso } from '../src/common/server-date.js';
 
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -53,7 +54,7 @@ describe('التقارير — frmRptItems* · تقارير الأصناف ال�
   const today = new Date();
   const iso = (offsetDays: number) => {
     const date = new Date(today.getTime() + offsetDays * 86_400_000);
-    return date.toISOString().slice(0, 10);
+    return isoDayInTimezone(date);
   };
   const from = iso(-1);
   const to = iso(1);
@@ -580,7 +581,7 @@ describe('التقارير — frmRptItems* · تقارير الأصناف ال�
     expect(Number(gear.total)).toBeCloseTo(1150, 2);
     expect(Number(rig.total)).toBeCloseTo(1437.5, 2);
     expect(gear.day_name).toMatch(/^(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس|الجمعة|السبت)$/);
-    expect(gear.day).toBe(today.toISOString().slice(0, 10));
+    expect(gear.day).toBe(todayIso(today));
     expect(gear.category_code).toBe('GEAR');
     // 💰 «إجمالي المبيعات:»
     expect(Number(cardOf(run.body, 'total'))).toBeCloseTo(2587.5, 2);

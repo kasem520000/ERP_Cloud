@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { Panel } from '@erp/ui';
+import { todayInMakkah } from '@erp/web-core/date';
 
 import { Notice } from '../../../../components/data-view';
 import { ErrorBox, Loading, Screen } from '../../../../components/screen';
@@ -163,7 +164,7 @@ function earliest(tasks: ProjectTask[]): string {
   const dates = tasks.flatMap((task) =>
     [task.startDate, task.dueDate].filter((value): value is string => Boolean(value)),
   );
-  return dates.sort()[0] ?? new Date().toISOString().slice(0, 10);
+  return dates.sort()[0] ?? todayInMakkah();
 }
 
 function dayIndex(origin: string, value: string): number {

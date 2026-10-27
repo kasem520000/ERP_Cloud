@@ -54,6 +54,7 @@ import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { SequencesService } from '../platform-services/index.js';
 import { ApprovalService } from '../approvals/approvals.service.js';
 import { EinvoicingService } from '../einvoicing/einvoicing.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 /**
  * 🔢 الأرقام التسلسلية كما يكتبها المُدخِل: نصٌّ مقصوص، بلا فراغات ولا تكرار — فالسطر
@@ -684,7 +685,7 @@ export class SalesService {
     const docCurrency = (input.currency ?? 'SAR').toUpperCase().trim();
     let invoiceFxRate: string | null = null;
     if (docCurrency !== 'SAR') {
-      const tableRate = await this.tableFxRateInTx(tx, tenantId, docCurrency, new Date().toISOString().slice(0, 10));
+      const tableRate = await this.tableFxRateInTx(tx, tenantId, docCurrency, todayIso());
       if (!tableRate)
         throw new DomainError(
           'FX_RATE_MISSING',
@@ -1304,7 +1305,7 @@ export class SalesService {
       },
     );
     const number = allocated.display;
-    const today = (posting as any).date?.trim() || new Date().toISOString().slice(0, 10);
+    const today = (posting as any).date?.trim() || todayIso();
     const needsJournal = Boolean(posting.journalLines?.length || money(locked.total).abs().gt(0));
     const resolvedFiscalPeriodId =
       posting.fiscalPeriodId ??
@@ -2262,7 +2263,7 @@ export class SalesService {
           409,
         );
       await this.assertShiftOpen(tx, tenantId, invoice);
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayIso();
       const [entry] = await tx
         .select({ id: journalEntries.id, fiscalPeriodId: journalEntries.fiscalPeriodId })
         .from(journalEntries)
@@ -2576,7 +2577,7 @@ export class SalesService {
       let arBase = paymentValue;
       let cashBase = paymentValue;
       if (invRate) {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayIso();
         const tableRate = await this.tableFxRateInTx(tx, tenantId, invCurrency, today);
         if (!tableRate)
           throw new DomainError(
@@ -2614,7 +2615,7 @@ export class SalesService {
 
       // ACC-031: إنشاء قيد GL محاسبي للتحصيل وتحديث رصيد الصندوق الفرعي
       if (cashAccountId && receivableAccountId && payment) {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayIso();
         const gain = invRate ? cashBase.minus(arBase) : new Decimal(0);
         const lines: JournalLineInput[] = [
           invRate
@@ -2946,7 +2947,7 @@ export class SalesService {
           const vatOutputAccountId = mapping.vatOutputAccountId;
 
           if (receivableAccountId && salesReturnAccountId && vatOutputAccountId) {
-            const today = new Date().toISOString().slice(0, 10);
+            const today = todayIso();
             // ACC-065 follow-up (R33): the VAT share of a note follows the *source invoice* (tax_total ÷ total),
             // not a hard-wired 15 % — a note on a zero-rated/exempt invoice (progress bills, exports) carries no
             // VAT, and a 5 % invoice carries 5 %. Money is kept in halalas (P-M17).
@@ -3120,7 +3121,7 @@ export class SalesService {
         );
       if (quotation.status !== 'draft')
         throw new DomainError('SALES_QUOTATION_INVALID_STATUS', 'Only an open quotation can be converted', 409);
-      if (quotation.validUntil && quotation.validUntil < new Date().toISOString().slice(0, 10)) {
+      if (quotation.validUntil && quotation.validUntil < todayIso()) {
         throw new DomainError('SALES_QUOTATION_EXPIRED', 'This quotation expired; issue a new one', 422);
       }
 
@@ -3687,7 +3688,7 @@ export class SalesService {
      */
     const allSalesmen = query.allSalesmen ?? !query.salesmanId;
     const allPeriod = query.allPeriod ?? true;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const from = query.from ?? today;
     const to = query.to ?? today;
 

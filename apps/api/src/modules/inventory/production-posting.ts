@@ -5,6 +5,7 @@ import { branches, type DrizzleTx } from '@erp/database';
 
 import { AccountingService } from '../accounting/accounting.service.js';
 import { PostingProfilesService } from '../organization/posting-profiles/posting-profiles.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 /**
  * 🏭 ترحيل الإنتاج — the single place that decides whether a production run owes the ledger an
@@ -56,7 +57,7 @@ export type ProductionPostingOutcome = {
 
 const NEUTRAL: ProductionPostingOutcome = { journalEntryId: null, postingBasis: 'ledger_neutral' };
 
-const today = (): string => new Date().toISOString().slice(0, 10);
+const today = (): string => todayIso();
 
 /** الفرع الذي يُنسب إليه القيد: فرع المستودع، وإلا الفرع الافتراضي للمنشأة. */
 async function resolveBranchInTx(

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
 
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -263,7 +264,7 @@ describe('zatca sync status — 📊 حالة المزامنة', () => {
   });
 
   it('filters by 📅 الفترة الزمنية, and «📌 كل الفترة» ignores the boxes', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
 
     const inside = body(await report(`from=${today}&to=${today}`));

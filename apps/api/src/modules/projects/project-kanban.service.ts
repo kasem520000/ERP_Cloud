@@ -37,6 +37,7 @@ import {
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { isUniqueViolation } from '../organization/shared/org-support.js';
+import { todayIso } from '../../common/server-date.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -170,7 +171,7 @@ export class ProjectKanbanService {
   async logTime(tenantId: string, userId: string, taskId: string, input: { hours?: string; note?: string; logDate?: string }) {
     this.uuid(taskId, 'المهمة غير موجودة');
     const hours = this.rules(() => assertHours(String(input.hours ?? '')));
-    const logDate = input.logDate?.trim() || new Date().toISOString().slice(0, 10);
+    const logDate = input.logDate?.trim() || todayIso();
     this.rules(() => assertDateOrder(logDate, logDate));
     const note = input.note?.trim() || null;
     if (note && note.length > 500) throw new DomainError('PROJECT_TASK_INVALID', 'الملاحظة أطول من 500 حرف', 422);

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { isoDayInTimezone, todayIso } from '../src/common/server-date.js';
 
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -67,9 +68,9 @@ describe('التقارير — frmRptBalances · frmRptEntries · frmRptIncomeSt
   let saleNumber = '';
 
   const today = new Date();
-  const year = today.getUTCFullYear();
-  const iso = (offsetDays: number) => new Date(today.getTime() + offsetDays * 86_400_000).toISOString().slice(0, 10);
-  const todayIso = iso(0);
+  const year = Number(todayIso().slice(0, 4));
+  const iso = (offsetDays: number) => isoDayInTimezone(new Date(today.getTime() + offsetDays * 86_400_000));
+  const todayYmd = iso(0);
   /** 📅 The manual entries live in June so the invoice fixtures of today never touch them. */
   const juneFrom = `${year}-06-01`;
   const juneTo = `${year}-06-30`;
@@ -232,7 +233,7 @@ describe('التقارير — frmRptBalances · frmRptEntries · frmRptIncomeSt
 
     // 🧾 ضريبة — a manual VAT entry: the debit on the VAT account is the ضريبة, the rest الصافي.
     await journal({
-      date: todayIso,
+      date: todayYmd,
       isVat: true,
       description: 'قيد ضريبي يدوي',
       lines: [
@@ -331,7 +332,7 @@ describe('التقارير — frmRptBalances · frmRptEntries · frmRptIncomeSt
         branchId,
         kind,
         subtype: kind === 'receipt' ? 'customer' : 'supplier',
-        date: todayIso,
+        date: todayYmd,
         ...(kind === 'receipt' ? { partyId: customerId } : { partyId: supplierId }),
         cashLocationId: safeId,
         method: 'cash',
@@ -635,7 +636,7 @@ describe('التقارير — frmRptBalances · frmRptEntries · frmRptIncomeSt
       branchId,
       kind: 'payment',
       subtype: 'salary',
-      date: todayIso,
+      date: todayYmd,
       cashLocationId: safeId,
       method: 'cash',
       amount: '900',

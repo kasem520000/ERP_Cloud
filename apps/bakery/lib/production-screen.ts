@@ -1,4 +1,5 @@
 import type { OfficialStockRowForEstimate } from '@erp/web-van/production';
+import { dayInMakkah } from '@erp/web-core/date';
 
 /**
  * 🏭 glue شاشة الإنتاج — **دوالّ صافية وحدها** (تُقاس في `tests/production-screen.spec.ts`)،
@@ -114,7 +115,7 @@ export function emptyComponentRows(count = 2): Array<{ itemId: string; qty: stri
   return Array.from({ length: Math.max(1, count) }, () => ({ itemId: '', qty: '' }));
 }
 
-/** تاريخ اليوم بحساب UTC — والخادم هو من يفصل في التأريخ النهائي (قرارٌ معلّق في §10). */
+/** تاريخ اليوم بتوقيت مكة — مطابقٌ لما يؤرّخ به الخادم (`common/server-date.ts`). */
 export function todayIsoDate(now: Date = new Date()): string {
-  return now.toISOString().slice(0, 10);
+  return dayInMakkah(now);
 }

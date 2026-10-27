@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Client } from 'pg';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { isoDayInTimezone, todayIso } from '../src/common/server-date.js';
 
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -55,7 +56,7 @@ describe('التقارير — frmRptInv* · تقارير الفواتير وا�
   const today = new Date();
   const iso = (offsetDays: number) => {
     const date = new Date(today.getTime() + offsetDays * 86_400_000);
-    return date.toISOString().slice(0, 10);
+    return isoDayInTimezone(date);
   };
   const from = iso(-1);
   const to = iso(1);
@@ -478,7 +479,7 @@ describe('التقارير — frmRptInv* · تقارير الفواتير وا�
     const sale = rows.find((row) => Number(row.net) === 1322.5)!;
     expect(sale.invoice_type).toBe('فاتورة ضريبية'); // TaxType = 2: للعميل رقم ضريبي
     expect(sale.number).toMatch(/\S/);
-    expect(sale.day).toBe(today.toISOString().slice(0, 10));
+    expect(sale.day).toBe(todayIso(today));
     expect(sale.time).toMatch(/^\d{2}:\d{2}:\d{2}$/);
     expect(sale.payment_method).toBe('متعدد'); // نقد + شبكة
     expect(Number(sale.paid)).toBeCloseTo(822.5, 2);
@@ -554,7 +555,7 @@ describe('التقارير — frmRptInv* · تقارير الفواتير وا�
 
   it('⏰ وقت — «من وقت» و«إلى وقت» يقصّان اليوم نفسه لا الفترة كلها', async () => {
     await seed();
-    const day = today.toISOString().slice(0, 10);
+    const day = todayIso(today);
 
     /**
      * ⏰ تثبيتُ ساعةِ المثبّتة — والعيبُ فيها كان لا في المنتج (قِيس ٢٠٢٦-١٠-١٧).
@@ -700,7 +701,7 @@ describe('التقارير — frmRptInv* · تقارير الفواتير وا�
     expect(rows).toHaveLength(1);
     const day = rows[0]!;
     expect(day.seq).toBe('1'); // الرقم
-    expect(day.day).toBe(today.toISOString().slice(0, 10));
+    expect(day.day).toBe(todayIso(today));
     expect(day.day_name).toMatch(/^(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس|الجمعة|السبت)$/);
     // 1150 − 200 + 50 · 172.5 − 30 + 7.5 · 1322.5 − 230 + 57.5
     expect(Number(day.before_tax)).toBeCloseTo(1000, 2);
@@ -798,7 +799,7 @@ describe('التقارير — frmRptInv* · تقارير الفواتير وا�
     expect(byCustomer.map((row) => row.dimension).sort()).toEqual(['عميل ضريبي', 'عميل نقدي']);
     const byDay = rowsIn((await runReport('sales-inv-analysis', '&dimension=day')).body);
     expect(byDay).toHaveLength(1);
-    expect(byDay[0]?.dimension).toBe(today.toISOString().slice(0, 10));
+    expect(byDay[0]?.dimension).toBe(todayIso(today));
     const byCategory = rowsIn((await runReport('sales-inv-analysis', `&dimension=category&categoryId=${catGearId}`)).body);
     expect(byCategory.map((row) => row.dimension)).toEqual(['معدات']);
   });

@@ -28,6 +28,7 @@ import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { isUniqueViolation } from '../organization/shared/org-support.js';
 import { SequencesService } from '../platform-services/index.js';
 import { TreasuryService } from '../treasury/treasury.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 /**
  * 🧵 طلب التفصيل — the port of `Form_WPF/frmOrders.xaml` («إدارة طلبات التفصيل»),
@@ -202,7 +203,7 @@ export type OrderRow = {
 const ORDER_SEQUENCE = { prefix: 'TO-', padding: 6 } as const;
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 function isISODate(value: string): boolean {

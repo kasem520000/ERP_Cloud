@@ -6,6 +6,8 @@
  * and the display formatting in one module means a screen states *what* it needs, not
  * how the endpoint happens to be shaped.
  */
+import { dayInMakkah, todayInMakkah } from '@erp/web-core/date';
+
 import { apiData, apiDelete, apiList, apiPost } from './api';
 
 export type Option = { id: string; label: string };
@@ -481,7 +483,8 @@ export function shortDate(value: string | Date | null | undefined): string {
   if (!value) return '—';
   const date = typeof value === 'string' ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toISOString().slice(0, 10);
+  // اليومُ التقويميُّ في مكة: فاتورةٌ مُرحَّلة 21:30Z هي «اليوم» في مكة لا «أمس» في UTC.
+  return dayInMakkah(date);
 }
 
 export const MAKKAH_TIMEZONE = 'Asia/Riyadh';
@@ -505,7 +508,7 @@ export function dateTime(value: string | Date | null | undefined): string {
 }
 
 export function today(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: MAKKAH_TIMEZONE }).format(new Date());
+  return todayInMakkah();
 }
 
 /** A running money total computed in the browser — never sent to the API. */

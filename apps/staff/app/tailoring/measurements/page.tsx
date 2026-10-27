@@ -3,6 +3,7 @@
 import { FilterBand, FormSection, Panel } from '@erp/ui';
 import Link from 'next/link';
 import { Suspense, useState } from 'react';
+import { todayInMakkah } from '@erp/web-core/date';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { ApiError, apiDelete, apiFetch, apiList, apiPatch, apiPost } from '../../../lib/api';
@@ -77,7 +78,7 @@ type Draft = {
   values: Record<string, string>;
 };
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayInMakkah();
 
 const emptyDraft = (partyId: string): Draft => ({
   partyId,

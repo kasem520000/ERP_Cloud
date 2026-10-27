@@ -19,6 +19,7 @@ import { AccountingService } from '../accounting/accounting.service.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { SequencesService } from '../platform-services/index.js';
 import { SalesService } from '../sales/sales.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 import { ProjectsService } from './projects.service.js';
 
@@ -30,7 +31,7 @@ export type ContractingReturnInput = {
 };
 
 const dec = (input: string | number | null | undefined) => new Decimal(input ?? 0);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayIso();
 
 /**
  * مرتجع مقاولات.

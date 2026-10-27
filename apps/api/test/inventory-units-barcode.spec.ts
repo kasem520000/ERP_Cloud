@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { dayOffsetIso } from '../src/common/server-date.js';
 
 import {
   ALL_ORGANIZATION_PERMISSIONS,
@@ -314,8 +315,8 @@ describe('Item units, barcodes and expiry', () => {
   });
 
   it('reports lots by expiry and hides the ones that are still fine', async () => {
-    const soon = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
-    const later = new Date(Date.now() + 400 * 86_400_000).toISOString().slice(0, 10);
+    const soon = dayOffsetIso(10);
+    const later = dayOffsetIso(400);
     for (const [lotNo, expiryDate] of [
       ['LOT-SOON', soon],
       ['LOT-LATER', later],

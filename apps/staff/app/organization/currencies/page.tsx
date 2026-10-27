@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Panel } from '@erp/ui';
+import { dayInMakkah } from '@erp/web-core/date';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { ErrorBox, Loading, Screen } from '../../../components/screen';
@@ -30,7 +31,7 @@ type Run = {
   gainLoss: string;
 };
 
-const iso = (date: Date) => date.toISOString().slice(0, 10);
+const iso = (date: Date) => dayInMakkah(date);
 const rateFmt = (value: string) => {
   const n = Number(value);
   return Number.isFinite(n) ? n.toFixed(4) : String(value);

@@ -6,6 +6,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
 
 import { ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -48,7 +49,7 @@ describe('migration 0125 — journal reversal convention', () => {
 
   const data = (body: Record<string, unknown>): Record<string, unknown> =>
     (body.data ?? body) as Record<string, unknown>;
-  const iso = new Date().toISOString().slice(0, 10);
+  const iso = todayIso();
 
   const statusOf = async (entryId: string): Promise<string> => {
     const result = await pool.query('SELECT status FROM journal_entries WHERE id = $1', [entryId]);

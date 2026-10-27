@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { todayIso } from '../src/common/server-date.js';
+
 import { ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
@@ -38,7 +40,7 @@ describe('Journal entry card — إنشاء قيد يومية', () => {
 
   const data = (body: Record<string, unknown>): Record<string, unknown> => (body.data ?? body) as Record<string, unknown>;
   const amt = (value: unknown) => Number(value).toFixed(4);
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => todayIso();
 
   const account = async (payload: Record<string, unknown>) => {
     const created = await api(ctx.server, 'post', '/api/v1/accounts', { token: actor.token, body: payload });

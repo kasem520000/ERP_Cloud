@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
+
 import {
   ALL_ORGANIZATION_PERMISSIONS,
   ALL_PLATFORM_PERMISSIONS,
@@ -100,7 +102,7 @@ describe('Remediation Phase 8 — Multi-Currency Vouchers, Module Locks, Allocat
     expect(fyRes.status).toBe(201);
 
     const fpRes = await req('get', '/api/v1/fiscal-periods');
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const allPeriods = rows(fpRes.body) as Array<{ id: string; startDate: string; endDate: string }>;
     const currentPeriod = allPeriods.find((p) => p.startDate <= today && p.endDate >= today) ?? (allPeriods[0] as { id: string });
     fiscalPeriodId = currentPeriod.id;
@@ -218,7 +220,7 @@ describe('Remediation Phase 8 — Multi-Currency Vouchers, Module Locks, Allocat
 
   it('ACC-094: reverseJournal auto-resolves open fiscal period when fiscalPeriodId is omitted', async () => {
     // 1. Post a manual journal entry
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const postRes = await req('post', '/api/v1/journal-entries', {
       branchId,
       fiscalPeriodId,
@@ -242,7 +244,7 @@ describe('Remediation Phase 8 — Multi-Currency Vouchers, Module Locks, Allocat
 
   it('ACC-097: Module lock prevents posting vouchers when treasury module is locked', async () => {
     // 1. Create a draft receipt voucher
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const vRes = await req('post', '/api/v1/vouchers', {
       branchId,
       kind: 'receipt',
@@ -277,7 +279,7 @@ describe('Remediation Phase 8 — Multi-Currency Vouchers, Module Locks, Allocat
   });
 
   it('ACC-072: createVoucher and updateDraftVoucher reject inactive/unregistered foreign currency (422)', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
 
     // 1. Attempt to create voucher with unknown currency EUR -> 422 CURRENCY_NOT_ACTIVE
     const createFail = await req('post', '/api/v1/vouchers', {
@@ -320,7 +322,7 @@ describe('Remediation Phase 8 — Multi-Currency Vouchers, Module Locks, Allocat
   });
 
   it('ACC-089, ACC-073 & ACC-095: Multi-currency voucher posting sets journal dimensions and tracks foreign balance', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
 
     // 1. Enable USD currency
     await req('post', '/api/v1/currencies', {
@@ -390,7 +392,7 @@ describe('Remediation Phase 8 — Multi-Currency Vouchers, Module Locks, Allocat
   });
 
   it('ACC-090: Voucher allocation cannot exceed remaining invoice balance (422)', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
 
     // 1. Create and post a purchase invoice of 100 SAR
     const piRes = await req('post', '/api/v1/purchase-invoices', {
@@ -456,7 +458,7 @@ describe('Remediation Phase 8 — Multi-Currency Vouchers, Module Locks, Allocat
   });
 
   it('ACC-098 & ACC-060: recalcCashBalance computes from GL journal lines sum(debit) - sum(credit)', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
 
     // Create and post a receipt voucher into cashLocationId (which writes Dr to cash location GL account)
     const rv = await req('post', '/api/v1/vouchers', {
@@ -508,7 +510,7 @@ ${year}-07-01,Pending Line Test,TXN-PEND-001,-15.00,1000.00`;
   });
 
   it('ACC-092: GET /vouchers?kind=payment and kind=receipt filters vouchers on server', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
 
     // Create and post 1 receipt and 1 payment
     const rv = await req('post', '/api/v1/vouchers', {

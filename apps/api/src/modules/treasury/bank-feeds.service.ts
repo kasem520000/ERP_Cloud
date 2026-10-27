@@ -24,8 +24,9 @@ import {
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { tryGetAuthContext } from '../../request-context/request-context.js';
-import { TreasuryService } from './treasury.service.js';
+import { todayIso } from '../../common/server-date.js';
 
+import { TreasuryService } from './treasury.service.js';
 import {
   bestBankMatch,
   scoreBankMatch,
@@ -93,7 +94,7 @@ function actorId(): string | null {
 }
 
 function dateOnly(value: Date | string | null | undefined): string {
-  if (!value) return new Date().toISOString().slice(0, 10);
+  if (!value) return todayIso();
   return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);
 }
 

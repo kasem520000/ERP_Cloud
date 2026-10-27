@@ -15,6 +15,8 @@ import {
 } from '@erp/contracts';
 import { auditLog, withPlatformAdminTx } from '@erp/database';
 
+import { dayOffsetIso } from '../src/common/server-date.js';
+
 import {
   ALL_TENANT_PERMISSIONS,
   createActor,
@@ -719,7 +721,7 @@ describe('platform billing (P-C4)', () => {
     const draft = (await asOwner('post', INVOICES, { subscriptionId: subscription.id, reason: 'فاتورة متأخّرة' }))
       .body.data as PlatformInvoice;
     // إصدار بتاريخ استحقاق في الماضي: المتابعة تقرأ التاريخ المخزَّن لا تخمّنه.
-    const overdue = new Date(Date.now() - 5 * 86_400_000).toISOString().slice(0, 10);
+    const overdue = dayOffsetIso(-5);
     const issued = (await asOwner('post', `${INVOICES}/${draft.id}/issue`, { dueDate: overdue }))
       .body.data as PlatformInvoice;
     expect(issued.daysOverdue).toBeGreaterThanOrEqual(4);
@@ -830,7 +832,7 @@ describe('platform billing (P-C4)', () => {
     const subscription = await createSubscription(customerC.tenantId, starter.id);
     const draft = (await asOwner('post', INVOICES, { subscriptionId: subscription.id, reason: 'فاتورة لمتُردد' }))
       .body.data as PlatformInvoice;
-    const overdue = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10);
+    const overdue = dayOffsetIso(-3);
     const issued = (await asOwner('post', `${INVOICES}/${draft.id}/issue`, { dueDate: overdue }))
       .body.data as PlatformInvoice;
 

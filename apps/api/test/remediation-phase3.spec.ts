@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
+
 import {
   ALL_ORGANIZATION_PERMISSIONS,
   ALL_PLATFORM_PERMISSIONS,
@@ -166,7 +168,7 @@ describe('Remediation Phase 3 — Sales, Purchases, Treasury, and Reporting (ACC
   });
 
   it('ACC-023: إدخال قيد يدوي على حساب صندوق/بنك نشط يُرفض برمز 422 MANUAL_JOURNAL_ON_TREASURY_ACCOUNT', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const res = await api(ctx.server, 'post', '/api/v1/journal-entries', {
       token: actor.token,
       body: {
@@ -184,7 +186,7 @@ describe('Remediation Phase 3 — Sales, Purchases, Treasury, and Reporting (ACC
   });
 
   it('ACC-010: ترحيل سند قبض شيك دون تعيين chequesInHandAccountId يُرفض برمز 422 TREASURY_CHEQUES_ACCOUNT_REQUIRED', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const voucherRes = await api(ctx.server, 'post', '/api/v1/vouchers', {
       token: actor.token,
       body: {

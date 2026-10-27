@@ -20,6 +20,7 @@ import {
 import { FROM_TO_LABELS_AR, validateDayFilters } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { SequencesService } from '../platform-services/index.js';
+import { todayIso } from '../../common/server-date.js';
 
 import { calculateMarinaPeriod } from './marina-pricing.js';
 
@@ -193,7 +194,7 @@ function decimal(value: number | string | null | undefined): Decimal {
 }
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 function isISODate(value: unknown): value is string {

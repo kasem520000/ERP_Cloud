@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DomainError } from '@erp/contracts';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { Decimal } from 'decimal.js';
-
 import {
   accounts,
   amortizationSchedules,
@@ -15,6 +14,7 @@ import {
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { isUniqueViolation } from '../organization/shared/org-support.js';
+import { todayIso } from '../../common/server-date.js';
 
 import { AccountingService } from './accounting.service.js';
 
@@ -232,7 +232,7 @@ export class AmortizationService {
     const rows = await withTenantTx(this.database.db, tenantId, async (tx) =>
       tx.select().from(amortizationSchedules).where(eq(amortizationSchedules.tenantId, tenantId)).orderBy(asc(amortizationSchedules.startDate)),
     );
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     return rows.map((row) => {
       const total = new Decimal(row.totalAmount);
       const installment = new Decimal(row.installmentAmount);

@@ -5,6 +5,7 @@ import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useMemo, useState } from 'react';
 import { Panel, TableFrame } from '@erp/ui';
+import { todayInMakkah } from '@erp/web-core/date';
 
 import { ErrorBox, Forbidden, Loading, Screen } from '../../../../components/screen';
 import { ApiError, apiData, apiPost } from '../../../../lib/api';
@@ -93,7 +94,7 @@ function JournalEntryForm() {
 
   const [branchId, setBranchId] = useState('');
   const [periodId, setPeriodId] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => todayInMakkah());
   const [time, setTime] = useState(nowTime);
   const [isVat, setIsVat] = useState(false);
   const [description, setDescription] = useState(isOpening ? 'قيد افتتاحي' : '');

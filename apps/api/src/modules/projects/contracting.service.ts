@@ -19,6 +19,7 @@ import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { SequencesService } from '../platform-services/index.js';
 import { TreasuryService } from '../treasury/treasury.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 import { ProjectsService } from './projects.service.js';
 
@@ -63,7 +64,7 @@ const LIVE_PAYMENT_STATUSES = ['draft', 'approved', 'paid'];
 const VALUE_CONSUMING_KINDS = ['progress', 'final'];
 
 const dec = (input: string | number | null | undefined) => new Decimal(input ?? 0);
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayIso();
 
 /**
  * عقد مقاول، سند دفع لمقاول، عروض المشاريع.

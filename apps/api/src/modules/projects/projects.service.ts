@@ -11,6 +11,7 @@ import { SalesService } from '../sales/sales.service.js';
 import { UsageService } from '../usage/usage.service.js';
 import { AccountingService } from '../accounting/accounting.service.js';
 import { PostingProfilesService } from '../organization/posting-profiles/posting-profiles.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 import { computeProgressBill } from './progress-bill-calculator.js';
 
@@ -293,7 +294,7 @@ export class ProjectsService {
       if (retAcc) retentionAccountId = retAcc.id;
     }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const fiscalPeriodId =
       input.fiscalPeriodId ?? (await this.accounting.openPeriodForDate(tenantId, today));
 
@@ -513,7 +514,7 @@ export class ProjectsService {
     if (!receivableAccountId)
       throw new DomainError('PROFILE_KEY_MISSING', 'لا يمكن تحديد حساب ذمم العميل لإفراج المحتجز — أكمل ملف الترحيل (receivableAccountId) أو مرّر الحساب صراحة', 422, { key: 'receivableAccountId' });
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const fiscalPeriodId =
       input.fiscalPeriodId ?? (await this.accounting.openPeriodForDate(tenantId, today));
 

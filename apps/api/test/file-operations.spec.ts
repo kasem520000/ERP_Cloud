@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { dayOffsetIso, todayIso } from '../src/common/server-date.js';
+
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
@@ -119,12 +121,12 @@ describe('file operations and the report designer', () => {
   });
 
   it('rotates operational logs only, and never within the retention floor', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const tooRecent = await api(ctx.server, 'post', '/api/v1/settings/data-rotation', { token: actor.token, body: { cutoffDate: today, mode: 'preview' } });
     expect(tooRecent.status).toBe(422);
     expect(code(tooRecent)).toBe('ROTATION_CUTOFF_TOO_RECENT');
 
-    const cutoff = new Date(Date.now() - 400 * 86_400_000).toISOString().slice(0, 10);
+    const cutoff = dayOffsetIso(-400);
     const preview = await api(ctx.server, 'post', '/api/v1/settings/data-rotation', { token: actor.token, body: { cutoffDate: cutoff, mode: 'preview' } });
     expect(preview.status).toBeLessThan(300);
     const findings = (body(preview) as { findings: { rotatable: Record<string, unknown>; preserved: Record<string, unknown>; retainedByDesign: Record<string, unknown> } }).findings;

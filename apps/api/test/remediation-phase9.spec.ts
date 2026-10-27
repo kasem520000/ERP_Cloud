@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
+
 import {
   ALL_ORGANIZATION_PERMISSIONS,
   ALL_PLATFORM_PERMISSIONS,
@@ -173,7 +175,7 @@ describe('Remediation Phase 9 — Van Sales Audits, HRM Accounts, Backup Invaria
     // Ensure fiscal period
     const periodsRes = await req('get', '/api/v1/fiscal-periods');
     const periodList = rows(periodsRes.body);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const activePeriod = periodList.find((p) => {
       const start = String(p.startDate ?? '');
       const end = String(p.endDate ?? '');
@@ -262,7 +264,7 @@ describe('Remediation Phase 9 — Van Sales Audits, HRM Accounts, Backup Invaria
         partyId: customerId,
         settlement: 'credit',
         fiscalPeriodId,
-        date: new Date().toISOString().slice(0, 10),
+        date: todayIso(),
         lines: [
           {
             itemId,
@@ -290,7 +292,7 @@ describe('Remediation Phase 9 — Van Sales Audits, HRM Accounts, Backup Invaria
         partyId: customerId,
         settlement: 'credit',
         fiscalPeriodId,
-        date: new Date().toISOString().slice(0, 10),
+        date: todayIso(),
         lines: [
           {
             itemId,

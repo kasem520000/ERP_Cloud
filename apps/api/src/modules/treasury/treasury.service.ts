@@ -39,6 +39,7 @@ import { PostingProfilesService } from '../organization/posting-profiles/posting
 import { SequencesService } from '../platform-services/index.js';
 import { FileAttachmentRegistry } from '../platform-services/files/file-attachments.js';
 import { ApprovalService } from '../approvals/approvals.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 export type VoucherInput = {
   branchId: string;
@@ -477,7 +478,7 @@ export class TreasuryService implements OnModuleInit {
         tx,
         tenantId,
         currency,
-        input.date ?? new Date().toISOString().slice(0, 10),
+        input.date ?? todayIso(),
         implied,
       );
     }
@@ -1628,7 +1629,7 @@ export class TreasuryService implements OnModuleInit {
 
       // ACC-127: إلغاء التحويل المرسل يعكس قيد الإرسال ويعيد النقد للصندوق المصدر
       if (row.sentJournalEntryId) {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayIso();
         await this.accounting.reverseJournalInTx(tx, tenantId, row.sentJournalEntryId, {
           reason: `إلغاء مناقلة نقدية ${row.number ?? id}`,
           date: today,
@@ -1685,9 +1686,9 @@ export class TreasuryService implements OnModuleInit {
         fiscalPeriodId: await this.accounting.openPeriodForDateInTx(
           tx,
           tenantId,
-          new Date().toISOString().slice(0, 10),
+          todayIso(),
         ),
-        date: new Date().toISOString().slice(0, 10),
+        date: todayIso(),
         description: `ارسال مناقلة ${allocated.display ?? ''}`.trim(),
         lines: [
           { accountId: transitAccountId, debit: row.amount, description: `مناقلة ${allocated.display ?? ''}` },
@@ -1751,9 +1752,9 @@ export class TreasuryService implements OnModuleInit {
         fiscalPeriodId: await this.accounting.openPeriodForDateInTx(
           tx,
           tenantId,
-          new Date().toISOString().slice(0, 10),
+          todayIso(),
         ),
-        date: new Date().toISOString().slice(0, 10),
+        date: todayIso(),
         description: `استلام مناقلة ${row.number ?? ''}`.trim(),
         lines: [
           { accountId: toAccountId, debit: row.amount, description: `مناقلة ${row.number ?? ''}` },

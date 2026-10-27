@@ -1,3 +1,4 @@
+import { dayInMakkah } from '@erp/web-core/date';
 /**
  * تنسيقات مشتركة لسطح المنصة.
  *
@@ -8,5 +9,5 @@ export function dateText(value: string | Date | null | undefined): string {
   if (!value) return '—';
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return `\u2066${date.toISOString().slice(0, 10)}\u2069`;
+  return `\u2066${dayInMakkah(date)}\u2069`;
 }

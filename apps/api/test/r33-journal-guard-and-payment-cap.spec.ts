@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
+
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
@@ -190,7 +192,7 @@ describe('R33 — journal-screen reversal guard (ACC-186) and payment cap after 
     expect(Number(row?.due).toFixed(2)).toBe('138.00');
 
     // an on-account receipt of 50 (no allocation) reduces the ledger, not any invoice → shown as unapplied, due ties to the ledger
-    const voucher = await req('post', '/vouchers', { kind: 'receipt', subtype: 'customer', partyId, branchId, cashLocationId, method: 'cash', amount: '50.00', date: new Date().toISOString().slice(0, 10), description: 'R33 ACC-192 دفعة تحت الحساب' });
+    const voucher = await req('post', '/vouchers', { kind: 'receipt', subtype: 'customer', partyId, branchId, cashLocationId, method: 'cash', amount: '50.00', date: todayIso(), description: 'R33 ACC-192 دفعة تحت الحساب' });
     expect(voucher.status, JSON.stringify(voucher.body)).toBe(201);
     const postedVoucher = await req('post', `/vouchers/${String(data(voucher.body).id)}/post`, {});
     expect(postedVoucher.status, JSON.stringify(postedVoucher.body)).toBe(201);
@@ -217,7 +219,7 @@ describe('R33 — journal-screen reversal guard (ACC-186) and payment cap after 
       branchId,
       kind: 'receipt',
       subtype: 'customer',
-      date: new Date().toISOString().slice(0, 10),
+      date: todayIso(),
       partyId: customerId,
       cashLocationId,
       method: 'cash',
@@ -244,7 +246,7 @@ describe('R33 — journal-screen reversal guard (ACC-186) and payment cap after 
     expect(expense && equity).toBeTruthy();
     const manual = await req('post', '/journal-entries', {
       branchId,
-      date: new Date().toISOString().slice(0, 10),
+      date: todayIso(),
       description: 'قيد يدوي R33',
       lines: [
         { accountId: expense!.id, debit: '1.00', credit: '0' },

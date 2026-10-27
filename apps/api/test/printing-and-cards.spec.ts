@@ -3,6 +3,7 @@ import { inflateRawSync } from 'node:zlib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
 
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -170,7 +171,7 @@ describe('document printing and master-data editing', () => {
   it('prints a receipt voucher and its journal entry', async () => {
     const voucher = await api(ctx.server, 'post', '/api/v1/vouchers', {
       token: actor.token,
-      body: { branchId, kind: 'receipt', subtype: 'customer', date: new Date().toISOString().slice(0, 10), partyId, cashLocationId, method: 'cash', amount: '1250.75', netAmount: '1250.75' },
+      body: { branchId, kind: 'receipt', subtype: 'customer', date: todayIso(), partyId, cashLocationId, method: 'cash', amount: '1250.75', netAmount: '1250.75' },
     });
     expect(voucher.status).toBe(201);
     // Posting needs an open fiscal period and a posting profile; a freshly provisioned

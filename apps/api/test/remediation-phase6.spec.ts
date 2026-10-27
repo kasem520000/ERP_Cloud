@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
+
 import {
   ALL_ORGANIZATION_PERMISSIONS,
   ALL_PLATFORM_PERMISSIONS,
@@ -110,7 +112,7 @@ describe('Remediation Phase 6 — Installments, Projects Progress Billing, Contr
     expect(fyRes.status).toBe(201);
 
     const fpRes = await req('get', '/api/v1/fiscal-periods');
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const allPeriods = rows(fpRes.body) as Array<{ id: string; startDate: string; endDate: string }>;
     const currentPeriod = allPeriods.find((p) => p.startDate <= today && p.endDate >= today) ?? (allPeriods[0] as { id: string });
     fiscalPeriodId = currentPeriod.id;
@@ -241,7 +243,7 @@ describe('Remediation Phase 6 — Installments, Projects Progress Billing, Contr
 
   it('ACC-054: Installment collection posts voucher atomically inside transaction', async () => {
     // 1. Create installment contract: value 1000, 2 installments of 500
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const contractRes = await req('post', '/api/v1/installments/contracts', {
       branchId,
       partyId: customerId,
@@ -282,7 +284,7 @@ describe('Remediation Phase 6 — Installments, Projects Progress Billing, Contr
   });
 
   it('ACC-055: Over-collection is rejected, schedule updates, and contract completes when fully paid', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const contractRes = await req('post', '/api/v1/installments/contracts', {
       branchId,
       partyId: customerId,
@@ -352,7 +354,7 @@ describe('Remediation Phase 6 — Installments, Projects Progress Billing, Contr
 
     // 3. Create progress bill for 100% of BOQ (workValue = 1000, retention = 100, netDue = 900)
     const billRes = await req('post', `/api/v1/projects/${project.id}/progress-bills`, {
-      billDate: new Date().toISOString().slice(0, 10),
+      billDate: todayIso(),
       lines: [{ termId: boq.id, billPct: '100', billValue: '1000' }],
     });
     expect(billRes.status).toBe(201);
@@ -436,7 +438,7 @@ describe('Remediation Phase 6 — Installments, Projects Progress Billing, Contr
     const boq = data(boqRes.body) as { id: string };
 
     const billRes = await req('post', `/api/v1/projects/${project.id}/progress-bills`, {
-      billDate: new Date().toISOString().slice(0, 10),
+      billDate: todayIso(),
       lines: [{ termId: boq.id, billPct: '100', billValue: '500' }],
     });
     const bill = data(billRes.body) as { id: string; retentionValue: string };
@@ -524,7 +526,7 @@ describe('Remediation Phase 6 — Installments, Projects Progress Billing, Contr
     // 3. Create contractor payment certificate (gross: 1000, retention: 100, recovery: 100, net: 800)
     const payCertRes = await req('post', `/api/v1/contracting/contracts/${contract.id}/payments`, {
       kind: 'progress',
-      paymentDate: new Date().toISOString().slice(0, 10),
+      paymentDate: todayIso(),
       grossAmount: '1000',
       advanceRecovery: '100',
     });

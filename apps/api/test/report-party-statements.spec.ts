@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { isoDayInTimezone, todayIso } from '../src/common/server-date.js';
 
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -53,8 +54,8 @@ describe('كشوف الحساب — frmCustAccount · frmCustAccountGet · frmCu
   let paymentNumber = '';
 
   const today = new Date();
-  const year = today.getUTCFullYear();
-  const iso = (offsetDays: number) => new Date(today.getTime() + offsetDays * 86_400_000).toISOString().slice(0, 10);
+  const year = Number(todayIso().slice(0, 4));
+  const iso = (offsetDays: number) => isoDayInTimezone(new Date(today.getTime() + offsetDays * 86_400_000));
 
   const data = (body: Record<string, unknown>): Record<string, unknown> => (body.data ?? body) as Record<string, unknown>;
   const rowsIn = (body: unknown): Array<Record<string, string>> =>

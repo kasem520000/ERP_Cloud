@@ -1,7 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import Decimal from 'decimal.js';
 import { calculateInvoiceTotals } from '@erp/contracts';
+
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { describeRoute, actionForMethod } from '../src/modules/platform-services/audit/audit.interceptor.js';
+import { todayIso } from '../src/common/server-date.js';
 
 import {
   ALL_ORGANIZATION_PERMISSIONS,
@@ -11,7 +14,6 @@ import {
 } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
-import { describeRoute, actionForMethod } from '../src/modules/platform-services/audit/audit.interceptor.js';
 
 describe('Remediation Phase 13 — Negative stock setting, sales line validation, excise VAT base, inter-branch transfer posting, ghost stock zeroing & voucher draft costs (ACC-107..120, UI-040..042)', () => {
   let ctx: TestApp;
@@ -171,7 +173,7 @@ describe('Remediation Phase 13 — Negative stock setting, sales line validation
     });
     const periodsRes = await req('get', '/api/v1/fiscal-periods');
     const periodList = (periodsRes.body as any).data ?? [];
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const activePeriod =
       periodList.find((p: any) => p.startDate <= today && p.endDate >= today) ??
       periodList[0];
@@ -432,7 +434,7 @@ describe('Remediation Phase 13 — Negative stock setting, sales line validation
       branchId: branch1Id,
       warehouseId: warehouse1Id,
       kind: 'stock_out',
-      voucherDate: new Date().toISOString().slice(0, 10),
+      voucherDate: todayIso(),
       reason: 'Draft test for UI-042',
       lines: [{ itemId, qty: '1' }],
     });

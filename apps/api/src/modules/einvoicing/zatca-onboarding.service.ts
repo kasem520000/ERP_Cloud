@@ -4,6 +4,7 @@ import { DomainError, newId } from '@erp/contracts';
 import { companyProfiles, einvoiceCredentials, einvoiceSettings, withTenantTx, type DatabaseHandle, type DrizzleTx } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
+import { todayIso } from '../../common/server-date.js';
 
 import { decryptSecret, encryptSecret } from './einvoicing.service.js';
 import { buildComplianceDocuments, failureLine, rowOf, type ComplianceCheckRow } from './zatca/compliance-check.js';
@@ -116,7 +117,7 @@ function endDateOf(startDate: string): string {
 }
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 function mask(value: string | null | undefined): string | null {

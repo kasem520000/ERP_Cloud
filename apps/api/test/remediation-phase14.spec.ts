@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import Decimal from 'decimal.js';
+
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
 
 import {
   ALL_ORGANIZATION_PERMISSIONS,
@@ -221,7 +223,7 @@ describe('Remediation Phase 14 — Return price guards, collection commission, p
     });
     const periodsRes = await req('get', '/api/v1/fiscal-periods');
     const periodList = (periodsRes.body as any).data ?? [];
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const activePeriod =
       periodList.find((p: any) => p.startDate <= today && p.endDate >= today) ??
       periodList[0];

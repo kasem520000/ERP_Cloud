@@ -1,5 +1,7 @@
 import { Decimal } from 'decimal.js';
 
+import { BUSINESS_TIME_ZONE, isoDayInTimezone } from '../../common/server-date.js';
+
 /**
  * Wage Protection (Mudad) and GOSI file contracts.
  *
@@ -339,12 +341,12 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((end - start) / 86_400_000);
 }
 
-export function todayInTimezone(timeZone = 'Asia/Riyadh', now = new Date()): string {
-  try {
-    return new Intl.DateTimeFormat('en-CA', { timeZone }).format(now);
-  } catch {
-    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(now);
-  }
+/**
+ * اليومُ في منطقةٍ ما — والتنفيذُ المشترك صار في `common/server-date.ts` (نسخةٌ واحدة
+ * مختبَرة، ومُنسِّقٌ مُخزَّن لكل منطقة) بدل تكراره في كل وحدة.
+ */
+export function todayInTimezone(timeZone = BUSINESS_TIME_ZONE, now = new Date()): string {
+  return isoDayInTimezone(now, timeZone);
 }
 
 export function todayInRiyadh(now = new Date()): string {

@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
+
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
@@ -28,7 +30,7 @@ describe('R33 — money policy (P-M17), FX tolerance (P-M16) and cash sub-ledger
   let groupedItemId = '';
   let cashLocationId = '';
   let expenseAccountId = '';
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
 
   const data = (body: Record<string, unknown>): Record<string, unknown> => (body.data ?? body) as Record<string, unknown>;
   const rows = (body: unknown): Array<Record<string, unknown>> => {

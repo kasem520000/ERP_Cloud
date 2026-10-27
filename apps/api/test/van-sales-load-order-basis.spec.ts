@@ -3,6 +3,7 @@ import { newId, withTenantTx } from '@erp/database';
 import { sql } from 'drizzle-orm';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
 
 import { ALL_TENANT_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -47,7 +48,7 @@ describe('Van load order — batch attribution (§5.1) and valuation basis (§6.
 
   /** رقمُ أوّل دفعةٍ يصنعها مولّدُ أرقام الإنتاج اليوم — وهو الرقم الذي كان يُختلَع. */
   function todaysFirstBatch(): string {
-    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const datePart = todayIso().replace(/-/g, '');
     return `PROD-${datePart}-0001`;
   }
 

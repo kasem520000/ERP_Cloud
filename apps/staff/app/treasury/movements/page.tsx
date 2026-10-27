@@ -3,6 +3,7 @@
 import { FilterBand, Panel } from '@erp/ui';
 import Decimal from 'decimal.js';
 import { useMemo, useState } from 'react';
+import { todayInMakkah } from '@erp/web-core/date';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { Empty, Screen } from '../../../components/screen';
@@ -128,7 +129,7 @@ export default function MovementsPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `حركة_صندوق_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `حركة_صندوق_${todayInMakkah()}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }

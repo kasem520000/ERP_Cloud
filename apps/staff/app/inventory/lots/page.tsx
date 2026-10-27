@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { todayInMakkah } from '@erp/web-core/date';
 
 import { Directory } from '../../../components/directory';
 import { Notice } from '../../../components/data-view';
@@ -32,7 +33,7 @@ export default function LotsPage() {
   const items = useQuery<Item[]>(() => listItems(), []);
   const itemRows = items.data ?? [];
   const lotRows = lots.data ?? [];
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInMakkah();
 
   async function drop(row: Lot) {
     if (!window.confirm(`حذف الدفعة ${row.lotNo}؟`)) return;

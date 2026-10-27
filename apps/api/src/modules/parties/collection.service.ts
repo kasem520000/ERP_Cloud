@@ -23,6 +23,7 @@ import { AccountingService, type JournalLineInput } from '../accounting/accounti
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { TreasuryService } from '../treasury/treasury.service.js';
 import { WhatsappService } from '../integrations/whatsapp/whatsapp.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 export type ReminderRuleInput = {
   minDays: number;
@@ -57,7 +58,7 @@ export type WriteoffInput = {
 
 export type RecoveryInput = { amount: string; cashLocationId: string; date?: string };
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayIso();
 
 /**
  * MF-17 / D9 — إدارة التحصيل (سياسة مُقرَّرة في r43 §1):

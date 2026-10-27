@@ -17,6 +17,7 @@ import {
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { SequencesService } from '../platform-services/index.js';
+import { todayIso } from '../../common/server-date.js';
 
 import { InventoryService } from './inventory.service.js';
 
@@ -447,5 +448,5 @@ export class WarehouseDocumentsService {
 }
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }

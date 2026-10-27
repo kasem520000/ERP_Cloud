@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
 
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -62,8 +63,7 @@ describe('التقارير — frmRptKhzna · frmRptSalary · frmRptReseved · f
   let draftRentalNet = '0';
   let reservationNet = '0';
 
-  const today = new Date();
-  const year = today.getUTCFullYear();
+  const year = Number(todayIso().slice(0, 4));
   /** 📅 The fixtures live in June so nothing else in the tenant can wander into them. */
   const june = (day: number) => `${year}-06-${String(day).padStart(2, '0')}`;
 

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { isoDayInTimezone } from '../src/common/server-date.js';
 
 import { ALL_ORGANIZATION_PERMISSIONS, ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
@@ -38,7 +39,7 @@ describe('R34 — invoice due dates, due-based aging and the credit hold (ACC-10
   const plusDaysIso = (days: number) => {
     const d = new Date();
     d.setUTCDate(d.getUTCDate() + days);
-    return d.toISOString().slice(0, 10);
+    return isoDayInTimezone(d);
   };
   const expectDueFromTerms = (dueDate: unknown, days: number, label: string) => {
     expect(dueDate, `${label}: ${String(dueDate)}`).toBe(plusDaysIso(days));

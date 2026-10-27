@@ -3,6 +3,7 @@
 import { FilterBand, Panel } from '@erp/ui';
 import Link from 'next/link';
 import { Suspense, useState } from 'react';
+import { todayInMakkah } from '@erp/web-core/date';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { apiDelete, apiFetch, apiList, apiPatch, apiPost } from '../../../lib/api';
@@ -59,7 +60,7 @@ type Draft = {
 type Vessel = { id: string; code: string; name: string };
 type Marina = { groups: Array<{ id: string; name: string }>; vessels: Vessel[] };
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => todayInMakkah();
 
 const emptyDraft = (vesselId = ''): Draft => ({
   vesselId,

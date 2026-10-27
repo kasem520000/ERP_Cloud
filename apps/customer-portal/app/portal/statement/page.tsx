@@ -2,6 +2,7 @@
 
 import { FilterBand, PageHead, Panel } from '@erp/ui';
 import { useState } from 'react';
+import { todayInMakkah } from '@erp/web-core/date';
 
 import { Empty } from '../../../components/card';
 import { PortalShell, usePortalProfile } from '../../../components/portal-shell';
@@ -64,7 +65,7 @@ function Statement() {
                       line.running,
                     ]),
                   ],
-                  `statement-${new Date().toISOString().slice(0, 10)}.csv`,
+                  `statement-${todayInMakkah()}.csv`,
                 )
               }
             >

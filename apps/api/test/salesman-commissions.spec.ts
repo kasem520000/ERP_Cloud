@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+import { todayIso } from '../src/common/server-date.js';
 
 import {
   ALL_ORGANIZATION_PERMISSIONS,
@@ -59,7 +60,7 @@ describe('عمولات المندوبين — frmInvBySalesMen', () => {
     api(ctx.server, 'post', `/api/v1${path}`, { token: actor.token, body });
   const get = (path: string) => api(ctx.server, 'get', `/api/v1${path}`, { token: actor.token });
 
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => todayIso();
   const report = (query: string) => get(`/sales/salesmen/commissions?${query}`);
   const shown = async (query: string) => data((await report(query)).body);
   const linesOf = async (query: string) => rowsOf((await shown(query)).rows);

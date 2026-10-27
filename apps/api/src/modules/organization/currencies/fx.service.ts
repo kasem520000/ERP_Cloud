@@ -34,6 +34,7 @@ import {
   notFound,
   validationFailed,
 } from '../shared/org-support.js';
+import { todayIso } from '../../../common/server-date.js';
 
 import { CurrenciesService } from './currencies.service.js';
 
@@ -220,7 +221,7 @@ export class FxService {
   ): Promise<FxResolution> {
     const fromCode = from.toUpperCase();
     const toCode = to.toUpperCase();
-    const asOf = on ?? new Date().toISOString().slice(0, 10);
+    const asOf = on ?? todayIso();
 
     if (fromCode === toCode) {
       return {

@@ -1,5 +1,7 @@
 import { sql, type SQL } from 'drizzle-orm';
 
+import { todayIso } from '../../common/server-date.js';
+
 /**
  * Report catalog — one definition per screen in the desktop product's report menus.
  *
@@ -3758,7 +3760,7 @@ const definitions: ReportDefinition[] = [
         p.name AS party,
         p.kind AS kind,
         COALESCE(SUM(jl.debit - jl.credit), 0)::numeric(20, 4)::text AS receivable,
-        ${f.to ?? new Date().toISOString().slice(0, 10)}::date AS as_of
+        ${f.to ?? todayIso()}::date AS as_of
       FROM journal_entry_lines jl
       INNER JOIN journal_entries je ON je.id = jl.entry_id
       INNER JOIN accounts a ON a.id = jl.account_id

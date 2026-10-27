@@ -21,6 +21,7 @@ import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { getRequestContext } from '../../request-context/request-context.js';
 import { SalesService } from '../sales/sales.service.js';
 import { TreasuryService } from '../treasury/treasury.service.js';
+import { todayIso } from '../../common/server-date.js';
 
 import {
   GATEWAY_PROVIDERS,
@@ -577,7 +578,7 @@ export class PaymentsService {
           branchId: input.branchId,
           kind: 'receipt',
           subtype: input.partyId ? 'customer' : 'other',
-          date: new Date().toISOString().slice(0, 10),
+          date: todayIso(),
           partyId: input.partyId ?? undefined,
           cashLocationId: input.cashLocationId,
           method: 'card',

@@ -7,6 +7,8 @@
  * Dates are compared in **UTC** to match server-side behaviour (the sandbox and
  * the API both think in UTC; Riyadh = UTC+3 without DST).
  */
+import { dayInMakkah } from '@erp/web-core/date';
+
 import { apiList } from './api';
 import { listBranches, listParties, type Branch, type Party } from './lookups';
 
@@ -102,37 +104,38 @@ export function computeStats(data: DashboardData, now = new Date()): DashboardSt
   const byDay = new Map<string, { total: number; count: number }>();
   for (const row of postedDocs) {
     const date = row.postedAt ?? row.createdAt;
-    const day = new Date(date).toISOString().slice(0, 10);
+    const day = dayInMakkah(date);
     const entry = byDay.get(day) ?? { total: 0, count: 0 };
     entry.total += signedTotal(row);
     if (row.kind === 'sale' || row.kind === 'debit_note') entry.count += 1;
     byDay.set(day, entry);
   }
 
-  const todayKey = now.toISOString().slice(0, 10);
+  const todayKey = dayInMakkah(now);
   const week: DashboardStats['week'] = [];
   for (let i = 6; i >= 0; i -= 1) {
     const d = new Date(now.getTime() - i * DAY_MS);
-    const key = d.toISOString().slice(0, 10);
+    const key = dayInMakkah(d);
     const entry = byDay.get(key) ?? { total: 0, count: 0 };
     week.push({
       key,
-      label: i === 0 ? 'اليوم' : i === 1 ? 'أمس' : (WEEKDAY_AR[d.getUTCDay()] ?? '—'),
+      label: i === 0 ? 'اليوم' : i === 1 ? 'أمس' : (WEEKDAY_AR[new Date(`${key}T00:00:00Z`).getUTCDay()] ?? '—'),
       total: round2(entry.total),
       count: entry.count,
     });
   }
 
-  const monthKey = now.toISOString().slice(0, 7);
-  const lastMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 15));
-  const lastMonthKey = lastMonthDate.toISOString().slice(0, 7);
+  // الشهرُ من يوم مكة لا من تاريخ UTC: ليلةُ أول الشهر في مكة ما زالت الشهر السابق في UTC.
+  const [makkaYear = 1970, makkaMonth = 1] = dayInMakkah(now).split('-').map(Number);
+  const monthKey = `${makkaYear}-${String(makkaMonth).padStart(2, '0')}`;
+  const lastMonthKey = new Date(Date.UTC(makkaYear, makkaMonth - 2, 1)).toISOString().slice(0, 7);
 
   let monthSales = 0;
   let monthCount = 0;
   let lastMonthSales = 0;
   for (const row of postedDocs) {
     const date = row.postedAt ?? row.createdAt;
-    const key = date.slice(0, 7);
+    const key = dayInMakkah(date).slice(0, 7);
     if (key === monthKey) {
       monthSales += signedTotal(row);
       if (row.kind === 'sale' || row.kind === 'debit_note') monthCount += 1;
@@ -164,7 +167,7 @@ export function computeStats(data: DashboardData, now = new Date()): DashboardSt
   return {
     todaySales: round2(byDay.get(todayKey)?.total ?? 0),
     todayCount: byDay.get(todayKey)?.count ?? 0,
-    yesterdaySales: round2(byDay.get(new Date(now.getTime() - DAY_MS).toISOString().slice(0, 10))?.total ?? 0),
+    yesterdaySales: round2(byDay.get(dayInMakkah(new Date(now.getTime() - DAY_MS)))?.total ?? 0),
     monthSales: round2(monthSales),
     monthCount,
     lastMonthSales: round2(lastMonthSales),

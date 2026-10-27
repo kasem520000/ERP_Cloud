@@ -4,6 +4,7 @@ import { and, inArray, isNull } from 'drizzle-orm';
 import { platformSettings, withPlatformAdminTx, type DatabaseHandle } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
+import { todayIso } from '../../common/server-date.js';
 
 import type { OcrProvider, OcrProviderInput, OcrProviderResult } from './ocr.types.js';
 
@@ -87,7 +88,7 @@ function mockPayload(input: OcrProviderInput): Record<string, unknown> {
   return {
     supplierName: 'OCR demo supplier',
     invoiceNumber: `DEMO-${input.file.id.slice(0, 8)}`,
-    invoiceDate: new Date().toISOString().slice(0, 10),
+    invoiceDate: todayIso(),
     subtotal: '100.00',
     taxAmount: '15.00',
     total: '115.00',

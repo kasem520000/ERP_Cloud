@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { todayIso } from '../src/common/server-date.js';
+
 import { ALL_PLATFORM_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
@@ -52,7 +54,7 @@ describe('دفع الرواتب — frmSalaryPay', () => {
   const get = (path: string) => api(ctx.server, 'get', `/api/v1${path}`, { token: actor.token });
   const del = (path: string) => api(ctx.server, 'delete', `/api/v1${path}`, { token: actor.token });
 
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => todayIso();
   const month = () => new Date().toISOString().slice(0, 7);
 
   /** The seven allowances: 5000 + 1000 + 500 + 300 + 200 + 250 + 150 = 7400. */
