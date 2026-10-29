@@ -1,3 +1,0 @@
-	libnspr4.so => not found
-	libnss3.so => not found
-	libnssutil3.so => not found

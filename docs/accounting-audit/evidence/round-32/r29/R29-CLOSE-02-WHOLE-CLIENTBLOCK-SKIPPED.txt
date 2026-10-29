@@ -1,6 +1,0 @@
-R32 replay: R29 stages 44 (R29-CLOSE-02-WHOLE-CLIENTBLOCK) and 45 (R29-CLOSE-02-SUBMIT) could not run on the merged code.
-Reason: after stage 43 (API submit-closing with returnedQty=4 on VLO-0002 → 201, status pending_closing, returned_qty=4, shortage_qty=5),
-the bakery custody table no longer renders the «تقديم إقفال» action for a pending_closing order (locator timeout 30 s),
-i.e. the UI re-submission/overwrite path exercised in R29 (ACC-154 context) is gone. The server-side acceptance of returnedQty=4 > custody 3
-(5 received − 2 sold) is still observable in R29-CLOSE-02-API-RETURN-ALL-response.json and van_load_orders (see R29-DB-005 snapshot).
-Resumed from stage 46 (approval of VLO-0002) with R29_FROM=46.
