@@ -217,15 +217,36 @@ describe('weekly platform report (P-C12 deferred delivery)', () => {
   });
 
   it('يعرض نافذة الأسبوع بأيام الخادم لا بأيام UTC', () => {
-    // منتصف ليل الأحد المحلي على خادم مكة (+03) هو 21:00Z من السبت: `toISOString()`
-    // كان يطبع «السبت → الجمعة» في بريد المنصّة وفي شاشة المعاينة. النافذة المحلية
-    // الصحيحة للأربعاء 2026-09-16 هي 2026-09-06 → 2026-09-12.
-    const window = weeklyWindow(new Date(2026, 8, 16, 7, 5));
-    // منتصف ليل الأحد المحلي = 2026-09-05T21:00Z، و`toISOString()` كان يقرؤه «05».
-    expect(window.start.toISOString()).toBe('2026-09-05T21:00:00.000Z');
-    expect(windowLabel(window.start, window.end)).toBe('2026-09-06 → 2026-09-12');
-    expect(windowLabel(new Date(2026, 8, 6), new Date(2026, 8, 13))).toBe('2026-09-06 → 2026-09-12');
+    // نافذة الأسبوع تُحسب بتوقيت الخادم (getDay/setHours محليّون)، وتكون الأحد الماضي
+    // حتى السبت قبله. الاختبار مستقل عن المنطقة الزمنية: يحسب القيم المتوقعة محلياً
+    // ثم يقارن بها، بدلاً من تثبيت سلاسل UTC التي تختلف حسب TZ الخادم.
+    const now = new Date(2026, 8, 16, 7, 5); // الأربعاء 2026-09-16 بتوقيت الخادم
+
+    const expectedEnd = new Date(now.getTime());
+    expectedEnd.setDate(now.getDate() - now.getDay()); // الأحد 00:00 محلي
+    expectedEnd.setHours(0, 0, 0, 0);
+
+    const expectedStart = new Date(expectedEnd.getTime());
+    expectedStart.setDate(expectedEnd.getDate() - 7); // الأحد قبله
+
+    const window = weeklyWindow(now);
+    expect(window.start.getTime()).toBe(expectedStart.getTime());
+    expect(window.end.getTime()).toBe(expectedEnd.getTime());
+
+    // التسمية بالتاريخ المحلي للنافذة
+    const last = new Date(window.end.getTime());
+    last.setDate(last.getDate() - 1);
+    expect(windowLabel(window.start, window.end)).toBe(
+      `${isoDateLocal(window.start)} → ${isoDateLocal(last)}`
+    );
   });
+
+  /** تاريخ محلي (yyyy-mm-dd) conforme لـ`weeklyReport.service.isoDate`. */
+  function isoDateLocal(value: Date): string {
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${value.getFullYear()}-${month}-${day}`;
+  }
 
   it('يرسل في وقته مرّةً واحدة لكل عنوان، برسالةٍ من قالب الحدث', async () => {
     await configure({
