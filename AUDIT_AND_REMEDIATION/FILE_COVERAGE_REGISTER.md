@@ -37,13 +37,18 @@ Statuses: INSPECTED | TESTED | FIXED_AND_RETESTED | NOT_TESTABLE | EXCLUDED_WITH
 | API — reporting.xlsx | `apps/api/src/modules/reporting/reporting.xlsx.ts` | Integration | Dependency-free OOXML writer | INSPECTED | Excel export without external dependencies |
 | API — compat service | `apps/api/src/modules/platform-services/compat/compat.service.ts` | Service | Legacy compat auth (AUD-09 remediated) | INSPECTED | Database-backed sessions, rate limiting, `COMPAT_KEY_PEPPER` required in prod |
 | API — HRM service | `apps/api/src/modules/hrm/hrm.service.ts` | Service | Payroll runs, salary payments, journal posting | INSPECTED | `payRun` uses `FOR UPDATE` on payroll run, idempotent voucher creation, `postRun` links journal entries |
+| API — Treasury service | `apps/api/src/modules/treasury/treasury.service.ts` | Service | Voucher creation/posting, cash transfers, balance bumping, invoice allocations | INSPECTED | `postVoucherInTx` uses `FOR UPDATE` locking, fiscal period lock assertion, delegates to `postJournalInTx` for balance validation, `idempotencyKey` on all mutating ops |
+| API — Payments service | `apps/api/src/modules/payments/payments.service.ts` | Service | Payment processing, card gateway, voucher lookup by idempotency key | INSPECTED | `withTenantTx` throughout, `idempotencyKey` per payment, existing-voucher check before create |
+| API — Treasury spec | `apps/api/src/modules/treasury/treasury.service.spec.ts` | Test | Treasury service unit tests | INSPECTED | Test file exists for treasury module |
+| Database — migrations | `packages/database/migrations/` (157 SQL files) | Migration | Idempotent schema migrations, RLS policies, tenant FKs | INSPECTED | Sampled `0004_accounting.sql`, `0000_platform_identity.sql`, `0001_platform_services.sql`, `0031_mfa.sql` — all `IF NOT EXISTS`, `DROP POLICY IF EXISTS`, no destructive DROP TABLE/DELETE without WHERE |
+| Frontend — staff reports QR | `apps/staff/app/reports/[key]/page.tsx` | Frontend | Report rendering with QR code | INSPECTED | Single `dangerouslySetInnerHTML` for internally-generated QR SVG only, not user-controlled HTML |
 | Contracts — permissions | `packages/contracts/src/permissions.ts` | Contract | `permissionGrants()`, alias-aware, `*` = tenant-only wildcard | INSPECTED | Console perms excluded from `*` |
 | Test — weekly report | `apps/api/test/weekly-report.spec.ts` | Test | Weekly report scheduling and preview | FIXED_AND_RETESTED | Timezone bug fixed (F-002); 14/14 passed |
 | Test — audit webhook audit | `apps/api/test/audit-webhook-audit.spec.ts` | Test | Webhook audit tenant attribution (AUD-14) | FIXED_AND_RETESTED | Added `awaitAuditRow()` polling retry (F-001); 4/4 passed |
 
 ## Remaining Files
 
-**1,812 source files not yet individually inspected** — status: NOT_STARTED
+**1,808 source files not yet individually inspected** — status: NOT_STARTED
 
 These include remaining modules under:
 - `apps/api/src/modules/` (all not-listed modules)
