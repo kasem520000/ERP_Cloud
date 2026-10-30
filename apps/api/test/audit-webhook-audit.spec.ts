@@ -55,6 +55,20 @@ describe('AUD-14 — إسناد تدقيق الويبهوك', () => {
       }>;
     });
 
+  /** `AuditService.record` is fire-and-forget by design (audit must never block the
+   * response). The interceptor's `onSettled` runs `void this.onSettled(...)`, so the row
+   * lands a few milliseconds after the HTTP response. Poll briefly instead of racing it —
+   * this is what makes the suite-stable while keeping production behaviour unchanged. */
+  const awaitAuditRow = async (tenantIds: string[], timeoutMs = 5_000): Promise<unknown[]> => {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const rows = await auditRows(tenantIds);
+      if (rows.length > 0) return rows;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    return auditRows(tenantIds);
+  };
+
   const deliver = (body: Record<string, unknown>, secret = token) =>
     api(ctx.server, 'post', `/api/v1/crm/webhooks/whatsapp?token=${encodeURIComponent(secret)}`, { body });
 
@@ -83,7 +97,7 @@ describe('AUD-14 — إسناد تدقيق الويبهوك', () => {
     const response = await deliver({ from: '+966500000000', text: 'مرحباً' });
     expect([200, 201]).toContain(response.status);
 
-    const rows = await auditRows([actor.tenantId]);
+    const rows = await awaitAuditRow([actor.tenantId]);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.tenant_id, 'the audit row must belong to the tenant the secret resolved').toBe(actor.tenantId);
     expect(rows[0]!.actor_user_id, 'no user is behind a provider webhook').toBeNull();
