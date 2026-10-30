@@ -11,15 +11,15 @@
 
 | ID | Severity | Domain | Description | Status | Regression Test |
 |----|----------|--------|-------------|--------|-----------------|
-| F-001 | MEDIUM | Test isolation | `audit-webhook-audit.spec.ts` passes in isolation but fails in full suite (0 audit rows found) — test pollution / ordering issue | INVESTIGATING | N/A (test issue) |
-| F-002 | LOW | Functional | `weekly-report.spec.ts` hardcodes UTC-based `toISOString()` expectations while `weeklyWindow()` uses server local time — fails on UTC servers | FIXED | `test/weekly-report.spec.ts` (dynamic expectations) |
+| F-001 | MEDIUM | Test infrastructure | `audit-webhook-audit.spec.ts` test raced fire-and-forget audit write under full-suite load. Fixed by adding `awaitAuditRow()` retry loop. | FIXED_AND_RETESTED | `test/audit-webhook-audit.spec.ts` (4/4 pass in full suite) |
+| F-002 | LOW | Functional / Reporting | `weekly-report.spec.ts` hardcodes UTC `toISOString()` expectations for server-local-time function — fails on UTC hosts | FIXED_AND_RETESTED | `test/weekly-report.spec.ts` (14/14 pass on UTC host) |
 
 ## Severity Totals
 
 - CRITICAL: 0
 - HIGH: 0
-- MEDIUM: 1 (F-001)
-- LOW: 1 (F-002)
+- MEDIUM: 0 (F-001 resolved)
+- LOW: 0 (F-002 resolved)
 - INFORMATIONAL: 0
 
 ## Domains
@@ -30,7 +30,7 @@
 - Tenant isolation: 0
 - Database: 0
 - Tax/ZATCA: 0
-- Functional: 1 (F-002)
+- Functional: 0
 - Reporting: 0
 - Performance: 0
 - Infrastructure: 0
@@ -39,20 +39,20 @@
 
 ## Detailed Findings
 
-### F-001 — Test isolation pollution in full suite
+### F-001 — Test isolation: fire-and-forget audit write race
 
 **Severity:** MEDIUM  
 **Domain:** Test infrastructure  
-**Description:** `test/audit-webhook-audit.spec.ts` passes when run alone (4/4 tests) and when run with `weekly-report.spec.ts`, but the first test ("تسليم صحيح: سجلٌ واحد مربوطٌ بالمستأجر") fails in the full suite run with `expected [] to have a length of 1 but got +0`.  
+**Description:** `test/audit-webhook-audit.spec.ts` test 1 ("تسليم صحيح: سجلٌ واحد مربوطٌ بالمستأجر") failed in the full 269-file suite with `expected [] to have a length of 1 but got +0` — zero audit rows found. Passed in isolation (4/4).  
 **Affected files:** `apps/api/test/audit-webhook-audit.spec.ts`  
-**Root cause:** Not yet determined — suspected test pollution from another suite writing to `audit_log` or `crm_settings` with overlapping paths/tokens, or embedded-PostgreSQL connection state.  
-**Business impact:** None (production code is correct; test is flaky).  
+**Root cause:** `AuditInterceptor` calls `void this.onSettled(...)` — the `audit_log` row write is fire-and-forget by design (audit must never block HTTP responses). The test queried the database immediately after the HTTP response, racing the async audit write. Under full-suite load, the write microtask hadn't completed before the query executed.  
+**Business impact:** None — production code is correct; the test was flaky.  
 **Security impact:** None.  
-**Reproduction:** Run `pnpm --filter @erp/api run test` (full suite) — test 1 of AUD-14 fails.  
-**Fix status:** INVESTIGATING  
-**Regression test:** The test itself passes in isolation.  
-**Evidence:** Full-suite run output (2 failed tests incl. this one); isolated run output (4/4 pass).  
-**Remaining limitations:** Root cause not yet isolated; requires full-suite run with debugging to identify the polluting test.
+**Reproduction:** Full-suite run reproduced the failure; isolated runs always passed.  
+**Fix status:** FIXED_AND_RETESTED — Added `awaitAuditRow()` helper that polls for the audit row (50ms intervals, 5s timeout) before asserting. Production behaviour unchanged (fire-and-forget remains).  
+**Regression test:** `test/audit-webhook-audit.spec.ts` — 4/4 tests pass both in isolation and in the full 269-file suite.  
+**Evidence:** Before fix — full suite: 2 failed tests including F-001. After fix — full suite: 2169 passed / 0 failed / 269 files.  
+**Remaining limitations:** None.
 
 ### F-002 — Weekly report test is timezone-dependent
 
@@ -63,12 +63,13 @@
 **Root cause:** Test hardcodes UTC string expectations for a function that uses server local time (`getDay()`/`setHours(0,0,0,0)`).  
 **Business impact:** Test fails on UTC CI servers, masking real regressions.  
 **Security impact:** None.  
-**Reproduction:** Run `pnpm --filter @erp/api exec vitest run test/weekly-report.spec.ts` on a UTC host — test fails.  
-**Fix status:** FIXED — replaced hardcoded UTC strings with dynamically computed local-time expectations; added `isoDateLocal()` helper matching `weekly-report.service.isoDate`.  
-**Regression test:** `test/weekly-report.spec.ts` (14/14 pass on UTC host).  
-**Evidence:** Before fix — 1 failed test; after fix — 14/14 pass.  
+**Reproduction:** Run `test/weekly-report.spec.ts` on a UTC host — test fails.  
+**Fix status:** FIXED_AND_RETESTED — Replaced hardcoded UTC strings with dynamically computed local-time expectations; added `isoDateLocal()` helper matching `weekly-report.service.isoDate`.  
+**Regression test:** `test/weekly-report.spec.ts` — 14/14 tests pass on UTC host.  
+**Evidence:** Before fix — 1 failed test on UTC. After fix — 14/14 pass.  
 **Remaining limitations:** None.
 
 ---
 
+*All findings resolved. Zero remaining findings in the register.*  
 *Statuses: NOT_STARTED | INVESTIGATING | FIXED_AND_RETESTED | BLOCKED | NOT_APPLICABLE*
