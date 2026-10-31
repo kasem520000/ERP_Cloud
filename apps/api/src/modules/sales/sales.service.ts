@@ -2457,6 +2457,10 @@ export class SalesService {
     const invoice = await this.get(tenantId, invoiceId);
     if (invoice.status !== 'posted')
       throw new DomainError('SALES_INVOICE_NOT_POSTED', 'Payments require a posted invoice', 409);
+    // ACC-084: المبلغ elزامي ورقمي — بدون هذا التحقق يُمرّر `undefined` أو `""` إلى `new Decimal()`
+    // ويخرج الاستعداد بخطأ داخلي 500 بدلاً من 422 مفهوم للمستخدم.
+    if (!input.amount || input.amount.trim().length === 0 || isNaN(Number(input.amount)))
+      throw new DomainError('PAYMENT_AMOUNT_INVALID', 'مبلغ الدفعة مطلوب ويجب أن يكون رقماً صالحاً', 422);
     const paymentValue = money(input.amount);
     if (!paymentValue.isFinite() || paymentValue.lte(0))
       throw new DomainError('PAYMENT_AMOUNT_INVALID', 'Payment amount must be positive', 422);
