@@ -75,8 +75,10 @@ function format(value: Int, scale: number): string {
   const negative = value < 0n;
   const absolute = negative ? -value : value;
   const raw = absolute.toString().padStart(scale + 1, '0');
+  if (scale === 0) return `${negative ? '-' : ''}${raw}`;
   const fraction = raw.slice(-scale).replace(/0+$/, '');
-  return `${negative ? '-' : ''}${raw.slice(0, -scale)}${fraction ? `.${fraction}` : ''}`;
+  const whole = raw.slice(0, raw.length - scale);
+  return `${negative ? '-' : ''}${whole}${fraction ? `.${fraction}` : ''}`;
 }
 
 function divRound(numerator: Int, denominator: Int): Int {
@@ -104,6 +106,9 @@ export function calculateInvoiceTotals(input: InvoiceTotalsInput): InvoiceTotals
   const unit = ten(scale);
   const roundingScale = Math.min(scale, Math.max(0, input.roundingScale ?? 2));
   const money = (value: Int) => roundInt(value, scale - roundingScale);
+  // 💲 تنسيق المخرجات بعدد المنازل المحفوظ في إعدادات المنشأة (الم默لي 2)، وليس الدقة الداخلية (4).
+  const displayUnit = ten(scale - roundingScale);
+  const display = (value: Int) => format(roundInt(value, scale - roundingScale) / displayUnit, roundingScale);
   const prepared = input.lines.map((line) => {
     const quantity = parse(line.quantity, scale);
     const unitPrice = parse(line.unitPrice, scale);
@@ -181,7 +186,7 @@ export function calculateInvoiceTotals(input: InvoiceTotalsInput): InvoiceTotals
     );
     const taxableNet = input.priceIncludesVat ? vatBase - tax : base;
     const total = input.priceIncludesVat ? base + extraShareMoney : base + tax + extraShareMoney;
-    return { gross: format(line.gross, scale), discount: format(line.discount, scale), net: format(taxableNet, scale), tax: format(tax, scale), total: format(total, scale), headerDiscountShare: format(share, scale) };
+    return { gross: display(line.gross), discount: display(line.discount), net: display(taxableNet), tax: display(tax), total: display(total), headerDiscountShare: display(share) };
   });
   const subtotal = lines.reduce((sum, line) => sum + parse(line.net, scale), 0n);
   const tax = lines.reduce((sum, line) => sum + parse(line.tax, scale), 0n);
@@ -193,7 +198,7 @@ export function calculateInvoiceTotals(input: InvoiceTotalsInput): InvoiceTotals
   // which the service then rejects as negative for sales documents.
   const unallocated = money(headerDiscount - shares.reduce((sum, share) => sum + share, 0n));
   const total = subtotal + tax + extraTax - withholding - unallocated;
-  return { lines, subtotal: format(subtotal, scale), discount: format(headerDiscount, scale), taxable: format(subtotal, scale), tax: format(tax, scale), extraTax: format(extraTax, scale), withholding: format(withholding, scale), total: format(total, scale) };
+  return { lines, subtotal: display(subtotal), discount: display(headerDiscount), taxable: display(subtotal), tax: display(tax), extraTax: display(extraTax), withholding: display(withholding), total: display(total) };
 }
 
 export type LandedCostLineInput = { lineId?: string; itemId?: string; quantity: string; net: string; unitCost?: string };

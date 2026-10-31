@@ -367,15 +367,7 @@ export default function ZatcaSettingsPage() {
                 </button>
                 <button
                   type="button"
-                  className="btn"
-                  disabled={busy !== '' || !otp}
-                  onClick={() => void run('compliance', () => requestComplianceCsid(otp))}
-                >
-                  إصدار شهادة الامتثال
-                </button>
-                <button
-                  type="button"
-                  className="btn"
+                  className="btn primary"
                   disabled={busy !== '' || !done('csr')}
                   onClick={() =>
                     void run('generate', async () => {
@@ -385,7 +377,15 @@ export default function ZatcaSettingsPage() {
                     })
                   }
                 >
-                  توليد الشهادة
+                  ⚡ توليد CSR
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy !== '' || !otp || !done('csr')}
+                  onClick={() => void run('compliance', () => requestComplianceCsid(otp))}
+                >
+                  إصدار شهادة الامتثال
                 </button>
                 <button
                   type="button"
