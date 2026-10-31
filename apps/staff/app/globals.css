@@ -1686,8 +1686,10 @@ tr.opening td {
   .side-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.5);
-    z-index: 45;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 40;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
   }
   .side {
     position: fixed;
@@ -1695,12 +1697,17 @@ tr.opening td {
     inset-inline-start: -320px;
     inset-inline-end: auto;
     width: 288px;
-    z-index: 50;
+    z-index: 60;
     transition: inset-inline-start 200ms var(--ease-out);
     box-shadow: var(--shadow-5);
   }
   .side.open {
     inset-inline-start: 0;
+  }
+  .shell.mobile-open .main {
+    filter: brightness(0.85);
+    pointer-events: none;
+    user-select: none;
   }
   .main {
     padding: 14px 14px 32px;

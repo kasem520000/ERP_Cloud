@@ -725,7 +725,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="shell">
+    <div className={`shell ${mobileOpen ? 'mobile-open' : ''}`}>
       <Suspense fallback={null}>
         <SearchParamsBridge onChange={setSearchString} />
       </Suspense>
